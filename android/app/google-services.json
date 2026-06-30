@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "645350544612",
+    "project_id": "taxhrm-60ce9",
+    "storage_bucket": "taxhrm-60ce9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:645350544612:android:4eb4d2303aa7f3d1fb88f1",
+        "android_client_info": {
+          "package_name": "com.example.taxhrm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4Wu79o4jV4gFkSfXMPl5ZpzxwF6aLxKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:645350544612:android:92b2f61905001cd4fb88f1",
+        "android_client_info": {
+          "package_name": "com.hrmnewapp.taxhrm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4Wu79o4jV4gFkSfXMPl5ZpzxwF6aLxKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,11 @@
+What's New
+
+• Added a mandatory app update system with a force update dialog to ensure all users are on the latest version.
+• Fixed Payroll Summary upload, delete, and incorrect data display issues.
+• Resolved the Payslip screen issue where payslip data was not being displayed.
+• Added Admin Settings to enable or disable employee location tracking and configure tracking radius in meters.
+• Implemented employee location tracking from Punch In to Punch Out with support for background and app-closed states.
+• Added complete employee movement path tracking with map view and improved background location permission handling.
+• Fixed Punch In and Punch Out reminder timing and notification scheduling issues.
+• Resolved location fetching issues on the Punch In screen and improved location validation accuracy for different radius settings.
+• Improved overall performance, stability, and reliability of attendance and location tracking features.
