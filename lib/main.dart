@@ -27,7 +27,10 @@ Future<void> main() async {
   await ReminderNotificationService.initialize();
   // Note: clearSavedSettings removed — it was preventing the dialog from triggering
   // await Upgrader.clearSavedSettings();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: SystemUiOverlay.values,
+  );
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -336,7 +339,13 @@ class _MyAppState extends State<MyApp> {
         builder: (context, child) {
           final mChild = MediaQuery(
             data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
-            child: child!,
+            child: SafeArea(
+              top: false,
+              left: false,
+              right: false,
+              bottom: true,
+              child: child!,
+            ),
           );
           return PremiumUpgradeAlert(
             showIgnore: false,
@@ -357,3 +366,4 @@ class _MyAppState extends State<MyApp> {
 }
 
 //----New  Code UpDate ----\
+

@@ -34,7 +34,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version102 = Platform.isAndroid ? 'v1.0.2' : 'v1.0.0';
     String versionName102 = Platform.isAndroid ? 'Force Update & Enhancements' : 'Initial Release';
     
-    versions = Platform.isAndroid ? ['All', 'v1.0.2', 'v1.0.1', 'v1.0.0'] : ['All', 'v1.0.0'];
+    versions = Platform.isAndroid ? ['All', 'v1.0.2', 'v1.0.1', 'v1.0.0'] : ['All', 'v1.0.1','v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -188,7 +188,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
         description: 'Mandatory app update system, new app icon, and theme color changes.',
         version: version102,
         versionName: versionName102,
-        date: Platform.isAndroid ? 'June 24, 2026' : 'June 05, 2026',
+        date: Platform.isAndroid ? 'July 01, 2026' : 'June 05, 2026',
         category: 'Both',
         icon: Icons.system_update,
         bgColor: const Color(0xFFE91E63), // Pink
@@ -204,7 +204,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
         description: 'Comprehensive employee location tracking and admin configurations.',
         version: version102,
         versionName: versionName102,
-        date: Platform.isAndroid ? 'June 24, 2026' : 'June 05, 2026',
+        date: Platform.isAndroid ? 'July 01, 2026' : 'June 05, 2026',
         category: 'Admin Panel',
         icon: Icons.location_history,
         bgColor: const Color(0xFF4CAF50), // Green
@@ -221,7 +221,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
         description: 'Resolved issues related to payroll, payslips, and punch reminders.',
         version: version102,
         versionName: versionName102,
-        date: Platform.isAndroid ? 'June 24, 2026' : 'June 05, 2026',
+        date: Platform.isAndroid ? 'July 01, 2026' : 'June 05, 2026',
         category: 'Employee App',
         icon: Icons.bug_report,
         bgColor: const Color(0xFFFF9800), // Orange
@@ -229,6 +229,59 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Fixed Payroll Summary upload, delete, and incorrect data display',
           'Resolved Payslip screen data display issue',
           'Fixed Punch In/Out reminder timing and notifications',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 13,
+        title: 'Performance Improvements',
+        description: 'Optimized major HR modules for faster loading and smoother performance.',
+        version: Platform.isAndroid ? version102 : version101,
+        versionName: Platform.isAndroid ? versionName102 : versionName101,
+        date: Platform.isAndroid ? 'July 01, 2026' : 'July 01, 2026',
+        category: 'Both',
+        icon: Icons.speed,
+        bgColor: const Color(0xFF2196F3),
+        features: [
+          'Improved Attendance screen performance',
+          'Optimized Payroll Summary loading',
+          'Enhanced Add Salary screen speed',
+          'General performance improvements',
+        ],
+      ),
+
+      ReleaseNoteItem(
+        id: 14,
+        title: 'UI & Experience Enhancements',
+        description: 'Redesigned multiple screens with improved usability and visual consistency.',
+        version: Platform.isAndroid ? version102 : version101,
+        versionName: Platform.isAndroid ? versionName102 : versionName101,
+        date: Platform.isAndroid ? 'July 01, 2026' : 'July 01, 2026',
+        category: 'Both',
+        icon: Icons.design_services,
+        bgColor: const Color(0xFF9C27B0),
+        features: [
+          'Redesigned Settings screen',
+          'Improved Punch In screen',
+          'Enhanced Timeline View-In UI',
+          'Updated widgets across the application',
+          'Fixed SafeArea and AppBar display issues',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 15,
+        title: 'Admin & Permission Updates',
+        description: 'Improved permission handling and added new admin capabilities.',
+        version: Platform.isAndroid ? version102 : version101,
+        versionName: Platform.isAndroid ? versionName102 : versionName101,
+        date: Platform.isAndroid ? 'July 01, 2026' : 'July 01, 2026',
+        category: 'Both',
+        icon: Icons.admin_panel_settings,
+        bgColor: const Color(0xFF4CAF50),
+        features: [
+          'Improved permission request flow with custom dialogs',
+          'Added Personal Information Edit for Admin users',
+          'Added HRM introduction video on the Splash Screen',
+          'General bug fixes and stability improvements',
         ],
       ),
     ];

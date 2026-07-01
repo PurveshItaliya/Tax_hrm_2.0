@@ -8,10 +8,8 @@ import 'package:tax_hrm/provider/userloginprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tax_hrm/widigets/noInternetView.dart';
-import 'package:tax_hrm/widigets/spacer.dart';
-import 'package:lottie/lottie.dart';
+import 'package:video_player/video_player.dart';
 
 class ShowSpleshPage extends StatefulWidget {
   const ShowSpleshPage({super.key,});
@@ -21,50 +19,91 @@ class ShowSpleshPage extends StatefulWidget {
 }
 
 class _ShowSpleshPageState extends State<ShowSpleshPage> {
+  VideoPlayerController? _controller;
+  bool _navigated = false;
+
+  void _triggerNavigation() {
+    if (!_navigated && mounted) {
+      _navigated = true;
+      _controller?.pause();
+      Provider.of<SplashProvider>(context, listen: false).onVideoFinished(context);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-      Provider.of<SplashProvider>(context,listen: false,).loadingData(context);
-      Provider.of<Userloginprovider>(context,listen: false,).clearData();
+    _controller = VideoPlayerController.asset(splashVideoString)
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() {});
+          _controller?.setLooping(false);
+          _controller?.play();
+          _controller?.addListener(() {
+            if (_controller != null && _controller!.value.isInitialized) {
+              final pos = _controller!.value.position;
+              final dur = _controller!.value.duration;
+              final isPlaying = _controller!.value.isPlaying;
+              if (dur > Duration.zero &&
+                  (pos >= dur || (!isPlaying && pos >= dur - const Duration(milliseconds: 600)))) {
+                _triggerNavigation();
+              }
+            }
+          });
+        }
+      }).catchError((_) {
+        _triggerNavigation();
+      });
+
+    Future.delayed(const Duration(seconds: 6), () {
+      _triggerNavigation();
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<InternetConnectionProvider>(context, listen: false).getAllConnectionData();
+      Provider.of<Userloginprovider>(context, listen: false).clearData();
+      final splashProvider = Provider.of<SplashProvider>(context, listen: false);
+      splashProvider.isVideoFinished = false;
+      splashProvider.pendingNavigationPage = null;
+      splashProvider.loadingData(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    safeAreaBgAndTextColor(context);
+    safeAreaBgAndTextColor(context, safeAreaBgColor: ColorConst.white);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(
       context,
     );
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(
+            backgroundColor: ColorConst.white,
             body: Container(
               color: ColorConst.white,
               height: size.height,
               width: size.width,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  heightSpacer(size.height * 0.1),
-                  Center(
-                    child: SvgPicture.asset(
-                      appLogoString,
-                      height: size.height * 0.25,
-                      fit: BoxFit.fill,
-                    ),
-                  ),
-                  heightSpacer(size.height * 0.3),
-                  SizedBox(
-                    height: size.height * 0.1,
-                    child: Lottie.asset(loadingString),
-                  ),
-                ],
-              ),
+              child: _controller != null && _controller!.value.isInitialized
+                  ? Container(
+                      color: ColorConst.white,
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: _controller!.value.aspectRatio,
+                          child: Container(
+                            color: ColorConst.white,
+                            child: VideoPlayer(_controller!),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Container(color: ColorConst.white),
             ),
           );
   }

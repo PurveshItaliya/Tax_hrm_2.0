@@ -64,18 +64,23 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
       ),
       body: leaderProvider.isLoading
           ? Center(child: CircularProgressIndicator(color: ColorConst.themeColor))
-          : leaderProvider.allRecords.isEmpty
-              ? _buildEmptyState(size, leaderProvider.selectedMonth)
-              : CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(child: _buildMonthSelector(size, leaderProvider)),
-                    SliverToBoxAdapter(child: _buildStatsHeader(size, leaderProvider)),
-                    SliverToBoxAdapter(child: _buildChartSection(size, leaderProvider)),
-                    SliverToBoxAdapter(child: _buildPodiumCards(size, leaderProvider)),
-                    if (leaderProvider.others.isNotEmpty)
-                      SliverToBoxAdapter(child: _buildOthersSection(size, leaderProvider)),
-                  ],
-                ),
+          : CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _buildMonthSelector(size, leaderProvider)),
+                if (leaderProvider.allRecords.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildEmptyState(size, leaderProvider.selectedMonth),
+                  )
+                else ...[
+                  SliverToBoxAdapter(child: _buildStatsHeader(size, leaderProvider)),
+                  SliverToBoxAdapter(child: _buildChartSection(size, leaderProvider)),
+                  SliverToBoxAdapter(child: _buildPodiumCards(size, leaderProvider)),
+                  if (leaderProvider.others.isNotEmpty)
+                    SliverToBoxAdapter(child: _buildOthersSection(size, leaderProvider)),
+                ],
+              ],
+            ),
     );
   }
 

@@ -27,6 +27,7 @@ class EmployeTimelines extends StatefulWidget {
 class _EmployeTimelinesState extends State<EmployeTimelines> {
   final MapController _mapController = MapController();
   LatLng? _lastCenteredPoint;
+  int? _selectedIndex;
 
   @override
   void initState() {
@@ -39,9 +40,14 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
     if (points.isNotEmpty && points.first != _lastCenteredPoint) {
       _lastCenteredPoint = points.first;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        try {
-          _mapController.move(points.first, 14.0);
-        } catch (e) { /* ignored */ }
+        if (mounted) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+          try {
+            _mapController.move(points.first, 16.0);
+          } catch (e) { /* ignored */ }
+        }
       });
     }
   }
@@ -64,30 +70,48 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
         double? lat = double.tryParse(item.latitude!);
         double? lng = double.tryParse(item.logitude!);
         if (lat != null && lng != null) {
+          bool isMarkerSelected = _selectedIndex == i;
           LatLng point = LatLng(lat, lng);
           pointsList.add(point);
           markersList.add(
             Marker(
               point: point,
-              width: 36.0,
-              height: 36.0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: ColorConst.themeColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    "${i + 1}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: fontInterSemiBoldString,
-                      fontWeight: FontWeight.bold,
+              width: isMarkerSelected ? 42.0 : 36.0,
+              height: isMarkerSelected ? 42.0 : 36.0,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (_selectedIndex == i) {
+                      _selectedIndex = null;
+                    } else {
+                      _selectedIndex = i;
+                      _mapController.move(point, 16.0);
+                    }
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: isMarkerSelected ? Colors.orange : ColorConst.themeColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: isMarkerSelected ? 3 : 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isMarkerSelected ? Colors.black45 : Colors.black26,
+                        blurRadius: isMarkerSelected ? 6 : 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      "${i + 1}",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isMarkerSelected ? 14 : 12,
+                        fontFamily: fontInterSemiBoldString,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -115,8 +139,12 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
               ),
               body: Stack(
                 children: [
-                  // 1. Map View filling the background
-                  Positioned.fill(
+                  // 1. Map View aligned above the bottom sheet
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: size.height * 0.45,
                     child: FlutterMap(
                       mapController: _mapController,
                       options: MapOptions(
@@ -232,12 +260,9 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
 
 
 
-                  // 3. Draggable Scrollable Bottom Sheet containing the timeline list
-                  DraggableScrollableSheet(
-                    initialChildSize: 0.4,
-                    minChildSize: 0.15,
-                    maxChildSize: 0.85,
-                    builder: (context, scrollController) {
+                  // 3. Fixed Bottom Sheet containing the timeline list (scrolls only the list)
+                  Builder(
+                    builder: (context) {
                       int itemCount;
                       if (timeLineServices.islodering) {
                         itemCount = 1 + 20; // 1 header + 20 shimmers
@@ -247,298 +272,283 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                         itemCount = 1 + timeLineServices.showUserTimeLines.length; // 1 header + loaded logs
                       }
 
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: ColorConst.scaffoldColor,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(25),
-                            topRight: Radius.circular(25),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, -4),
+                      return Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          height: size.height * 0.5,
+                          decoration: BoxDecoration(
+                            color: ColorConst.scaffoldColor,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(25),
+                              topRight: Radius.circular(25),
                             ),
-                          ],
-                        ),
-                        child: ListView.builder(
-                          controller: scrollController,
-                          itemCount: itemCount,
-                          padding: EdgeInsets.zero,
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Drag pill handle
-                                  const SizedBox(height: 10),
-                                  Center(
-                                    child: Container(
-                                      width: 40,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[400],
-                                        borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, -4),
+                              ),
+                            ],
+                          ),
+                          child: ListView.builder(
+                            itemCount: itemCount,
+                            padding: EdgeInsets.zero,
+                            itemBuilder: (context, index) {
+                              if (index == 0) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 20),
+
+                                    // Header details
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            "Location Timeline",
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: ColorConst.black,
+                                              fontFamily: fontInterSemiBoldString,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            timeLineServices.islodering
+                                                ? "Loading coordinates..."
+                                                : "${timeLineServices.showUserTimeLines.length} coordinates logged",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                              fontFamily: fontInterRegularString,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 15),
+                                    const SizedBox(height: 15),
+                                  ],
+                                );
+                              }
 
-                                  // Header details
-                                  Padding(
+                              // Content items
+                              if (timeLineServices.islodering) {
+                                return Shimmer(
+                                  child: Container(
+                                    width: size.width,
+                                    margin: const EdgeInsets.only(bottom: 15),
                                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    child: Row(
                                       children: [
-                                        const Text(
-                                          "Location Timeline",
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: ColorConst.black,
-                                            fontFamily: fontInterSemiBoldString,
+                                        Container(height: 18, width: 70, color: Colors.grey.shade400),
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
+                                          child: Column(
+                                            children: [
+                                              Container(
+                                                width: 2,
+                                                height: size.height * 0.03,
+                                                color: ColorConst.grey,
+                                              ),
+                                              Container(
+                                                width: size.width * 0.06,
+                                                height: size.width * 0.06,
+                                                decoration: const BoxDecoration(
+                                                  color: ColorConst.grey,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(Icons.check, size: 16, color: ColorConst.white),
+                                              ),
+                                              Container(
+                                                width: 2,
+                                                height: size.height * 0.055,
+                                                color: ColorConst.grey,
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          timeLineServices.islodering
-                                              ? "Loading coordinates..."
-                                              : "${timeLineServices.showUserTimeLines.length} coordinates logged",
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600],
-                                            fontFamily: fontInterRegularString,
+                                        Expanded(
+                                          child: Container(
+                                            padding: EdgeInsets.all(size.width * 0.03),
+                                            height: size.height * 0.09,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade400,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 15),
-                                ],
-                              );
-                            }
+                                );
+                              } else if (timeLineServices.showUserTimeLines.isEmpty) {
+                                return Padding(
+                                  padding: EdgeInsets.only(top: size.height * 0.05),
+                                  child: Center(
+                                    child: noDataFoundsDesign(
+                                      size,
+                                      noTimeLineAddedString,
+                                      nodataFoundsImagString,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                var item = timeLineServices.showUserTimeLines[index - 1];
+                                DateTime dateTime = DateTime.parse(item.entryTime ?? '');
+                                String formattedTime = DateFormat('hh:mm a').format(dateTime);
 
-                            // Content items
-                            if (timeLineServices.islodering) {
-                              return Shimmer(
-                                child: Container(
-                                  width: size.width,
-                                  margin: const EdgeInsets.only(bottom: 15),
+                                bool isLast = (index - 1) == timeLineServices.showUserTimeLines.length - 1;
+                                bool isSelected = _selectedIndex == (index - 1);
+
+                                return Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                                  child: Row(
-                                    children: [
-                                      Container(height: 18, width: 70, color: Colors.grey.shade400),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
-                                        child: Column(
-                                          children: [
-                                            Container(
-                                              width: 2,
-                                              height: size.height * 0.03,
-                                              color: ColorConst.grey,
-                                            ),
-                                            Container(
-                                              width: size.width * 0.06,
-                                              height: size.width * 0.06,
-                                              decoration: const BoxDecoration(
-                                                color: ColorConst.grey,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Icon(Icons.check, size: 16, color: ColorConst.white),
-                                            ),
-                                            Container(
-                                              width: 2,
-                                              height: size.height * 0.055,
-                                              color: ColorConst.grey,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Container(
-                                          padding: EdgeInsets.all(size.width * 0.03),
-                                          height: size.height * 0.09,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.shade400,
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            } else if (timeLineServices.showUserTimeLines.isEmpty) {
-                              return Padding(
-                                padding: EdgeInsets.only(top: size.height * 0.05),
-                                child: Center(
-                                  child: noDataFoundsDesign(
-                                    size,
-                                    noTimeLineAddedString,
-                                    nodataFoundsImagString,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              var item = timeLineServices.showUserTimeLines[index - 1];
-                              DateTime dateTime = DateTime.parse(item.entryTime ?? '');
-                              String formattedTime = DateFormat('hh:mm a').format(dateTime);
-
-                              bool isLast = (index - 1) == timeLineServices.showUserTimeLines.length - 1;
-
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                child: IntrinsicHeight(
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      // Connected Timeline Indicator
-                                      SizedBox(
-                                        width: 12,
-                                        child: Column(
-                                          children: [
-                                            // Top line segment (above the dot)
-                                            if (index - 1 == 0)
-                                              const SizedBox(height: 18)
-                                            else
-                                              Container(
-                                                width: 2,
-                                                height: 18,
-                                                color: ColorConst.themeColor.withOpacity(0.4),
-                                              ),
-
-                                            // Dot
-                                            Container(
-                                              width: 12,
-                                              height: 12,
-                                              decoration: const BoxDecoration(
-                                                color: ColorConst.themeColor,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-
-                                            // Bottom line segment (below the dot)
-                                            if (!isLast)
-                                              Expanded(
-                                                child: Container(
+                                  child: IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        // Connected Timeline Indicator
+                                        SizedBox(
+                                          width: 12,
+                                          child: Column(
+                                            children: [
+                                              // Top line segment (above the dot)
+                                              if (index - 1 == 0)
+                                                const SizedBox(height: 18)
+                                              else
+                                                Container(
                                                   width: 2,
+                                                  height: 18,
                                                   color: ColorConst.themeColor.withOpacity(0.4),
                                                 ),
-                                              )
-                                            else
-                                              const Expanded(child: SizedBox()),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 15),
 
-                                      // Log Card Item
-                                      Expanded(
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            double? lat = double.tryParse(item.latitude ?? '');
-                                            double? lng = double.tryParse(item.logitude ?? '');
-                                            if (lat != null && lng != null) {
-                                              _mapController.move(LatLng(lat, lng), 16.0);
-                                            }
-                                          },
-                                          child: Card(
-                                            color: ColorConst.white,
-                                            elevation: 1,
-                                            shadowColor: Colors.black12,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                                            margin: const EdgeInsets.only(bottom: 15),
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(15),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    children: [
-                                                      Text(
-                                                        formattedTime,
-                                                        style: const TextStyle(
-                                                          fontSize: 14,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: ColorConst.black,
-                                                          fontFamily: fontInterSemiBoldString,
-                                                        ),
-                                                      ),
-                                                      if (item.deviceName != null && item.deviceName!.isNotEmpty)
-                                                        Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.grey[200],
-                                                            borderRadius: BorderRadius.circular(6),
+                                              // Dot
+                                              Container(
+                                                width: 12,
+                                                height: 12,
+                                                decoration: BoxDecoration(
+                                                  color: isSelected ? Colors.orange : ColorConst.themeColor,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+
+                                              // Bottom line segment (below the dot)
+                                              if (!isLast)
+                                                Expanded(
+                                                  child: Container(
+                                                    width: 2,
+                                                    color: ColorConst.themeColor.withOpacity(0.4),
+                                                  ),
+                                                )
+                                              else
+                                                const Expanded(child: SizedBox()),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 15),
+
+                                        // Log Card Item
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                if (_selectedIndex == index - 1) {
+                                                  _selectedIndex = null;
+                                                } else {
+                                                  _selectedIndex = index - 1;
+                                                  double? lat = double.tryParse(item.latitude ?? '');
+                                                  double? lng = double.tryParse(item.logitude ?? '');
+                                                  if (lat != null && lng != null) {
+                                                    _mapController.move(LatLng(lat, lng), 16.0);
+                                                  }
+                                                }
+                                              });
+                                            },
+                                            child: Card(
+                                              color: isSelected ? ColorConst.themeColor.withOpacity(0.05) : ColorConst.white,
+                                              elevation: isSelected ? 3 : 1,
+                                              shadowColor: Colors.black12,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(15),
+                                                side: isSelected
+                                                    ? const BorderSide(color: ColorConst.themeColor, width: 2)
+                                                    : const BorderSide(color: Colors.transparent, width: 2),
+                                              ),
+                                              margin: const EdgeInsets.only(bottom: 15),
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(15),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                      children: [
+                                                        Text(
+                                                          formattedTime,
+                                                          style: const TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: ColorConst.black,
+                                                            fontFamily: fontInterSemiBoldString,
                                                           ),
-                                                          child: Row(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Icon(
-                                                                item.deviceType.toString().toLowerCase().contains("android")
-                                                                    ? Icons.android
-                                                                    : Icons.phone_iphone,
-                                                                size: 12,
-                                                                color: Colors.grey[700],
-                                                              ),
-                                                              const SizedBox(width: 4),
-                                                              Text(
-                                                                item.deviceName.toString(),
-                                                                style: TextStyle(
-                                                                  fontSize: 10,
-                                                                  fontWeight: FontWeight.bold,
+                                                        ),
+                                                        if (item.deviceName != null && item.deviceName!.isNotEmpty)
+                                                          Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.grey[200],
+                                                              borderRadius: BorderRadius.circular(6),
+                                                            ),
+                                                            child: Row(
+                                                              mainAxisSize: MainAxisSize.min,
+                                                              children: [
+                                                                Icon(
+                                                                  item.deviceType.toString().toLowerCase().contains("android")
+                                                                      ? Icons.android
+                                                                      : Icons.phone_iphone,
+                                                                  size: 12,
                                                                   color: Colors.grey[700],
-                                                                  fontFamily: fontInterMediumString,
                                                                 ),
-                                                              ),
-                                                            ],
+                                                                const SizedBox(width: 4),
+                                                                Text(
+                                                                  item.deviceName.toString(),
+                                                                  style: TextStyle(
+                                                                    fontSize: 10,
+                                                                    fontWeight: FontWeight.bold,
+                                                                    color: Colors.grey[700],
+                                                                    fontFamily: fontInterMediumString,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
                                                           ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    item.address.toString(),
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey[600],
-                                                      fontFamily: fontInterRegularString,
+                                                      ],
                                                     ),
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  // Row(
-                                                  //   children: [
-                                                  //     const Icon(
-                                                  //       Icons.location_on,
-                                                  //       size: 14,
-                                                  //       color: ColorConst.themeColor,
-                                                  //     ),
-                                                  //     const SizedBox(width: 4),
-                                                  //     Text(
-                                                  //       "Lat: ${item.latitude}, Lng: ${item.logitude}",
-                                                  //       style: const TextStyle(
-                                                  //         fontSize: 12,
-                                                  //         fontWeight: FontWeight.w600,
-                                                  //         color: ColorConst.themeColor,
-                                                  //         fontFamily: fontInterSemiBoldString,
-                                                  //       ),
-                                                  //     ),
-                                                  //   ],
-                                                  // ),
-                                                ],
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      item.address.toString(),
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey[600],
+                                                        fontFamily: fontInterRegularString,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              );
-                            }
-                          },
+                                );
+                              }
+                            },
+                          ),
                         ),
                       );
                     },

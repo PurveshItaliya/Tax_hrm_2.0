@@ -23,14 +23,29 @@ import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
 
 class SplashProvider extends ChangeNotifier {
+  bool isVideoFinished = false;
+  Widget? pendingNavigationPage;
+
+  void triggerNextScreen(BuildContext context, Widget page) {
+    if (isVideoFinished) {
+      nextScreen(context, page, onthenValue: (value) {});
+    } else {
+      pendingNavigationPage = page;
+    }
+  }
+
+  void onVideoFinished(BuildContext context) {
+    isVideoFinished = true;
+    if (pendingNavigationPage != null) {
+      nextScreen(context, pendingNavigationPage!, onthenValue: (value) {});
+      pendingNavigationPage = null;
+    }
+  }
   
   loadingData(context) {
     try {
-      // checknotification(context);
       SaveUser().loadAdminSwitch();
-      Timer(const Duration(seconds: 1), () async {
-        getAllData(context);
-      });
+      getAllData(context);
     } catch (e) { /* ignored */ }
   }
 
@@ -120,27 +135,27 @@ class SplashProvider extends ChangeNotifier {
           } else{
             if(curentUser['Role'] =='Admin'){
               Provider.of<HomeProvider>(context,listen: false,).changeSelectBottomBar(0);
-              nextScreen(context, AnimatedBottomBar(), onthenValue: (value) {});
+              triggerNextScreen(context, AnimatedBottomBar());
             } else if(curentUser['Role'] =='Sub-Admin') {
               SaveUser().loadAdminSwitch().then((value) async {
                 if(switchValue) {
                   Provider.of<HomeProvider>(context,listen: false,).changeSelectBottomBar(0);
-                  nextScreen(context, AnimatedBottomBar(), onthenValue: (value) {});
+                  triggerNextScreen(context, AnimatedBottomBar());
                 } else{
                   await Provider.of<HomeProvider>(context, listen: false).companySelect();
                   Provider.of<HomeProvider>(context,listen: false,).selectFloadButton();
-                  nextScreen(context, AnimatedBottomBar(), onthenValue: (value) {});
+                  triggerNextScreen(context, AnimatedBottomBar());
                 }
               },);
             } else{
               await Provider.of<HomeProvider>(context, listen: false).companySelect();
               Provider.of<HomeProvider>(context,listen: false,).selectFloadButton();
-              nextScreen(context, AnimatedBottomBar(), onthenValue: (value) {});
+              triggerNextScreen(context, AnimatedBottomBar());
             }
           }
         });
       } else{
-        nextScreen(context, LoginScreen(), onthenValue: (value) {});
+        triggerNextScreen(context, LoginScreen());
       }
     });
   }
@@ -151,13 +166,13 @@ class SplashProvider extends ChangeNotifier {
       if(loginReponse.id == 0 && loginReponse.role == null){
         SaveUser().saveUserData('');
         SaveUser().saveselectedcopany('');
-        nextScreen(context, LoginScreen(), onthenValue: (value) {});
+        triggerNextScreen(context, LoginScreen());
       } else {
         if(loginReponse.hRM  != null){
           var  holdData =   value;
           String udata = jsonEncode(value);
           SaveUser().saveUserData(udata);
-          nextScreen(context, AnimatedBottomBar(), onthenValue: (value) {});
+          triggerNextScreen(context, AnimatedBottomBar());
         }
       }
     });
@@ -169,7 +184,7 @@ class SplashProvider extends ChangeNotifier {
       if(loginReponse.success == false || loginReponse.hRM  == false){
         SaveUser().saveUserData('');
         SaveUser().saveselectedcopany('');
-        nextScreen(context, LoginScreen(), onthenValue: (value) {});
+        triggerNextScreen(context, LoginScreen());
       } else {
         if(loginReponse.hRM  == true){
           String udata = jsonEncode(loginReponse);
@@ -179,7 +194,7 @@ class SplashProvider extends ChangeNotifier {
                curentUser = jsonDecode(value);
             }
           });
-          nextScreen(context, AnimatedBottomBar(), onthenValue: (value) {});
+          triggerNextScreen(context, AnimatedBottomBar());
         }
       }
     });
