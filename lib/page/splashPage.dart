@@ -85,19 +85,20 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(
-            backgroundColor: ColorConst.white,
+            backgroundColor: Color(0xfff2f2f2),
             body: Container(
-              color: ColorConst.white,
+              color: Color(0xfff2f2f2),
               height: size.height,
               width: size.width,
               child: _controller != null && _controller!.value.isInitialized
                   ? Container(
-                      color: ColorConst.white,
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: _controller!.value.aspectRatio,
-                          child: Container(
-                            color: ColorConst.white,
+                      color: Color(0xfff2f2f2),
+                      child: SizedBox.expand(
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _controller!.value.size.width,
+                            height: _controller!.value.size.height,
                             child: VideoPlayer(_controller!),
                           ),
                         ),
