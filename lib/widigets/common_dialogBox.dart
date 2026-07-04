@@ -59,7 +59,7 @@ Future<bool> commonDialogBoxDesign({context, size, title, onTapLogOut}) async {
                 onPressed: onTapLogOut ?? () {
                   SystemNavigator.pop();
                 },
-                child: Text('Yes, $title' ,style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColorConst.white)),
+                child: Text('Yes, $title' ,style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColorConst.white)),
               ),
 
               heightSpacer(size.height * 0.015),
@@ -156,7 +156,7 @@ void punchDeniedShowDialog(String msg, context) {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
               ),
-              child: const Text(
+              child: Text(
                 "OK",
                 style: TextStyle(fontSize: 16, color: ColorConst.white),
               ),
@@ -218,7 +218,7 @@ class _GpsDialogState extends State<_GpsDialog> with WidgetsBindingObserver {
       ),
       title: Row(
         children: [
-          const Icon(Icons.location_off, color: ColorConst.themeColor, size: 28),
+          Icon(Icons.location_off, color: ColorConst.themeColor, size: 28),
           const SizedBox(width: 10),
           const Expanded(
             child: Text(

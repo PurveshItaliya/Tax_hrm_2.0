@@ -593,7 +593,7 @@ class LeaveUserProvider extends ChangeNotifier {
       builder: (context, child) {
         return Theme(
           data: ThemeData(
-            colorScheme: const ColorScheme.dark(
+            colorScheme: ColorScheme.dark(
               primary: ColorConst.themeColor,
               onPrimary: ColorConst.white,
               surface: ColorConst.white,

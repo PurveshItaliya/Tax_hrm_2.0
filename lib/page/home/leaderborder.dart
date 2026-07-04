@@ -82,7 +82,7 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
         ],
       ),
       child: homeProvider.isLeaderboardLoading
-          ? const SizedBox(
+          ? SizedBox(
               height: 200,
               child: Center(
                 child: CircularProgressIndicator(

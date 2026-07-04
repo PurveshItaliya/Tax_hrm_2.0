@@ -92,7 +92,7 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
       margin: EdgeInsets.fromLTRB(size.width * 0.04, size.height * 0.015, size.width * 0.04, 0),
       padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.012),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: ColorConst.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2)),
@@ -239,7 +239,7 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
       padding: EdgeInsets.all(size.width * 0.04),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))]),
+      decoration: BoxDecoration(color: ColorConst.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -303,7 +303,7 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
 
         return Container(
           margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.008),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: shadow, blurRadius: 14, offset: const Offset(0, 5))], border: Border.all(color: border, width: 1)),
+          decoration: BoxDecoration(color: ColorConst.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: shadow, blurRadius: 14, offset: const Offset(0, 5))], border: Border.all(color: border, width: 1)),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: Column(
@@ -365,13 +365,13 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: size.width * 0.024, color: Colors.grey.shade500),
+                    Icon(Icons.calendar_today, size: size.width * 0.024, color: ColorConst.textgrey),
                     const SizedBox(width: 6),
-                    Text('${winner.totalDays} days', style: TextStyle(fontSize: size.width * 0.024, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+                    Text('${winner.totalDays} days', style: TextStyle(fontSize: size.width * 0.024, color: ColorConst.settingTextColors, fontWeight: FontWeight.w500)),
                     const SizedBox(width: 16),
-                    Icon(Icons.free_breakfast, size: size.width * 0.024, color: Colors.grey.shade500),
+                    Icon(Icons.free_breakfast, size: size.width * 0.024, color: ColorConst.textgrey),
                     const SizedBox(width: 6),
-                    Text(winner.totalBreakHours, style: TextStyle(fontSize: size.width * 0.024, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+                    Text(winner.totalBreakHours, style: TextStyle(fontSize: size.width * 0.024, color: ColorConst.settingTextColors, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ],
@@ -390,13 +390,13 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
 
     return Container(
       margin: EdgeInsets.only(left: size.width * 0.04, right: size.width * 0.04, bottom: size.height * 0.03),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))]),
+      decoration: BoxDecoration(color: ColorConst.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))]),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.014), decoration: BoxDecoration(color: ColorConst.othersHeader, border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),),
+            Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.014), decoration: BoxDecoration(color: ColorConst.othersHeader, border: Border(bottom: BorderSide(color: ColorConst.textBorder, width: 1)),),
               child: Row(
                 children: [
                   Container(padding: EdgeInsets.all(size.width * 0.01), decoration: BoxDecoration(color: ColorConst.othersAvatar, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.people_alt, size: size.width * 0.04, color: ColorConst.othersAvatarText)),
@@ -409,13 +409,13 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
                 ],
               ),
             ),
-            Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.012), color: Colors.grey.shade50,
+            Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.012), color: ColorConst.greyOpicityColor,
               child: Row(
                 children: [
                   SizedBox(width: size.width * 0.07), const SizedBox(width: 12), SizedBox(width: size.width * 0.09), const SizedBox(width: 12),
-                  Expanded(child: Text('Employee Name', style: TextStyle(fontSize: size.width * 0.028, fontWeight: FontWeight.w600, color: Colors.grey.shade700, letterSpacing: 0.3))),
+                  Expanded(child: Text('Employee Name', style: TextStyle(fontSize: size.width * 0.028, fontWeight: FontWeight.w600, color: ColorConst.textgrey, letterSpacing: 0.3))),
                   SizedBox(width: size.width * 0.12),
-                  Text('Hours', style: TextStyle(fontSize: size.width * 0.028, fontWeight: FontWeight.w600, color: Colors.grey.shade700, letterSpacing: 0.3)),
+                  Text('Hours', style: TextStyle(fontSize: size.width * 0.028, fontWeight: FontWeight.w600, color: ColorConst.textgrey, letterSpacing: 0.3)),
                 ],
               ),
             ),
@@ -423,7 +423,7 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: others.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+              separatorBuilder: (_, __) => Divider(height: 1, color: ColorConst.textBorder),
               itemBuilder: (ctx, i) => _buildOtherRow(size, others[i], maxMinutes, i),
             ),
           ],
@@ -435,7 +435,7 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
   Widget _buildOtherRow(Size size, WinnerModels winner, int maxMinutes, int index) {
     final initials = winner.name.split(' ').take(2).map((p) => p.isNotEmpty ? p[0] : '').join();
     final progress = maxMinutes > 0 ? (winner.netWorkingMinutes / maxMinutes).clamp(0.0, 1.0) : 0.0;
-    final rowColor = index % 2 == 0 ? Colors.white : Colors.grey.shade50;
+    final rowColor = index % 2 == 0 ? ColorConst.white : ColorConst.greyOpicityColor;
 
     return Container(
       color: rowColor,
@@ -464,13 +464,13 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: size.width * 0.024, color: Colors.grey.shade500),
+                    Icon(Icons.calendar_today, size: size.width * 0.024, color: ColorConst.textgrey),
                     const SizedBox(width: 6),
-                    Text('${winner.totalDays} days', style: TextStyle(fontSize: size.width * 0.024, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
-                    Container(width: 5, height: 5, margin: EdgeInsets.symmetric(horizontal: size.width * 0.02), decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle)),
-                    Icon(Icons.free_breakfast, size: size.width * 0.024, color: Colors.grey.shade500),
+                    Text('${winner.totalDays} days', style: TextStyle(fontSize: size.width * 0.024, color: ColorConst.settingTextColors, fontWeight: FontWeight.w500)),
+                    Container(width: 5, height: 5, margin: EdgeInsets.symmetric(horizontal: size.width * 0.02), decoration: BoxDecoration(color: ColorConst.textgrey, shape: BoxShape.circle)),
+                    Icon(Icons.free_breakfast, size: size.width * 0.024, color: ColorConst.textgrey),
                     const SizedBox(width: 6),
-                    Text(winner.totalBreakHours, style: TextStyle(fontSize: size.width * 0.024, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+                    Text(winner.totalBreakHours, style: TextStyle(fontSize: size.width * 0.024, color: ColorConst.settingTextColors, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ],
@@ -486,11 +486,11 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(padding: EdgeInsets.all(size.width * 0.06), decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle), child: Icon(Icons.emoji_events_outlined, size: size.width * 0.12, color: const Color(0xFF94A3B8))),
+          Container(padding: EdgeInsets.all(size.width * 0.06), decoration: BoxDecoration(color: ColorConst.greyOpicityColor, shape: BoxShape.circle), child: Icon(Icons.emoji_events_outlined, size: size.width * 0.12, color: ColorConst.textgrey)),
           const SizedBox(height: 20),
           Text('No Data Available', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: ColorConst.textHeadingColor)),
           const SizedBox(height: 8),
-          Text('No records found for\n${DateFormat('MMMM yyyy').format(selectedMonth)}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
+          Text('No records found for\n${DateFormat('MMMM yyyy').format(selectedMonth)}', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: ColorConst.textgrey)),
         ],
       ),
     );

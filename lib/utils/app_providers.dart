@@ -40,9 +40,11 @@ import 'package:tax_hrm/provider/subadminaccessprovider.dart';
 import 'package:tax_hrm/provider/timelinesprovider.dart';
 import 'package:tax_hrm/provider/userloginprovider.dart';
 import 'package:tax_hrm/provider/usermasterprovider.dart';
+import 'package:tax_hrm/provider/theme_provider.dart';
 
 class AppProviders {
   static List<SingleChildWidget> providers = [
+    ChangeNotifierProvider(create: (_) => ThemeProvider()),
     ChangeNotifierProvider(create: (_) => AttendanceEmp()),
     ChangeNotifierProvider(create: (_) => AdminAttenDanceServices()),
     ChangeNotifierProvider(create: (_) => UserMasterService()),

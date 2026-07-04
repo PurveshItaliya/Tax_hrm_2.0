@@ -185,7 +185,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
       ReleaseNoteItem(
         id: 10,
         title: 'App Updates & UI Changes',
-        description: 'Mandatory app update system, new app icon, and theme color changes.',
+        description: 'Mandatory app update system, new app icon, dark theme, and theme color changes.',
         version: version102,
         versionName: versionName102,
         date: Platform.isAndroid ? 'July 01, 2026' : 'June 05, 2026',
@@ -196,6 +196,22 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Mandatory app update system with force update dialog',
           'App icon change and app theme colors change',
           'Improved overall performance, stability, and reliability',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 105,
+        title: 'Full Dark Mode Experience',
+        description: 'Enjoy a beautiful dark theme tailored for all modules to reduce eye strain.',
+        version: version102,
+        versionName: versionName102,
+        date: Platform.isAndroid ? 'July 01, 2026' : 'June 05, 2026',
+        category: 'Both',
+        icon: Icons.dark_mode,
+        bgColor: const Color(0xFF673AB7), // Deep Purple
+        features: [
+          'Full App Dark Mode Option Added',
+          'Smart color adaptation across all screens',
+          'Easy toggle from Settings to switch between Light and Dark mode',
         ],
       ),
       ReleaseNoteItem(
@@ -366,7 +382,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
       margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
       padding: EdgeInsets.symmetric(horizontal: size.width * 0.02, vertical: size.height * 0.005),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: ColorConst.greyOpicityColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: SingleChildScrollView(
@@ -409,7 +425,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
                     style: TextStyle(
                       fontSize: size.width * 0.032,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : Colors.grey.shade600,
+                      color: isSelected ? Colors.white : ColorConst.textgrey,
                     ),
                   ),
                 ),
@@ -518,10 +534,10 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           Container(
             padding: EdgeInsets.symmetric(horizontal: size.width * 0.03, vertical: size.height * 0.005),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: ColorConst.white,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Colors.grey.shade200,
+                color: ColorConst.textBorder,
               ),
             ),
             child: Text(
@@ -529,7 +545,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
               style: TextStyle(
                 fontSize: size.width * 0.024,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey.shade600,
+                color: ColorConst.textgrey,
               ),
             ),
           ),
@@ -580,10 +596,10 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.006),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: ColorConst.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.grey.shade100,
+            color: ColorConst.textBorder,
             width: 1,
           ),
           boxShadow: [
@@ -658,7 +674,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: ColorConst.greyOpicityColor,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -666,7 +682,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
                             style: TextStyle(
                               fontSize: size.width * 0.022,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade600,
+                              color: ColorConst.textgrey,
                             ),
                           ),
                         ),
@@ -678,7 +694,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: size.width * 0.035,
-                color: Colors.grey.shade400,
+                color: ColorConst.textgrey,
               ),
             ],
           ),
@@ -692,7 +708,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
       margin: EdgeInsets.all(size.width * 0.04),
       padding: EdgeInsets.all(size.height * 0.05),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: ColorConst.white,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -700,7 +716,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           Icon(
             Icons.info_outline,
             size: size.width * 0.1,
-            color: Colors.grey.shade400,
+            color: ColorConst.textgrey,
           ),
           const SizedBox(height: 16),
           Text(
@@ -716,7 +732,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
             'Select a different version to view release notes',
             style: TextStyle(
               fontSize: size.width * 0.03,
-              color: Colors.grey.shade500,
+              color: ColorConst.textgrey,
             ),
           ),
         ],
@@ -742,7 +758,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: size.width * 0.028,
-                color: Colors.grey.shade500,
+                color: ColorConst.textgrey,
               ),
             ),
             const SizedBox(height: 4),
@@ -751,7 +767,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: size.width * 0.025,
-                color: Colors.grey.shade400,
+                color: ColorConst.textgrey,
               ),
             ),
           ],
@@ -776,7 +792,7 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
             ),
             padding: EdgeInsets.all(size.width * 0.05),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: ColorConst.white,
               borderRadius: BorderRadius.circular(24),
             ),
             child: SingleChildScrollView(

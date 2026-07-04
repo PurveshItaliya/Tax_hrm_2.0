@@ -86,7 +86,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                               ),
                               child: Text(
                                 leaveAdminProvider.pendingLeaves.length.toString(),
-                                style: const TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
+                                style: TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
                               ),
                             ),
                           ],
@@ -108,7 +108,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                               ),
                               child: Text(
                                 '${leaveAdminProvider.approvedLeaves.length}',
-                                style: const TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
+                                style: TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
                               ),
                             ),
                           ],
@@ -130,7 +130,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                               ),
                               child: Text(
                                 '${leaveAdminProvider.rejectedLeaves.length}',
-                                style: const TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
+                                style: TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
                               ),
                             ),
                           ],
@@ -302,4 +302,3 @@ class _AdminLeavePageState extends State<AdminLeavePage>
     return Colors.grey;
   }
 }
-

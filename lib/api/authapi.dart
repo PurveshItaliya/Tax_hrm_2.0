@@ -31,16 +31,27 @@ class AuthLoginService {
   Future callEmployeLogin(entername, password) async {
     var bodys = {"Username": entername, "Password": password};
     var url = Uri.parse('${apibaseurl}api/Token/EmpLogin');
+    var headers = {
+      "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+      "Access-Control-Allow-Headers":
+          "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      'Content-Type': 'application/json',
+    };
+    var bodyJson = jsonEncode(bodys);
+
+    // ── DEBUG: print curl command ────────────────────────────────────────────
+    print('========== EMP LOGIN CURL ==========');
+    print("curl -X POST '$url' \\");
+    headers.forEach((k, v) => print("  -H '$k: $v' \\"));
+    print("  -d '$bodyJson'");
+    print('====================================');
+    // ─────────────────────────────────────────────────────────────────────────
+
     var response = await http.post(
       url,
-      body: jsonEncode(bodys),
-      headers: {
-        "Access-Control-Allow-Origin": "*", // Required for CORS support to work
-        "Access-Control-Allow-Headers":
-            "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        'Content-Type': 'application/json',
-      },
+      body: bodyJson,
+      headers: headers,
     );
     return empUserLoginFromJson(response.body);
   }

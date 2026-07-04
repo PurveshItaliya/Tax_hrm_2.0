@@ -153,14 +153,14 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
             children: [
               Text(
                 "${curentUser["FirstName"] ?? ''} ${curentUser["LastName"] ?? ''}",
-                style: const TextStyle(
+                style: TextStyle(
                   color: ColorConst.black,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
+              Text(
                 'Punch Attendance',
                 style: TextStyle(
                   color: ColorConst.textgrey,
@@ -184,7 +184,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
                     ),
                     child: Text(
                       time,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: ColorConst.themeColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -268,7 +268,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.location_on_rounded,
                                       color: ColorConst.themeColor,
                                       size: 18,

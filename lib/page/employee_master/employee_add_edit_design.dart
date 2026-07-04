@@ -129,7 +129,7 @@ Widget buildProfileCard(Size size) {
                               ),
                             ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.close,
                             size: 16,
                             color: ColorConst.white,
@@ -155,7 +155,7 @@ Widget buildProfileCard(Size size) {
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.camera_alt,
                         size: 18,
                         color: ColorConst.white,
@@ -176,7 +176,7 @@ Widget buildProfileCard(Size size) {
                 provider.firstNameController.text.isNotEmpty || provider.lastNameController.text.isNotEmpty
                     ? "${provider.firstNameController.text} ${provider.lastNameController.text}".trim()
                     : "Employee Name",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18, 
                   fontWeight: FontWeight.w700,
                   color: ColorConst.themeColor,
@@ -692,7 +692,7 @@ Widget _accountTab(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               item.toString(),
-                              style: const TextStyle(fontSize: 15, color: ColorConst.black),
+                              style: TextStyle(fontSize: 15, color: ColorConst.black),
                             ),
                           ),
                         );
@@ -740,7 +740,7 @@ Widget _accountTab(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               item.toString(),
-                              style: const TextStyle(fontSize: 15, color: ColorConst.black),
+                              style: TextStyle(fontSize: 15, color: ColorConst.black),
                             ),
                           ),
                         );
@@ -1018,7 +1018,7 @@ Widget _personalTab(
                           value: item,
                           child: Text(
                             item.values,
-                            style: const TextStyle(fontSize: 15, color: ColorConst.black),
+                            style: TextStyle(fontSize: 15, color: ColorConst.black),
                           ),
                         );
                       }).toList(),
@@ -1057,7 +1057,7 @@ Widget _personalTab(
                           value: item,
                           child: Text(
                             item,
-                            style: const TextStyle(fontSize: 15, color: ColorConst.black),
+                            style: TextStyle(fontSize: 15, color: ColorConst.black),
                           ),
                         );
                       }).toList(),
@@ -1106,7 +1106,7 @@ Widget _personalTab(
                           value: item,
                           child: Text(
                             item.values,
-                            style: const TextStyle(fontSize: 15, color: ColorConst.black),
+                            style: TextStyle(fontSize: 15, color: ColorConst.black),
                           ),
                         );
                       }).toList(),
@@ -1525,7 +1525,7 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
               isExpanded: true,
               hint: Text(
                 provider.selectedAccounttype == null ? 'Account Type' : provider.selectedAccounttype!.description.toString(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   color: ColorConst.hintextColor,
@@ -1535,7 +1535,7 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
                 value: item,
                 child: Text(
                   item.description!,
-                  style: const TextStyle(fontSize: 15, color: ColorConst.black),
+                  style: TextStyle(fontSize: 15, color: ColorConst.black),
                 ),
               )).toList(),
               selectedItemBuilder: (context) {
@@ -1637,14 +1637,14 @@ Widget _buildLabeledField({
       RichText(
         text: TextSpan(
           text: label,
-          style: const TextStyle(
+          style: TextStyle(
             color: ColorConst.black,
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
           children: [
             if (isRequired)
-              const TextSpan(
+              TextSpan(
                 text: " *",
                 style: TextStyle(
                   color: ColorConst.red,
@@ -1780,7 +1780,7 @@ Future<void> showImagePickerOptions(BuildContext context, EmployeeMasterProvider
             Material(
               color: Colors.transparent,
               child: ListTile(
-                leading: const Icon(Icons.photo_library, color: ColorConst.themeColor),
+                leading: Icon(Icons.photo_library, color: ColorConst.themeColor),
                 title: const Text('Choose from Gallery'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1791,7 +1791,7 @@ Future<void> showImagePickerOptions(BuildContext context, EmployeeMasterProvider
             Material(
               color: Colors.transparent,
               child: ListTile(
-                leading: const Icon(Icons.camera_alt, color: ColorConst.themeColor),
+                leading: Icon(Icons.camera_alt, color: ColorConst.themeColor),
                 title: const Text('Take a Photo'),
                 onTap: () {
                   Navigator.pop(context);

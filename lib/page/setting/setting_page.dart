@@ -1,25 +1,33 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously, prefer_interpolation_to_compose_strings
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/bottom_bar_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
+import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/page/splashPage.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
+import 'package:tax_hrm/provider/theme_provider.dart';
+import 'package:tax_hrm/repository/background_location_repository.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
+import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
+import 'package:tax_hrm/provider/location_tracking_provider.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -48,9 +56,23 @@ class AppVersion {
   }
 }
 
-class _SettingPageState extends State<SettingPage> {
+class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   bool _showAdminToggle = false;
   String _appVersion = '';
+
+  // ── Background location permission state (Android + IsFetchLocation only) ──
+  bool _bgLocationGranted = false;
+  bool get _showBgLocationTile =>
+      Platform.isAndroid && BackgroundLocationRepository.isFetchLocationEnabled();
+
+  Future<void> _checkBgLocationPermission() async {
+    if (!_showBgLocationTile) return;
+    final perm = await Geolocator.checkPermission();
+    final granted = perm == LocationPermission.always;
+    if (mounted && granted != _bgLocationGranted) {
+      setState(() => _bgLocationGranted = granted);
+    }
+  }
 
   Future<void> loadVersion() async {
     _appVersion = await AppVersion.getVersion();
@@ -79,9 +101,25 @@ class _SettingPageState extends State<SettingPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     Provider.of<SettingProvider>(context, listen: false).settingMenuLoading(context);
     _checkAdminAccess();
     loadVersion();
+    _checkBgLocationPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Re-check permission when user returns from system Settings
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkBgLocationPermission();
+    }
   }
 
   @override
@@ -138,10 +176,13 @@ class _SettingPageState extends State<SettingPage> {
                         size: size,
                         title: logoutString,
                         onTapLogOut: () async {
+                          // Crucial: Stop location tracking upon logout!
+                          Provider.of<LocationTrackingProvider>(context, listen: false).stopLocationTracking();
+
                           SaveUser().saveUserData('');
                           SaveUser().saveselectedcopany('');
                           await ReminderNotificationService.cancelAll();
-                          nextscreenRemove(context, ShowSpleshPage(), onthenValue: (value) {});
+                          nextscreenRemove(context, const LoginScreen(), onthenValue: (value) {});
                         },
                       );
                     },
@@ -149,19 +190,19 @@ class _SettingPageState extends State<SettingPage> {
                       width: size.width * 0.85,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
+                        color: ColorConst.logoutBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red.shade100, width: 1),
+                        border: Border.all(color: ColorConst.logoutBorder, width: 1),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.logout_rounded, color: Colors.red.shade600, size: 20),
+                          Icon(Icons.logout_rounded, color: ColorConst.logoutText, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             logoutString,
                             style: TextStyle(
-                              color: Colors.red.shade600,
+                              color: ColorConst.logoutText,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -205,7 +246,7 @@ class _SettingPageState extends State<SettingPage> {
             right: 0,
             child: Container(
               height: size.width * 0.38,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: ColorConst.themeColor,
               ),
             ),
@@ -281,7 +322,7 @@ class _SettingPageState extends State<SettingPage> {
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                      icon: const Icon(Icons.edit_rounded, color: ColorConst.themeColor, size: 18),
+                      icon: Icon(Icons.edit_rounded, color: ColorConst.themeColor, size: 18),
                       onPressed: () {
                         nextScreen(
                           context,
@@ -314,7 +355,7 @@ class _SettingPageState extends State<SettingPage> {
                                 curentUser['LastName'] != "")
                             ? '${curentUser['FirstName'] + ' ' + curentUser['LastName']}'
                             : '${curentUser['Username']}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: fontInterSemiBoldString,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -324,7 +365,7 @@ class _SettingPageState extends State<SettingPage> {
                       const SizedBox(height: 4),
                       Text(
                         curentUser['Role'] == 'Admin' ? 'Administrator' : 'Employee',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: ColorConst.textgrey,
                           fontWeight: FontWeight.w500,
@@ -341,6 +382,28 @@ class _SettingPageState extends State<SettingPage> {
   // ── Settings List Builder ──────────────────────────────────────────────────
   List<Widget> _buildSettingsList(Size size, SettingProvider settingProvider) {
     final List<Widget> list = [];
+
+    // Dark Theme Toggle Tile
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    list.add(
+      _buildDarkThemeToggleTile(
+        size: size,
+        val: themeProvider.isDarkMode,
+        onChanged: (val) {
+          themeProvider.toggleTheme(val);
+          safeAreaBgAndTextColor(context,
+              safeAreaBgColor: val ? ColorConst.black : ColorConst.themeColor,
+              safeAreaBrightness: val ? Brightness.dark : Brightness.light);
+        },
+      ),
+    );
+    list.add(Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)));
+
+    // Background Location Permission tile (Android + IsFetchLocation=true only)
+    if (_showBgLocationTile) {
+      list.add(_buildBgLocationTile(size));
+      list.add(Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)));
+    }
 
     for (int i = 0; i < settingProvider.settingGridOptionList.length; i++) {
       final item = settingProvider.settingGridOptionList[i];
@@ -393,6 +456,63 @@ class _SettingPageState extends State<SettingPage> {
     return list;
   }
 
+  // ── Background Location Permission Tile ────────────────────────────────────
+  Widget _buildBgLocationTile(Size size) {
+    final bool granted = _bgLocationGranted;
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+            color: granted
+                ? ColorConst.themeColor.withOpacity(0.08)
+                : Colors.red.withOpacity(0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.my_location_rounded,
+            color: granted ? ColorConst.themeColor : Colors.red,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          'Background Location',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: ColorConst.settingTextColors,
+          ),
+        ),
+        subtitle: Text(
+          granted
+              ? 'Always Allow — active for shift tracking'
+              : 'Required to track location during your shift',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: granted ? Colors.green.shade600 : Colors.red.shade600,
+          ),
+        ),
+        trailing: Switch(
+          value: granted,
+          activeColor: ColorConst.themeColor,
+          inactiveThumbColor: Colors.red.shade400,
+          inactiveTrackColor: Colors.red.withOpacity(0.25),
+          onChanged: (_) => _openBgLocationSettings(),
+        ),
+        onTap: _openBgLocationSettings,
+      ),
+    );
+  }
+
+  /// Opens the app system settings page so the user can set "Always Allow".
+  Future<void> _openBgLocationSettings() async {
+    await openAppSettings();
+  }
+
   // ── Custom Settings Tile ───────────────────────────────────────────────────
   Widget _buildSettingTile({
     required Size size,
@@ -421,13 +541,13 @@ class _SettingPageState extends State<SettingPage> {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
             color: ColorConst.settingTextColors,
           ),
         ),
-        trailing: const Icon(
+        trailing: Icon(
           Icons.chevron_right_rounded,
           color: ColorConst.settingIconsColors,
           size: 24,
@@ -454,14 +574,54 @@ class _SettingPageState extends State<SettingPage> {
             color: ColorConst.themeColor.withOpacity(0.08),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.admin_panel_settings_rounded,
             color: ColorConst.themeColor,
             size: 20,
           ),
         ),
-        title: const Text(
+        title: Text(
           "Admin Mode",
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: ColorConst.settingTextColors,
+          ),
+        ),
+        trailing: Switch(
+          value: val,
+          activeColor: ColorConst.themeColor,
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  // ── Custom Dark Theme Switch Tile ──────────────────────────────────────────
+  Widget _buildDarkThemeToggleTile({
+    required Size size,
+    required bool val,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+            color: ColorConst.themeColor.withOpacity(0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            val ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            color: ColorConst.themeColor,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          "Dark Theme",
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,

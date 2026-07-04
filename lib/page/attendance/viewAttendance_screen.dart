@@ -622,7 +622,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                             alignment: Alignment.center,
                             child: Text(
                               date.day.toString(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: ColorConst.white,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,

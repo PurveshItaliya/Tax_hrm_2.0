@@ -12,6 +12,8 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/services/background_location_service.dart';
+import 'package:tax_hrm/provider/theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // --- DUMMY FIREBASE HANDLER TO PREVENT CRASH FROM OLD CACHE ---
 @pragma('vm:entry-point')
@@ -23,7 +25,6 @@ const taskName = "LocationTimeLines";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeBackgroundService();
   await ReminderNotificationService.initialize();
   // Note: clearSavedSettings removed — it was preventing the dialog from triggering
   // await Upgrader.clearSavedSettings();
@@ -133,7 +134,7 @@ class _PremiumUpgradeAlertState extends UpgradeAlertState {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -333,37 +334,51 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: AppProviders.providers,
-      child: MaterialApp(
-        title: appNameString,
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) {
-          final mChild = MediaQuery(
-            data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
-            child: SafeArea(
-              top: false,
-              left: false,
-              right: false,
-              bottom: true,
-              child: child!,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: appNameString,
+            themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            theme: ThemeData(
+              brightness: Brightness.light,
+              scaffoldBackgroundColor: const Color(0xFFF6F6F6),
+              primaryColor: const Color(0xff1864EC),
             ),
-          );
-          return PremiumUpgradeAlert(
-            showIgnore: false,
-            showLater: false,
-            barrierDismissible: false,
-            upgrader: Upgrader(
-              durationUntilAlertAgain: const Duration(seconds: 0),
-              debugDisplayAlways: false,
-              debugLogging: true,
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              scaffoldBackgroundColor: const Color(0xff121212),
+              primaryColor: const Color(0xff1864EC),
             ),
-            child: mChild,
+            debugShowCheckedModeBanner: false,
+            builder: (context, child) {
+              final mChild = MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                child: SafeArea(
+                  top: false,
+                  left: false,
+                  right: false,
+                  bottom: true,
+                  child: child!,
+                ),
+              );
+              return PremiumUpgradeAlert(
+                showIgnore: false,
+                showLater: false,
+                barrierDismissible: false,
+                upgrader: Upgrader(
+                  durationUntilAlertAgain: const Duration(seconds: 0),
+                  debugDisplayAlways: false,
+                  debugLogging: true,
+                ),
+                child: mChild,
+              );
+            },
+            home: const ShowSpleshPage(),
           );
         },
-        home: const ShowSpleshPage(),
       ),
     );
   }
 }
 
 //----New  Code UpDate ----\
-

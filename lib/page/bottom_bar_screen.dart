@@ -1,8 +1,9 @@
-// ignore_for_file: deprecated_member_use
-
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stylish_bottom_bar/stylish_bottom_bar.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/attendance/showviewdata.dart';
@@ -12,9 +13,15 @@ import 'package:tax_hrm/page/home/selfie_punch_screen.dart';
 import 'package:tax_hrm/page/leave/admin_leave_page.dart';
 import 'package:tax_hrm/page/leave/leavepage.dart';
 import 'package:tax_hrm/page/setting/setting_page.dart';
+import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
+import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/theme_provider.dart';
+import 'package:tax_hrm/repository/background_location_repository.dart';
+import 'package:tax_hrm/services/background_location_service.dart';
+import 'package:tax_hrm/controllers/background_location_controller.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
@@ -45,12 +52,22 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     SettingPage(),
   ];
 
+  SharedPreferences? _prefs;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<SplashProvider>(context, listen: false).requestAllPermissions();
     });
+    SharedPreferences.getInstance().then((p) {
+      _prefs = p;
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -58,15 +75,18 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     Size size = MediaQuery.of(context).size;
     final homeProvider = Provider.of<HomeProvider>(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context); // Listen to theme changes instantly
+    
     return WillPopScope(
       onWillPop: () => commonDialogBoxDesign(context: context, size: size, title: exitString),
       child: checkInterNetConnection.connectionType == 0 ? const NoInternetViewPage() : Scaffold(
-        backgroundColor: Colors.grey.shade200,
+        backgroundColor: ColorConst.scaffoldColor,
         body: fabSelected ? SelfiePunchScreen() : pageList[selectedIndex],
         bottomNavigationBar: Container(
-          color: Colors.white,
+          color: ColorConst.white,
           child: SafeArea(
             child: StylishBottomBar(
+              backgroundColor: ColorConst.white,
             items: [
               BottomBarItem(
                 icon: SvgPicture.asset(homeImageString, color: ColorConst.bottomIconColor, height: size.width * 0.06, width: size.width * 0.06),
@@ -106,7 +126,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
           width: size.width * 0.15,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [

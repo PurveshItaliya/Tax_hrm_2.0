@@ -29,6 +29,8 @@ const String kPrefTestMode           = 'wm_test_mode';
 const String kNotifChannelId         = 'location_tracking_channel';
 const String kNotifChannelName       = 'Location Tracking';
 const double kMovementThresholdMeters = 50.0;
+const String kPrefLocationNotifShown = 'location_tracking_notif_shown';
+const int    kLocationTrackingNotifId = 887;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WorkManager callbackDispatcher
@@ -431,11 +433,11 @@ Future<void> initializeBackgroundService() async {
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
       autoStart: false,
-      isForegroundMode: false, // Disabled foreground mode to hide persistent notification
+      isForegroundMode: false, // Wait until startLocationTracking to upgrade to foreground
       notificationChannelId: kNotifChannelId,
-      initialNotificationTitle: '',
-      initialNotificationContent: '',
-      foregroundServiceNotificationId: 888,
+      initialNotificationTitle: 'Location Tracking Active',
+      initialNotificationContent: 'Tracking is active until you Punch Out.',
+      foregroundServiceNotificationId: kLocationTrackingNotifId,
     ),
     iosConfiguration: IosConfiguration(
       autoStart: false,
@@ -506,16 +508,31 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
+  print('========== BACKGROUND ISOLATE LOGS ==========');
+  print('1. onStart() called in isolate');
   DartPluginRegistrant.ensureInitialized();
   WidgetsFlutterBinding.ensureInitialized();
 
   if (service is AndroidServiceInstance) {
-    service.on('setAsForeground').listen((_) => service.setAsForegroundService());
-    service.on('setAsBackground').listen((_) => service.setAsBackgroundService());
-    service.setAsBackgroundService();
+    print('2. Registering Android service listeners');
+    service.on('setAsForeground').listen((_) {
+      print('--> setAsForeground listener triggered');
+      service.setAsForegroundService();
+    });
+    service.on('setAsBackground').listen((_) {
+      print('--> setAsBackground listener triggered');
+      service.setAsBackgroundService();
+    });
+    
+    // Force foreground mode so the persistent notification is shown
+    print('3. Calling setAsForegroundService() to show notification');
+    service.setAsForegroundService();
   }
 
-  service.on('stopService').listen((_) => service.stopSelf());
+  service.on('stopService').listen((_) {
+    print('--> stopService listener triggered. Stopping self.');
+    service.stopSelf();
+  });
 
   final notifPlugin = FlutterLocalNotificationsPlugin();
   await notifPlugin.initialize(

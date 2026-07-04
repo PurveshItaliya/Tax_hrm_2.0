@@ -72,7 +72,7 @@ class _CommonPaginationState extends State<CommonPagination> {
                 },
               ),
             ),
-            const NextButton(child: Icon(Icons.chevron_right,color: ColorConst.greyColor,size: 30,),),
+            NextButton(child: Icon(Icons.chevron_right,color: ColorConst.greyColor,size: 30,),),
           ],
         ),
       ),

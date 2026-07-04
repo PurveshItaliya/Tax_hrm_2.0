@@ -28,11 +28,11 @@ void showUserLimitDialog(BuildContext context, size, permitUsers, totalUser) {
             const SizedBox(height: 10),
             RichText(textAlign: TextAlign.center, text: TextSpan(
               children: [
-                const TextSpan(text: 'Permitted: ', style: TextStyle(color: ColorConst.black)),
+                TextSpan(text: 'Permitted: ', style: TextStyle(color: ColorConst.black)),
                 TextSpan(text: '$permitUsers, ', style: normalHeadingText(size)),
-                const TextSpan(text: 'Current: ', style: TextStyle(color: ColorConst.black)),
+                TextSpan(text: 'Current: ', style: TextStyle(color: ColorConst.black)),
                 TextSpan(text: '$totalUser.', style: normalHeadingText(size)),
-                const TextSpan(text: 'Please Contact Customer Care For Assistance.', style: TextStyle(color: ColorConst.black)),
+                TextSpan(text: 'Please Contact Customer Care For Assistance.', style: TextStyle(color: ColorConst.black)),
               ],
             )),
             const SizedBox(height: 20),

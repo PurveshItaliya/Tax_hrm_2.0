@@ -388,7 +388,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
                                           const SizedBox(height: 4),
                                           Text(
                                             selectedTime!.format(context),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.bold,
                                               color: ColorConst.themeColor,

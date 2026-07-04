@@ -157,7 +157,7 @@ class _CustomDialogViewState extends State<CustomDialogView> {
           child: Container(
             height: size.height * 0.12,
             width: size.width * 0.12,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: ColorConst.white,
               shape: BoxShape.circle,
             ),
@@ -172,7 +172,7 @@ class _CustomDialogViewState extends State<CustomDialogView> {
               onTap: () {
                 Navigator.pop(context);
               },
-              child: const Icon(Icons.close,color: Colors.black, size: 25,)),
+              child: Icon(Icons.close, color: ColorConst.black, size: 25,)),
         ),
       ],
     );

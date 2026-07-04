@@ -298,8 +298,8 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.grey.shade100,
-              Colors.grey.shade50,
+              ColorConst.greyOpicityColor,
+              ColorConst.white,
             ],
           ),
           borderRadius: BorderRadius.circular(14),

@@ -140,11 +140,7 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
               body: Stack(
                 children: [
                   // 1. Map View aligned above the bottom sheet
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: size.height * 0.45,
+                  Positioned.fill(
                     child: FlutterMap(
                       mapController: _mapController,
                       options: MapOptions(
@@ -163,7 +159,9 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                          urlTemplate: ColorConst.isDark
+                              ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                              : 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.tax_hrm.app',
                         ),
                         if (pointsList.isNotEmpty)
@@ -207,14 +205,14 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                                     "Date Selection",
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.grey[500],
+                                      color: ColorConst.textgrey,
                                       fontFamily: fontInterMediumString,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     DateFormat('dd MMM yyyy').format(timeLineServices.setDates),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                       color: ColorConst.black,
@@ -242,7 +240,7 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                                     },
                                   );
                                 },
-                                child: const Padding(
+                                child: Padding(
                                   padding: EdgeInsets.all(12),
                                   child: Icon(
                                     Icons.calendar_month,
@@ -260,295 +258,313 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
 
 
 
-                  // 3. Fixed Bottom Sheet containing the timeline list (scrolls only the list)
-                  Builder(
-                    builder: (context) {
+                  // 3. Draggable Bottom Sheet
+                  DraggableScrollableSheet(
+                    initialChildSize: 0.45,
+                    minChildSize: 0.12,
+                    maxChildSize: 0.92,
+                    snap: true,
+                    snapSizes: const [0.12, 0.45, 0.92],
+                    builder: (context, scrollController) {
                       int itemCount;
                       if (timeLineServices.islodering) {
-                        itemCount = 1 + 20; // 1 header + 20 shimmers
+                        itemCount = 1 + 20;
                       } else if (timeLineServices.showUserTimeLines.isEmpty) {
-                        itemCount = 1 + 1;  // 1 header + 1 empty state widget
+                        itemCount = 1 + 1;
                       } else {
-                        itemCount = 1 + timeLineServices.showUserTimeLines.length; // 1 header + loaded logs
+                        itemCount = 1 + timeLineServices.showUserTimeLines.length;
                       }
 
-                      return Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          height: size.height * 0.5,
-                          decoration: BoxDecoration(
-                            color: ColorConst.scaffoldColor,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(25),
-                              topRight: Radius.circular(25),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 10,
-                                offset: const Offset(0, -4),
-                              ),
-                            ],
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: ColorConst.scaffoldColor,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(25),
+                            topRight: Radius.circular(25),
                           ),
-                          child: ListView.builder(
-                            itemCount: itemCount,
-                            padding: EdgeInsets.zero,
-                            itemBuilder: (context, index) {
-                              if (index == 0) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 20),
-
-                                    // Header details
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            "Location Timeline",
-                                            style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: ColorConst.black,
-                                              fontFamily: fontInterSemiBoldString,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            timeLineServices.islodering
-                                                ? "Loading coordinates..."
-                                                : "${timeLineServices.showUserTimeLines.length} coordinates logged",
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[600],
-                                              fontFamily: fontInterRegularString,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 15),
-                                  ],
-                                );
-                              }
-
-                              // Content items
-                              if (timeLineServices.islodering) {
-                                return Shimmer(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 14,
+                              offset: const Offset(0, -4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Drag handle
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Center(
                                   child: Container(
-                                    width: size.width,
-                                    margin: const EdgeInsets.only(bottom: 15),
-                                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                                    child: Row(
+                                    width: 40,
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      color: ColorConst.textgrey.withOpacity(0.4),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: ListView.builder(
+                                controller: scrollController,
+                                itemCount: itemCount,
+                                padding: EdgeInsets.zero,
+                                itemBuilder: (context, index) {
+                                  if (index == 0) {
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Container(height: 18, width: 70, color: Colors.grey.shade400),
+                                        // Header details
                                         Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
+                                          padding: const EdgeInsets.symmetric(horizontal: 20),
                                           child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Container(
-                                                width: 2,
-                                                height: size.height * 0.03,
-                                                color: ColorConst.grey,
-                                              ),
-                                              Container(
-                                                width: size.width * 0.06,
-                                                height: size.width * 0.06,
-                                                decoration: const BoxDecoration(
-                                                  color: ColorConst.grey,
-                                                  shape: BoxShape.circle,
+                                              Text(
+                                                "Location Timeline",
+                                                style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: ColorConst.black,
+                                                  fontFamily: fontInterSemiBoldString,
                                                 ),
-                                                child: const Icon(Icons.check, size: 16, color: ColorConst.white),
                                               ),
-                                              Container(
-                                                width: 2,
-                                                height: size.height * 0.055,
-                                                color: ColorConst.grey,
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                timeLineServices.islodering
+                                                    ? "Loading coordinates..."
+                                                    : "${timeLineServices.showUserTimeLines.length} coordinates logged",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: ColorConst.textgrey,
+                                                  fontFamily: fontInterRegularString,
+                                                ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                        Expanded(
-                                          child: Container(
-                                            padding: EdgeInsets.all(size.width * 0.03),
-                                            height: size.height * 0.09,
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey.shade400,
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                        ),
+                                        const SizedBox(height: 15),
                                       ],
-                                    ),
-                                  ),
-                                );
-                              } else if (timeLineServices.showUserTimeLines.isEmpty) {
-                                return Padding(
-                                  padding: EdgeInsets.only(top: size.height * 0.05),
-                                  child: Center(
-                                    child: noDataFoundsDesign(
-                                      size,
-                                      noTimeLineAddedString,
-                                      nodataFoundsImagString,
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                var item = timeLineServices.showUserTimeLines[index - 1];
-                                DateTime dateTime = DateTime.parse(item.entryTime ?? '');
-                                String formattedTime = DateFormat('hh:mm a').format(dateTime);
+                                    );
+                                  }
 
-                                bool isLast = (index - 1) == timeLineServices.showUserTimeLines.length - 1;
-                                bool isSelected = _selectedIndex == (index - 1);
-
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                                  child: IntrinsicHeight(
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        // Connected Timeline Indicator
-                                        SizedBox(
-                                          width: 12,
-                                          child: Column(
-                                            children: [
-                                              // Top line segment (above the dot)
-                                              if (index - 1 == 0)
-                                                const SizedBox(height: 18)
-                                              else
-                                                Container(
-                                                  width: 2,
-                                                  height: 18,
-                                                  color: ColorConst.themeColor.withOpacity(0.4),
-                                                ),
-
-                                              // Dot
-                                              Container(
-                                                width: 12,
-                                                height: 12,
-                                                decoration: BoxDecoration(
-                                                  color: isSelected ? Colors.orange : ColorConst.themeColor,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-
-                                              // Bottom line segment (below the dot)
-                                              if (!isLast)
-                                                Expanded(
-                                                  child: Container(
+                                  // Content items
+                                  if (timeLineServices.islodering) {
+                                    return Shimmer(
+                                      child: Container(
+                                        width: size.width,
+                                        margin: const EdgeInsets.only(bottom: 15),
+                                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                                        child: Row(
+                                          children: [
+                                            Container(height: 18, width: 70, color: ColorConst.greyOpicityColor),
+                                            Padding(
+                                              padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
+                                              child: Column(
+                                                children: [
+                                                  Container(
                                                     width: 2,
-                                                    color: ColorConst.themeColor.withOpacity(0.4),
+                                                    height: size.height * 0.03,
+                                                    color: ColorConst.grey,
                                                   ),
-                                                )
-                                              else
-                                                const Expanded(child: SizedBox()),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 15),
-
-                                        // Log Card Item
-                                        Expanded(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                if (_selectedIndex == index - 1) {
-                                                  _selectedIndex = null;
-                                                } else {
-                                                  _selectedIndex = index - 1;
-                                                  double? lat = double.tryParse(item.latitude ?? '');
-                                                  double? lng = double.tryParse(item.logitude ?? '');
-                                                  if (lat != null && lng != null) {
-                                                    _mapController.move(LatLng(lat, lng), 16.0);
-                                                  }
-                                                }
-                                              });
-                                            },
-                                            child: Card(
-                                              color: isSelected ? ColorConst.themeColor.withOpacity(0.05) : ColorConst.white,
-                                              elevation: isSelected ? 3 : 1,
-                                              shadowColor: Colors.black12,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(15),
-                                                side: isSelected
-                                                    ? const BorderSide(color: ColorConst.themeColor, width: 2)
-                                                    : const BorderSide(color: Colors.transparent, width: 2),
+                                                  Container(
+                                                    width: size.width * 0.06,
+                                                    height: size.width * 0.06,
+                                                    decoration: BoxDecoration(
+                                                      color: ColorConst.grey,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Icon(Icons.check, size: 16, color: ColorConst.white),
+                                                  ),
+                                                  Container(
+                                                    width: 2,
+                                                    height: size.height * 0.055,
+                                                    color: ColorConst.grey,
+                                                  ),
+                                                ],
                                               ),
-                                              margin: const EdgeInsets.only(bottom: 15),
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(15),
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Row(
-                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            ),
+                                            Expanded(
+                                              child: Container(
+                                                padding: EdgeInsets.all(size.width * 0.03),
+                                                height: size.height * 0.09,
+                                                decoration: BoxDecoration(
+                                                  color: ColorConst.greyOpicityColor,
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  } else if (timeLineServices.showUserTimeLines.isEmpty) {
+                                    return Padding(
+                                      padding: EdgeInsets.only(top: size.height * 0.05),
+                                      child: Center(
+                                        child: noDataFoundsDesign(
+                                          size,
+                                          noTimeLineAddedString,
+                                          nodataFoundsImagString,
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    var item = timeLineServices.showUserTimeLines[index - 1];
+                                    DateTime dateTime = DateTime.parse(item.entryTime ?? '');
+                                    String formattedTime = DateFormat('hh:mm a').format(dateTime);
+
+                                    bool isLast = (index - 1) == timeLineServices.showUserTimeLines.length - 1;
+                                    bool isSelected = _selectedIndex == (index - 1);
+
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                                      child: IntrinsicHeight(
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: [
+                                            // Connected Timeline Indicator
+                                            SizedBox(
+                                              width: 12,
+                                              child: Column(
+                                                children: [
+                                                  if (index - 1 == 0)
+                                                    const SizedBox(height: 18)
+                                                  else
+                                                    Container(
+                                                      width: 2,
+                                                      height: 18,
+                                                      color: ColorConst.themeColor.withOpacity(0.4),
+                                                    ),
+                                                  Container(
+                                                    width: 12,
+                                                    height: 12,
+                                                    decoration: BoxDecoration(
+                                                      color: isSelected ? Colors.orange : ColorConst.themeColor,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                  if (!isLast)
+                                                    Expanded(
+                                                      child: Container(
+                                                        width: 2,
+                                                        color: ColorConst.themeColor.withOpacity(0.4),
+                                                      ),
+                                                    )
+                                                  else
+                                                    const Expanded(child: SizedBox()),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 15),
+
+                                            // Log Card Item
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    if (_selectedIndex == index - 1) {
+                                                      _selectedIndex = null;
+                                                    } else {
+                                                      _selectedIndex = index - 1;
+                                                      double? lat = double.tryParse(item.latitude ?? '');
+                                                      double? lng = double.tryParse(item.logitude ?? '');
+                                                      if (lat != null && lng != null) {
+                                                        _mapController.move(LatLng(lat, lng), 16.0);
+                                                      }
+                                                    }
+                                                  });
+                                                },
+                                                child: Card(
+                                                  color: isSelected ? ColorConst.themeColor.withOpacity(0.05) : ColorConst.white,
+                                                  elevation: isSelected ? 3 : 1,
+                                                  shadowColor: Colors.black12,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(15),
+                                                    side: isSelected
+                                                        ? BorderSide(color: ColorConst.themeColor, width: 2)
+                                                        : const BorderSide(color: Colors.transparent, width: 2),
+                                                  ),
+                                                  margin: const EdgeInsets.only(bottom: 15),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(15),
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
+                                                        Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          children: [
+                                                            Text(
+                                                              formattedTime,
+                                                              style: TextStyle(
+                                                                fontSize: 14,
+                                                                fontWeight: FontWeight.bold,
+                                                                color: ColorConst.black,
+                                                                fontFamily: fontInterSemiBoldString,
+                                                              ),
+                                                            ),
+                                                            if (item.deviceName != null && item.deviceName!.isNotEmpty)
+                                                              Container(
+                                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                                decoration: BoxDecoration(
+                                                                  color: ColorConst.greyOpicityColor,
+                                                                  borderRadius: BorderRadius.circular(6),
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  children: [
+                                                                    Icon(
+                                                                      item.deviceType.toString().toLowerCase().contains("android")
+                                                                          ? Icons.android
+                                                                          : Icons.phone_iphone,
+                                                                      size: 12,
+                                                                      color: ColorConst.textgrey,
+                                                                    ),
+                                                                    const SizedBox(width: 4),
+                                                                    Text(
+                                                                      item.deviceName.toString(),
+                                                                      style: TextStyle(
+                                                                        fontSize: 10,
+                                                                        fontWeight: FontWeight.bold,
+                                                                        color: ColorConst.textgrey,
+                                                                        fontFamily: fontInterMediumString,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                        const SizedBox(height: 8),
                                                         Text(
-                                                          formattedTime,
-                                                          style: const TextStyle(
-                                                            fontSize: 14,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: ColorConst.black,
-                                                            fontFamily: fontInterSemiBoldString,
+                                                          item.address.toString(),
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color: ColorConst.textgrey,
+                                                            fontFamily: fontInterRegularString,
                                                           ),
                                                         ),
-                                                        if (item.deviceName != null && item.deviceName!.isNotEmpty)
-                                                          Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.grey[200],
-                                                              borderRadius: BorderRadius.circular(6),
-                                                            ),
-                                                            child: Row(
-                                                              mainAxisSize: MainAxisSize.min,
-                                                              children: [
-                                                                Icon(
-                                                                  item.deviceType.toString().toLowerCase().contains("android")
-                                                                      ? Icons.android
-                                                                      : Icons.phone_iphone,
-                                                                  size: 12,
-                                                                  color: Colors.grey[700],
-                                                                ),
-                                                                const SizedBox(width: 4),
-                                                                Text(
-                                                                  item.deviceName.toString(),
-                                                                  style: TextStyle(
-                                                                    fontSize: 10,
-                                                                    fontWeight: FontWeight.bold,
-                                                                    color: Colors.grey[700],
-                                                                    fontFamily: fontInterMediumString,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
+                                                        const SizedBox(height: 8),
                                                       ],
                                                     ),
-                                                    const SizedBox(height: 8),
-                                                    Text(
-                                                      item.address.toString(),
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey[600],
-                                                        fontFamily: fontInterRegularString,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 8),
-                                                  ],
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },

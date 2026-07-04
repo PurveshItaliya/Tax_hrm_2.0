@@ -402,7 +402,7 @@ void showDeleteDialog(BuildContext context,Size size,{noOnTap,yesOntap}) {
                   shape: BoxShape.circle,
                   border: Border.all(color: ColorConst.themeColor, width: 2),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     '!',
                     style: TextStyle(
