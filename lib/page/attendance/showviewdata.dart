@@ -40,9 +40,22 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AdminAttenDanceServices>(context, listen: false).updateMonth(DateTime.now(), context);
-    });
+    final provider = Provider.of<AdminAttenDanceServices>(context, listen: false);
+    
+    // Check if data is already cached for today
+    bool hasDataForToday = provider.empAttendanceList.isNotEmpty &&
+        provider.currentMonth.year == DateTime.now().year &&
+        provider.currentMonth.month == DateTime.now().month &&
+        provider.currentMonth.day == DateTime.now().day;
+
+    if (!hasDataForToday) {
+      // Set loading true synchronously so the first frame shows the shimmer instead of "No Data Found"
+      provider.islodering = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        provider.updateMonth(DateTime.now(), context);
+      });
+    }
+    
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -90,6 +103,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     final attendanceProviders = Provider.of<AdminAttenDanceServices>(context);
     Size size = MediaQuery.of(context).size;
     String formattedDate = DateFormat('d MMMM, yyyy').format(attendanceProviders.currentMonth);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // Update filtered list when data changes
     if (_filteredEmployeeList.isEmpty && _searchQuery.isEmpty) {
@@ -97,7 +111,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     }
     
     return RefreshIndicator(
-      backgroundColor: ColorConst.white,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
       color: ColorConst.themeColor,
       onRefresh: () async {
         // Only refresh current selected data without changing month
@@ -106,18 +120,21 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         return;
       },
       child: Scaffold(
-        backgroundColor: ColorConst.scaffoldColor,
+        backgroundColor: isDark ? const Color(0xFF121212) : ColorConst.scaffoldColor,
         appBar: showBottomAppBar(attendanceString, size, centerTitles: false),
         body: attendanceProviders.isloderings 
             ? attendanceAllEmployeeShimmer(size) 
-            : Column(
-                children: [
-                  _buildHeaderSection(size, attendanceProviders, formattedDate),
-                  _buildStatsSection(size, attendanceProviders),
-                  _buildExportButton(size),
-                  _buildSearchSection(size),
-                  _buildEmployeeListSection(size, attendanceProviders),
-                ],
+            : SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildHeaderSection(size, attendanceProviders, formattedDate),
+                    _buildStatsSection(size, attendanceProviders),
+                    _buildExportButton(size),
+                    _buildSearchSection(size),
+                    _buildEmployeeListSection(size, attendanceProviders),
+                  ],
+                ),
               ),
       ),
     );
@@ -393,15 +410,16 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
   // ==================== SEARCH SECTION ====================
   Widget _buildSearchSection(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: EdgeInsets.only(left: size.width * 0.04, right: size.width * 0.04, bottom:  size.width * 0.02,),
       child: Container(
         decoration: BoxDecoration(
-          color: ColorConst.white,
+          color: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: ColorConst.grey.withOpacity(0.08),
+              color: isDark ? Colors.transparent : ColorConst.grey.withOpacity(0.08),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -422,6 +440,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
   // ==================== HEADER SECTION ====================
   Widget _buildHeaderSection(Size size, AdminAttenDanceServices attendanceProviders, String formattedDate) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final currentMonth = attendanceProviders.currentMonth;
     
@@ -433,9 +452,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     return Container(
       padding: EdgeInsets.all(size.width * 0.04),
       decoration: BoxDecoration(
-        color: ColorConst.white,
+        color: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
         boxShadow: [
-          BoxShadow(color: ColorConst.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5),
+          BoxShadow(color: isDark ? Colors.transparent : ColorConst.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5),
         ],
       ),
       child: Column(
@@ -524,12 +543,12 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     shape: BoxShape.circle,
                     color: canGoNext 
                         ? ColorConst.themeColor.withOpacity(0.1) 
-                        : Colors.grey.shade100,
+                        : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
                   ),
                   child: Icon(
                     Icons.arrow_forward_ios_outlined,
                     size: size.width * 0.045,
-                    color: canGoNext ? ColorConst.themeColor : Colors.grey.shade400,
+                    color: canGoNext ? ColorConst.themeColor : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
                   ),
                 ),
               ),
@@ -610,16 +629,17 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.all(size.width * 0.03),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.15),
+              color: isDark ? Colors.transparent : color.withOpacity(0.15),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -647,7 +667,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       title,
                       style: TextStyle(
                         fontSize: size.width * 0.028,
-                        color: Colors.grey.shade600,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                         fontFamily: fontInterMediumString,
                       ),
                     ),
@@ -672,32 +692,34 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
   // ==================== EMPLOYEE LIST SECTION ====================
   Widget _buildEmployeeListSection(Size size, AdminAttenDanceServices attendanceProviders) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // Use filtered list if search is active, otherwise use original list
     final displayList = _searchQuery.isNotEmpty ? _filteredEmployeeList : attendanceProviders.empAttendanceList;
-    return Expanded(
-      child: Container(
-        width: size.width,
-        margin: EdgeInsets.all(size.width * 0.01),
-        decoration: BoxDecoration(
-          color: ColorConst.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: displayList.isEmpty
-            ? _searchQuery.isNotEmpty
-                ? _buildNoSearchResults(size)
-                : Container(alignment: Alignment.center,child: SingleChildScrollView(child: noDataFoundsDesign(size, 'No Data Found', nodataFoundsImagString, width: size.width * 0.5)))
-            : ListView.separated(
-                padding: EdgeInsets.zero,
-                itemCount: displayList.length,
-                separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade100),
-                itemBuilder: (context, index) {
+    return Container(
+      width: size.width,
+      margin: EdgeInsets.all(size.width * 0.01),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.transparent : Colors.grey.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: displayList.isEmpty
+          ? _searchQuery.isNotEmpty
+              ? _buildNoSearchResults(size)
+              : Container(alignment: Alignment.center,child: noDataFoundsDesign(size, 'No Data Found', nodataFoundsImagString, width: size.width * 0.5))
+          : ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(vertical: size.height * 0.01),
+              itemCount: displayList.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 4),
+              itemBuilder: (context, index) {
                   String setPhone = '';
                   Provider.of<EmployeMastServices>(context, listen: false).allemployes.forEach((element) {
                     if (element.id == displayList[index].empId) {
@@ -707,12 +729,13 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                   return _buildEmployeeCard(size, attendanceProviders, index, setPhone, displayList);
                 },
               ),
-      ),
+
     );
   }
 
   // No search results widget
   Widget _buildNoSearchResults(Size size) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       alignment: Alignment.center,
       child: SingleChildScrollView(
@@ -722,7 +745,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             Icon(
               Icons.search_off_rounded,
               size: size.width * 0.12,
-              color: Colors.grey.shade300,
+              color: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
             ),
             SizedBox(height: size.height * 0.02),
             Text(
@@ -730,7 +753,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               style: TextStyle(
                 fontSize: size.width * 0.04,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey.shade600,
+                color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
                 fontFamily: fontInterSemiBoldString,
               ),
             ),
@@ -739,7 +762,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               'Try searching with different name',
               style: TextStyle(
                 fontSize: size.width * 0.03,
-                color: Colors.grey.shade400,
+                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
                 fontFamily: fontInterRegularString,
               ),
             ),
@@ -780,6 +803,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   }
 
   Widget _buildEmployeeCard(Size size, AdminAttenDanceServices attendanceProviders, int index, String setPhone, List displayList) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final employee = displayList[index];
     final isPresent = employee.inTime != null && employee.absent == false;
     final isOnLeave = employee.isOnLeave == true;
@@ -794,12 +818,47 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         );
       },
       child: Container(
-        padding: EdgeInsets.all(size.width * 0.03),
+        margin: EdgeInsets.symmetric(horizontal: size.width * 0.02, vertical: size.height * 0.005),
+        padding: EdgeInsets.all(size.width * 0.035),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.transparent : Colors.grey.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
+                Container(
+                  height: size.width * 0.1,
+                  width: size.width * 0.1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [ColorConst.themeColor.withOpacity(0.7), ColorConst.themeColor],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${employee.firstName?[0] ?? ''}${employee.lastName?[0] ?? ''}'.toUpperCase(),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: size.width * 0.035,
+                    ),
+                  ),
+                ),
+                SizedBox(width: size.width * 0.03),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -809,23 +868,23 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                         style: TextStyle(
                           fontSize: size.height * 0.018,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
                           fontFamily: fontInterBoldString,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (_searchQuery.isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(top: size.height * 0.004),
-                          child: Text(
-                            'ID: ${employee.empId}',
-                            style: TextStyle(
-                              fontSize: size.width * 0.025,
-                              color: ColorConst.themeColor.withOpacity(0.7),
-                              fontFamily: fontInterRegularString,
-                            ),
+                      Padding(
+                        padding: EdgeInsets.only(top: size.height * 0.004),
+                        child: Text(
+                          'ID: ${employee.empId}',
+                          style: TextStyle(
+                            fontSize: size.width * 0.028,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            fontFamily: fontInterMediumString,
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -842,8 +901,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       size: size,
                       icon: Icons.timeline,
                       color: ColorConst.themeColor,
+                      isDark: isDark,
                     ),
-                    SizedBox(width: size.width * 0.01),
+                    SizedBox(width: size.width * 0.015),
                     _buildActionButton(
                       onTap: () async {
                         var url = 'https://Wa.me/$setPhone';
@@ -852,12 +912,13 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       size: size,
                       isImage: true,
                       image: whatsappImgString,
+                      isDark: isDark,
                     ),
                   ],
                 ),
               ],
             ),
-            heightSpacer(size.height * 0.01),
+            heightSpacer(size.height * 0.015),
             
             Row(
               children: [
@@ -865,8 +926,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                   Container(
                     padding: EdgeInsets.symmetric(vertical: size.width * 0.012, horizontal: size.width * 0.025),
                     decoration: BoxDecoration(
-                      border: Border.all(color: isPresent ? ColorConst.greenColor : ColorConst.grey),
-                      color: isPresent ? ColorConst.greenColor : ColorConst.white,
+                      border: Border.all(color: isPresent ? ColorConst.greenColor : (isDark ? Colors.grey.shade700 : ColorConst.grey)),
+                      color: isPresent ? ColorConst.greenColor : (isDark ? Colors.transparent : ColorConst.white),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -875,13 +936,13 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                         Icon(
                           isPresent ? Icons.check_circle : Icons.help_outline,
                           size: size.width * 0.035,
-                          color: isPresent ? Colors.white : ColorConst.grey,
+                          color: isPresent ? Colors.white : (isDark ? Colors.grey.shade400 : ColorConst.grey),
                         ),
                         SizedBox(width: size.width * 0.01),
                         Text(
                           presentString,
                           style: TextStyle(
-                            color: isPresent ? Colors.white : ColorConst.grey,
+                            color: isPresent ? Colors.white : (isDark ? Colors.grey.shade400 : ColorConst.grey),
                             fontWeight: FontWeight.w600,
                             fontFamily: fontInterSemiBoldString,
                             fontSize: size.width * 0.028,
@@ -922,8 +983,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                   Container(
                     padding: EdgeInsets.symmetric(vertical: size.width * 0.012, horizontal: size.width * 0.025),
                     decoration: BoxDecoration(
-                      color: isAbsent ? ColorConst.red : ColorConst.white,
-                      border: Border.all(color: isAbsent ? ColorConst.red : ColorConst.grey),
+                      color: isAbsent ? ColorConst.red : (isDark ? Colors.transparent : ColorConst.white),
+                      border: Border.all(color: isAbsent ? ColorConst.red : (isDark ? Colors.grey.shade700 : ColorConst.grey)),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -932,13 +993,13 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                         Icon(
                           Icons.cancel,
                           size: size.width * 0.035,
-                          color: isAbsent ? Colors.white : ColorConst.grey,
+                          color: isAbsent ? Colors.white : (isDark ? Colors.grey.shade400 : ColorConst.grey),
                         ),
                         SizedBox(width: size.width * 0.01),
                         Text(
                           absentString,
                           style: TextStyle(
-                            color: isAbsent ? Colors.white : ColorConst.grey,
+                            color: isAbsent ? Colors.white : (isDark ? Colors.grey.shade400 : ColorConst.grey),
                             fontWeight: FontWeight.w600,
                             fontFamily: fontInterSemiBoldString,
                             fontSize: size.width * 0.028,
@@ -965,6 +1026,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     bool isImage = false,
     String? image,
     Color color = Colors.white,
+    bool isDark = false,
   }) {
     if (isImage && image != null) {
       return GestureDetector(
@@ -972,7 +1034,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         child: Container(
           padding: EdgeInsets.all(size.width * 0.02),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Image.asset(image, height: size.width * 0.04, width: size.width * 0.04),
@@ -985,7 +1047,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       child: Container(
         padding: EdgeInsets.all(size.width * 0.02),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withOpacity(isDark ? 0.2 : 0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, size: size.width * 0.04, color: color),
@@ -1044,6 +1106,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
   // ==================== ATTENDANCE BOTTOM SHEET ====================
   void _showAttendanceBottomSheet(BuildContext context, Size size, AdminAttenDanceServices attendanceProviders, int index, List displayList) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentDate = attendanceProviders.currentMonth;
     final formattedDate = DateFormat('EEEE, d MMMM yyyy').format(currentDate);
     final dayName = DateFormat('EEEE').format(currentDate);
@@ -1060,14 +1123,14 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               child: Container(
                 height: size.height * 0.52,
                 decoration: BoxDecoration(
-                  color: ColorConst.white,
+                  color: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(25),
                     topRight: Radius.circular(25),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withOpacity(isDark ? 0.5 : 0.1),
                       blurRadius: 20,
                       offset: const Offset(0, -5),
                     ),
@@ -1080,7 +1143,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       width: size.width * 0.15,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -1138,7 +1201,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                                   style: TextStyle(
                                     fontSize: size.width * 0.04,
                                     fontWeight: FontWeight.bold,
-                                    color: ColorConst.black,
+                                    color: isDark ? Colors.white : ColorConst.black,
                                     fontFamily: fontInterBoldString,
                                   ),
                                   maxLines: 1,
@@ -1149,7 +1212,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                                   formattedDate,
                                   style: TextStyle(
                                     fontSize: size.width * 0.03,
-                                    color: Colors.grey.shade600,
+                                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                     fontFamily: fontInterRegularString,
                                   ),
                                 ),
@@ -1161,13 +1224,13 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                             child: Container(
                               padding: EdgeInsets.all(size.width * 0.02),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
+                                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 Icons.close,
                                 size: size.width * 0.045,
-                                color: Colors.grey.shade600,
+                                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                               ),
                             ),
                           ),
@@ -1178,7 +1241,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     Container(
                       height: 1,
                       margin: EdgeInsets.symmetric(horizontal: size.width * 0.05),
-                      color: Colors.grey.shade200,
+                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
                     ),
                     
                     SizedBox(height: size.height * 0.02),
@@ -1252,9 +1315,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       margin: EdgeInsets.symmetric(horizontal: size.width * 0.05),
                       padding: EdgeInsets.all(size.width * 0.03),
                       decoration: BoxDecoration(
-                        color: ColorConst.themeColor.withOpacity(0.05),
+                        color: ColorConst.themeColor.withOpacity(isDark ? 0.15 : 0.05),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: ColorConst.themeColor.withOpacity(0.15)),
+                        border: Border.all(color: ColorConst.themeColor.withOpacity(isDark ? 0.3 : 0.15)),
                       ),
                       child: Row(
                         children: [
@@ -1265,7 +1328,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                               'Punch in before 10:00 AM to avoid late marking',
                               style: TextStyle(
                                 fontSize: size.width * 0.028,
-                                color: Colors.grey.shade700,
+                                color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
                                 fontFamily: fontInterRegularString,
                               ),
                             ),

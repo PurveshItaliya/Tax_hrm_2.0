@@ -29,186 +29,201 @@ class LeaveRequestCard extends StatelessWidget {
     final isPending = status.toLowerCase() == "pending";
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        color: ColorConst.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ColorConst.textBorder, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Card(
-        elevation: 0,
-        color: ColorConst.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: Colors.grey.shade200),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: [
-              /// TOP ACTION BAR
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  /// STATUS
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isPending
-                          ? Colors.orange.shade50
-                          : Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: isPending
-                            ? Colors.orange.shade100
-                            : Colors.green.shade100,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isPending ? Colors.orange : Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          status,
-                          style: TextStyle(
-                            color: isPending
-                                ? Colors.orange.shade800
-                                : Colors.green.shade800,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// TOP SECTION: Avatar, Name, Status, Actions
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: ColorConst.themeColor.withOpacity(0.1),
+                  child: Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                    style: TextStyle(
+                      color: ColorConst.themeColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
                     ),
                   ),
-
-                  /// ACTION BUTTONS
-                  Row(
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _iconBtn(Icons.edit_outlined, Colors.blue, onEdit),
-                      const SizedBox(width: 8),
-                      _iconBtn(Icons.delete_outline, Colors.red, onDelete),
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: ColorConst.black,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      // Status Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isPending ? Colors.orange.shade50 : Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isPending ? Colors.orange.shade200 : Colors.green.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isPending ? Icons.pending_actions : Icons.check_circle,
+                              size: 12,
+                              color: isPending ? Colors.orange.shade700 : Colors.green.shade700,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              status,
+                              style: TextStyle(
+                                color: isPending ? Colors.orange.shade700 : Colors.green.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ],
+                ),
+                Row(
+                  children: [
+                    _actionIcon(Icons.edit_outlined, Colors.blue, onEdit),
+                    const SizedBox(width: 8),
+                    _actionIcon(Icons.delete_outline, Colors.red, onDelete),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            /// DATE ROW
+            Row(
+              children: [
+                Icon(Icons.calendar_month_outlined, size: 18, color: ColorConst.textgrey),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    date,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: ColorConst.textgrey,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            /// REASON BOX
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ColorConst.greyOpicityColor,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: ColorConst.textBorder),
               ),
-
-              const SizedBox(height: 18),
-
-              _buildRow(Icons.person_outline, "Name", name),
-              const SizedBox(height: 10),
-
-              _buildRow(Icons.description_outlined, "Reason", reason),
-              const SizedBox(height: 10),
-
-              _buildRow(Icons.calendar_month_outlined, "Date", date),
-
-              const SizedBox(height: 14),
-              Divider(color: Colors.grey.shade200, thickness: 1),
-              /// BUTTONS
-              Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: onReject,
-                      icon: const Icon(Icons.close, size: 18),
-                      label: const Text("REJECT"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: ColorConst.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+                  Text(
+                    "Reason for leave",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: ColorConst.textgrey,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: onApprove,
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text("APPROVE"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: ColorConst.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    reason,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: ColorConst.black,
+                      height: 1.4,
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+
+            /// ACTION BUTTONS (Approve/Reject)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onReject,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade600,
+                      side: BorderSide(color: Colors.red.shade200, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text("REJECT", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onApprove,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade600,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text("APPROVE", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) {
-    return Container(
-      height: 38,
-      width: 38,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: IconButton(
-        onPressed: onTap,
-        padding: EdgeInsets.zero,
-        icon: Icon(icon, size: 20, color: color),
-      ),
-    );
-  }
-
-  Widget _buildRow(IconData icon, String title, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: Colors.blueGrey),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 65,
-          child: Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-              color: Colors.grey.shade700,
-            ),
-          ),
+  Widget _actionIcon(IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
+        child: Icon(icon, size: 18, color: color),
+      ),
     );
   }
 }

@@ -68,7 +68,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                 child: TabBar(
                   controller: _tabController,
                   indicatorColor: Colors.green,
-                  labelColor: Colors.black,
+                  labelColor: ColorConst.black,
                   unselectedLabelColor: Colors.grey,
                   tabs: [
                     Tab(
@@ -86,7 +86,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                               ),
                               child: Text(
                                 leaveAdminProvider.pendingLeaves.length.toString(),
-                                style: TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
+                                style: TextStyle(color: Colors.white,fontSize: 11,fontWeight: FontWeight.bold,),
                               ),
                             ),
                           ],
@@ -108,7 +108,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                               ),
                               child: Text(
                                 '${leaveAdminProvider.approvedLeaves.length}',
-                                style: TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
+                                style: TextStyle(color: Colors.white,fontSize: 11,fontWeight: FontWeight.bold,),
                               ),
                             ),
                           ],
@@ -130,7 +130,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                               ),
                               child: Text(
                                 '${leaveAdminProvider.rejectedLeaves.length}',
-                                style: TextStyle(color: ColorConst.white,fontSize: 11,fontWeight: FontWeight.bold,),
+                                style: TextStyle(color: Colors.white,fontSize: 11,fontWeight: FontWeight.bold,),
                               ),
                             ),
                           ],

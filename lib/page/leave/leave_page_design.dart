@@ -443,8 +443,8 @@ Widget buildEmployeeDropdown(Size size, LeaveUserProvider leaveProvider, Employe
     ),
     initialItem: leaveProvider.selectedEmployee,
     hintText: 'Select Employee',
-    futureRequest: empProvider.getFilterEmployeeby,
-    items: empProvider.allemployes,
+    futureRequest: empProvider.getFilterEmployeeList,
+    items: empProvider.emplists,
     listItemBuilder: (context, item, isSelected, onItemSelect) {
       return Text(
         "${item.firstName.toString()} ${item.lastName.toString()}",

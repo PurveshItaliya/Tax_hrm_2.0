@@ -33,8 +33,8 @@ class LeaveUserProvider extends ChangeNotifier {
   int? editingLeaveEmpId;
 
   // ==================== FORM CONTROLLERS ====================
-  TextEditingController txtLeaveStartDate = TextEditingController();
-  TextEditingController txtLeaveEndDate = TextEditingController();
+  TextEditingController txtLeaveStartDate = TextEditingController(text: DateFormat('dd-MM-yyyy').format(DateTime.now()));
+  TextEditingController txtLeaveEndDate = TextEditingController(text: DateFormat('dd-MM-yyyy').format(DateTime.now()));
   TextEditingController txtReason = TextEditingController();
 
   // ==================== DATE VARIABLES ====================
@@ -431,8 +431,8 @@ class LeaveUserProvider extends ChangeNotifier {
     editingLeaveEmpId = null;
     selectedFromDate = DateTime.now();
     selectedToDate = DateTime.now();
-    txtLeaveStartDate.clear();
-    txtLeaveEndDate.clear();
+    txtLeaveStartDate.text = DateFormat('dd-MM-yyyy').format(selectedFromDate);
+    txtLeaveEndDate.text = DateFormat('dd-MM-yyyy').format(selectedToDate);
     txtReason.clear();
     selectedIndex = 0;
     selectedLeaveTypeData = null;
@@ -592,12 +592,10 @@ class LeaveUserProvider extends ChangeNotifier {
       initialEntryMode: DatePickerEntryMode.calendarOnly,
       builder: (context, child) {
         return Theme(
-          data: ThemeData(
-            colorScheme: ColorScheme.dark(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: ColorConst.themeColor,
               onPrimary: ColorConst.white,
-              surface: ColorConst.white,
-              onSurface: Colors.black,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(foregroundColor: ColorConst.themeColor),
