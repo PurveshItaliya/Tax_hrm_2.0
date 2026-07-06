@@ -86,12 +86,12 @@ class NotesProviders extends ChangeNotifier {
     }
   }
 
-  Future<void> getImage() async {
+  Future<void> getImage(ImageSource source) async {
     final picker = ImagePicker();
-    final pickedImage = await picker.pickImage(source: ImageSource.gallery);
+    final pickedImage = await picker.pickImage(source: source);
     if (pickedImage != null) {
       images = File(pickedImage.path);
+      notifyListeners();
     }
-    
   }
 }

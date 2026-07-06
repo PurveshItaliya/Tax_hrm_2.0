@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:excel/excel.dart' hide Border;
 import 'package:excel/excel.dart' as ex show Border, BorderStyle;
 
@@ -21,5 +20,5 @@ void main() {
   cell.value = TextCellValue("Header");
   cell.cellStyle = headerStyle;
   
-  var bytes = excel.save();
+  excel.save();
 }

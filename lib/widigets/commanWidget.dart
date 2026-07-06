@@ -19,6 +19,7 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/validation.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
+import 'package:image_picker/image_picker.dart';
 
 // all button design 
 Widget btnDesign(Size size,{width, height, bgColor, alignments, titles, textColors, fontSizes, VoidCallback? onTap,borderColors, bool? isgradient,borderRadiused, borderWidth}) {
@@ -657,7 +658,7 @@ void showAddNotesDialog(BuildContext context,{size,}) {
                     /// Upload Photo Box
                     GestureDetector(
                       onTap: () {
-                        notesProvidersData.getImage();
+                        _showImageSourceDialog(context, notesProvidersData);
                       },
                       child: CustomPaint(
                         painter: DottedBorderPainter(
@@ -1061,5 +1062,127 @@ Widget addIconSetData(size,addontap,{iconsName,bgColor,borderColors,iconsColor})
       ),
       child: Icon(iconsName??Icons.menu,color: iconsColor??ColorConst.black,),
     ),
+  );
+}
+
+void _showImageSourceDialog(BuildContext context, NotesProviders notesProvider) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Select Image Source',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      Icons.close,
+                      color: ColorConst.black,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        notesProvider.getImage(ImageSource.camera);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9F9F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.photo_camera_rounded,
+                              size: 32,
+                              color: ColorConst.themeColor,
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Camera',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        notesProvider.getImage(ImageSource.gallery);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9F9F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.photo_library_rounded,
+                              size: 32,
+                              color: ColorConst.themeColor,
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Gallery',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
   );
 }
