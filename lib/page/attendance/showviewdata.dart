@@ -1,5 +1,8 @@
-// ignore_for_file: use_build_context_synchronously, unused_local_variable
-
+import 'dart:io';
+import 'package:excel/excel.dart' hide Border;
+import 'package:excel/excel.dart' as ex show Border, BorderStyle;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -109,12 +112,281 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                 children: [
                   _buildHeaderSection(size, attendanceProviders, formattedDate),
                   _buildStatsSection(size, attendanceProviders),
+                  _buildExportButton(size),
                   _buildSearchSection(size),
                   _buildEmployeeListSection(size, attendanceProviders),
                 ],
               ),
       ),
     );
+  }
+
+  Widget _buildExportButton(Size size) {
+    return GestureDetector(
+      onTap: _downloadExcel,
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
+        padding: EdgeInsets.symmetric(vertical: size.height * 0.015),
+        decoration: BoxDecoration(
+          color: ColorConst.themeColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: ColorConst.themeColor.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.file_download_outlined, color: Colors.white, size: size.width * 0.05),
+            SizedBox(width: size.width * 0.02),
+            Text(
+              'Export Excel Report',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontFamily: fontInterBoldString,
+                fontSize: size.width * 0.035,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _populateEmployeeSheet(Sheet sheet, List<dynamic> list, List<dynamic> allEmployees, CellStyle headerStyle) {
+    sheet.setColumnWidth(0, 10.0);
+    sheet.setColumnWidth(1, 25.0);
+    sheet.setColumnWidth(2, 30.0); // Designation
+    sheet.setColumnWidth(3, 15.0); // Status
+    sheet.setColumnWidth(4, 15.0); // In Time
+    sheet.setColumnWidth(5, 15.0); // Out Time
+
+    List<String> headers = ['ID', 'Employee Name', 'Designation', 'Status', 'In Time', 'Out Time'];
+    for (int i = 0; i < headers.length; i++) {
+      var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = headerStyle;
+    }
+
+    CellStyle cellStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Center,
+      leftBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      rightBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      topBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      bottomBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+    );
+
+    for (int i = 0; i < list.length; i++) {
+      final employee = list[i];
+      final isPresent = employee.inTime != null && employee.absent == false;
+      final isOnLeave = employee.isOnLeave == true;
+      final isAbsent = employee.absent == true && !isOnLeave;
+      
+      String status = 'Unknown';
+      if (isOnLeave) {
+        status = 'On Leave';
+      } else if (isPresent) {
+        status = 'Present';
+      } else if (isAbsent) {
+        status = 'Absent';
+      }
+
+      String inTimeStr = employee.inTime == null 
+          ? '-' 
+          : DateFormat('hh:mm a').format(DateTime.parse(employee.inTime.toString()));
+      String outTimeStr = employee.outTime == null 
+          ? '-' 
+          : DateFormat('hh:mm a').format(DateTime.parse(employee.outTime.toString()));
+
+      String designation = '-';
+      for (var emp in allEmployees) {
+        if (emp.id == employee.empId) {
+          designation = emp.positionName ?? '';
+          if (designation.trim().isEmpty) {
+             designation = emp.departmentName ?? '-';
+          }
+          if (designation.trim().isEmpty) {
+             designation = '-';
+          }
+          break;
+        }
+      }
+
+      var cell0 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1));
+      cell0.value = TextCellValue(employee.empId.toString());
+      cell0.cellStyle = cellStyle;
+
+      var cell1 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1));
+      cell1.value = TextCellValue('${employee.firstName} ${employee.lastName}');
+      cell1.cellStyle = cellStyle;
+
+      var cell2 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1));
+      cell2.value = TextCellValue(designation);
+      cell2.cellStyle = cellStyle;
+
+      var cell3 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1));
+      cell3.value = TextCellValue(status);
+      cell3.cellStyle = cellStyle;
+
+      var cell4 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1));
+      cell4.value = TextCellValue(inTimeStr);
+      cell4.cellStyle = cellStyle;
+
+      var cell5 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1));
+      cell5.value = TextCellValue(outTimeStr);
+      cell5.cellStyle = cellStyle;
+    }
+  }
+
+  Future<void> _downloadExcel() async {
+    final attendanceProviders = Provider.of<AdminAttenDanceServices>(context, listen: false);
+    final empMastProviders = Provider.of<EmployeMastServices>(context, listen: false);
+    final displayList = attendanceProviders.empAttendanceList;
+    List<dynamic> allEmpList = empMastProviders.mainEmployeList;
+    if (allEmpList.isEmpty) allEmpList = empMastProviders.emplists;
+    if (allEmpList.isEmpty) allEmpList = empMastProviders.allemployes;
+    final currentDate = attendanceProviders.currentMonth;
+    final formattedDate = DateFormat('dd-MMM-yyyy').format(currentDate);
+
+    if (displayList.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No data available to download')),
+      );
+      return;
+    }
+
+    try {
+      var excel = Excel.createExcel();
+      String defaultSheetName = excel.getDefaultSheet() ?? 'Sheet1';
+      excel.rename(defaultSheetName, 'Dashboard');
+
+      Sheet dashSheet = excel['Dashboard'];
+      Sheet allSheet = excel['All Employees'];
+      Sheet presentSheet = excel['Present'];
+      Sheet absentSheet = excel['Absent'];
+      Sheet leaveSheet = excel['On Leave'];
+      
+      excel.setDefaultSheet('Dashboard');
+
+      // Dashboard Sheet Formatting
+      dashSheet.setColumnWidth(0, 20.0);
+      dashSheet.setColumnWidth(1, 15.0);
+
+      CellStyle titleStyle = CellStyle(
+        bold: true,
+        horizontalAlign: HorizontalAlign.Center,
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        backgroundColorHex: ExcelColor.fromHexString('#1D976C'),
+      );
+
+      CellStyle headerStyle = CellStyle(
+        bold: true,
+        horizontalAlign: HorizontalAlign.Center,
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        backgroundColorHex: ExcelColor.fromHexString('#333333'),
+        leftBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        rightBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        topBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        bottomBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      );
+
+      CellStyle dataStyle = CellStyle(
+        horizontalAlign: HorizontalAlign.Center,
+        leftBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        rightBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        topBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        bottomBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      );
+      
+      var cA1 = dashSheet.cell(CellIndex.indexByString("A1"));
+      cA1.value = TextCellValue("Attendance Dashboard");
+      cA1.cellStyle = titleStyle;
+      dashSheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("B1"), customValue: TextCellValue("Attendance Dashboard"));
+      
+      var cA3 = dashSheet.cell(CellIndex.indexByString("A3"));
+      cA3.value = TextCellValue("Date:");
+      cA3.cellStyle = dataStyle;
+      var cB3 = dashSheet.cell(CellIndex.indexByString("B3"));
+      cB3.value = TextCellValue(formattedDate);
+      cB3.cellStyle = dataStyle;
+      
+      var cA5 = dashSheet.cell(CellIndex.indexByString("A5"));
+      cA5.value = TextCellValue("Metric");
+      cA5.cellStyle = headerStyle;
+      var cB5 = dashSheet.cell(CellIndex.indexByString("B5"));
+      cB5.value = TextCellValue("Count");
+      cB5.cellStyle = headerStyle;
+      
+      var cA6 = dashSheet.cell(CellIndex.indexByString("A6"));
+      cA6.value = TextCellValue("Total Employees");
+      cA6.cellStyle = dataStyle;
+      var cB6 = dashSheet.cell(CellIndex.indexByString("B6"));
+      cB6.value = TextCellValue('${attendanceProviders.mainHoldEmpList.length}');
+      cB6.cellStyle = dataStyle;
+      
+      var cA7 = dashSheet.cell(CellIndex.indexByString("A7"));
+      cA7.value = TextCellValue("Present");
+      cA7.cellStyle = dataStyle;
+      var cB7 = dashSheet.cell(CellIndex.indexByString("B7"));
+      cB7.value = TextCellValue('${attendanceProviders.totalPresents}');
+      cB7.cellStyle = dataStyle;
+      
+      var cA8 = dashSheet.cell(CellIndex.indexByString("A8"));
+      cA8.value = TextCellValue("Absent");
+      cA8.cellStyle = dataStyle;
+      var cB8 = dashSheet.cell(CellIndex.indexByString("B8"));
+      cB8.value = TextCellValue('${attendanceProviders.totalAbsent}');
+      cB8.cellStyle = dataStyle;
+      
+      var cA9 = dashSheet.cell(CellIndex.indexByString("A9"));
+      cA9.value = TextCellValue("On Leave");
+      cA9.cellStyle = dataStyle;
+      var cB9 = dashSheet.cell(CellIndex.indexByString("B9"));
+      cB9.value = TextCellValue('${attendanceProviders.totalIsOnLeave}');
+      cB9.cellStyle = dataStyle;
+
+      // Separate Data by Category
+      List<dynamic> presentList = [];
+      List<dynamic> absentList = [];
+      List<dynamic> leaveList = [];
+
+      for (var emp in displayList) {
+        if (emp.isOnLeave == true) {
+          leaveList.add(emp);
+        } else if (emp.inTime != null && emp.absent == false) {
+          presentList.add(emp);
+        } else {
+          absentList.add(emp);
+        }
+      }
+
+      // Populate Sheets
+      _populateEmployeeSheet(allSheet, displayList, allEmpList, headerStyle);
+      _populateEmployeeSheet(presentSheet, presentList, allEmpList, headerStyle);
+      _populateEmployeeSheet(absentSheet, absentList, allEmpList, headerStyle);
+      _populateEmployeeSheet(leaveSheet, leaveList, allEmpList, headerStyle);
+
+      var fileBytes = excel.save();
+      if (fileBytes != null) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final directory = await getApplicationDocumentsDirectory();
+        final filePath = '${directory.path}/Attendance_${formattedDate}_$timestamp.xlsx';
+        File(filePath)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(fileBytes);
+        
+        await Share.shareXFiles([XFile(filePath)], text: 'Attendance Report $formattedDate');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error generating Excel: $e')),
+      );
+    }
   }
 
   // ==================== SEARCH SECTION ====================
