@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stylish_bottom_bar/stylish_bottom_bar.dart';
@@ -13,21 +11,16 @@ import 'package:tax_hrm/page/home/selfie_punch_screen.dart';
 import 'package:tax_hrm/page/leave/admin_leave_page.dart';
 import 'package:tax_hrm/page/leave/leavepage.dart';
 import 'package:tax_hrm/page/setting/setting_page.dart';
-import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
-import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
-import 'package:tax_hrm/provider/theme_provider.dart';
-import 'package:tax_hrm/repository/background_location_repository.dart';
-import 'package:tax_hrm/services/background_location_service.dart';
-import 'package:tax_hrm/controllers/background_location_controller.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widigets/noInternetView.dart';
+import 'package:tax_hrm/services/fcm_token_service.dart';
 
 
 class AnimatedBottomBar extends StatefulWidget {
@@ -52,16 +45,15 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     SettingPage(),
   ];
 
-  SharedPreferences? _prefs;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<SplashProvider>(context, listen: false).requestAllPermissions();
+      FcmTokenService.instance.checkPendingNotification();
     });
     SharedPreferences.getInstance().then((p) {
-      _prefs = p;
     });
   }
 
@@ -75,7 +67,6 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     Size size = MediaQuery.of(context).size;
     final homeProvider = Provider.of<HomeProvider>(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context); // Listen to theme changes instantly
     
     return WillPopScope(
       onWillPop: () => commonDialogBoxDesign(context: context, size: size, title: exitString),

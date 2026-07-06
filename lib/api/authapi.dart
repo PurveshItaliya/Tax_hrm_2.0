@@ -1,4 +1,4 @@
-// ignore_for_file: strict_top_level_inference
+// ignore_for_file: avoid_print, strict_top_level_inference
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -39,14 +39,6 @@ class AuthLoginService {
       'Content-Type': 'application/json',
     };
     var bodyJson = jsonEncode(bodys);
-
-    // ── DEBUG: print curl command ────────────────────────────────────────────
-    print('========== EMP LOGIN CURL ==========');
-    print("curl -X POST '$url' \\");
-    headers.forEach((k, v) => print("  -H '$k: $v' \\"));
-    print("  -d '$bodyJson'");
-    print('====================================');
-    // ─────────────────────────────────────────────────────────────────────────
 
     var response = await http.post(
       url,

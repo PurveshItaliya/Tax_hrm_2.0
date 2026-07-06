@@ -12,75 +12,108 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 Future<bool> commonDialogBoxDesign({context, size, title, onTapLogOut}) async {
+  bool isLoading = false;
   return await showDialog<bool>(
     context: context,
     barrierDismissible: false,
     builder: (context) {
-      return Dialog(
-        backgroundColor: ColorConst.transparent,
-        child: Container(
-          padding: EdgeInsets.only(left: size.width*0.03,right: size.width *0.03,bottom: size.width *0.03),
-          decoration: BoxDecoration(
-            color: ColorConst.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              heightSpacer(size.height * 0.02),
-              Container(
-                width: size.width * 0.25,
-                height: size.width * 0.25,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFDECEC),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.logout, color: ColorConst.redDarkColors, size: size.width * 0.1),
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return Dialog(
+            backgroundColor: ColorConst.transparent,
+            child: Container(
+              padding: EdgeInsets.only(left: size.width*0.03,right: size.width *0.03,bottom: size.width *0.03),
+              decoration: BoxDecoration(
+                color: ColorConst.white,
+                borderRadius: BorderRadius.circular(20),
               ),
-
-              heightSpacer(size.height * 0.02),
-
-              Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-
-              heightSpacer(size.height * 0.01),
-
-              Text('Are you sure you want to $title?', textAlign: TextAlign.center,style: const TextStyle(  fontSize: 14,  color: Colors.grey)),
-
-              heightSpacer(size.height * 0.05),
-
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  fixedSize: Size(size.width, size.height * 0.06),
-                  backgroundColor: ColorConst.redDarkColors,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  heightSpacer(size.height * 0.02),
+                  Container(
+                    width: size.width * 0.25,
+                    height: size.width * 0.25,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDECEC),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.logout, color: ColorConst.redDarkColors, size: size.width * 0.1),
                   ),
-                ),
-                onPressed: onTapLogOut ?? () {
-                  SystemNavigator.pop();
-                },
-                child: Text('Yes, $title' ,style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColorConst.white)),
-              ),
 
-              heightSpacer(size.height * 0.015),
+                  heightSpacer(size.height * 0.02),
 
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  fixedSize: Size(size.width, size.height * 0.06),
-                  backgroundColor: const Color(0xFFF2F2F2),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+
+                  heightSpacer(size.height * 0.01),
+
+                  Text('Are you sure you want to $title?', textAlign: TextAlign.center,style: const TextStyle(  fontSize: 14,  color: Colors.grey)),
+
+                  heightSpacer(size.height * 0.05),
+
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      fixedSize: Size(size.width, size.height * 0.06),
+                      backgroundColor: ColorConst.redDarkColors,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            if (onTapLogOut != null) {
+                              setDialogState(() {
+                                isLoading = true;
+                              });
+                              try {
+                                await onTapLogOut();
+                              } catch (e) {
+                                if (context.mounted) {
+                                  setDialogState(() {
+                                    isLoading = false;
+                                  });
+                                }
+                              }
+                            } else {
+                              SystemNavigator.pop();
+                            }
+                          },
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text('Yes, $title' ,style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColorConst.white)),
                   ),
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('No',style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black)),
+
+                  heightSpacer(size.height * 0.015),
+
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      fixedSize: Size(size.width, size.height * 0.06),
+                      backgroundColor: const Color(0xFFF2F2F2),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            Navigator.pop(context);
+                          },
+                    child: const Text('No',style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black)),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
     },
   ) ?? false;

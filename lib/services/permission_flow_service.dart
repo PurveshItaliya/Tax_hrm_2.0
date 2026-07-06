@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:tax_hrm/services/location_permission_service.dart';
 import 'package:tax_hrm/widigets/permission_dialog_widget.dart';
+import 'package:tax_hrm/services/fcm_token_service.dart';
 
 /// The type of permission being processed.
 enum PermissionType { notification, camera, foregroundLocation, backgroundLocation }
@@ -180,6 +181,9 @@ class PermissionFlowService {
 
   static Future<PermissionFlowResult> _buildResult() async {
     final notifGranted = (await Permission.notification.status).isGranted;
+    if (notifGranted) {
+      FcmTokenService.instance.handleTokenSync();
+    }
     final camGranted = (await Permission.camera.status).isGranted;
     final fgGranted = (await Permission.location.status).isGranted;
     final bgGranted =

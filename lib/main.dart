@@ -11,20 +11,38 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
-import 'package:tax_hrm/services/background_location_service.dart';
 import 'package:tax_hrm/provider/theme_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:tax_hrm/firebase_options.dart';
+import 'package:tax_hrm/services/fcm_token_service.dart';
 
 // --- DUMMY FIREBASE HANDLER TO PREVENT CRASH FROM OLD CACHE ---
 @pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(dynamic message) async {
-  // Empty dummy handler to satisfy the cached callback handle
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Already initialized or failed
+  }
+  print("[FCM] Background message received: ${message.messageId}");
 }
 
 const taskName = "LocationTimeLines";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await FcmTokenService.instance.initialize();
+  } catch (e) {
+    print('Firebase initialization error: $e');
+  }
   await ReminderNotificationService.initialize();
   // Note: clearSavedSettings removed — it was preventing the dialog from triggering
   // await Upgrader.clearSavedSettings();
@@ -337,6 +355,7 @@ class _MyAppState extends State<MyApp> {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
+            navigatorKey: FcmTokenService.navigatorKey,
             title: appNameString,
             themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             theme: ThemeData(
@@ -381,4 +400,8 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-//----New  Code UpDate ----\
+// Firebase configuration file lib\firebase_options.dart generated successfully with the following Firebase apps:
+
+// Platform  Firebase App Id
+// android   1:571558384174:android:dd8ce5d1220b3f2d3585bf
+// ios       1:571558384174:ios:1fa2de4e8aa766183585bf

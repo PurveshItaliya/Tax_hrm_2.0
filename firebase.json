@@ -1,0 +1,30 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "taxhrm2",
+          "appId": "1:571558384174:android:dd8ce5d1220b3f2d3585bf",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "taxhrm2",
+          "appId": "1:571558384174:ios:1fa2de4e8aa766183585bf",
+          "uploadDebugSymbols": true,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      }
+    },
+    "dart": {
+      "lib/firebase_options.dart": {
+        "projectId": "taxhrm2",
+        "configurations": {
+          "android": "1:571558384174:android:dd8ce5d1220b3f2d3585bf",
+          "ios": "1:571558384174:ios:1fa2de4e8aa766183585bf"
+        }
+      }
+    }
+  }
+}

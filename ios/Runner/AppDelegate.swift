@@ -25,6 +25,15 @@ import workmanager_apple
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  override func applicationDidBecomeActive(_ application: UIApplication) {
+      if #available(iOS 16.0, *) {
+          UNUserNotificationCenter.current().setBadgeCount(0) { _ in }
+      } else {
+          application.applicationIconBadgeNumber = 0
+      }
+      super.applicationDidBecomeActive(application)
+  }
+
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }

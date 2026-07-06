@@ -77,7 +77,7 @@ class AttendanceApis{
     };
     var url = Uri.parse('${apibaseurl}api/HRM/CreateNotification');
     var response = await http.post(url, body: jsonEncode(bodys),
-    headers: {'Content-Type': 'application/json','Authorization': 'bearer ${curentUser!.token}',});
+    headers: {'Content-Type': 'application/json','Authorization': 'bearer ${curentUser['token']}',});
   }
   
   //---------------------- Create Punch ---------------------------------------\\

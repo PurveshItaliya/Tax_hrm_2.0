@@ -21,6 +21,7 @@ import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
+import 'package:tax_hrm/services/fcm_token_service.dart';
 
 class SplashProvider extends ChangeNotifier {
   bool isVideoFinished = false;
@@ -122,6 +123,7 @@ class SplashProvider extends ChangeNotifier {
     SaveUser().getUserDatas().then((value)async {
       if(value != '') {
         curentUser = jsonDecode(value);
+        FcmTokenService.instance.initialize();
         
         _updateAllDataForReminders(context);
         
@@ -172,6 +174,7 @@ class SplashProvider extends ChangeNotifier {
           var  holdData =   value;
           String udata = jsonEncode(value);
           SaveUser().saveUserData(udata);
+          FcmTokenService.instance.handleTokenSync();
           triggerNextScreen(context, AnimatedBottomBar());
         }
       }
@@ -192,6 +195,7 @@ class SplashProvider extends ChangeNotifier {
           await SaveUser().getUserDatas().then((value)async {
             if (value != '') {
                curentUser = jsonDecode(value);
+               FcmTokenService.instance.handleTokenSync();
             }
           });
           triggerNextScreen(context, AnimatedBottomBar());

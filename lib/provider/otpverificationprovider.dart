@@ -25,6 +25,7 @@ import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
+import 'package:tax_hrm/services/fcm_token_service.dart';
 
 class Otpverificationprovider extends ChangeNotifier {
   bool islodering = false;
@@ -208,6 +209,7 @@ class Otpverificationprovider extends ChangeNotifier {
       await SaveUser().getUserDatas().then((value) async {
         if (value != '') {
           curentUser = jsonDecode(value);
+          FcmTokenService.instance.handleTokenSync();
 
           final navigator = Navigator.of(context);
           Future.microtask(() async {

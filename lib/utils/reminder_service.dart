@@ -9,9 +9,10 @@ import 'package:tax_hrm/api/leaveapi.dart';
 import 'package:tax_hrm/models/Holidays/getholiday.dart';
 import 'package:tax_hrm/models/leavetype/getuserList.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/services/fcm_token_service.dart';
 
 class ReminderNotificationService {
-  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
+  static final FlutterLocalNotificationsPlugin notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
@@ -33,17 +34,21 @@ class ReminderNotificationService {
       iOS: initializationSettingsIOS,
     );
 
-    await _notificationsPlugin.initialize(
+    await notificationsPlugin.initialize(
       settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Optional: handle notification tap
+        try {
+          FcmTokenService.instance.handleNotificationPayload(response.payload);
+        } catch (e) {
+          // ignore
+        }
       },
     );
   }
 
   static Future<void> cancelAll() async {
     try {
-      await _notificationsPlugin.cancelAll();
+      await notificationsPlugin.cancelAll();
     } catch (e) { /* ignored */ }
   }
 
@@ -279,7 +284,7 @@ class ReminderNotificationService {
     try {
       try {
         final tzTime = tz.TZDateTime.from(scheduledTime, tz.local);
-        await _notificationsPlugin.zonedSchedule(
+        await notificationsPlugin.zonedSchedule(
           id: id,
           title: title,
           body: body,
@@ -303,7 +308,7 @@ class ReminderNotificationService {
       } catch (e) {
         try {
           final tzTime = tz.TZDateTime.from(scheduledTime, tz.local);
-          await _notificationsPlugin.zonedSchedule(
+          await notificationsPlugin.zonedSchedule(
             id: id,
             title: title,
             body: body,

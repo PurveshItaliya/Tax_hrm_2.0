@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
-import 'package:tax_hrm/provider/userloginprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
@@ -61,7 +60,6 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<InternetConnectionProvider>(context, listen: false).getAllConnectionData();
-      Provider.of<Userloginprovider>(context, listen: false).clearData();
       final splashProvider = Provider.of<SplashProvider>(context, listen: false);
       splashProvider.isVideoFinished = false;
       splashProvider.pendingNavigationPage = null;

@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously, prefer_interpolation_to_compose_strings
+// ignore_for_file: empty_catches, deprecated_member_use, use_build_context_synchronously, prefer_interpolation_to_compose_strings
 
 import 'dart:convert';
 import 'dart:io';
@@ -6,16 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/bottom_bar_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
 import 'package:tax_hrm/page/authpages/loginpage.dart';
-import 'package:tax_hrm/page/splashPage.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/provider/theme_provider.dart';
+import 'package:tax_hrm/provider/userloginprovider.dart';
 import 'package:tax_hrm/repository/background_location_repository.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -23,7 +24,7 @@ import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
-import 'package:tax_hrm/utils/imagesfile.dart';
+import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
@@ -63,7 +64,8 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   // ── Background location permission state (Android + IsFetchLocation only) ──
   bool _bgLocationGranted = false;
   bool get _showBgLocationTile =>
-      Platform.isAndroid && BackgroundLocationRepository.isFetchLocationEnabled();
+      Platform.isAndroid &&
+      BackgroundLocationRepository.isFetchLocationEnabled();
 
   Future<void> _checkBgLocationPermission() async {
     if (!_showBgLocationTile) return;
@@ -82,12 +84,15 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   Future<void> _checkAdminAccess() async {
     try {
       if (curentUser != null && curentUser['Id'] != null) {
-        final menuSettings =
-            await AdminProfileApiClass().getMenuSettingsData(empId: curentUser['Id']);
+        final menuSettings = await AdminProfileApiClass().getMenuSettingsData(
+          empId: curentUser['Id'],
+        );
         if (menuSettings != null && menuSettings is List) {
-          final hasAdminRight = menuSettings.any((element) =>
-              element.columnKey.toString().toLowerCase() == 'asadmin' &&
-              element.columnValue.toString().toLowerCase() == 'true');
+          final hasAdminRight = menuSettings.any(
+            (element) =>
+                element.columnKey.toString().toLowerCase() == 'asadmin' &&
+                element.columnValue.toString().toLowerCase() == 'true',
+          );
           if (mounted) {
             setState(() {
               _showAdminToggle = hasAdminRight;
@@ -95,14 +100,19 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
           }
         }
       }
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    Provider.of<SettingProvider>(context, listen: false).settingMenuLoading(context);
+    Provider.of<SettingProvider>(
+      context,
+      listen: false,
+    ).settingMenuLoading(context);
     _checkAdminAccess();
     loadVersion();
     _checkBgLocationPermission();
@@ -126,11 +136,15 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     final settingProvider = Provider.of<SettingProvider>(context);
-    safeAreaBgAndTextColor(context,
-        safeAreaBgColor: ColorConst.themeColor, safeAreaBrightness: Brightness.light);
+    safeAreaBgAndTextColor(
+      context,
+      safeAreaBgColor: ColorConst.themeColor,
+      safeAreaBrightness: Brightness.light,
+    );
 
     return Scaffold(
-      backgroundColor: ColorConst.scaffoldColor, // Matches the app's grey/off-white background
+      backgroundColor: ColorConst
+          .scaffoldColor, // Matches the app's grey/off-white background
       body: settingProvider.islodering
           ? settingShimmer(size)
           : SingleChildScrollView(
@@ -176,13 +190,54 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                         size: size,
                         title: logoutString,
                         onTapLogOut: () async {
-                          // Crucial: Stop location tracking upon logout!
-                          Provider.of<LocationTrackingProvider>(context, listen: false).stopLocationTracking();
+                          // 1. Stop location tracking
+                          try {
+                            Provider.of<LocationTrackingProvider>(
+                              context,
+                              listen: false,
+                            ).stopLocationTracking();
+                          } catch (e) {}
 
-                          SaveUser().saveUserData('');
-                          SaveUser().saveselectedcopany('');
-                          await ReminderNotificationService.cancelAll();
-                          nextscreenRemove(context, const LoginScreen(), onthenValue: (value) {});
+                          // 2. Clear/Deactivate FCM Token on server and device
+                          try {
+                            await FcmTokenService.instance.handleLogout();
+                          } catch (e) {}
+
+                          // 3. Clear all notification reminders
+                          try {
+                            await ReminderNotificationService.cancelAll();
+                          } catch (e) {}
+
+                          // 4. Securely clear SharedPreferences (preserving isDarkMode theme)
+                          try {
+                            final prefs = await SharedPreferences.getInstance();
+                            final isDarkMode =
+                                prefs.getBool('isDarkMode') ?? false;
+                            await prefs.clear();
+                            // Restore dark mode
+                            await prefs.setBool('isDarkMode', isDarkMode);
+                          } catch (e) {}
+
+                          // 5. Reset all global session variables
+                          curentUser = null;
+                          selectedcurentcompany = null;
+                          getAllCompany = [];
+                          allManinEmplyeList = [];
+                          payrollstoreDatalist = [];
+                          positionlistt = [];
+                          switchValue = false;
+
+                          Provider.of<Userloginprovider>(
+                            context,
+                            listen: false,
+                          ).clearData();
+
+                          // 6. Redirect to Login Screen
+                          nextscreenRemove(
+                            context,
+                            const LoginScreen(),
+                            onthenValue: (value) {},
+                          );
                         },
                       );
                     },
@@ -192,12 +247,19 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                       decoration: BoxDecoration(
                         color: ColorConst.logoutBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: ColorConst.logoutBorder, width: 1),
+                        border: Border.all(
+                          color: ColorConst.logoutBorder,
+                          width: 1,
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.logout_rounded, color: ColorConst.logoutText, size: 20),
+                          Icon(
+                            Icons.logout_rounded,
+                            color: ColorConst.logoutText,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             logoutString,
@@ -246,9 +308,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
             right: 0,
             child: Container(
               height: size.width * 0.38,
-              decoration: BoxDecoration(
-                color: ColorConst.themeColor,
-              ),
+              decoration: BoxDecoration(color: ColorConst.themeColor),
             ),
           ),
 
@@ -283,14 +343,17 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                         ),
                       )
                     : Text(
-                        (curentUser['FirstName'] != null && curentUser['FirstName'] != "")
+                        (curentUser['FirstName'] != null &&
+                                curentUser['FirstName'] != "")
                             ? ('${curentUser['FirstName']}'[0] +
-                                (curentUser['LastName'] != null && curentUser['LastName'] != ""
-                                    ? '${curentUser['LastName']}'[0]
-                                    : ""))
-                            : (curentUser['Username'] != null && curentUser['Username'] != ""
-                                ? '${curentUser['Username']}'[0]
-                                : ""),
+                                  (curentUser['LastName'] != null &&
+                                          curentUser['LastName'] != ""
+                                      ? '${curentUser['LastName']}'[0]
+                                      : ""))
+                            : (curentUser['Username'] != null &&
+                                      curentUser['Username'] != ""
+                                  ? '${curentUser['Username']}'[0]
+                                  : ""),
                         style: TextStyle(
                           fontSize: size.height * 0.045,
                           color: ColorConst.themeColor,
@@ -321,8 +384,15 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                     ),
                     child: IconButton(
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                      icon: Icon(Icons.edit_rounded, color: ColorConst.themeColor, size: 18),
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      icon: Icon(
+                        Icons.edit_rounded,
+                        color: ColorConst.themeColor,
+                        size: 18,
+                      ),
                       onPressed: () {
                         nextScreen(
                           context,
@@ -364,7 +434,9 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        curentUser['Role'] == 'Admin' ? 'Administrator' : 'Employee',
+                        curentUser['Role'] == 'Admin'
+                            ? 'Administrator'
+                            : 'Employee',
                         style: TextStyle(
                           fontSize: 13,
                           color: ColorConst.textgrey,
@@ -391,9 +463,11 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
         val: themeProvider.isDarkMode,
         onChanged: (val) {
           themeProvider.toggleTheme(val);
-          safeAreaBgAndTextColor(context,
-              safeAreaBgColor: val ? ColorConst.black : ColorConst.themeColor,
-              safeAreaBrightness: val ? Brightness.dark : Brightness.light);
+          safeAreaBgAndTextColor(
+            context,
+            safeAreaBgColor: val ? ColorConst.black : ColorConst.themeColor,
+            safeAreaBrightness: val ? Brightness.dark : Brightness.light,
+          );
         },
       ),
     );
@@ -402,7 +476,9 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
     // Background Location Permission tile (Android + IsFetchLocation=true only)
     if (_showBgLocationTile) {
       list.add(_buildBgLocationTile(size));
-      list.add(Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)));
+      list.add(
+        Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
+      );
     }
 
     for (int i = 0; i < settingProvider.settingGridOptionList.length; i++) {
@@ -429,12 +505,21 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
               await SaveUser().saveUserData(jsonEncode(curentUser));
 
               if (!context.mounted) return;
-              Provider.of<HomeProvider>(context, listen: false).changeSelectBottomBar(0);
-              nextscreenRemove(context, const AnimatedBottomBar(), onthenValue: (value) {});
+              Provider.of<HomeProvider>(
+                context,
+                listen: false,
+              ).changeSelectBottomBar(0);
+              nextscreenRemove(
+                context,
+                const AnimatedBottomBar(),
+                onthenValue: (value) {},
+              );
             },
           ),
         );
-        list.add(Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)));
+        list.add(
+          Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
+        );
       }
 
       list.add(
@@ -449,7 +534,9 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
       );
 
       if (i < settingProvider.settingGridOptionList.length - 1) {
-        list.add(Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)));
+        list.add(
+          Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
+        );
       }
     }
 
@@ -533,10 +620,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
           ),
           child: Padding(
             padding: const EdgeInsets.all(10.0),
-            child: Image.asset(
-              image,
-              color: ColorConst.themeColor,
-            ),
+            child: Image.asset(image, color: ColorConst.themeColor),
           ),
         ),
         title: Text(
