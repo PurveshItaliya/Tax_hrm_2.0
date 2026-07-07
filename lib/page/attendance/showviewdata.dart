@@ -23,6 +23,10 @@ import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/provider/attendanceemp.dart';
+import 'package:tax_hrm/page/employee_master/pdf_csv_print_function.dart';
+import 'package:tax_hrm/widigets/toastmessage.dart';
 
 class ShowAttenDanceEmployeData extends StatefulWidget {
   const ShowAttenDanceEmployeData({super.key});
@@ -95,7 +99,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       _searchQuery = '';
       _filteredEmployeeList = [];
     });
-    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
@@ -119,9 +123,11 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         _clearSearch();
         return;
       },
-      child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF121212) : ColorConst.scaffoldColor,
-        appBar: showBottomAppBar(attendanceString, size, centerTitles: false),
+      child: GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: Scaffold(
+          backgroundColor: isDark ? const Color(0xFF121212) : ColorConst.scaffoldColor,
+          appBar: showBottomAppBar(attendanceString, size, centerTitles: false),
         body: attendanceProviders.isloderings 
             ? attendanceAllEmployeeShimmer(size) 
             : SingleChildScrollView(
@@ -130,51 +136,51 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                   children: [
                     _buildHeaderSection(size, attendanceProviders, formattedDate),
                     _buildStatsSection(size, attendanceProviders),
-                    _buildExportButton(size),
                     _buildSearchSection(size),
                     _buildEmployeeListSection(size, attendanceProviders),
                   ],
                 ),
               ),
+        ),
       ),
     );
   }
 
-  Widget _buildExportButton(Size size) {
+  Widget _buildExportButton() {
     return GestureDetector(
       onTap: _downloadExcel,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
-        padding: EdgeInsets.symmetric(vertical: size.height * 0.015),
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: ColorConst.themeColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: ColorConst.themeColor.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: ColorConst.themeColor.withOpacity(0.15),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.file_download_outlined, color: Colors.white, size: size.width * 0.05),
-            SizedBox(width: size.width * 0.02),
+            const Icon(Icons.download_rounded, color: Colors.white, size: 16),
+            const SizedBox(width: 6),
             Text(
-              'Export Excel Report',
+              'Excel',
               style: TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontFamily: fontInterBoldString,
-                fontSize: size.width * 0.035,
+                fontWeight: FontWeight.w600,
+                fontFamily: fontInterMediumString,
+                fontSize: 12,
               ),
             ),
           ],
         ),
       ),
-    );
+    );  
   }
 
   void _populateEmployeeSheet(Sheet sheet, List<dynamic> list, List<dynamic> allEmployees, CellStyle headerStyle) {
@@ -194,6 +200,14 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
     CellStyle cellStyle = CellStyle(
       horizontalAlign: HorizontalAlign.Center,
+      leftBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      rightBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      topBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      bottomBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+    );
+
+    CellStyle leftAlignCellStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Left,
       leftBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
       rightBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
       topBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
@@ -242,11 +256,11 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
       var cell1 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1));
       cell1.value = TextCellValue('${employee.firstName} ${employee.lastName}');
-      cell1.cellStyle = cellStyle;
+      cell1.cellStyle = leftAlignCellStyle;
 
       var cell2 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1));
       cell2.value = TextCellValue(designation);
-      cell2.cellStyle = cellStyle;
+      cell2.cellStyle = leftAlignCellStyle;
 
       var cell3 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1));
       cell3.value = TextCellValue(status);
@@ -289,6 +303,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       Sheet presentSheet = excel['Present'];
       Sheet absentSheet = excel['Absent'];
       Sheet leaveSheet = excel['On Leave'];
+      Sheet designationSheet = excel['Designation Wise'];
       
       excel.setDefaultSheet('Dashboard');
 
@@ -321,6 +336,14 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         topBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
         bottomBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
       );
+
+      CellStyle leftAlignDataStyle = CellStyle(
+        horizontalAlign: HorizontalAlign.Left,
+        leftBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        rightBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        topBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+        bottomBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
+      );
       
       var cA1 = dashSheet.cell(CellIndex.indexByString("A1"));
       cA1.value = TextCellValue("Attendance Dashboard");
@@ -329,7 +352,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       
       var cA3 = dashSheet.cell(CellIndex.indexByString("A3"));
       cA3.value = TextCellValue("Date:");
-      cA3.cellStyle = dataStyle;
+      cA3.cellStyle = leftAlignDataStyle;
       var cB3 = dashSheet.cell(CellIndex.indexByString("B3"));
       cB3.value = TextCellValue(formattedDate);
       cB3.cellStyle = dataStyle;
@@ -343,28 +366,28 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       
       var cA6 = dashSheet.cell(CellIndex.indexByString("A6"));
       cA6.value = TextCellValue("Total Employees");
-      cA6.cellStyle = dataStyle;
+      cA6.cellStyle = leftAlignDataStyle;
       var cB6 = dashSheet.cell(CellIndex.indexByString("B6"));
       cB6.value = TextCellValue('${attendanceProviders.mainHoldEmpList.length}');
       cB6.cellStyle = dataStyle;
       
       var cA7 = dashSheet.cell(CellIndex.indexByString("A7"));
       cA7.value = TextCellValue("Present");
-      cA7.cellStyle = dataStyle;
+      cA7.cellStyle = leftAlignDataStyle;
       var cB7 = dashSheet.cell(CellIndex.indexByString("B7"));
       cB7.value = TextCellValue('${attendanceProviders.totalPresents}');
       cB7.cellStyle = dataStyle;
       
       var cA8 = dashSheet.cell(CellIndex.indexByString("A8"));
       cA8.value = TextCellValue("Absent");
-      cA8.cellStyle = dataStyle;
+      cA8.cellStyle = leftAlignDataStyle;
       var cB8 = dashSheet.cell(CellIndex.indexByString("B8"));
       cB8.value = TextCellValue('${attendanceProviders.totalAbsent}');
       cB8.cellStyle = dataStyle;
       
       var cA9 = dashSheet.cell(CellIndex.indexByString("A9"));
       cA9.value = TextCellValue("On Leave");
-      cA9.cellStyle = dataStyle;
+      cA9.cellStyle = leftAlignDataStyle;
       var cB9 = dashSheet.cell(CellIndex.indexByString("B9"));
       cB9.value = TextCellValue('${attendanceProviders.totalIsOnLeave}');
       cB9.cellStyle = dataStyle;
@@ -390,21 +413,141 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       _populateEmployeeSheet(absentSheet, absentList, allEmpList, headerStyle);
       _populateEmployeeSheet(leaveSheet, leaveList, allEmpList, headerStyle);
 
+      // Populate Designation Wise Sheet (Separate tables for each designation)
+      designationSheet.setColumnWidth(0, 10.0); // ID
+      designationSheet.setColumnWidth(1, 25.0); // Employee Name
+      designationSheet.setColumnWidth(2, 15.0); // Status
+      designationSheet.setColumnWidth(3, 15.0); // In Time
+      designationSheet.setColumnWidth(4, 15.0); // Out Time
+
+      CellStyle designationHeaderStyle = CellStyle(
+        bold: true,
+        horizontalAlign: HorizontalAlign.Left,
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        backgroundColorHex: ExcelColor.fromHexString('#1D976C'),
+      );
+
+      // Group displayList by designation
+      Map<String, List<dynamic>> designationGroups = {};
+      for (var empAttendance in displayList) {
+        String designation = '-';
+        for (var emp in allEmpList) {
+          if (emp.id == empAttendance.empId) {
+            designation = emp.positionName ?? '';
+            if (designation.trim().isEmpty) {
+              designation = emp.departmentName ?? '-';
+            }
+            if (designation.trim().isEmpty) {
+              designation = '-';
+            }
+            break;
+          }
+        }
+        if (!designationGroups.containsKey(designation)) {
+          designationGroups[designation] = [];
+        }
+        designationGroups[designation]!.add(empAttendance);
+      }
+
+      int currentRow = 0;
+      designationGroups.forEach((designation, list) {
+        // Designation Title Header
+        var headerCell = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+        headerCell.value = TextCellValue("Designation: $designation");
+        headerCell.cellStyle = designationHeaderStyle;
+        designationSheet.merge(
+          CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow),
+          CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow),
+          customValue: TextCellValue("Designation: $designation"),
+        );
+        currentRow++;
+
+        // Table Column Headers
+        List<String> subHeaders = ['ID', 'Employee Name', 'Status', 'In Time', 'Out Time'];
+        for (int i = 0; i < subHeaders.length; i++) {
+          var cell = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
+          cell.value = TextCellValue(subHeaders[i]);
+          cell.cellStyle = headerStyle;
+        }
+        currentRow++;
+
+        // Table Rows
+        for (var employee in list) {
+          final isPresent = employee.inTime != null && employee.absent == false;
+          final isOnLeave = employee.isOnLeave == true;
+          final isAbsent = employee.absent == true && !isOnLeave;
+          
+          String status = 'Unknown';
+          if (isOnLeave) {
+            status = 'On Leave';
+          } else if (isPresent) {
+            status = 'Present';
+          } else if (isAbsent) {
+            status = 'Absent';
+          }
+
+          String inTimeStr = employee.inTime == null 
+              ? '-' 
+              : DateFormat('hh:mm a').format(DateTime.parse(employee.inTime.toString()));
+          String outTimeStr = employee.outTime == null 
+              ? '-' 
+              : DateFormat('hh:mm a').format(DateTime.parse(employee.outTime.toString()));
+
+          var cell0 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+          cell0.value = TextCellValue(employee.empId.toString());
+          cell0.cellStyle = dataStyle;
+
+          var cell1 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow));
+          cell1.value = TextCellValue('${employee.firstName} ${employee.lastName}');
+          cell1.cellStyle = leftAlignDataStyle;
+
+          var cell2 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow));
+          cell2.value = TextCellValue(status);
+          cell2.cellStyle = dataStyle;
+
+          var cell3 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow));
+          cell3.value = TextCellValue(inTimeStr);
+          cell3.cellStyle = dataStyle;
+
+          var cell4 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow));
+          cell4.value = TextCellValue(outTimeStr);
+          cell4.cellStyle = dataStyle;
+
+          currentRow++;
+        }
+
+        // Space between tables
+        currentRow += 2;
+      });
+
       var fileBytes = excel.save();
       if (fileBytes != null) {
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final directory = await getApplicationDocumentsDirectory();
-        final filePath = '${directory.path}/Attendance_${formattedDate}_$timestamp.xlsx';
-        File(filePath)
-          ..createSync(recursive: true)
-          ..writeAsBytesSync(fileBytes);
-        
-        await Share.shareXFiles([XFile(filePath)], text: 'Attendance Report $formattedDate');
+        Directory? externalDir;
+        if (Platform.isAndroid) {
+          bool permission = await requestStoragePermission();
+          if (!permission) {
+            showtoastmessage("Storage permission required to download Excel");
+            return;
+          }
+          externalDir = Directory('/storage/emulated/0/Download/TAX HRM 2.0');
+        } else if (Platform.isIOS) {
+          externalDir = await getApplicationDocumentsDirectory();
+        }
+
+        if (externalDir != null) {
+          if (!await externalDir.exists()) {
+            await externalDir.create(recursive: true);
+          }
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final filePath = '${externalDir.path}/Attendance_${formattedDate}_$timestamp.xlsx';
+          File(filePath)
+            ..createSync(recursive: true)
+            ..writeAsBytesSync(fileBytes);
+          showtoastmessage('Excel Downloaded Successfully! Saved in Download/TAX HRM 2.0');
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error generating Excel: $e')),
-      );
+      showtoastmessage('Failed to download Excel. Please try again.');
     }
   }
 
@@ -412,28 +555,46 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   Widget _buildSearchSection(Size size) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: EdgeInsets.only(left: size.width * 0.04, right: size.width * 0.04, bottom:  size.width * 0.02,),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: isDark ? Colors.transparent : ColorConst.grey.withOpacity(0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.transparent : Colors.black.withOpacity(0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: CommonTextField(
+                controller: _searchController,
+                borderRadius: 10.0,
+                borderColor: Colors.transparent,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(Icons.search_rounded, size: 18, color: ColorConst.themeColor),
+                ),
+                hintText: 'Search employee...',
+                suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: _clearSearch,
+                          icon: Icon(Icons.close_rounded, size: 16, color: Colors.grey.shade400),
+                        )
+                      : null,
+                ), 
             ),
-          ],
-        ),
-        child: CommonTextField(controller: _searchController,prefixIcon:  Padding(
-          padding: const EdgeInsets.only(left: 7),
-          child: Icon(Icons.search_rounded,size: size.width * 0.05,color: ColorConst.themeColor,),
-        ),
-        hintText: 'Search by employee name...',
-            suffixIcon: _searchQuery.isNotEmpty
-                ? IconButton(onPressed: _clearSearch,icon: Icon(Icons.close_rounded,size: size.width * 0.045,color: Colors.grey.shade400,),)
-                : null,
-          ), 
+          ),
+          const SizedBox(width: 8),
+          _buildExportButton(),
+        ],
       ),
     );
   }
@@ -445,116 +606,116 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     final currentMonth = attendanceProviders.currentMonth;
     
     // Check if current selected month is current month (disable next button)
-    final isCurrentMonth = currentMonth.year ==now.year && currentMonth.month ==now.month && currentMonth.day ==now.day;
+    final isCurrentMonth = currentMonth.year == now.year && currentMonth.month == now.month && currentMonth.day == now.day;
     // Check if can go next (only disable if it's current month)
     final canGoNext = !isCurrentMonth;
     
     return Container(
-      padding: EdgeInsets.all(size.width * 0.04),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
-          BoxShadow(color: isDark ? Colors.transparent : ColorConst.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5),
+          BoxShadow(
+            color: isDark ? Colors.transparent : Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Previous Button
-              GestureDetector(
-                onTap: () {
-                  _clearSearch(); // Clear search when changing month
-                  attendanceProviders.changeDate(false);
-                },
-                child: Container(
-                  padding: EdgeInsets.all(size.width * 0.02),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: ColorConst.themeColor.withOpacity(0.1),
-                  ),
-                  child: Icon(Icons.arrow_back_ios_new, size: size.width * 0.045, color: ColorConst.themeColor),
-                ),
+          // Previous Button
+          GestureDetector(
+            onTap: () {
+              _clearSearch(); // Clear search when changing month
+              attendanceProviders.changeDate(false);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: ColorConst.themeColor.withOpacity(0.1),
               ),
-              
-              // Date Picker Button
-              GestureDetector(
-                onTap: () async {
-                  final DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: attendanceProviders.currentMonth,
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                    selectableDayPredicate: (day) => day.weekday != DateTime.sunday,
-                    builder: (context, child) {
-                      return Theme(
-                        data: ThemeData.light().copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: ColorConst.themeColor,
-                            onPrimary: Colors.white,
-                            onSurface: Colors.black,
-                          ),
-                          dialogBackgroundColor: ColorConst.white,
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (pickedDate != null) {
-                    _clearSearch(); // Clear search when changing date
-                    attendanceProviders.updateMonth(pickedDate, context);
-                  }
-                },
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.008),
-                  decoration: BoxDecoration(
-                    color: ColorConst.themeColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.calendar_today, size: size.width * 0.035, color: ColorConst.themeColor),
-                      SizedBox(width: size.width * 0.02),
-                      Text(
-                        formattedDate,
-                        style: TextStyle(
-                          fontSize: size.width * 0.04,
-                          fontWeight: FontWeight.w600,
-                          color: ColorConst.themeColor,
-                          fontFamily: fontInterSemiBoldString,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              // Next Button - Disabled for current month
-              GestureDetector(
-                onTap: canGoNext ? () {
-                  _clearSearch(); // Clear search when changing month
-                  attendanceProviders.changeDate(true);
-                } : null,
-                child: Container(
-                  padding: EdgeInsets.all(size.width * 0.02),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: canGoNext 
-                        ? ColorConst.themeColor.withOpacity(0.1) 
-                        : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
-                  ),
-                  child: Icon(
-                    Icons.arrow_forward_ios_outlined,
-                    size: size.width * 0.045,
-                    color: canGoNext ? ColorConst.themeColor : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
-                  ),
-                ),
-              ),
-            ],
+              child: Icon(Icons.arrow_back_ios_new, size: 14, color: ColorConst.themeColor),
+            ),
           ),
-          heightSpacer(size.height * 0.01),
+          
+          // Date Picker Button
+          GestureDetector(
+            onTap: () async {
+              final DateTime? pickedDate = await showDatePicker(
+                context: context,
+                initialDate: attendanceProviders.currentMonth,
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+                selectableDayPredicate: (day) => day.weekday != DateTime.sunday,
+                builder: (context, child) {
+                  return Theme(
+                    data: ThemeData.light().copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: ColorConst.themeColor,
+                        onPrimary: Colors.white,
+                        onSurface: Colors.black,
+                      ),
+                      dialogBackgroundColor: ColorConst.white,
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (pickedDate != null) {
+                _clearSearch(); // Clear search when changing date
+                attendanceProviders.updateMonth(pickedDate, context);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: ColorConst.themeColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: ColorConst.themeColor.withOpacity(0.12)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.calendar_today_rounded, size: 13, color: ColorConst.themeColor),
+                  const SizedBox(width: 6),
+                  Text(
+                    formattedDate,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: ColorConst.themeColor,
+                      fontFamily: fontInterSemiBoldString,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Next Button - Disabled for current month
+          GestureDetector(
+            onTap: canGoNext ? () {
+              _clearSearch(); // Clear search when changing month
+              attendanceProviders.changeDate(true);
+            } : null,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: canGoNext 
+                    ? ColorConst.themeColor.withOpacity(0.1) 
+                    : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+              ),
+              child: Icon(
+                Icons.arrow_forward_ios_outlined,
+                size: 14,
+                color: canGoNext ? ColorConst.themeColor : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -563,14 +724,14 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   // ==================== STATISTICS SECTION ====================
   Widget _buildStatsSection(Size size, AdminAttenDanceServices attendanceProviders) {
     return Container(
-      margin: EdgeInsets.all(size.width * 0.04),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: GridView.count(
         crossAxisCount: 2,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 2.4,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 2.5,
         children: [
           _buildStatCard(
             size: size,
@@ -633,56 +794,57 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(size.width * 0.03),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.transparent : color.withOpacity(0.15),
-              blurRadius: 8,
+              color: isDark ? Colors.transparent : color.withOpacity(0.06),
+              blurRadius: 6,
               offset: const Offset(0, 2),
             ),
           ],
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: isDark ? Colors.grey.shade800 : color.withOpacity(0.15)),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(size.width * 0.02),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: color, size: size.width * 0.045),
-                ),
-                widthSpacer(size.width * 0.02),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: size.width * 0.028,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                        fontFamily: fontInterMediumString,
-                      ),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      fontFamily: fontInterMediumString,
                     ),
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: size.width * 0.045,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                        fontFamily: fontInterBoldString,
-                      ),
-                    )
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      fontFamily: fontInterBoldString,
+                    ),
+                  )
+                ],
+              ),
             ),
           ],
         ),
@@ -692,112 +854,94 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
   // ==================== EMPLOYEE LIST SECTION ====================
   Widget _buildEmployeeListSection(Size size, AdminAttenDanceServices attendanceProviders) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     // Use filtered list if search is active, otherwise use original list
     final displayList = _searchQuery.isNotEmpty ? _filteredEmployeeList : attendanceProviders.empAttendanceList;
-    return Container(
-      width: size.width,
-      margin: EdgeInsets.all(size.width * 0.01),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.transparent : Colors.grey.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: displayList.isEmpty
-          ? _searchQuery.isNotEmpty
-              ? _buildNoSearchResults(size)
-              : Container(alignment: Alignment.center,child: noDataFoundsDesign(size, 'No Data Found', nodataFoundsImagString, width: size.width * 0.5))
-          : ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(vertical: size.height * 0.01),
-              itemCount: displayList.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 4),
-              itemBuilder: (context, index) {
-                  String setPhone = '';
-                  Provider.of<EmployeMastServices>(context, listen: false).allemployes.forEach((element) {
-                    if (element.id == displayList[index].empId) {
-                      setPhone = '${element.mobile1}';
-                    }
-                  });
-                  return _buildEmployeeCard(size, attendanceProviders, index, setPhone, displayList);
-                },
-              ),
-
-    );
+    return displayList.isEmpty
+        ? _searchQuery.isNotEmpty
+            ? _buildNoSearchResults()
+            : Container(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                alignment: Alignment.center,
+                child: noDataFoundsDesign(size, 'No Data Found', nodataFoundsImagString, width: 140),
+              )
+        : ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            itemCount: displayList.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              String setPhone = '';
+              Provider.of<EmployeMastServices>(context, listen: false).allemployes.forEach((element) {
+                if (element.id == displayList[index].empId) {
+                  setPhone = '${element.mobile1}';
+                }
+              });
+              return _buildEmployeeCard(size, attendanceProviders, index, setPhone, displayList);
+            },
+          );
   }
 
-  // No search results widget
-  Widget _buildNoSearchResults(Size size) {
+  Widget _buildNoSearchResults() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
       alignment: Alignment.center,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: size.width * 0.12,
-              color: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 40,
+            color: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No employees found',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+              fontFamily: fontInterSemiBoldString,
             ),
-            SizedBox(height: size.height * 0.02),
-            Text(
-              'No employees found',
-              style: TextStyle(
-                fontSize: size.width * 0.04,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
-                fontFamily: fontInterSemiBoldString,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Try searching with a different name',
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+              fontFamily: fontInterRegularString,
             ),
-            SizedBox(height: size.height * 0.005),
-            Text(
-              'Try searching with different name',
-              style: TextStyle(
-                fontSize: size.width * 0.03,
-                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
-                fontFamily: fontInterRegularString,
-              ),
-            ),
-            SizedBox(height: size.height * 0.02),
-            GestureDetector(
-              onTap: _clearSearch,
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: size.width * 0.06,
-                  vertical: size.height * 0.012,
-                ),
-                decoration: BoxDecoration(
-                  color: ColorConst.themeColor,
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: ColorConst.themeColor.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  'Clear Search',
-                  style: TextStyle(
-                    fontSize: size.width * 0.035,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: fontInterSemiBoldString,
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: _clearSearch,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: ColorConst.themeColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: ColorConst.themeColor.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
+                ],
+              ),
+              child: const Text(
+                'Clear Search',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: fontInterSemiBoldString,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -809,248 +953,270 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     final isOnLeave = employee.isOnLeave == true;
     final isAbsent = employee.absent == true && !isOnLeave;
     
-    return InkWell(
-      onTap: () {
-        nextScreen(
-          context,
-          AttendanceScreen(empData: employee),
-          onthenValue: (value) => attendanceProviders.updateMonth(DateTime.now(), context),
-        );
-      },
-      child: Container(
-        margin: EdgeInsets.symmetric(horizontal: size.width * 0.02, vertical: size.height * 0.005),
-        padding: EdgeInsets.all(size.width * 0.035),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100),
-          boxShadow: [
-            BoxShadow(
-              color: isDark ? Colors.transparent : Colors.grey.withOpacity(0.04),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            )
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  height: size.width * 0.1,
-                  width: size.width * 0.1,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [ColorConst.themeColor.withOpacity(0.7), ColorConst.themeColor],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${employee.firstName?[0] ?? ''}${employee.lastName?[0] ?? ''}'.toUpperCase(),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: size.width * 0.035,
-                    ),
-                  ),
-                ),
-                SizedBox(width: size.width * 0.03),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${employee.firstName} ${employee.lastName}',
-                        style: TextStyle(
-                          fontSize: size.height * 0.018,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontFamily: fontInterBoldString,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200, width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.transparent : Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: InkWell(
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          nextScreen(
+            context,
+            AttendanceScreen(empData: employee),
+            onthenValue: (value) => attendanceProviders.updateMonth(DateTime.now(), context),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Avatar
+                  Container(
+                    height: 32,
+                    width: 32,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [ColorConst.themeColor.withOpacity(0.8), ColorConst.themeColor],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      Padding(
-                        padding: EdgeInsets.only(top: size.height * 0.004),
-                        child: Text(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: ColorConst.themeColor.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        )
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${employee.firstName?[0] ?? ''}${employee.lastName?[0] ?? ''}'.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  
+                  // Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${employee.firstName} ${employee.lastName}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontFamily: fontInterBoldString,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
                           'ID: ${employee.empId}',
                           style: TextStyle(
-                            fontSize: size.width * 0.028,
+                            fontSize: 10,
                             color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                             fontFamily: fontInterMediumString,
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Actions
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildSmallActionButton(
+                        onTap: () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          nextScreen(
+                            context,
+                            EmployeTimelines(userId: employee.empId.toString()),
+                            onthenValue: (value) {},
+                          );
+                        },
+                        icon: Icons.timeline,
+                        color: ColorConst.themeColor,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(width: 4),
+                      _buildSmallActionButton(
+                        onTap: () async {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          var url = 'https://Wa.me/$setPhone';
+                          await launch(url);
+                        },
+                        isImage: true,
+                        image: whatsappImgString,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(width: 4),
+                      _buildSmallActionButton(
+                        onTap: () async {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          await Future.delayed(const Duration(milliseconds: 150));
+                          final attendanceEmp = Provider.of<AttendanceEmp>(context, listen: false);
+                          String timestampString = DateTime.now().toString();
+                          String formattedTimestampString = timestampString.replaceAll('Z', '');
+                          
+                          await attendanceEmp.getDateBloges(formattedTimestampString, employee.empId.toString());
+                          
+                          if (context.mounted) {
+                             showDayDetails(
+                               context,
+                               size,
+                               attendanceEmp.selectedDateLog,
+                               timestampString,
+                               1,
+                               attendanceEmp,
+                               attendanceProviders,
+                               curentUser,
+                               employee,
+                             );
+                          }
+                        },
+                        icon: Icons.calendar_today_rounded,
+                        color: ColorConst.blueColor,
+                        isDark: isDark,
                       ),
                     ],
                   ),
-                ),
-                Row(
-                  children: [
-                    _buildActionButton(
-                      onTap: () {
-                        nextScreen(
-                          context,
-                          EmployeTimelines(userId: employee.empId.toString()),
-                          onthenValue: (value) {},
-                        );
-                      },
-                      size: size,
-                      icon: Icons.timeline,
-                      color: ColorConst.themeColor,
-                      isDark: isDark,
-                    ),
-                    SizedBox(width: size.width * 0.015),
-                    _buildActionButton(
-                      onTap: () async {
-                        var url = 'https://Wa.me/$setPhone';
-                        await launch(url);
-                      },
-                      size: size,
-                      isImage: true,
-                      image: whatsappImgString,
-                      isDark: isDark,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            heightSpacer(size.height * 0.015),
-            
-            Row(
-              children: [
-                if (!isOnLeave)
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: size.width * 0.012, horizontal: size.width * 0.025),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: isPresent ? ColorConst.greenColor : (isDark ? Colors.grey.shade700 : ColorConst.grey)),
-                      color: isPresent ? ColorConst.greenColor : (isDark ? Colors.transparent : ColorConst.white),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isPresent ? Icons.check_circle : Icons.help_outline,
-                          size: size.width * 0.035,
-                          color: isPresent ? Colors.white : (isDark ? Colors.grey.shade400 : ColorConst.grey),
-                        ),
-                        SizedBox(width: size.width * 0.01),
-                        Text(
-                          presentString,
-                          style: TextStyle(
-                            color: isPresent ? Colors.white : (isDark ? Colors.grey.shade400 : ColorConst.grey),
-                            fontWeight: FontWeight.w600,
-                            fontFamily: fontInterSemiBoldString,
-                            fontSize: size.width * 0.028,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: size.width * 0.012, horizontal: size.width * 0.025),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: ColorConst.paidLeaveColor),
-                      color: ColorConst.paidLeaveColor,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.beach_access, size: size.width * 0.035, color: Colors.white),
-                        SizedBox(width: size.width * 0.01),
-                        Text(
-                          onLeaveString,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: fontInterSemiBoldString,
-                            fontSize: size.width * 0.028,
-                          ),
-                        ),
-                      ],
-                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              
+              // Status and Punch Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Status Badge
+                  _buildStatusBadge(
+                    isOnLeave: isOnLeave,
+                    isPresent: isPresent,
+                    isAbsent: isAbsent,
+                    isDark: isDark,
                   ),
-                
-                SizedBox(width: size.width * 0.02),
-                
-                if (!isOnLeave)
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: size.width * 0.012, horizontal: size.width * 0.025),
-                    decoration: BoxDecoration(
-                      color: isAbsent ? ColorConst.red : (isDark ? Colors.transparent : ColorConst.white),
-                      border: Border.all(color: isAbsent ? ColorConst.red : (isDark ? Colors.grey.shade700 : ColorConst.grey)),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.cancel,
-                          size: size.width * 0.035,
-                          color: isAbsent ? Colors.white : (isDark ? Colors.grey.shade400 : ColorConst.grey),
-                        ),
-                        SizedBox(width: size.width * 0.01),
-                        Text(
-                          absentString,
-                          style: TextStyle(
-                            color: isAbsent ? Colors.white : (isDark ? Colors.grey.shade400 : ColorConst.grey),
-                            fontWeight: FontWeight.w600,
-                            fontFamily: fontInterSemiBoldString,
-                            fontSize: size.width * 0.028,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                
-                const Spacer(),
-                _buildPunchButton(size, attendanceProviders, employee, index, displayList),
-              ],
-            ),
-          ],
+                  
+                  // Punch Button
+                  _buildPunchButton(size, attendanceProviders, employee, index, displayList),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildStatusBadge({
+    required bool isOnLeave,
+    required bool isPresent,
+    required bool isAbsent,
+    required bool isDark,
+  }) {
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
+    IconData icon;
+    String text;
+
+    if (isOnLeave) {
+      bgColor = ColorConst.paidLeaveColor.withOpacity(0.1);
+      borderColor = ColorConst.paidLeaveColor.withOpacity(0.5);
+      textColor = ColorConst.paidLeaveColor;
+      icon = Icons.beach_access_rounded;
+      text = onLeaveString;
+    } else if (isPresent) {
+      bgColor = ColorConst.greenColor.withOpacity(0.1);
+      borderColor = ColorConst.greenColor.withOpacity(0.5);
+      textColor = ColorConst.greenColor;
+      icon = Icons.check_circle_rounded;
+      text = presentString;
+    } else if (isAbsent) {
+      bgColor = ColorConst.red.withOpacity(0.1);
+      borderColor = ColorConst.red.withOpacity(0.5);
+      textColor = ColorConst.red;
+      icon = Icons.cancel_rounded;
+      text = absentString;
+    } else {
+      bgColor = isDark ? Colors.grey.shade800 : Colors.grey.shade100;
+      borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+      textColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+      icon = Icons.help_outline_rounded;
+      text = "Pending";
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border.all(color: borderColor, width: 0.8),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+              fontFamily: fontInterSemiBoldString,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallActionButton({
     required VoidCallback onTap,
-    required Size size,
     IconData? icon,
     bool isImage = false,
     String? image,
     Color color = Colors.white,
     bool isDark = false,
   }) {
-    if (isImage && image != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.all(size.width * 0.02),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Image.asset(image, height: size.width * 0.04, width: size.width * 0.04),
-        ),
-      );
-    }
-    
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(size.width * 0.02),
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: color.withOpacity(isDark ? 0.2 : 0.1),
-          borderRadius: BorderRadius.circular(10),
+          color: isImage
+              ? (isDark ? Colors.grey.shade800 : Colors.grey.shade100)
+              : color.withOpacity(isDark ? 0.2 : 0.1),
+          borderRadius: BorderRadius.circular(6),
         ),
-        child: Icon(icon, size: size.width * 0.04, color: color),
+        child: isImage && image != null
+            ? Image.asset(image, height: 14, width: 14)
+            : Icon(icon, size: 14, color: color),
       ),
     );
   }
@@ -1068,31 +1234,31 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         _showAttendanceBottomSheet(context, size, attendanceProviders, index, displayList);
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: size.width * 0.025, vertical: size.height * 0.008),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [ColorConst.themeColor, ColorConst.themeColor.withOpacity(0.8)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
               color: ColorConst.themeColor.withOpacity(0.3),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.access_time, size: size.width * 0.035, color: Colors.white),
-            SizedBox(width: size.width * 0.01),
+            const Icon(Icons.access_time, size: 12, color: Colors.white),
+            const SizedBox(width: 4),
             Text(
               punchTimeString,
-              style: TextStyle(
-                fontSize: size.width * 0.026,
+              style: const TextStyle(
+                fontSize: 10,
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
                 fontFamily: fontInterSemiBoldString,
@@ -1121,77 +1287,80 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           builder: (context, setSheetState) {
             return SafeArea(
               child: Container(
-                height: size.height * 0.52,
+                height: 420,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
+                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                   borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(25),
-                    topRight: Radius.circular(25),
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.5 : 0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, -5),
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+                      blurRadius: 15,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
                     Container(
-                      margin: EdgeInsets.only(top: size.height * 0.012),
-                      width: size.width * 0.15,
-                      height: 5,
+                      margin: const EdgeInsets.only(top: 10),
+                      width: 50,
+                      height: 4,
                       decoration: BoxDecoration(
                         color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     
                     Padding(
-                      padding: EdgeInsets.fromLTRB(size.width * 0.05, size.height * 0.02, size.width * 0.05, size.height * 0.01),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
                       child: Row(
                         children: [
                           Container(
-                            padding: EdgeInsets.all(size.width * 0.03),
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [ColorConst.themeColor, ColorConst.themeColor.withOpacity(0.7)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: ColorConst.themeColor.withOpacity(0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                                  color: ColorConst.themeColor.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   dayNumber,
-                                  style: TextStyle(
-                                    fontSize: size.width * 0.06,
+                                  style: const TextStyle(
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                     fontFamily: fontInterBoldString,
+                                    height: 1.1,
                                   ),
                                 ),
                                 Text(
-                                  dayName.substring(0, 3),
-                                  style: TextStyle(
-                                    fontSize: size.width * 0.03,
+                                  dayName.substring(0, 3).toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 10,
                                     color: Colors.white70,
+                                    fontWeight: FontWeight.w600,
                                     fontFamily: fontInterMediumString,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          SizedBox(width: size.width * 0.04),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1199,7 +1368,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                                 Text(
                                   '${displayList[index].firstName} ${displayList[index].lastName}',
                                   style: TextStyle(
-                                    fontSize: size.width * 0.04,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: isDark ? Colors.white : ColorConst.black,
                                     fontFamily: fontInterBoldString,
@@ -1207,11 +1376,11 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                SizedBox(height: size.height * 0.004),
+                                const SizedBox(height: 2),
                                 Text(
                                   formattedDate,
                                   style: TextStyle(
-                                    fontSize: size.width * 0.03,
+                                    fontSize: 11,
                                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                     fontFamily: fontInterRegularString,
                                   ),
@@ -1222,14 +1391,14 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                           GestureDetector(
                             onTap: () => Navigator.pop(context),
                             child: Container(
-                              padding: EdgeInsets.all(size.width * 0.02),
+                              padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
-                                Icons.close,
-                                size: size.width * 0.045,
+                                Icons.close_rounded,
+                                size: 18,
                                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                               ),
                             ),
@@ -1240,11 +1409,11 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     
                     Container(
                       height: 1,
-                      margin: EdgeInsets.symmetric(horizontal: size.width * 0.05),
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
                       color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
                     ),
                     
-                    SizedBox(height: size.height * 0.02),
+                    const SizedBox(height: 16),
                     
                     buildPunchCard(
                       size: size,
@@ -1276,7 +1445,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       isCompleted: displayList[index].inTime != null,
                     ),
                     
-                    SizedBox(height: size.height * 0.015),
+                    const SizedBox(height: 12),
                     
                     buildPunchCard(
                       size: size,
@@ -1312,22 +1481,22 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     const Spacer(),
                     
                     Container(
-                      margin: EdgeInsets.symmetric(horizontal: size.width * 0.05),
-                      padding: EdgeInsets.all(size.width * 0.03),
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: ColorConst.themeColor.withOpacity(isDark ? 0.15 : 0.05),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: ColorConst.themeColor.withOpacity(isDark ? 0.3 : 0.15)),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, size: size.width * 0.04, color: ColorConst.themeColor),
-                          SizedBox(width: size.width * 0.02),
+                          Icon(Icons.info_outline, size: 16, color: ColorConst.themeColor),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Punch in before 10:00 AM to avoid late marking',
                               style: TextStyle(
-                                fontSize: size.width * 0.028,
+                                fontSize: 11,
                                 color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
                                 fontFamily: fontInterRegularString,
                               ),
@@ -1337,7 +1506,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       ),
                     ),
                     
-                    SizedBox(height: size.height * 0.02),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
