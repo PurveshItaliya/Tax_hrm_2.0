@@ -414,7 +414,7 @@ class AdditionProvider extends ChangeNotifier {
     try {
       setloading(true);
       await Provider.of<EmployeMastServices>(context,listen: false).getAllEmployesData().then((value) async {
-        employesDataList = Provider.of<EmployeMastServices>(context,listen: false).allemployes.where((element) => element.role != 'Admin').toList();
+        employesDataList = Provider.of<EmployeMastServices>(context,listen: false).emplists.where((element) => element.role != 'Admin').toList();
         if(!addEditFlag){
           await AdditionApiClass().updateAdditions(empId:  getAdditionData.empId).then((value) async {
             editAdditionModal = value;

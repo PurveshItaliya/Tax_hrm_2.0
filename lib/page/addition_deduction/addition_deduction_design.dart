@@ -199,7 +199,7 @@ void additiondeductionSelectDialog(BuildContext context,{size,datePickerProvider
                               ),
                               initialItem: additionProvider.selectedEmployeeList,
                               hintText: selectConductedByString,
-                              futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeby,items: additionProvider.employesDataList,
+                              futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,items: additionProvider.employesDataList,
                               listItemBuilder: (context, item, isSelected, onItemSelect) {
                                 return Text("${item.firstName.toString()} ${item.lastName.toString()}");
                               },

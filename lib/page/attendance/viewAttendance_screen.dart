@@ -535,7 +535,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                    showType = 7;
                                   }
                                       //---------------------------Check Thursday Holiday-------------------\\
-                               if(attendanceEmp.getUserShift!.thu == false && date.weekday == 4){
+                              if(attendanceEmp.getUserShift!.thu == false && date.weekday == 4){
                                    showType = 7;
                                   }
                                         //---------------------------Check Friday Holiday-------------------\\
@@ -632,7 +632,27 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                         },
 
                         onCellTap: (events, date) async {
-                          attendanceEmp.setloading(true);
+                          _triggerCellTap(date);
+                        },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+  }
+
+  void _triggerCellTap(DateTime date) async {
+    final attendanceEmp = Provider.of<AttendanceEmp>(context, listen: false);
+    final leaveProviders =  Provider.of<LeaveMastServices>(context, listen: false);
+    final adminAttenDanceServices = Provider.of<AdminAttenDanceServices>(context, listen: false);
+    final size = MediaQuery.of(context).size;
+
+    attendanceEmp.setloading(true);
                           leaveDurationTypesShow = '';
                           leaveStatusShow = '';
 
@@ -699,14 +719,14 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                               await attendanceEmp.getDateBloges(formattedTimestampString, _currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}');
                                             }
                                           }
-                                          showDayDetails(context,size, attendanceEmp.selectedDateLog,date.toString(),7, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false));
+                                          showDayDetails(context,size, attendanceEmp.selectedDateLog,date.toString(),7, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons);
                                       } else {
                                         int findHoliday = attendanceEmp.curentMonthHoliday.indexWhere((element) => date.isAtSameMomentAs(DateTime.parse(element.holidayDate.toString())));
 
                                         if (findHoliday != -1) {
                                           
                                           attendanceEmp.setShowDateType(2);
-                                            showDayDetails(context,size, attendanceEmp.selectedDateLog,date.toString(),2, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false));
+                                            showDayDetails(context,size, attendanceEmp.selectedDateLog,date.toString(),2, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons);
                                         } else {
                                           String timestampString = date.toString();
                                           String formattedTimestampString = timestampString.replaceAll('Z', '');
@@ -737,23 +757,12 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                           }
 
                                         attendanceEmp.setShowDateType(typeToPass);
-                                        showDayDetails(context,size,attendanceEmp.selectedDateLog,date.toString(),typeToPass, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false));
+                                        showDayDetails(context,size,attendanceEmp.selectedDateLog,date.toString(),typeToPass, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons);
                                       }
                                   }
                                 }
                           }
                           attendanceEmp.setloading(false);
-                        },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
   }
 
   bool _parseBool(dynamic value) {
@@ -812,7 +821,10 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
     );
   }
 
-  Widget _compactSummaryTile(BuildContext context, Size size, String title, String value, Color color) {
+
+}
+
+Widget _compactSummaryTile(BuildContext context, Size size, String title, String value, Color color) {
     return Container(
       decoration: BoxDecoration(
         color: ColorConst.greyOpicityColor,
@@ -861,12 +873,13 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
     );
   }
 
+
   String? leaveTypesShow;
   String? leaveDurationTypesShow;
   String? leaveStatusShow;
   String?  leaveResons;
 
-  showDayDetails(BuildContext context,Size size,AttendanceDayBlog? setDataLog,String? showdate,int selectedDatTypes, AttendanceEmp attendanceEmp, AdminAttenDanceServices adminAttenDanceServices) async {
+  Future<void> showDayDetails(BuildContext context,Size size,AttendanceDayBlog? setDataLog,String? showdate,int selectedDatTypes, AttendanceEmp attendanceEmp, AdminAttenDanceServices adminAttenDanceServices, dynamic curentUser, dynamic _currentEmpData, {String? leaveTypesShow, String? leaveDurationTypesShow, String? leaveStatusShow, String? leaveResons}) async {
     attendanceEmp.totalHour = '';
     attendanceEmp.totalWorkHour = '';
     attendanceEmp.totalbreaks = '';
@@ -889,6 +902,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
       useSafeArea: true,
       backgroundColor: ColorConst.white,
       builder: (BuildContext context) {
+        print("******************************************==");
 
         int setindexs = 0;
 
@@ -1039,14 +1053,14 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
 
                         curentUser['Role'] == 'Admin' ? Container() :
                         Padding(
-                          padding:  EdgeInsets.all(size.width * 0.03),
-                          child: Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
+                          padding:  EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
+                          child: Row(
                             children: [
-                              infoBox(size: size, title: 'Total Hour : ${attendanceEmp.totalHour.isEmpty ? '0' : attendanceEmp.totalHour} Hr', color: ColorConst.themeColor),
-                              infoBox(size: size, title: 'Break Time : ${attendanceEmp.totalbreaks == null || attendanceEmp.totalbreaks == '' || attendanceEmp.totalbreaks == 0 || attendanceEmp.totalbreaks == '0' ? '0 Min' : attendanceEmp.totalbreaks}', color: ColorConst.red),
-                              infoBox(size: size, title: 'Total Work Hour : ${attendanceEmp.totalWorkHour.isEmpty ? '0 Min' : attendanceEmp.totalWorkHour}', color: ColorConst.greenColor),
+                              Expanded(child: _compactSummaryTile(context, size, 'Total Hours', '${attendanceEmp.totalHour.isEmpty ? '0' : attendanceEmp.totalHour} Hr', ColorConst.themeColor)),
+                              SizedBox(width: 8),
+                              Expanded(child: _compactSummaryTile(context, size, 'Break Time', '${attendanceEmp.totalbreaks == null || attendanceEmp.totalbreaks == '' || attendanceEmp.totalbreaks == 0 || attendanceEmp.totalbreaks == '0' ? '0 Min' : attendanceEmp.totalbreaks}', ColorConst.red)),
+                              SizedBox(width: 8),
+                              Expanded(child: _compactSummaryTile(context, size, 'Work Hours', '${attendanceEmp.totalWorkHour.isEmpty ? '0 Min' : attendanceEmp.totalWorkHour}', ColorConst.greenColor)),
                             ],
                           ),
                         ),
@@ -1159,55 +1173,71 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                 return heightSpacer(size.height * 0.015);
                               },
                               itemBuilder: (context, index) {
-                                return Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        if(setDataLog.attendenceLog![index].fileURL != null) {
-                                          nextScreen(context, FullPageImage(setDataLog.attendenceLog![index].fileURL ?? '', ''), onthenValue: (value) {});
-                                        }
-                                      },
-                                      child: Container(
-                                        height: size.width * 0.18,
-                                        width: size.width * 0.18,
-                                        decoration: BoxDecoration(
-                                          color: ColorConst.grey,
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadiusGeometry.circular(10),
-                                          child: CachedNetworkImage(
-                                            imageUrl: setDataLog.attendenceLog![index].fileURL ?? '',
-                                            placeholder: (context, url) =>  CircularProgressIndicator(color: ColorConst.themeColor,),
-                                            errorWidget: (context, url, error) => const Icon(Icons.error),
-                                            fit: BoxFit.cover,
+                                final isDark = Theme.of(context).brightness == Brightness.dark;
+                                return Container(
+                                  padding: EdgeInsets.all(size.width * 0.03),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: isDark ? Colors.transparent : Colors.black.withOpacity(0.03),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          if(setDataLog.attendenceLog![index].fileURL != null) {
+                                            nextScreen(context, FullPageImage(setDataLog.attendenceLog![index].fileURL ?? '', ''), onthenValue: (value) {});
+                                          }
+                                        },
+                                        child: Container(
+                                          height: size.width * 0.16,
+                                          width: size.width * 0.16,
+                                          decoration: BoxDecoration(
+                                            color: isDark ? Colors.grey.shade800 : ColorConst.grey.withOpacity(0.3),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadiusGeometry.circular(10),
+                                            child: CachedNetworkImage(
+                                              imageUrl: setDataLog.attendenceLog![index].fileURL ?? '',
+                                              placeholder: (context, url) =>  Center(child: CircularProgressIndicator(color: ColorConst.themeColor, strokeWidth: 2)),
+                                              errorWidget: (context, url, error) => Icon(Icons.person, color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, size: 30),
+                                              fit: BoxFit.cover,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
 
-                                    widthSpacer(size.width * 0.02),
+                                      widthSpacer(size.width * 0.03),
 
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              Container(
-                                                padding: EdgeInsets.symmetric(horizontal: size.width * 0.035, vertical: size.height * 0.005),
-                                                decoration: BoxDecoration(
-                                                  color: setDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor : ColorConst.red,
-                                                  borderRadius: BorderRadius.circular(20),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              crossAxisAlignment: CrossAxisAlignment.center,
+                                              children: [
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(horizontal: size.width * 0.03, vertical: size.height * 0.005),
+                                                  decoration: BoxDecoration(
+                                                    color: setDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor.withOpacity(0.15) : ColorConst.red.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(20),
+                                                    border: Border.all(color: setDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor.withOpacity(0.3) : ColorConst.red.withOpacity(0.3)),
+                                                  ),
+                                                  child: Text(
+                                                    setDataLog.attendenceLog![index].status == "IN" ? punchInString : punchOutString,
+                                                    style:  TextStyle(color: setDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor : ColorConst.red, fontSize: 12, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.bold),
+                                                  ),
                                                 ),
-                                                child: Text(
-                                                  setDataLog.attendenceLog![index].status == "IN" ? punchInString : punchOutString,
-                                                  style:  TextStyle(color: ColorConst.white, fontSize: 12, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.w600),
-                                                ),
-                                              ),
-                                              widthSpacer(size.width * 0.015),
-                                              Text('at ${setDataLog.attendenceLog![index].time == null? Container():   DateFormat.jm().format(DateTime.parse(setDataLog.attendenceLog![index].time.toString()))}', style: TextStyle(fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.w600)),
+                                                widthSpacer(size.width * 0.02),
+                                                Text(setDataLog.attendenceLog![index].time == null? '' : DateFormat.jm().format(DateTime.parse(setDataLog.attendenceLog![index].time.toString())), style: TextStyle(fontFamily: fontInterBoldString, fontWeight: FontWeight.bold, fontSize: 14)),
 
                                               if(curentUser['Role'] == 'Admin') ...{
                                                 Spacer(),
@@ -1279,6 +1309,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                       ),
                                     ),
                                   ],
+                                )
                                 );
                               },
                             ),
@@ -1328,4 +1359,3 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
       },
     );
   }
-}

@@ -35,6 +35,8 @@ class CommonTextField extends StatelessWidget {
   final TextStyle? showTextStyle;
   final double? borderRadius;
 
+  final EdgeInsetsGeometry? contentPadding;
+
   const CommonTextField({
     super.key,
     required this.controller,
@@ -62,6 +64,7 @@ class CommonTextField extends StatelessWidget {
     this.showTextStyle,
     this.heightValue,
     this.borderRadius,
+    this.contentPadding,
   });
 
   @override
@@ -100,7 +103,7 @@ class CommonTextField extends StatelessWidget {
               ),
               borderRadius: BorderRadius.all(Radius.circular(borderRadius ?? 4.0)),
             ),
-            contentPadding: EdgeInsets.all(15),
+            contentPadding: contentPadding ?? const EdgeInsets.all(15),
             hintStyle:
                 hintStyles ??
                 TextStyle(color: hintColor??ColorConst.hintextColor,fontFamily: fontInterMediumString,fontSize: 14,),
