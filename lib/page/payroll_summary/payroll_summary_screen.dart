@@ -1,6 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, curly_braces_in_flow_control_structures
 
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
+import 'package:tax_hrm/widigets/app_searchable_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -159,22 +159,13 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: CustomDropdown<Employeelists>.searchRequest(
-                          key: ValueKey(payrollAdminProvider.selectedAddEmployeeList?.id ?? 'empty_dropdown'),
-                          decoration: CustomDropdownDecoration(
-                            expandedBorder: Border.all(color: ColorConst.textBorder),
-                            closedBorder: Border.all(color: ColorConst.textBorder),
-                            closedBorderRadius: BorderRadius.circular(4.0),
-                            expandedBorderRadius: BorderRadius.circular(4.0),
-                            closedFillColor: ColorConst.transparent,
-                            expandedFillColor: ColorConst.white,
-                          ),
+                        child: AppSearchableDropdown<Employeelists>(
+                          dropdownKey: ValueKey(payrollAdminProvider.selectedAddEmployeeList?.id ?? 'empty_dropdown'),
                           initialItem: payrollAdminProvider.selectedAddEmployeeList,
                           hintText: selectEmployeeNameString,
-                          futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,items: employeMastServices.emplists,
-                          listItemBuilder: (context, item, isSelected, onItemSelect) {
-                            return Text("${item.firstName.toString()} ${item.lastName.toString()}");
-                          },
+                          futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,
+                          items: employeMastServices.emplists,
+                          itemAsString: (item) => "${item.firstName.toString()} ${item.lastName.toString()}",
                           headerBuilder: (context, selectedItem, enabled) {
                             return payrollAdminProvider.selectedAddEmployeeList == null?Text(selectEmployeeNameString):Row(
                               children: [

@@ -1,6 +1,6 @@
 // ignore_for_file: strict_top_level_inference, use_build_context_synchronously
 
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
+import 'package:tax_hrm/widigets/app_searchable_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
@@ -70,21 +70,13 @@ class _PaySlipMaterScreenState extends State<PaySlipMaterScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: CustomDropdown<Employeelists>.searchRequest(
-                              decoration: CustomDropdownDecoration(
-                                expandedBorder: Border.all(color: ColorConst.textBorder),
-                                closedBorder: Border.all(color: ColorConst.textBorder),
-                                closedBorderRadius: BorderRadius.circular(4.0),
-                                expandedBorderRadius: BorderRadius.circular(4.0),
-                                closedFillColor: ColorConst.transparent,
-                                expandedFillColor: ColorConst.white,
-                              ),
+                            child: AppSearchableDropdown<Employeelists>(
+                              dropdownKey: ValueKey(paySlipProviders.selectedEmployeeList),
                               initialItem: paySlipProviders.selectedEmployeeList,
                               hintText: selectEmployeeNameString,
-                              futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,items: Provider.of<EmployeMastServices>(context,listen: false).emplists,
-                              listItemBuilder: (context, item, isSelected, onItemSelect) {
-                                return Text("${item.firstName.toString()} ${item.lastName.toString()}");
-                              },
+                              futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,
+                              items: Provider.of<EmployeMastServices>(context,listen: false).emplists,
+                              itemAsString: (item) => "${item.firstName.toString()} ${item.lastName.toString()}",
                               headerBuilder: (context, selectedItem, enabled) {
                                 return paySlipProviders.selectedEmployeeList == null?Text(selectEmployeeNameString):Row(
                                   children: [

@@ -25,10 +25,18 @@ class RegistrationForm extends StatefulWidget {
 }
 
 class _RegistrationFormState extends State<RegistrationForm> {
+  final TextEditingController searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     Provider.of<RegistrationProvider>(context, listen: false).getRegistrationdata();
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -74,14 +82,14 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     ),
                     DropdownButtonFormField2<RegistrationType>(
                       isExpanded: true,
-                      // hint: Text('Select $regFirmTypeString'),
                       hint: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           registrationProvider.selectedFirms?.name ?? 'Select $regFirmTypeString',
                           style: TextStyle(
                             fontSize: size.height * 0.018,
-                            color: registrationProvider.selectedFirms == null ? ColorConst.grey : ColorConst.black,
+                            color: registrationProvider.selectedFirms == null ? ColorConst.grey : ColorConst.themeColor,
+                            fontWeight: registrationProvider.selectedFirms == null ? FontWeight.normal : FontWeight.w600,
                           ),
                         ),
                       ),
@@ -93,7 +101,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ColorConst.grey, width: 1.3), borderRadius: BorderRadius.circular(4)),
                         errorBorder: OutlineInputBorder(borderSide: BorderSide(color: ColorConst.grey, width: 1.3), borderRadius: BorderRadius.circular(4)),
                         focusedErrorBorder: OutlineInputBorder(borderSide: BorderSide(color: ColorConst.grey, width: 1.3), borderRadius: BorderRadius.circular(4)),
-                        contentPadding: EdgeInsets.symmetric(vertical: 15),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                       ),
                       items: registrationProvider.showregstypelist.map(
                       (item) => DropdownItem<RegistrationType>(
@@ -102,6 +110,8 @@ class _RegistrationFormState extends State<RegistrationForm> {
                           item.name.toString(),
                           style: TextStyle(
                             fontSize: size.height * 0.018,
+                            color: registrationProvider.selectedFirms?.id == item.id ? ColorConst.themeColor : ColorConst.black,
+                            fontWeight: registrationProvider.selectedFirms?.id == item.id ? FontWeight.w600 : FontWeight.normal,
                           ),
                         ),
                       )).toList(),
@@ -109,13 +119,74 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         registrationProvider.setSelectedFirms(value);
                       },
                       validator: (value) {
-                        if(value == null) {
+                        if (registrationProvider.selectedFirms == null) {
                           return 'Select $regFirmTypeString';
                         }
                         return null;
                       },
-                      dropdownStyleData: DropdownStyleData(decoration: BoxDecoration(color: ColorConst.white)),
-                      // menuItemStyleData: MenuItemStyleData(height: size.height * 0.05),
+                      dropdownStyleData: DropdownStyleData(
+                        maxHeight: 250,
+                        decoration: BoxDecoration(
+                          color: ColorConst.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      menuItemStyleData: MenuItemStyleData(
+                        selectedMenuItemBuilder: (context, child) {
+                          return Container(
+                            color: ColorConst.themeColor.withOpacity(0.12),
+                            child: child,
+                          );
+                        },
+                      ),
+                      dropdownSearchData: DropdownSearchData(
+                        searchController: searchController,
+                        searchBarWidgetHeight: 50,
+                        searchBarWidget: Container(
+                          height: 50,
+                          padding: const EdgeInsets.only(
+                            top: 8,
+                            bottom: 4,
+                            right: 8,
+                            left: 8,
+                          ),
+                          child: TextFormField(
+                            expands: true,
+                            maxLines: null,
+                            controller: searchController,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              hintText: 'Search $regFirmTypeString...',
+                              hintStyle: TextStyle(fontSize: size.height * 0.016, color: ColorConst.hintextColor),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: BorderSide(color: ColorConst.grey, width: 1.0),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: BorderSide(color: ColorConst.grey, width: 1.0),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: BorderSide(color: ColorConst.themeColor, width: 1.3),
+                              ),
+                            ),
+                          ),
+                        ),
+                        searchMatchFn: (item, searchValue) {
+                          final label = (item.child as Text).data.toString().toLowerCase();
+                          return label.contains(searchValue.toLowerCase());
+                        },
+                      ),
+                      onMenuStateChange: (isOpen) {
+                        if (!isOpen) {
+                          searchController.clear();
+                        }
+                      },
                     ),
                   ],
                 ),

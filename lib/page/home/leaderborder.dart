@@ -267,34 +267,43 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // 2nd Place – Theme Color Blue
+        // 2nd Place – Silver
         Expanded(
           child: _PodiumColumn(
             winners: secondPlaceWinners,
             rank: 2,
-            rankColor: ColorConst.themeColor, // All columns use same theme color (#1864EC)
+            rankColor: ColorConst.silver,
+            lightColor: ColorConst.silverLight,
+            borderColor: ColorConst.silverBorder,
+            textColor: ColorConst.silverText,
             podiumHeight: h2,
             isWinner: false,
           ),
         ),
         SizedBox(width: size.width * 0.03),
-        // 1st Place – Theme Color Blue (Center, tallest)
+        // 1st Place – Gold (Center, tallest)
         Expanded(
           child: _PodiumColumn(
             winners: firstPlaceWinners,
             rank: 1,
-            rankColor: ColorConst.themeColor, // All columns use same theme color (#1864EC)
+            rankColor: ColorConst.gold,
+            lightColor: ColorConst.goldLight,
+            borderColor: ColorConst.goldBorder,
+            textColor: ColorConst.goldText,
             podiumHeight: h1,
             isWinner: true,
           ),
         ),
         SizedBox(width: size.width * 0.03),
-        // 3rd Place – Theme Color Blue
+        // 3rd Place – Bronze
         Expanded(
           child: _PodiumColumn(
             winners: thirdPlaceWinners,
             rank: 3,
-            rankColor: ColorConst.themeColor, // All columns use same theme color (#1864EC)
+            rankColor: ColorConst.bronze,
+            lightColor: ColorConst.bronzeLight,
+            borderColor: ColorConst.bronzeBorder,
+            textColor: ColorConst.bronzeText,
             podiumHeight: h3,
             isWinner: false,
           ),
@@ -309,6 +318,9 @@ class _PodiumColumn extends StatelessWidget {
   final List<WinnerModel> winners;
   final int rank;
   final Color rankColor;
+  final Color lightColor;
+  final Color borderColor;
+  final Color textColor;
   final double podiumHeight;
   final bool isWinner;
 
@@ -316,6 +328,9 @@ class _PodiumColumn extends StatelessWidget {
     required this.winners,
     required this.rank,
     required this.rankColor,
+    required this.lightColor,
+    required this.borderColor,
+    required this.textColor,
     required this.podiumHeight,
     this.isWinner = false,
   });
@@ -354,14 +369,14 @@ class _PodiumColumn extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: rankColor.withOpacity(0.25),
+                      color: borderColor,
                       width: isWinner ? 1.5 : 1,
                     ),
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        rankColor.withOpacity(0.08),
+                        lightColor,
                         ColorConst.white,
                       ],
                     ),
@@ -379,9 +394,9 @@ class _PodiumColumn extends StatelessWidget {
                       height: size.width * 0.075,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: rankColor.withOpacity(0.08),
+                        color: lightColor,
                         border: Border.all(
-                          color: rankColor.withOpacity(0.3),
+                          color: borderColor,
                           width: 1,
                         ),
                       ),
@@ -391,7 +406,7 @@ class _PodiumColumn extends StatelessWidget {
                           style: TextStyle(
                             fontSize: size.width * 0.038,
                             fontWeight: FontWeight.bold,
-                            color: rankColor,
+                            color: textColor,
                           ),
                         ),
                       ),

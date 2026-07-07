@@ -1,6 +1,6 @@
 // ignore_for_file: strict_top_level_inference, file_names, use_build_context_synchronously
 
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
+import 'package:tax_hrm/widigets/app_searchable_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
@@ -856,7 +856,8 @@ void showRoleRightsSelectDialog(BuildContext context,{size,}) {
                           heightSpacer(size.height *0.015),
                           Text(firstNameString.toString().split(" ").last, style: TextStyle(color: ColorConst.themeColor,fontSize: size.height*0.019,fontFamily: fontInterSemiBoldString,fontWeight: FontWeight.w600)),
                           heightSpacer(size.height *0.01),
-                          CustomDropdown<Employeelists>.searchRequest(
+                          AppSearchableDropdown<Employeelists>(
+                            dropdownKey: ValueKey(settingProvider.selectedEmployeeList),
                             initialItem: settingProvider.selectedEmployeeList,
                             futureRequest: (value) async {
                               return await Future.delayed(const Duration(seconds: 1), () {
@@ -869,19 +870,12 @@ void showRoleRightsSelectDialog(BuildContext context,{size,}) {
                             onChanged: (value) async {
                               await settingProvider.getselectUserAdmin(value!);
                             },
-                            decoration: CustomDropdownDecoration(closedBorder: Border.all(
-                                color: ColorConst.grey,
-                                width: 1,
-                              ),
-                            ),
                             hintText: selectSubAdminString,
                             items: Provider.of<EmployeMastServices>(context, listen: false).employesSubAdminDataList,
+                            itemAsString: (item) => '${item.firstName} ${item.lastName}',
                             headerBuilder: (context, selectedItem, enabled) {
                               return Text('${selectedItem.firstName} ${selectedItem.lastName}');
                             },
-                            listItemBuilder: (context, item, isSelected, onItemSelect) {
-                              return Text('${item.firstName} ${item.lastName}');
-                                },
                             validator: (value) {
                               if (value == null) {
                                 return pleaseSelectSubAdminString;

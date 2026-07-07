@@ -1,6 +1,6 @@
-// ignore_for_file: use_build_context_synchronously, file_names, must_be_immutable
+// ignore_for_file: use_build_context_synchronously, must_be_immutable
 
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
+import 'package:tax_hrm/widigets/app_searchable_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/ifsc/ifsc_model.dart';
@@ -45,22 +45,13 @@ class _IfscCodeDropdownState extends State<IfscCodeDropdown> {
           heightSpacer(size.height * 0.008), // Reduced from 0.01 to 0.008
           SizedBox(
             height: size.height * 0.067, // Reduced from 0.07 to 0.067
-            child: CustomDropdown<IfscListModel>.searchRequest(
-              key: ValueKey(widget.ifscList),
+            child: AppSearchableDropdown<IfscListModel>(
+              dropdownKey: ValueKey(widget.ifscList),
               initialItem: widget.ifscList,
-              decoration: CustomDropdownDecoration(
-                closedBorder: Border.all(
-                  color: Colors.grey,
-                  width: 1,
-                ),
-              ),
               hintText: 'Select Ifsc',
               futureRequest: getFilterIfsc,
               items: ifscProvider.getallIfscDataList,
-              listItemBuilder:
-                  (context, item, isSelected, onItemSelect) {
-                return Text(item.iFSC.toString());
-              },
+              itemAsString: (item) => item.iFSC.toString(),
               headerBuilder: (context, selectedItem, enabled) {
                 return Row(
                   children: [
@@ -91,7 +82,6 @@ class _IfscCodeDropdownState extends State<IfscCodeDropdown> {
                   widget.ifscList = vals;
                   widget.onagentSelection(vals);
                 });
-                setState(() {});
               },
             ),
           ),

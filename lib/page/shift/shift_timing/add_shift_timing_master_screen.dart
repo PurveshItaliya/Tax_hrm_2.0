@@ -1,6 +1,5 @@
 // ignore_for_file: unused_local_variable, use_build_context_synchronously, prefer_if_null_operators
 
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/departmentclass/Designationmasterclass/position.dart';
@@ -21,6 +20,7 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'package:tax_hrm/widigets/app_searchable_dropdown.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
@@ -87,13 +87,8 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      child: CustomDropdown<ShiftGroup>.searchRequest(
-                                        decoration: CustomDropdownDecoration(
-                                          expandedBorder: Border.all(color: ColorConst.black),
-                                          closedBorder: Border.all(color: Colors.black45),
-                                          closedBorderRadius: BorderRadius.circular(4.0),
-                                          expandedBorderRadius: BorderRadius.circular(4.0),
-                                        ),
+                                      child: AppSearchableDropdown<ShiftGroup>(
+                                        dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedShiftGroup),
                                         initialItem: shiftTiminigMasterProvider.selectedShiftGroup,
                                         validator: (val){
                                           if (val == null) {
@@ -102,10 +97,9 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
                                           return null;
                                         },
                                         hintText: selectShiftFullNameString,
-                                        futureRequest: shiftTiminigMasterProvider.getFilterShiftGroup,items: shiftTiminigMasterProvider.mainShiftGroupList,
-                                        listItemBuilder: (context, item, isSelected, onItemSelect) {
-                                          return Text(item.shiftGroupFname.toString());
-                                        },
+                                        futureRequest: shiftTiminigMasterProvider.getFilterShiftGroup,
+                                        items: shiftTiminigMasterProvider.mainShiftGroupList,
+                                        itemAsString: (item) => item.shiftGroupFname.toString(),
                                         headerBuilder: (context, selectedItem, enabled) {
                                           return Text(shiftTiminigMasterProvider.selectedShiftGroup == null ? selectShiftFullNameString : shiftTiminigMasterProvider.selectedShiftGroup!.shiftGroupFname.toString());
                                         },
@@ -131,13 +125,8 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      child: CustomDropdown<DepartMnetModel>.searchRequest(
-                                        decoration: CustomDropdownDecoration(
-                                          expandedBorder: Border.all(color: ColorConst.black),
-                                          closedBorder: Border.all(color: Colors.black45),
-                                          closedBorderRadius: BorderRadius.circular(4.0),
-                                          expandedBorderRadius: BorderRadius.circular(4.0),
-                                        ),
+                                      child: AppSearchableDropdown<DepartMnetModel>(
+                                        dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedDepartment),
                                         initialItem: shiftTiminigMasterProvider.selectedDepartment,
                                         validator: (val){
                                           if (val == null) {
@@ -146,10 +135,9 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
                                           return null;
                                         },
                                         hintText: selectDepartmentNameString,
-                                        futureRequest: context.read<DepartmentServices>().getFilterDepartment,items: context.read<DepartmentServices>().activepartment,
-                                        listItemBuilder: (context, item, isSelected, onItemSelect) {
-                                          return Text(item.departmentName.toString());
-                                        },
+                                        futureRequest: context.read<DepartmentServices>().getFilterDepartment,
+                                        items: context.read<DepartmentServices>().activepartment,
+                                        itemAsString: (item) => item.departmentName.toString(),
                                         headerBuilder: (context, selectedItem, enabled) {
                                           return Text(shiftTiminigMasterProvider.selectedDepartment == null ? selectDepartmentNameString : shiftTiminigMasterProvider.selectedDepartment!.departmentName.toString());
                                         },
@@ -171,13 +159,8 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      child: CustomDropdown<PositionDataL>.searchRequest(
-                                        decoration: CustomDropdownDecoration(
-                                          expandedBorder: Border.all(color: ColorConst.black),
-                                          closedBorder: Border.all(color: Colors.black45),
-                                          closedBorderRadius: BorderRadius.circular(4.0),
-                                          expandedBorderRadius: BorderRadius.circular(4.0),
-                                        ),
+                                      child: AppSearchableDropdown<PositionDataL>(
+                                        dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedDesignation),
                                         initialItem: shiftTiminigMasterProvider.selectedDesignation,
                                         validator: (val){
                                           if (val == null) {
@@ -186,10 +169,9 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
                                           return null;
                                         },
                                         hintText: selectDesignationNameString,
-                                        futureRequest: shiftTiminigMasterProvider.getFilterDesignation,items: shiftTiminigMasterProvider.getFiltersPostionList,
-                                        listItemBuilder: (context, item, isSelected, onItemSelect) {
-                                          return Text(item.positionName.toString());
-                                        },
+                                        futureRequest: shiftTiminigMasterProvider.getFilterDesignation,
+                                        items: shiftTiminigMasterProvider.getFiltersPostionList,
+                                        itemAsString: (item) => item.positionName.toString(),
                                         headerBuilder: (context, selectedItem, enabled) {
                                           return Text(shiftTiminigMasterProvider.selectedDesignation == null ? selectDesignationNameString : shiftTiminigMasterProvider.selectedDesignation!.positionName.toString());
                                         },

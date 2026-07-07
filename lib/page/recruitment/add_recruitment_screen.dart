@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
+import 'package:tax_hrm/widigets/app_searchable_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -90,21 +90,13 @@ class _AddRecruitmentScreenState extends State<AddRecruitmentScreen> {
                             heightSpacer(size.height * 0.01),
                             Text("$departmentString :", style: normalHeadingText(size)),
                             heightSpacer(size.height * 0.01),
-                            CustomDropdown<DepartMnetModel>.searchRequest(
-                              decoration: CustomDropdownDecoration(
-                                expandedBorder: Border.all(color: ColorConst.textBorder),
-                                closedBorder: Border.all(color: ColorConst.textBorder),
-                                closedBorderRadius: BorderRadius.circular(4.0),
-                                expandedBorderRadius: BorderRadius.circular(4.0),
-                                closedFillColor: ColorConst.transparent,
-                                expandedFillColor: ColorConst.white,
-                              ),
+                            AppSearchableDropdown<DepartMnetModel>(
+                              dropdownKey: ValueKey(recuritmentProvider.selectedDepartment),
                               initialItem: recuritmentProvider.selectedDepartment,
                               hintText: selectDepartmentNameString,
-                              futureRequest: context.read<DepartmentServices>().getFilterDepartment,items: context.read<DepartmentServices>().activepartment,
-                              listItemBuilder: (context, item, isSelected, onItemSelect) {
-                                return Text(item.departmentName.toString());
-                              },
+                              futureRequest: context.read<DepartmentServices>().getFilterDepartment,
+                              items: context.read<DepartmentServices>().activepartment,
+                              itemAsString: (item) => item.departmentName.toString(),
                               headerBuilder: (context, selectedItem, enabled) {
                                 return Text(recuritmentProvider.selectedDepartment == null ? selectDepartmentNameString : recuritmentProvider.selectedDepartment!.departmentName.toString());
                               },
@@ -115,21 +107,13 @@ class _AddRecruitmentScreenState extends State<AddRecruitmentScreen> {
                             heightSpacer(size.height * 0.01),
                             Text("$designationString :", style: normalHeadingText(size)),
                             heightSpacer(size.height * 0.01),
-                            CustomDropdown<PositionDataL>.searchRequest(
-                              decoration: CustomDropdownDecoration(
-                                expandedBorder: Border.all(color: ColorConst.textBorder),
-                                closedBorder: Border.all(color: ColorConst.textBorder),
-                                closedBorderRadius: BorderRadius.circular(4.0),
-                                expandedBorderRadius: BorderRadius.circular(4.0),
-                                closedFillColor: ColorConst.transparent,
-                                expandedFillColor: ColorConst.white,
-                              ),
+                            AppSearchableDropdown<PositionDataL>(
+                              dropdownKey: ValueKey(recuritmentProvider.selectedDesignation),
                               initialItem: recuritmentProvider.selectedDesignation,
                               hintText: selectDesignationNameString,
-                              futureRequest: recuritmentProvider.getFilterDesignation,items: recuritmentProvider.getFiltersPostionList,
-                              listItemBuilder: (context, item, isSelected, onItemSelect) {
-                                return Text(item.positionName.toString());
-                              },
+                              futureRequest: recuritmentProvider.getFilterDesignation,
+                              items: recuritmentProvider.getFiltersPostionList,
+                              itemAsString: (item) => item.positionName.toString(),
                               headerBuilder: (context, selectedItem, enabled) {
                                 return Text(recuritmentProvider.selectedDesignation == null ? selectDesignationNameString : recuritmentProvider.selectedDesignation!.positionName.toString());
                               },
@@ -140,21 +124,13 @@ class _AddRecruitmentScreenState extends State<AddRecruitmentScreen> {
                             heightSpacer(size.height*0.01),
                             Text("$conductedByString :", style: normalHeadingText(size)),
                             heightSpacer(size.height * 0.01),
-                            CustomDropdown<Employeelists>.searchRequest(
-                              decoration: CustomDropdownDecoration(
-                                expandedBorder: Border.all(color: ColorConst.textBorder),
-                                closedBorder: Border.all(color: ColorConst.textBorder),
-                                closedBorderRadius: BorderRadius.circular(4.0),
-                                expandedBorderRadius: BorderRadius.circular(4.0),
-                                closedFillColor: ColorConst.transparent,
-                                expandedFillColor: ColorConst.white,
-                              ),
+                            AppSearchableDropdown<Employeelists>(
+                              dropdownKey: ValueKey(recuritmentProvider.selectedEmployeeList),
                               initialItem: recuritmentProvider.selectedEmployeeList,
                               hintText: selectConductedByString,
-                              futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeby,items: Provider.of<EmployeMastServices>(context,listen: false).emplists,
-                              listItemBuilder: (context, item, isSelected, onItemSelect) {
-                                return Text("${item.firstName.toString()} ${item.lastName.toString()}");
-                              },
+                              futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeby,
+                              items: Provider.of<EmployeMastServices>(context,listen: false).emplists,
+                              itemAsString: (item) => "${item.firstName.toString()} ${item.lastName.toString()}",
                               headerBuilder: (context, selectedItem, enabled) {
                                 return Text(recuritmentProvider.selectedEmployeeList == null ? selectConductedByString : "${recuritmentProvider.selectedEmployeeList!.firstName.toString()} ${recuritmentProvider.selectedEmployeeList!.lastName.toString()}");
                               },

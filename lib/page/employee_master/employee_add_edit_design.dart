@@ -1,6 +1,6 @@
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
+import 'package:tax_hrm/widigets/app_searchable_dropdown.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -495,21 +495,13 @@ Widget _accountTab(
         _buildLabeledField(
           label: "Department",
           isRequired: true,
-          child: CustomDropdown<DepartMnetModel>.searchRequest(
-            key: ValueKey(provider.selectedDepartment),
+          child: AppSearchableDropdown<DepartMnetModel>(
+            dropdownKey: ValueKey(provider.selectedDepartment),
             initialItem: provider.selectedDepartment,
-            maxlines: 1,
-            decoration: CustomDropdownDecoration(
-              closedBorder: Border.all(color: ColorConst.textBorder, width: 1.3),
-              closedBorderRadius: BorderRadius.circular(8),
-              expandedBorderRadius: BorderRadius.circular(8),
-            ),
             hintText: 'Select Department',
             futureRequest: (value) => provider.getfilterDepartment(value, context),
             items: Provider.of<DepartmentServices>(context, listen: false).alldepartment,
-            listItemBuilder: (context, item, isSelected, onItemSelect) {
-              return Text(item.departmentName.toString());
-            },
+            itemAsString: (item) => item.departmentName.toString(),
             validator: (value) {
               if (value == null) {
                 return "Select Department";
@@ -553,21 +545,13 @@ Widget _accountTab(
         _buildLabeledField(
           label: "Designation",
           isRequired: true,
-          child: CustomDropdown<PositionDataL>.searchRequest(
-            key: ValueKey(provider.selectedPostions),
+          child: AppSearchableDropdown<PositionDataL>(
+            dropdownKey: ValueKey(provider.selectedPostions),
             initialItem: provider.selectedPostions,
-            maxlines: 1,
-            decoration: CustomDropdownDecoration(
-              closedBorder: Border.all(color: ColorConst.textBorder, width: 1.3),
-              closedBorderRadius: BorderRadius.circular(8),
-              expandedBorderRadius: BorderRadius.circular(8),
-            ),
             hintText: 'Select Designation',
             futureRequest: (value) => provider.getfiltersPostions(value, context),
             items: Provider.of<PositionMasterService>(context, listen: false).getFiltersPostionList,
-            listItemBuilder: (context, item, isSelected, onItemSelect) {
-              return Text(item.positionName.toString());
-            },
+            itemAsString: (item) => item.positionName.toString(),
             validator: (value) {
               if (value == null) {
                 return "Select Designation";
@@ -608,21 +592,13 @@ Widget _accountTab(
         /// ROLE
         _buildLabeledField(
           label: "Role",
-          child: CustomDropdown<Getrolemodel>.searchRequest(
-            key: ValueKey(provider.selectedRole),
-            maxlines: 1,
+          child: AppSearchableDropdown<Getrolemodel>(
+            dropdownKey: ValueKey(provider.selectedRole),
             initialItem: provider.selectedRole,
-            decoration: CustomDropdownDecoration(
-              closedBorder: Border.all(color: ColorConst.textBorder, width: 1.3),
-              closedBorderRadius: BorderRadius.circular(8),
-              expandedBorderRadius: BorderRadius.circular(8),
-            ),
             hintText: 'Select Role',
             futureRequest: (value) => provider.getroleFilters(value, context),
             items: Provider.of<RoleMstServices>(context, listen: false).getRoleList,
-            listItemBuilder: (context, item, isSelected, onItemSelect) {
-              return Text(item.role.toString());
-            },
+            itemAsString: (item) => item.role.toString(),
             headerBuilder: (context, selectedItem, enabled) {
               return Row(
                 children: [
@@ -1312,20 +1288,13 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           Expanded(
             child: _buildLabeledField(
               label: "State",
-              child: CustomDropdown<Statelistm>.searchRequest(
-                key: ValueKey(provider.selectedStates),
+              child: AppSearchableDropdown<Statelistm>(
+                dropdownKey: ValueKey(provider.selectedStates),
                 initialItem: provider.selectedStates,
-                decoration: CustomDropdownDecoration(
-                  closedBorder: Border.all(color: ColorConst.textBorder, width: 1.3),
-                  closedBorderRadius: BorderRadius.circular(8),
-                  expandedBorderRadius: BorderRadius.circular(8),
-                ),
                 hintText: 'State',
                 futureRequest: (value) => provider.getFilterState(value, context),
                 items: Provider.of<AddresProviders>(context, listen: false).mainStateList,
-                listItemBuilder: (context, item, isSelected, onItemSelect) {
-                  return Text(item.stateName.toString());
-                },
+                itemAsString: (item) => item.stateName.toString(),
                 headerBuilder: (context, selectedItem, enabled) {
                   return Text(provider.selectedStates == null ? 'Select State' : provider.selectedStates!.stateName.toString());
                 },
@@ -1341,20 +1310,13 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           Expanded(
             child: _buildLabeledField(
               label: "City",
-              child: CustomDropdown<Citylistm>.searchRequest(
-                key: ValueKey(provider.selectedCitys),
+              child: AppSearchableDropdown<Citylistm>(
+                dropdownKey: ValueKey(provider.selectedCitys),
                 initialItem: provider.selectedCitys,
-                decoration: CustomDropdownDecoration(
-                  closedBorder: Border.all(color: ColorConst.textBorder, width: 1.3),
-                  closedBorderRadius: BorderRadius.circular(8),
-                  expandedBorderRadius: BorderRadius.circular(8),
-                ),
                 hintText: 'City',
                 futureRequest: (value) => provider.getFilterCitys(value, context),
                 items: Provider.of<AddresProviders>(context, listen: false).filtersCityList,
-                listItemBuilder: (context, item, isSelected, onItemSelect) {
-                  return Text(item.cityName.toString());
-                },
+                itemAsString: (item) => item.cityName.toString(),
                 headerBuilder: (context, selectedItem, enabled) {
                   return Text(provider.selectedCitys == null ? 'Select City' : provider.selectedCitys!.cityName.toString());
                 },
@@ -1372,20 +1334,13 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
       
       _buildLabeledField(
         label: "Pincode",
-        child: CustomDropdown<pincodem>.searchRequest(
-          key: ValueKey(provider.selectedPincodes),
+        child: AppSearchableDropdown<pincodem>(
+          dropdownKey: ValueKey(provider.selectedPincodes),
           initialItem: provider.selectedPincodes,
-          decoration: CustomDropdownDecoration(
-            closedBorder: Border.all(color: ColorConst.textBorder, width: 1.3),
-            closedBorderRadius: BorderRadius.circular(8),
-            expandedBorderRadius: BorderRadius.circular(8),
-          ),
           hintText: 'Pincode',
           futureRequest: (value) => provider.getFilterPincode(value, context),
           items: Provider.of<AddresProviders>(context, listen: false).filtersPincodeList,
-          listItemBuilder: (context, item, isSelected, onItemSelect) {
-            return Text(item.code.toString());
-          },
+          itemAsString: (item) => item.code.toString(),
           headerBuilder: (context, selectedItem, enabled) {
             return Text(provider.selectedPincodes == null ? 'Select Pincode' : provider.selectedPincodes!.code.toString());
           },
