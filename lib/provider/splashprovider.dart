@@ -22,6 +22,8 @@ import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
+import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
+
 
 class SplashProvider extends ChangeNotifier {
   bool isVideoFinished = false;
@@ -114,8 +116,29 @@ class SplashProvider extends ChangeNotifier {
         retries++;
       }
 
-      await ReminderNotificationService.updateHolidaysAndLeaves();
-      await ReminderNotificationService.scheduleReminders();
+      if (curentUser != null && selectedcurentcompany != null) {
+        await NotificationStorageService.storeUserInfo(
+          userId: curentUser['Id'] ?? 0,
+          companyId: selectedcurentcompany!.companyId ?? 0,
+          role: curentUser['Role']?.toString() ?? 'Employee',
+          employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
+        );
+      }
+      await ReminderNotificationService.scheduleAllNotifications();
+    } catch (e) { /* ignored */ }
+  }
+
+  void _setupNotificationsAfterSplash() {
+    try {
+      if (curentUser != null && selectedcurentcompany != null) {
+        NotificationStorageService.storeUserInfo(
+          userId: curentUser['Id'] ?? 0,
+          companyId: selectedcurentcompany!.companyId ?? 0,
+          role: curentUser['Role']?.toString() ?? 'Employee',
+          employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
+        );
+      }
+      ReminderNotificationService.scheduleAllNotifications();
     } catch (e) { /* ignored */ }
   }
 
@@ -137,21 +160,25 @@ class SplashProvider extends ChangeNotifier {
           } else{
             if(curentUser['Role'] =='Admin'){
               Provider.of<HomeProvider>(context,listen: false,).changeSelectBottomBar(0);
+              _setupNotificationsAfterSplash();
               triggerNextScreen(context, AnimatedBottomBar());
             } else if(curentUser['Role'] =='Sub-Admin') {
               SaveUser().loadAdminSwitch().then((value) async {
                 if(switchValue) {
                   Provider.of<HomeProvider>(context,listen: false,).changeSelectBottomBar(0);
+                  _setupNotificationsAfterSplash();
                   triggerNextScreen(context, AnimatedBottomBar());
                 } else{
                   await Provider.of<HomeProvider>(context, listen: false).companySelect();
                   Provider.of<HomeProvider>(context,listen: false,).selectFloadButton();
+                  _setupNotificationsAfterSplash();
                   triggerNextScreen(context, AnimatedBottomBar());
                 }
               },);
             } else{
               await Provider.of<HomeProvider>(context, listen: false).companySelect();
               Provider.of<HomeProvider>(context,listen: false,).selectFloadButton();
+              _setupNotificationsAfterSplash();
               triggerNextScreen(context, AnimatedBottomBar());
             }
           }
@@ -175,6 +202,7 @@ class SplashProvider extends ChangeNotifier {
           String udata = jsonEncode(value);
           SaveUser().saveUserData(udata);
           FcmTokenService.instance.handleTokenSync();
+          _setupNotificationsAfterSplash();
           triggerNextScreen(context, AnimatedBottomBar());
         }
       }
@@ -198,6 +226,7 @@ class SplashProvider extends ChangeNotifier {
                FcmTokenService.instance.handleTokenSync();
             }
           });
+          _setupNotificationsAfterSplash();
           triggerNextScreen(context, AnimatedBottomBar());
         }
       }

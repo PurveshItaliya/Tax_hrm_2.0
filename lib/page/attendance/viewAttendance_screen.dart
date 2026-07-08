@@ -879,7 +879,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
   String? leaveStatusShow;
   String?  leaveResons;
 
-  Future<void> showDayDetails(BuildContext context,Size size,AttendanceDayBlog? setDataLog,String? showdate,int selectedDatTypes, AttendanceEmp attendanceEmp, AdminAttenDanceServices adminAttenDanceServices, dynamic curentUser, dynamic _currentEmpData, {String? leaveTypesShow, String? leaveDurationTypesShow, String? leaveStatusShow, String? leaveResons}) async {
+  Future<void> showDayDetails(BuildContext context,Size size,AttendanceDayBlog? setDataLog,String? showdate,int selectedDatTypes, AttendanceEmp attendanceEmp, AdminAttenDanceServices adminAttenDanceServices, dynamic curentUser, dynamic currentEmpData, {String? leaveTypesShow, String? leaveDurationTypesShow, String? leaveStatusShow, String? leaveResons}) async {
     attendanceEmp.totalHour = '';
     attendanceEmp.totalWorkHour = '';
     attendanceEmp.totalbreaks = '';
@@ -894,7 +894,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
       attendanceEmp.attendanceCalculate(context);
     }
     if(curentUser['Role'] == 'Admin') {
-      await adminAttenDanceServices.leaveEditTypeSet(context, _currentEmpData!);
+      await adminAttenDanceServices.leaveEditTypeSet(context, currentEmpData!);
     }
     await showModalBottomSheet(
       context: context,
@@ -902,7 +902,6 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
       useSafeArea: true,
       backgroundColor: ColorConst.white,
       builder: (BuildContext context) {
-        print("******************************************==");
 
         int setindexs = 0;
 
@@ -1008,10 +1007,10 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                               children: [
                                 AttendancTypeContainer(size, 'On Leave', Colors.red.shade400),
                                 AttendancTypeContainer(size, (leaveTypesShow != null && leaveTypesShow != 'null' && leaveTypesShow!.isNotEmpty) ? '$leaveTypesShow' : (selectedDatTypes == 4 ? 'Paid Leave' : 'Unpaid Leave'), selectedDatTypes == 4 ? ColorConst.paidLeaveColor : ColorConst.blueColor),
-                                if (leaveDurationTypesShow != null && leaveDurationTypesShow!.isNotEmpty)
-                                  AttendancTypeContainer(size, '$leaveDurationTypesShow', selectedDatTypes == 4 ? ColorConst.paidLeaveColor : ColorConst.blueColor),
-                                if (leaveStatusShow != null && leaveStatusShow!.isNotEmpty)
-                                  AttendancTypeContainer(size, '$leaveStatusShow', leaveStatusShow == 'Approved' ? Colors.green : leaveStatusShow == 'Pending' ? Colors.orange : Colors.red),
+                                if (leaveDurationTypesShow != null && leaveDurationTypesShow.isNotEmpty)
+                                  AttendancTypeContainer(size, leaveDurationTypesShow, selectedDatTypes == 4 ? ColorConst.paidLeaveColor : ColorConst.blueColor),
+                                if (leaveStatusShow != null && leaveStatusShow.isNotEmpty)
+                                  AttendancTypeContainer(size, leaveStatusShow, leaveStatusShow == 'Approved' ? Colors.green : leaveStatusShow == 'Pending' ? Colors.orange : Colors.red),
                               ],
                             ),
                           ),
@@ -1060,7 +1059,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                               SizedBox(width: 8),
                               Expanded(child: _compactSummaryTile(context, size, 'Break Time', '${attendanceEmp.totalbreaks == null || attendanceEmp.totalbreaks == '' || attendanceEmp.totalbreaks == 0 || attendanceEmp.totalbreaks == '0' ? '0 Min' : attendanceEmp.totalbreaks}', ColorConst.red)),
                               SizedBox(width: 8),
-                              Expanded(child: _compactSummaryTile(context, size, 'Work Hours', '${attendanceEmp.totalWorkHour.isEmpty ? '0 Min' : attendanceEmp.totalWorkHour}', ColorConst.greenColor)),
+                              Expanded(child: _compactSummaryTile(context, size, 'Work Hours', attendanceEmp.totalWorkHour.isEmpty ? '0 Min' : attendanceEmp.totalWorkHour, ColorConst.greenColor)),
                             ],
                           ),
                         ),
@@ -1077,14 +1076,14 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                       adminAttenDanceServices.selectedPresent == true ? ColorConst.white  : Colors.green,(){
                                         adminAttenDanceServices.setPresentSelection(true);
 
-                                        showDialog(context: context, builder: (context) => AddPunchFromAdmin(_currentEmpData!, showdate.toString())).then((value){
+                                        showDialog(context: context, builder: (context) => AddPunchFromAdmin(currentEmpData!, showdate.toString())).then((value){
 
                                           String timestampString =   DateTime.parse(showdate.toString()).toString();
                                           String formattedTimestampString = timestampString.replaceAll('Z', '');
 
-                                          attendanceEmp.getDateBloges(formattedTimestampString,_currentEmpData!.empId);
-                                          attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, _currentEmpData, context);
-                                          attendanceEmp.getDuration(context, _currentEmpData);
+                                          attendanceEmp.getDateBloges(formattedTimestampString,currentEmpData!.empId);
+                                          attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, currentEmpData, context);
+                                          attendanceEmp.getDuration(context, currentEmpData);
                                         });
                                       }),
                                   widthSpacer(size.width *0.02),
@@ -1092,11 +1091,11 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                     adminAttenDanceServices.setAbsentEmployes(
                                       attendanceDate: setDataLog.attendence!.attendenceDate,
                                       context: context,
-                                      setEmpid: _currentEmpData!.empId,
-                                      setattendanceCguid: _currentEmpData!.cguid,
+                                      setEmpid: currentEmpData!.empId,
+                                      setattendanceCguid: currentEmpData!.cguid,
                                     ).then((value) {
-                                      attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, _currentEmpData, context);
-                                      attendanceEmp.getDuration(context, _currentEmpData);
+                                      attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, currentEmpData, context);
+                                      attendanceEmp.getDuration(context, currentEmpData);
                                       Navigator.pop(context);
                                     },);
                                   }),
@@ -1113,9 +1112,9 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                       adminAttenDanceServices.selectedLeaveTypes == null ? ColorConst.white : adminAttenDanceServices.selectedLeaveTypes!.leaveTypeId == item.leaveTypeId ? Colors.blue :ColorConst.white,
                                       adminAttenDanceServices.selectedLeaveTypes == null ? Colors.blue: adminAttenDanceServices.selectedLeaveTypes!.leaveTypeId == item.leaveTypeId ? ColorConst.white :Colors.blue,(){
                                         adminAttenDanceServices.toggleLeaveType(item);
-                                        adminAttenDanceServices.applyLeaveData(context, _currentEmpData!).then((_) {
-                                          attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, _currentEmpData, context);
-                                          attendanceEmp.getDuration(context, _currentEmpData);
+                                        adminAttenDanceServices.applyLeaveData(context, currentEmpData!).then((_) {
+                                          attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, currentEmpData, context);
+                                          attendanceEmp.getDuration(context, currentEmpData);
                                         });
                                         Navigator.pop(context);
                                       });
@@ -1142,10 +1141,10 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                 children: [
                                   AttendancTypeContainer(size, 'On Leave', Colors.red.shade400),
                                   AttendancTypeContainer(size, (leaveTypesShow != null && leaveTypesShow != 'null' && leaveTypesShow!.isNotEmpty) ? '$leaveTypesShow' : 'Paid Leave', (leaveTypesShow?.toUpperCase() == 'PAID LEAVE' || leaveTypesShow == null || leaveTypesShow == 'null' || leaveTypesShow!.isEmpty) ? ColorConst.paidLeaveColor : ColorConst.blueColor),
-                                  if (leaveDurationTypesShow != null && leaveDurationTypesShow!.isNotEmpty)
-                                    AttendancTypeContainer(size, '$leaveDurationTypesShow', (leaveTypesShow?.toUpperCase() == 'PAID LEAVE' || leaveTypesShow == null || leaveTypesShow == 'null' || leaveTypesShow!.isEmpty) ? ColorConst.paidLeaveColor : ColorConst.blueColor),
-                                  if (leaveStatusShow != null && leaveStatusShow!.isNotEmpty)
-                                    AttendancTypeContainer(size, '$leaveStatusShow', leaveStatusShow == 'Approved' ? Colors.green : leaveStatusShow == 'Pending' ? Colors.orange : Colors.red),
+                                  if (leaveDurationTypesShow != null && leaveDurationTypesShow.isNotEmpty)
+                                    AttendancTypeContainer(size, leaveDurationTypesShow, (leaveTypesShow?.toUpperCase() == 'PAID LEAVE' || leaveTypesShow == null || leaveTypesShow == 'null' || leaveTypesShow!.isEmpty) ? ColorConst.paidLeaveColor : ColorConst.blueColor),
+                                  if (leaveStatusShow != null && leaveStatusShow.isNotEmpty)
+                                    AttendancTypeContainer(size, leaveStatusShow, leaveStatusShow == 'Approved' ? Colors.green : leaveStatusShow == 'Pending' ? Colors.orange : Colors.red),
                                 ],
                               ),
                               heightSpacer(size.height * 0.01),
@@ -1243,12 +1242,12 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                                 Spacer(),
                                                 GestureDetector(
                                                   onTap: () async {
-                                                    showDialog(context: context, builder: (context) => CustomDialog(setDataLog.attendenceLog![index], setDataLog.attendence?.cguid ?? _currentEmpData!.cguid ?? '', (setDataLog.attendence?.attendenceID ?? _currentEmpData!.attendenceID).toString(), 'Log Update', false)).then((value) {
+                                                    showDialog(context: context, builder: (context) => CustomDialog(setDataLog.attendenceLog![index], setDataLog.attendence?.cguid ?? currentEmpData!.cguid ?? '', (setDataLog.attendence?.attendenceID ?? currentEmpData!.attendenceID).toString(), 'Log Update', false)).then((value) {
                                                       String timestampString = DateTime.parse(showdate.toString()).toString();
                                                       String formattedTimestampString = timestampString.replaceAll('Z', '');
-                                                      attendanceEmp.getDateBloges(formattedTimestampString, _currentEmpData!.empId);
-                                                      attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, _currentEmpData, context);
-                                                      attendanceEmp.getDuration(context, _currentEmpData);
+                                                      attendanceEmp.getDateBloges(formattedTimestampString, currentEmpData!.empId);
+                                                      attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, currentEmpData, context);
+                                                      attendanceEmp.getDuration(context, currentEmpData);
                                                       Navigator.pop(context);
                                                     });
                                                   },
@@ -1264,12 +1263,12 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                                 GestureDetector(
                                                   onTap: () async {
                                                     showDeleteDialog(context, size, noOnTap: () => Navigator.pop(context), yesOntap: () {
-                                                      adminAttenDanceServices.deletePunchlog(attendanceId: setDataLog.attendence?.attendenceID ?? _currentEmpData!.attendenceID, setEmpid: setDataLog.attendenceLog![index].empId, setLogId: setDataLog.attendenceLog![index].logId, setStatus: setDataLog.attendenceLog![index].status).then((value) {
+                                                      adminAttenDanceServices.deletePunchlog(attendanceId: setDataLog.attendence?.attendenceID ?? currentEmpData!.attendenceID, setEmpid: setDataLog.attendenceLog![index].empId, setLogId: setDataLog.attendenceLog![index].logId, setStatus: setDataLog.attendenceLog![index].status).then((value) {
                                                         String timestampString = DateTime.parse(showdate.toString()).toString();
                                                         String formattedTimestampString = timestampString.replaceAll('Z', '');
-                                                        attendanceEmp.getDateBloges(formattedTimestampString, _currentEmpData!.empId);
-                                                        attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, _currentEmpData, context);
-                                                        attendanceEmp.getDuration(context, _currentEmpData);
+                                                        attendanceEmp.getDateBloges(formattedTimestampString, currentEmpData!.empId);
+                                                        attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, currentEmpData, context);
+                                                        attendanceEmp.getDuration(context, currentEmpData);
                                                         
                                                         Navigator.pop(context); // Pops Delete Dialog
                                                         Navigator.pop(context); // Pops Bottom Sheet
@@ -1320,12 +1319,12 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                           padding: EdgeInsets.all(size.width * 0.03),
                           child: GestureDetector(
                             onTap: () async {
-                              showDialog(context: context, builder: (context) => AddPunchFromAdmin(_currentEmpData!, showdate.toString())).then((value) async {
+                              showDialog(context: context, builder: (context) => AddPunchFromAdmin(currentEmpData!, showdate.toString())).then((value) async {
                                 String timestampString = DateTime.parse(showdate.toString()).toString();
                                 String formattedTimestampString = timestampString.replaceAll('Z', '');
-                                attendanceEmp.getDateBloges(formattedTimestampString, _currentEmpData!.empId);
-                                attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, _currentEmpData, context);
-                                attendanceEmp.getDuration(context, _currentEmpData);
+                                attendanceEmp.getDateBloges(formattedTimestampString, currentEmpData!.empId);
+                                attendanceEmp.onMonthChanged(attendanceEmp.currentMonth, currentEmpData, context);
+                                attendanceEmp.getDuration(context, currentEmpData);
                               });
                             },
                             child: Column(

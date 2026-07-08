@@ -26,6 +26,9 @@ import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
+import 'package:tax_hrm/services/notifications/notification_permission_service.dart';
+import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
+
 
 class Otpverificationprovider extends ChangeNotifier {
   bool islodering = false;
@@ -210,6 +213,7 @@ class Otpverificationprovider extends ChangeNotifier {
         if (value != '') {
           curentUser = jsonDecode(value);
           FcmTokenService.instance.handleTokenSync();
+          NotificationPermissionService.requestNotificationPermission(context);
 
           final navigator = Navigator.of(context);
           Future.microtask(() async {
@@ -242,8 +246,15 @@ class Otpverificationprovider extends ChangeNotifier {
                 retries++;
               }
 
-              await ReminderNotificationService.updateHolidaysAndLeaves();
-              await ReminderNotificationService.scheduleReminders();
+              if (curentUser != null && selectedcurentcompany != null) {
+                await NotificationStorageService.storeUserInfo(
+                  userId: curentUser['Id'] ?? 0,
+                  companyId: selectedcurentcompany!.companyId ?? 0,
+                  role: curentUser['Role']?.toString() ?? 'Employee',
+                  employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
+                );
+              }
+              await ReminderNotificationService.scheduleAllNotifications(forceRefresh: true);
             } catch (e) { /* ignored */ }
           });
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -10,12 +11,19 @@ import 'package:tax_hrm/models/Holidays/getholiday.dart';
 import 'package:tax_hrm/models/leavetype/getuserList.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
+import 'package:tax_hrm/api/employeapi.dart';
+import 'package:tax_hrm/models/employes/getemployes.dart';
+import 'package:tax_hrm/services/notifications/notification_generator_service.dart';
+import 'package:tax_hrm/services/notifications/notification_logger_service.dart';
+import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
+
 
 class ReminderNotificationService {
   static final FlutterLocalNotificationsPlugin notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
+    NotificationLoggerService.permission('Initializing ReminderNotificationService & Timezones...');
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
 
@@ -44,12 +52,17 @@ class ReminderNotificationService {
         }
       },
     );
+    WidgetsBinding.instance.addObserver(_LifecycleObserver());
   }
 
   static Future<void> cancelAll() async {
     try {
       await notificationsPlugin.cancelAll();
-    } catch (e) { /* ignored */ }
+      await NotificationStorageService.invalidateSchedule();
+      NotificationLoggerService.scheduling('Cancelled all notifications and invalidated schedule.');
+    } catch (e) {
+      NotificationLoggerService.error('Error in cancelAll: $e');
+    }
   }
 
   static Future<void> updateHolidaysAndLeaves() async {
@@ -76,12 +89,106 @@ class ReminderNotificationService {
     } catch (e) { /* ignored */ }
   }
 
+  /// Overarching intelligent 7-day notification scheduler.
+  /// Checks local cache; if expired, user changed, or company changed, fetches fresh API data and reschedules.
+  static Future<void> scheduleAllNotifications({bool forceRefresh = false}) async {
+    NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS START (forceRefresh: $forceRefresh) ---');
+    
+    final userId = curentUser?['Id'];
+    final companyId = selectedcurentcompany?.companyId;
+
+    if (userId == null || companyId == null) {
+      NotificationLoggerService.scheduling('Skipping scheduleAllNotifications: No logged-in user ($userId) or company selected ($companyId).');
+      return;
+    }
+
+    final bool isValid = await NotificationStorageService.isScheduleValid(companyId, userId);
+    if (!forceRefresh && isValid) {
+      NotificationLoggerService.duplicatePrevention('Valid 7-day schedule exists for C$companyId/U$userId. Skipping API calls & duplicate notifications.');
+      // Still refresh local shift reminders as punch status/begin times may have changed locally
+      await scheduleReminders();
+      NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS COMPLETE (Cached) ---');
+      return;
+    }
+
+    NotificationLoggerService.apiFetch('Schedule invalid, expired, or forceRefresh requested. Fetching fresh data from APIs...');
+
+    // 1. Cancel previously scheduled event notifications from last cycle
+    final oldIds = await NotificationStorageService.getScheduledNotificationIds();
+    for (final id in oldIds) {
+      try {
+        await notificationsPlugin.cancel(id: id);
+      } catch (e) { /* ignored */ }
+    }
+
+    // 2. Fetch Employees and Holidays
+    List<Employeelists> employees = [];
+    try {
+      NotificationLoggerService.apiFetch('Calling GetEmpList API...');
+      final res = await Employeeclass().emppppapi();
+      if (res is List<Employeelists>) {
+        employees = res;
+        NotificationLoggerService.apiFetch('Fetched ${employees.length} employees.');
+      } else if (res is List) {
+        employees = res.map((e) => Employeelists.fromJson(Map<String, dynamic>.from(e))).toList();
+        NotificationLoggerService.apiFetch('Fetched & parsed ${employees.length} employees.');
+      }
+    } catch (e) {
+      NotificationLoggerService.error('Error fetching Employee list: $e');
+    }
+
+    List<GetHolidayViews> holidays = [];
+    try {
+      NotificationLoggerService.apiFetch('Calling GetHolidayList API...');
+      final res = await HolidayAPIS().getHolidays();
+      if (res is List<GetHolidayViews>) {
+        holidays = res;
+        NotificationLoggerService.apiFetch('Fetched ${holidays.length} holidays.');
+      } else if (res is List) {
+        holidays = res.map((e) => GetHolidayViews.fromJson(Map<String, dynamic>.from(e))).toList();
+        NotificationLoggerService.apiFetch('Fetched & parsed ${holidays.length} holidays.');
+      }
+    } catch (e) {
+      NotificationLoggerService.error('Error fetching Holiday list: $e');
+    }
+
+    // Also update local storage for shift reminders
+    await updateHolidaysAndLeaves();
+
+    // 3. Generate and schedule notifications
+    final now = DateTime.now();
+    final items = NotificationGeneratorService.generateAll(
+      employees: employees,
+      holidays: holidays,
+      currentUserId: userId,
+      now: now,
+    );
+
+    final scheduledIds = await NotificationGeneratorService.scheduleItems(items);
+    await NotificationStorageService.saveScheduleMetadata(
+      companyId: companyId,
+      userId: userId,
+      scheduledIds: scheduledIds,
+    );
+
+    // 4. Run shift reminders
+    await scheduleReminders();
+
+    NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS COMPLETE (Refreshed: ${scheduledIds.length} events scheduled) ---');
+  }
+
   static Future<String> scheduleReminders() async {
     // Notification permission is now handled exclusively by PermissionFlowService.
 
     // Note: iOS notification permissions are already requested in ReminderNotificationService.initialize()
 
-    await cancelAll();
+    // Safely cancel only previous shift reminder IDs (1..13 and 1000..1006) to avoid cancelling birthdays/holidays
+    for (int i = 0; i < 7; i++) {
+      try {
+        await notificationsPlugin.cancel(id: 1000 + i);
+        await notificationsPlugin.cancel(id: i * 2 + 1);
+      } catch (e) { /* ignored */ }
+    }
 
     StringBuffer logStr = StringBuffer();
     void addLog(String msg) {
@@ -395,3 +502,14 @@ class ReminderNotificationService {
     return !t.isBefore(s) && !t.isAfter(e);
   }
 }
+
+class _LifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      NotificationLoggerService.scheduling('App resumed to foreground. Checking 7-day schedule...');
+      ReminderNotificationService.scheduleAllNotifications();
+    }
+  }
+}
+

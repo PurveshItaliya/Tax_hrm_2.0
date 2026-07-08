@@ -43,6 +43,7 @@ import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
+import 'package:tax_hrm/utils/reminder_service.dart';
 
 class HomeProvider extends ChangeNotifier {
   bool _notifyScheduled = false;
@@ -224,6 +225,7 @@ class HomeProvider extends ChangeNotifier {
     String setdata =  jsonEncode(selectedcurentcompany);
     SaveUser().saveselectedcopany(setdata);
     setcompanyselected();
+    ReminderNotificationService.scheduleAllNotifications(forceRefresh: true);
   }
 
   // Working Hours Related
