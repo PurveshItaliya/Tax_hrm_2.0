@@ -1,4 +1,4 @@
-// ignore_for_file: empty_catches, deprecated_member_use, use_build_context_synchronously, prefer_interpolation_to_compose_strings
+// ignore_for_file: unnecessary_underscores, empty_catches, deprecated_member_use, use_build_context_synchronously, prefer_interpolation_to_compose_strings
 
 import 'dart:convert';
 import 'dart:io';

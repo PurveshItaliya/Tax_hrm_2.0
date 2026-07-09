@@ -504,7 +504,7 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
                   ),
                   const SizedBox(width: 14),
                   Text(
-                    minutes ~/ 60 > 0 ? '${minutes ~/ 60}${LanguageProvider.translate("h", "h")} ${minutes % 60}${LanguageProvider.translate("m", "m")}' : '${minutes}${LanguageProvider.translate("m", "m")}', 
+                    minutes ~/ 60 > 0 ? '${minutes ~/ 60}${LanguageProvider.translate("h", "h")} ${minutes % 60}${LanguageProvider.translate("m", "m")}' : '$minutes${LanguageProvider.translate("m", "m")}', 
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: barColor),
                   ),
                 ],
