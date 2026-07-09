@@ -13,6 +13,7 @@ import 'package:tax_hrm/models/authclass/adminloginclass.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/usermaster/userbyid.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/models/users/updateuser.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
@@ -191,6 +192,7 @@ class UserMasterService extends ChangeNotifier {
   ) async {
     final picked = await showDatePicker(
       context: context,
+      locale: Locale(LanguageProvider.currentLanguageCode),
       initialDate: dob == true ? selectedFromDate ?? DateTime.now(): selectedToDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),

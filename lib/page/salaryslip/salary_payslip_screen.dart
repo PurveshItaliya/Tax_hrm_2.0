@@ -7,6 +7,7 @@ import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/salaryslip/reportview.dart';
 import 'package:tax_hrm/page/salaryslip/salary_slip_design.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/salaryStructures.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/dateformat.dart';
@@ -39,6 +40,7 @@ class _SalaryPayslipScreenState extends State<SalaryPayslipScreen> {
     Size size = MediaQuery.of(context).size;
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final salaryStructureProvider = Provider.of<SalaryStructureProvider>(context);
+    Provider.of<LanguageProvider>(context);
     return checkInterNetConnection.connectionType == 0 ? const NoInternetViewPage() :  Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
         appBar: showCustomeAppBar(salarySlipString, size, titleColors: ColorConst.appbarTextColor, iconsOntap: () {

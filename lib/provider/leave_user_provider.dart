@@ -13,6 +13,7 @@ import 'package:tax_hrm/models/leavetype/getuserList.dart';
 import 'package:tax_hrm/page/bottom_bar_screen.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
 
@@ -585,6 +586,7 @@ class LeaveUserProvider extends ChangeNotifier {
 
     final picked = await showDatePicker(
       context: context,
+      locale: Locale(LanguageProvider.currentLanguageCode),
       initialDate: setFirstDate ? selectedFromDate : selectedToDate,
       firstDate: firstSelectableDate,
       lastDate: DateTime(2140),

@@ -5,6 +5,7 @@ import 'package:tax_hrm/page/salaryslip/month_picker_package.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 
 class CommandWidigetsProvider extends ChangeNotifier {
   DateTime setPickerDate = DateTime.now();
@@ -13,6 +14,7 @@ class CommandWidigetsProvider extends ChangeNotifier {
   Future<void> pickDate(BuildContext context,Size size,DateTime setDate,DateTime? pickerStartDate,DateTime? pickerLastDate,Function ontapSetDate) async {
     final picked = await showDatePicker(
       context: context,
+      locale: Locale(LanguageProvider.currentLanguageCode),
       initialDate: setDate,
       firstDate: pickerStartDate ?? setPickerStartDate,
       lastDate: pickerLastDate ?? setPickerLastDate,

@@ -6,6 +6,7 @@ import 'package:tax_hrm/page/leave/admin_leave_design_pages/approve_design_page.
 import 'package:tax_hrm/page/leave/admin_leave_design_pages/pending_design_page.dart';
 import 'package:tax_hrm/page/leave/admin_leave_design_pages/reject_design_page.dart';
 import 'package:tax_hrm/provider/admin_leave_provider.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/leaveProviders.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/dateformat.dart';
@@ -48,6 +49,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
     final leaveAdminProvider = Provider.of<AdminLeaveProvider>(context);
+    Provider.of<LanguageProvider>(context);
     return Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
         appBar: showBottomAppBar(

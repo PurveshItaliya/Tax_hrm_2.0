@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/leavetype/getuserList.dart';
 import 'package:tax_hrm/page/leave/leave_page_design.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/leaveProviders.dart';
 import 'package:tax_hrm/provider/leave_user_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -44,6 +45,7 @@ class _LeaveViewPageState extends State<LeaveViewPage> with SingleTickerProvider
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
     final leaveMastServices = Provider.of<LeaveMastServices>(context);
+    Provider.of<LanguageProvider>(context);
     return Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
         appBar: showBottomAppBar(leaveString, size, centerTitles: false),

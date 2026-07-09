@@ -5,6 +5,7 @@ import 'package:pinput/pinput.dart';
 import 'package:provider/provider.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/otpverificationprovider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -47,6 +48,7 @@ class _OtpVerificationOfLoginState extends State<OtpVerificationOfLogin> {
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final otpverificationprovider = Provider.of<Otpverificationprovider>(context);
+    Provider.of<LanguageProvider>(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(
@@ -102,8 +104,8 @@ class _OtpVerificationOfLoginState extends State<OtpVerificationOfLogin> {
                               ],
                             ),
                             heightSpacer(size.height * 0.04),
-                            otpverificationprovider.showexpired == true ? Text('Your OTP Expire !!',style: normalHeadingText(size),) :SizedBox(),
-                            otpverificationprovider.showtimervalue == true ? Text('Please enter OTP within ${otpverificationprovider.remainingTime.toString()} seconds',style: normalHeadingText(size)) :SizedBox(),
+                            otpverificationprovider.showexpired == true ? Text(yourOtpExpireString,style: normalHeadingText(size),) :SizedBox(),
+                            otpverificationprovider.showtimervalue == true ? Text('$pleaseEnterOtpWithinString ${otpverificationprovider.remainingTime.toString()} $secondsString',style: normalHeadingText(size)) :SizedBox(),
                             
                             if(otpverificationprovider.showexpired == true || otpverificationprovider.showtimervalue == true)...[heightSpacer(size.height * 0.04),],
 

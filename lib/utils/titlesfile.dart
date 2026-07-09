@@ -495,3 +495,15 @@ String get eligibleString => LanguageProvider.translate("Eligible", "Eligible");
 String get totalEmployeesString => LanguageProvider.translate("Total Employees", "Total Employees");
 String get allEmployeesString => LanguageProvider.translate("All Employees", "All Employees");
 String get idString => LanguageProvider.translate("ID", "ID");
+
+// Export and OTP localization getters
+String get todayAttendanceReportString => LanguageProvider.translate("Today Attendance Report", "Today Attendance Report");
+String get monthlyExcelReportString => LanguageProvider.translate("Monthly Excel Report", "Monthly Excel Report");
+String get exportString => LanguageProvider.translate("Export", "Export");
+String get yourOtpExpireString => LanguageProvider.translate("Your OTP Expire !!", "Your OTP Expire !!");
+String get pleaseEnterOtpWithinString => LanguageProvider.translate("Please enter OTP within", "Please enter OTP within");
+String get secondsString => LanguageProvider.translate("seconds", "seconds");
+String get exportDailyAttendanceReportString => LanguageProvider.translate("Export Daily Attendance Report", "Export Daily Attendance Report");
+String get exportMonthlyAttendanceReportString => LanguageProvider.translate("Export Monthly Attendance Report", "Export Monthly Attendance Report");
+String get loadingAttendanceDataString => LanguageProvider.translate("Loading attendance data...", "Loading attendance data...");
+

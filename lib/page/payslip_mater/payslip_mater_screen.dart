@@ -9,6 +9,7 @@ import 'package:tax_hrm/page/payslip_mater/view_payslip_screen.dart';
 import 'package:tax_hrm/provider/commanDataseta.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/payslipprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/dateformat.dart';
@@ -49,6 +50,7 @@ class _PaySlipMaterScreenState extends State<PaySlipMaterScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final paySlipProviders = Provider.of<PaySlipProviders>(context);
+    Provider.of<LanguageProvider>(context);
     safeAreaBgAndTextColor(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()

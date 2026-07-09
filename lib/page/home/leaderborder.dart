@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/page/home/leaderborder_dashbord.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 
@@ -61,6 +62,7 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final homeProvider = Provider.of<HomeProvider>(context);
+    Provider.of<LanguageProvider>(context);
 
     return Container(
       margin: EdgeInsets.all(size.width * 0.03),

@@ -6,9 +6,11 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/setTimeline.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class PunchBoxConfirmation extends StatefulWidget {
@@ -62,6 +64,7 @@ onback(){
   Widget build(BuildContext context) {
     final issetKeyBoard = MediaQuery.of(context).viewInsets.bottom != 0;
     Size size = MediaQuery.of(context).size;
+    Provider.of<LanguageProvider>(context);
     return WillPopScope(
       onWillPop: () =>onback(),
       child: Stack(
@@ -102,12 +105,12 @@ onback(){
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Confirm ${widget.typeBox}',
+                          '${LanguageProvider.translate("Confirm", "Confirm")} ${widget.typeBox}',
                           style: customeHeadingTextsize(size, size.height * 0.024),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Are You Ready to ${widget.typeBox}?',
+                          '${LanguageProvider.translate("Are You Ready to", "Are You Ready to")} ${widget.typeBox}?',
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: size.height * 0.016,
@@ -151,7 +154,7 @@ onback(){
                   controller: punchProvider.punchBoxNotesController,
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    hintText: 'Write notes here...',
+                    hintText: LanguageProvider.translate("Write notes here...", "Write notes here..."),
                     hintStyle: TextStyle(fontSize: size.height * 0.018, color: Colors.grey[500]),
                   ),
                   onChanged: (value) {
@@ -215,7 +218,7 @@ onback(){
                                   Navigator.pop(context);
                                 },
                                 child: Text(
-                                  'Cancel',
+                                  cancelString,
                                   style: TextStyle(
                                       fontSize: size.height * 0.018,
                                       fontWeight: FontWeight.bold,
@@ -255,7 +258,7 @@ onback(){
                                   ),
                                 )
                                     : Text(
-                                  'Confirm',
+                                  LanguageProvider.translate("Confirm", "Confirm"),
                                   style: TextStyle(
                                     fontSize: size.height * 0.018,
                                     fontWeight: FontWeight.bold,

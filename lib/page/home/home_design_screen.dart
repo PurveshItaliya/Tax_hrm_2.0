@@ -7,6 +7,7 @@ import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 
 Widget buildDateHeader(Size size) {
   return Consumer<HomeProvider>(
@@ -212,7 +213,7 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        DateFormat('EEEE, dd MMM yyyy').format(currentDate),
+                        DateFormat('EEEE, dd MMM yyyy', LanguageProvider.currentLanguageCode).format(currentDate),
                         style: TextStyle(
                           fontSize: size.width * 0.032,
                           fontFamily: fontInterSemiBoldString,
@@ -314,7 +315,7 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Loading attendance data...',
+                        loadingAttendanceDataString,
                         style: TextStyle(
                           fontSize: size.width * 0.03,
                           fontFamily: fontInterSemiBoldString,
@@ -391,7 +392,7 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                                 ),
                               ),
                               Text(
-                                "Present",
+                                presentString,
                                 style: TextStyle(
                                   fontSize: size.width * 0.018,
                                   fontFamily: fontInterSemiBoldString,
@@ -422,7 +423,7 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                           size,
                           Icons.check_circle_outline_rounded,
                           attendanceService.totalPresents.toString(),
-                          "Present",
+                          presentString,
                           Colors.blue,
                           onTap: () => attendanceService.filtersOntapData(true),
                         ),
@@ -431,7 +432,7 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                           size,
                           Icons.remove_circle_outline_rounded,
                           attendanceService.totalAbsent.toString(),
-                          "Absent",
+                          absentString,
                           Colors.red,
                           onTap: () => attendanceService.filtersOntapData(false),
                         ),
@@ -440,7 +441,7 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                           size,
                           Icons.beach_access_rounded,
                           attendanceService.totalIsOnLeave.toString(),
-                          "On Leave",
+                          onLeaveString,
                           Colors.orange,
                           onTap: () => attendanceService.filterIsONleave(),
                         ),

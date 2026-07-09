@@ -9,6 +9,7 @@ import 'package:tax_hrm/page/payroll_mater/payroll_mater_design.dart';
 import 'package:tax_hrm/provider/commanDataseta.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/payrollprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/dateformat.dart';
@@ -67,6 +68,7 @@ class _PayrollMaterScreenState extends State<PayrollMaterScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final payRollProviders = Provider.of<PayRollProviders>(context);
+    Provider.of<LanguageProvider>(context);
     safeAreaBgAndTextColor(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()

@@ -7,6 +7,7 @@ import 'package:tax_hrm/page/employee_master/employee_add_edit_screen.dart';
 import 'package:tax_hrm/page/employee_master/employee_pdf_csv.dart';
 import 'package:tax_hrm/provider/employee_master_provider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/pagniation.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -52,6 +53,7 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final employeeMProvider = Provider.of<EmployeeMasterProvider>(context);
     final appPaginationController = Provider.of<AppPaginationProvider>(context);
+    Provider.of<LanguageProvider>(context);
     
     final employeeStartIndex = appPaginationController.startIndextoShow > employeeMProvider.emplists.length
         ? employeeMProvider.emplists.length

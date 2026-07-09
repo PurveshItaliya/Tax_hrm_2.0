@@ -10,6 +10,7 @@ import 'package:tax_hrm/page/home/home_design_screen.dart';
 import 'package:tax_hrm/page/home/leaderborder.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -82,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     final homeProvider = Provider.of<HomeProvider>(context);
+    Provider.of<LanguageProvider>(context);
     safeAreaBgAndTextColor(context);
     return Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
@@ -185,6 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildGridMenu(Size size, HomeProvider homeProvider) {
+    homeProvider.homepageMenuGet(context);
     final menuList = homeProvider.homeGridOptionList;
     
     return Column(

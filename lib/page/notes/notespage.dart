@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/notesprovider.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -38,6 +39,7 @@ class _NotesViewPageState extends State<NotesViewPage> {
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final notesProvidersData =  Provider.of<NotesProviders>(context);
+    Provider.of<LanguageProvider>(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/page/authpages/registration.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/registrationprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
@@ -31,6 +32,7 @@ class _SelectPackageScreenState extends State<SelectPackageScreen> {
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final registrationProvider = Provider.of<RegistrationProvider>(context);
+    Provider.of<LanguageProvider>(context);
     return checkInterNetConnection.connectionType == 0 ? const NoInternetViewPage() : Scaffold(
       backgroundColor: ColorConst.scaffoldColor,
       appBar: showCustomeAppBar(backString, size,iconsOntap: () {

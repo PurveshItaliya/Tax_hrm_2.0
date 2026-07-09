@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/models/top_hrm_model.dart';
 
@@ -41,7 +42,7 @@ class LeaderborderProvider extends ChangeNotifier {
 
   // Get month name for display
   String getLeaderboardMonthName() {
-    return DateFormat('MMMM yyyy').format(_selectedMonth);
+    return DateFormat('MMMM yyyy', LanguageProvider.currentLanguageCode).format(_selectedMonth);
   }
 
   // Navigate to previous month

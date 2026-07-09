@@ -4,6 +4,7 @@ import 'package:tax_hrm/page/event/add_event_screen.dart';
 import 'package:tax_hrm/page/event/event_screen_design.dart';
 import 'package:tax_hrm/provider/eventProvider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/dateformat.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
@@ -42,6 +43,7 @@ class _EventPageScreenState extends State<EventPageScreen> {
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final eventsMastServices =  Provider.of<EventsMastServices>(context);
+    Provider.of<LanguageProvider>(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/api/companiapi.dart';
@@ -836,7 +837,7 @@ Future<void> nextLeaderboardMonth() async {
 
 // Get month name for display
 String getLeaderboardMonthName() {
-  return DateFormat('MMMM yyyy').format(_leaderboardSelectedMonth);
+  return DateFormat('MMMM yyyy', LanguageProvider.currentLanguageCode).format(_leaderboardSelectedMonth);
 }
 
 // Convert HrmTopListReport to WinnerModel format

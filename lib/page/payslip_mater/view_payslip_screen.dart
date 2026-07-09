@@ -6,6 +6,7 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/payrool/viewPayroll.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/payslipprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
@@ -35,6 +36,7 @@ class _ViewPaySlipScreenState extends State<ViewPaySlipScreen> {
     Size size = MediaQuery.of(context).size;
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final paySlipProviders = Provider.of<PaySlipProviders>(context);
+    Provider.of<LanguageProvider>(context);
     safeAreaBgAndTextColor(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()

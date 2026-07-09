@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -141,6 +142,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     safeAreaBgAndTextColor(context);
 
     final provider = Provider.of<SelfiePunchProvider>(context);
+    Provider.of<LanguageProvider>(context);
 
     return Scaffold(
         appBar: AppBar(

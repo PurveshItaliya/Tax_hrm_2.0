@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/page/department/department_screen_design.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/shiftprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
@@ -40,6 +41,7 @@ class _ShiftMasterScreenState extends State<ShiftMasterScreen> {
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final shiftMasterProvider =  Provider.of<ShiftMasterProvider>(context);
+    Provider.of<LanguageProvider>(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(

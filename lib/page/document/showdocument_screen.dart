@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:tax_hrm/page/document/viewdocument_screen.dart';
 import 'package:tax_hrm/provider/documentprovider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
@@ -37,6 +38,7 @@ class _ShowDocumentScreenState extends State<ShowDocumentScreen> {
     Size size = MediaQuery.of(context).size;
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     var documentproviders = Provider.of<DocumentsProvider>(context);
+    Provider.of<LanguageProvider>(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(

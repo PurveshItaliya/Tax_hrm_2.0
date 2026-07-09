@@ -16,6 +16,7 @@ import 'package:tax_hrm/page/attendance/viewimage.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/commanDataseta.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/leaveProviders.dart';
 import 'package:tax_hrm/provider/leavemployeeprovider.dart';
 import 'package:tax_hrm/provider/payrollprovider.dart';
@@ -134,6 +135,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
     Size size = MediaQuery.of(context).size;
     final attendanceEmp = Provider.of<AttendanceEmp>(context);
+    Provider.of<LanguageProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final leaveProviders =  Provider.of<LeaveMastServices>(context);
     safeAreaBgAndTextColor(context,);

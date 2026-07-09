@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:tax_hrm/page/authpages/forgotpassword_screen.dart';
 import 'package:tax_hrm/page/authpages/select_package_screen.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/userloginprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
@@ -45,6 +46,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
     final userloginprovider = Provider.of<Userloginprovider>(
       context,
     );
+    Provider.of<LanguageProvider>(context);
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(
@@ -62,7 +64,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               heightSpacer(size.height * 0.08),
-                              Text("${widget.isAdmin == false ? "Employee" : "Owner / Admin Access"} $loginString",style: TextStyle(color: ColorConst.black, fontFamily: fontInterBoldString, fontSize: size.width * 0.04),),
+                              Text("${widget.isAdmin == false ? LanguageProvider.translate("Employee", "Employee") : LanguageProvider.translate("Owner / Admin Access", "Owner / Admin Access")} $loginString",style: TextStyle(color: ColorConst.black, fontFamily: fontInterBoldString, fontSize: size.width * 0.04),),
                               heightSpacer(size.height * 0.012),
                               Text(loginTitleString,style: TextStyle(color: ColorConst.textgrey, fontFamily: fontInterSemiBoldString, fontSize: size.width * 0.045),),
                               heightSpacer(size.height * 0.04),

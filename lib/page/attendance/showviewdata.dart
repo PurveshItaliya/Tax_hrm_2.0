@@ -12,6 +12,7 @@ import 'package:tax_hrm/page/attendance/viewimage.dart';
 import 'package:tax_hrm/page/usertimelineview/usertimeline.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
@@ -103,6 +104,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   @override
   Widget build(BuildContext context) {
     final attendanceProviders = Provider.of<AdminAttenDanceServices>(context);
+    Provider.of<LanguageProvider>(context);
     Size size = MediaQuery.of(context).size;
     String formattedDate = DateFormat('d MMMM, yyyy').format(attendanceProviders.currentMonth);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -157,23 +159,23 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       offset: const Offset(0, 45),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       itemBuilder: (context) => [
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'daily',
           child: Row(
             children: [
               Icon(Icons.calendar_today_rounded, size: 18, color: Colors.blue),
               SizedBox(width: 10),
-              Text('Today Attendance Report', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              Text(todayAttendanceReportString, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'monthly',
           child: Row(
             children: [
               Icon(Icons.date_range_rounded, size: 18, color: Colors.green),
               SizedBox(width: 10),
-              Text('Monthly Excel Report', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              Text(monthlyExcelReportString, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -198,7 +200,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             const Icon(Icons.download_rounded, color: Colors.white, size: 16),
             const SizedBox(width: 6),
             Text(
-              'Export',
+              exportString,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -253,11 +255,11 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       
       String status = 'Unknown';
       if (isOnLeave) {
-        status = 'On Leave';
+        status = onLeaveString;
       } else if (isPresent) {
-        status = 'Present';
+        status = presentString;
       } else if (isAbsent) {
-        status = 'Absent';
+        status = absentString;
       }
 
       String inTimeStr = employee.inTime == null 
@@ -510,11 +512,11 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           
           String status = 'Unknown';
           if (isOnLeave) {
-            status = 'On Leave';
+            status = onLeaveString;
           } else if (isPresent) {
-            status = 'Present';
+            status = presentString;
           } else if (isAbsent) {
-            status = 'Absent';
+            status = absentString;
           }
 
           String inTimeStr = employee.inTime == null 
@@ -696,6 +698,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             onTap: () async {
               final DateTime? pickedDate = await showDatePicker(
                 context: context,
+                locale: Locale(LanguageProvider.currentLanguageCode),
                 initialDate: attendanceProviders.currentMonth,
                 firstDate: DateTime(1900),
                 lastDate: DateTime.now(),
