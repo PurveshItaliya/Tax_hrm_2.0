@@ -75,7 +75,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text("Pending"),
+                          Text(pendingString),
                           if(leaveAdminProvider.pendingLeaves.isNotEmpty) ...[
                             const SizedBox(width: 4),
                             Container(
@@ -97,7 +97,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text("Approve"),
+                          Text(approveString),
                           if(leaveAdminProvider.approvedLeaves.isNotEmpty) ...[
                             const SizedBox(width: 4),
                             Container(
@@ -119,7 +119,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text("Reject"),
+                          Text(rejectString),
                           if(leaveAdminProvider.rejectedLeaves.isNotEmpty) ...[
                             const SizedBox(width: 4),
                             Container(

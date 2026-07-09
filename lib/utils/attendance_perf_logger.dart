@@ -90,6 +90,9 @@ class AttendancePerformanceLogger {
         errorInfo: error?.toString(),
       );
       _records.add(record);
+      if (_records.length > 100) {
+        _records.removeAt(0);
+      }
 
       final String badge = _badge(durationMs);
       final String errPart = error != null ? '  ❌ ERROR: $error' : '';

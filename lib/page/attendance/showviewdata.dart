@@ -19,7 +19,6 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
-import 'package:tax_hrm/widigets/custometextfiled.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
@@ -189,7 +188,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     sheet.setColumnWidth(4, 15.0); // In Time
     sheet.setColumnWidth(5, 15.0); // Out Time
 
-    List<String> headers = ['ID', 'Employee Name', 'Designation', 'Status', 'In Time', 'Out Time'];
+    List<String> headers = [idString, employessNameString, designationString, statusString, inTimeString, outTimeString];
     for (int i = 0; i < headers.length; i++) {
       var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
       cell.value = TextCellValue(headers[i]);
@@ -286,7 +285,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
     if (displayList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No data available to download')),
+        SnackBar(content: Text(noDataAvailableToDownloadString)),
       );
       return;
     }
@@ -297,7 +296,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       excel.rename(defaultSheetName, 'Dashboard');
 
       Sheet dashSheet = excel['Dashboard'];
-      Sheet allSheet = excel['All Employees'];
+      Sheet allSheet = excel[allEmployeesString];
       Sheet presentSheet = excel['Present'];
       Sheet absentSheet = excel['Absent'];
       Sheet leaveSheet = excel['On Leave'];
@@ -363,7 +362,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       cB5.cellStyle = headerStyle;
       
       var cA6 = dashSheet.cell(CellIndex.indexByString("A6"));
-      cA6.value = TextCellValue("Total Employees");
+      cA6.value = TextCellValue(totalEmployeesString);
       cA6.cellStyle = leftAlignDataStyle;
       var cB6 = dashSheet.cell(CellIndex.indexByString("B6"));
       cB6.value = TextCellValue('${attendanceProviders.mainHoldEmpList.length}');
@@ -461,7 +460,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         currentRow++;
 
         // Table Column Headers
-        List<String> subHeaders = ['ID', 'Employee Name', 'Status', 'In Time', 'Out Time'];
+        List<String> subHeaders = [idString, employessNameString, statusString, inTimeString, outTimeString];
         for (int i = 0; i < subHeaders.length; i++) {
           var cell = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
           cell.value = TextCellValue(subHeaders[i]);
@@ -570,24 +569,43 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                   ),
                 ],
               ),
-              child: CommonTextField(
+              child: TextFormField(
                 controller: _searchController,
-                borderRadius: 10.0,
-                borderColor: Colors.transparent,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Icon(Icons.search_rounded, size: 18, color: ColorConst.themeColor),
+                textAlignVertical: TextAlignVertical.center,
+                cursorColor: ColorConst.black,
+                style: TextStyle(
+                  color: ColorConst.black,
+                  fontFamily: fontInterRegularString,
+                  fontSize: 14,
                 ),
-                hintText: 'Search employee...',
-                suffixIcon: _searchQuery.isNotEmpty
+                decoration: InputDecoration(
+                  hintText: searchEmployeeHintString,
+                  isDense: true,
+                  hintStyle: TextStyle(
+                    color: ColorConst.hintextColor,
+                    fontFamily: fontInterMediumString,
+                    fontSize: 13,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 8, right: 6),
+                    child: Icon(Icons.search_rounded, size: 18, color: ColorConst.themeColor),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
+                  suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                           onPressed: _clearSearch,
                           icon: Icon(Icons.close_rounded, size: 16, color: Colors.grey.shade400),
                         )
                       : null,
-                ), 
+                  suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
+                ),
+              ), 
             ),
           ),
           const SizedBox(width: 8),
@@ -733,7 +751,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         children: [
           _buildStatCard(
             size: size,
-            title: "Employees",
+            title: employeesString,
             value: '${attendanceProviders.mainHoldEmpList.length}',
             color: ColorConst.blueColor,
             icon: Icons.people_alt,
@@ -766,7 +784,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           ),
           _buildStatCard(
             size: size,
-            title: "On Leave",
+            title: onLeaveString,
             value: attendanceProviders.totalIsOnLeave.toString(),
             color: ColorConst.paidLeaveColor,
             icon: Icons.beach_access,
@@ -860,7 +878,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             : Container(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 alignment: Alignment.center,
-                child: noDataFoundsDesign(size, 'No Data Found', nodataFoundsImagString, width: 140),
+                child: noDataFoundsDesign(size, noDataFoundsString, nodataFoundsImagString, width: 140.0),
               )
         : ListView.separated(
             shrinkWrap: true,
@@ -895,7 +913,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           ),
           const SizedBox(height: 12),
           Text(
-            'No employees found',
+            noEmployeesFoundString,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -905,7 +923,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Try searching with a different name',
+            trySearchingWithDifferentNameString,
             style: TextStyle(
               fontSize: 11,
               color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
@@ -928,8 +946,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                   ),
                 ],
               ),
-              child: const Text(
-                'Clear Search',
+              child: Text(
+                clearSearchString,
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.white,
@@ -1078,7 +1096,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                           FocusManager.instance.primaryFocus?.unfocus();
                           await Future.delayed(const Duration(milliseconds: 150));
                           final attendanceEmp = Provider.of<AttendanceEmp>(context, listen: false);
-                          String timestampString = DateTime.now().toString();
+                          String timestampString = attendanceProviders.currentMonth.toString();
                           String formattedTimestampString = timestampString.replaceAll('Z', '');
                           
                           await attendanceEmp.getDateBloges(formattedTimestampString, employee.empId.toString());
@@ -1165,7 +1183,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
       textColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
       icon = Icons.help_outline_rounded;
-      text = "Pending";
+      text = pendingString;
     }
 
     return Container(
@@ -1415,13 +1433,13 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     
                     buildPunchCard(
                       size: size,
-                      title: 'PUNCH IN',
+                      title: punchInString.toUpperCase(),
                       time: attendanceProviders.punchInTimeController.text,
                       icon: Icons.login_rounded,
                       color: Colors.green,
                       gradientStart: const Color(0xFF00B4DB),
                       gradientEnd: const Color(0xFF0083B0),
-                      status: displayList[index].inTime != null ? 'Completed' : 'Pending',
+                      status: displayList[index].inTime != null ? completedString : pendingString,
                       onTap: () async {
                         if (displayList[index].inTime == null) {
                           await attendanceProviders.showTimePickerDialog(
@@ -1447,13 +1465,13 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     
                     buildPunchCard(
                       size: size,
-                      title: 'PUNCH OUT',
+                      title: punchOutString.toUpperCase(),
                       time: attendanceProviders.punchOutTimeController.text,
                       icon: Icons.logout_rounded,
                       color: Colors.red,
                       gradientStart: const Color(0xFFFA709A),
                       gradientEnd: const Color(0xFFFEE140),
-                      status: displayList[index].outTime != null ? 'Completed' : 'Pending',
+                      status: displayList[index].outTime != null ? completedString : pendingString,
                       onTap: () async {
                         if (displayList[index].inTime != null && 
                             displayList[index].outTime == null) {
@@ -1492,7 +1510,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Punch in before 10:00 AM to avoid late marking',
+                              punchInBeforeString,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,

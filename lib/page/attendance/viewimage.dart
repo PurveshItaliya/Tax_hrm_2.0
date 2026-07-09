@@ -16,7 +16,7 @@ class _FullPageImageState extends State<FullPageImage> {
     Size size = MediaQuery.of(context).size;
     return  Scaffold(
       appBar: AppBar(
-        title: Text('IMG'),
+        title: Text(imageString),
       ),
       body: Column(
         children: [
@@ -125,7 +125,7 @@ Widget buildPunchCard({
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                'Required',
+                                requiredString,
                                 style: TextStyle(
                                   fontSize: size.width * 0.022,
                                   color: color,

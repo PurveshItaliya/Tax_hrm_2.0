@@ -22,6 +22,7 @@ import 'package:tax_hrm/provider/position_provider.dart';
 import 'package:tax_hrm/provider/role_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
 import 'package:tax_hrm/widigets/ifsc_drop_down.dart';
 
@@ -1560,7 +1561,7 @@ Widget _buildStatusSection(EmployeeMasterProvider provider) {
           onChanged: (v) => provider.changeStatus(v!),
         ),
         const SizedBox(width: 6),
-        const Text("Active", style: TextStyle(fontWeight: FontWeight.w500)),
+        Text(activeString, style: const TextStyle(fontWeight: FontWeight.w500)),
         const SizedBox(width: 20),
         Radio<bool>(
           value: false,
@@ -1571,7 +1572,7 @@ Widget _buildStatusSection(EmployeeMasterProvider provider) {
           onChanged: (v) => provider.changeStatus(v!),
         ),
         const SizedBox(width: 6),
-        const Text("Inactive", style: TextStyle(fontWeight: FontWeight.w500)),
+        Text(inActiveString, style: const TextStyle(fontWeight: FontWeight.w500)),
       ],
     ),
   );
@@ -1736,7 +1737,7 @@ Future<void> showImagePickerOptions(BuildContext context, EmployeeMasterProvider
               color: Colors.transparent,
               child: ListTile(
                 leading: Icon(Icons.photo_library, color: ColorConst.themeColor),
-                title: const Text('Choose from Gallery'),
+                title: Text(chooseFromGalleryString),
                 onTap: () {
                   Navigator.pop(context);
                   provider.pickProfileImageFromGallery();
@@ -1747,7 +1748,7 @@ Future<void> showImagePickerOptions(BuildContext context, EmployeeMasterProvider
               color: Colors.transparent,
               child: ListTile(
                 leading: Icon(Icons.camera_alt, color: ColorConst.themeColor),
-                title: const Text('Take a Photo'),
+                title: Text(takeAPhotoString),
                 onTap: () {
                   Navigator.pop(context);
                   provider.pickProfileImageFromCamera();

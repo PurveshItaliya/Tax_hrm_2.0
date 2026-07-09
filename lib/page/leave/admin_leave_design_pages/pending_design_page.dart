@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 
 class LeaveRequestCard extends StatelessWidget {
   final String name;
@@ -153,7 +154,7 @@ class LeaveRequestCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Reason for leave",
+                    reasonForLeaveString,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -187,7 +188,7 @@ class LeaveRequestCard extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text("REJECT", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                    child: Text(rejectUpperString, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -201,7 +202,7 @@ class LeaveRequestCard extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text("APPROVE", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                    child: Text(approveUpperString, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                   ),
                 ),
               ],

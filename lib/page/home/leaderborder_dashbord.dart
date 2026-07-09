@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/leaderborder_provider.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
+import 'package:tax_hrm/provider/theme_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/models/top_hrm_model.dart';
 import 'package:tax_hrm/utils/navigation.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 
 class LeaderboardDetailPage extends StatefulWidget {
@@ -46,18 +49,20 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
       }
     });
   }
-  
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final leaderProvider = Provider.of<LeaderborderProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context);
+    Provider.of<ThemeProvider>(context);
     
+    final locale = languageProvider.currentLanguage;
 
     return Scaffold(
       backgroundColor: ColorConst.scaffoldColor,
       appBar: showCustomeAppBar(
-        'Leaderboard',
+        leaderboardString,
         size,
         titleColors: ColorConst.appbarTextColor,
         iconsOntap: () => backScreen(context),
@@ -65,17 +70,18 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
       body: leaderProvider.isLoading
           ? Center(child: CircularProgressIndicator(color: ColorConst.themeColor))
           : CustomScrollView(
+              physics: const BouncingScrollPhysics(),
               slivers: [
-                SliverToBoxAdapter(child: _buildMonthSelector(size, leaderProvider)),
+                SliverToBoxAdapter(child: _buildMonthSelector(size, leaderProvider, locale)),
                 if (leaderProvider.allRecords.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
-                    child: _buildEmptyState(size, leaderProvider.selectedMonth),
+                    child: _buildEmptyState(size, leaderProvider.selectedMonth, locale),
                   )
                 else ...[
                   SliverToBoxAdapter(child: _buildStatsHeader(size, leaderProvider)),
+                  SliverToBoxAdapter(child: _buildVisualPodium(size, leaderProvider)),
                   SliverToBoxAdapter(child: _buildChartSection(size, leaderProvider)),
-                  SliverToBoxAdapter(child: _buildPodiumCards(size, leaderProvider)),
                   if (leaderProvider.others.isNotEmpty)
                     SliverToBoxAdapter(child: _buildOthersSection(size, leaderProvider)),
                 ],
@@ -84,42 +90,42 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
     );
   }
 
-  Widget _buildMonthSelector(Size size, LeaderborderProvider provider) {
+  Widget _buildMonthSelector(Size size, LeaderborderProvider provider, String locale) {
     final isCurrentMonth = provider.selectedMonth.month == DateTime.now().month &&
         provider.selectedMonth.year == DateTime.now().year;
 
     return Container(
       margin: EdgeInsets.fromLTRB(size.width * 0.04, size.height * 0.015, size.width * 0.04, 0),
-      padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.012),
+      padding: EdgeInsets.symmetric(horizontal: size.width * 0.02, vertical: size.height * 0.008),
       decoration: BoxDecoration(
         color: ColorConst.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2)),
-        ],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: ColorConst.textBorder.withOpacity(0.5), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _monthBtn(
-            Icons.chevron_left,
+            Icons.arrow_back_ios_new_rounded,
             ColorConst.themeColor,
             () => provider.previousLeaderboardMonth(),
           ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: size.width * 0.03, vertical: size.height * 0.005),
-            decoration: BoxDecoration(
-              color: ColorConst.themeColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              DateFormat('MMMM yyyy').format(provider.selectedMonth),
-              style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w600, color: ColorConst.textHeadingColor),
+          Expanded(
+            child: Center(
+              child: Text(
+                DateFormat('MMMM yyyy', locale).format(provider.selectedMonth),
+                style: TextStyle(
+                  fontSize: size.width * 0.042, 
+                  fontWeight: FontWeight.bold, 
+                  color: ColorConst.black,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ),
           _monthBtn(
-            Icons.chevron_right,
-            isCurrentMonth ? Colors.grey.shade300 : ColorConst.themeColor,
+            Icons.arrow_forward_ios_rounded,
+            isCurrentMonth ? ColorConst.textBorder : ColorConst.themeColor,
             isCurrentMonth ? null : () => provider.nextLeaderboardMonth(),
           ),
         ],
@@ -128,15 +134,19 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
   }
 
   Widget _monthBtn(IconData icon, Color color, VoidCallback? onTap) {
+    final isEnabled = onTap != null;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: Icon(icon, color: color, size: 22),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isEnabled ? color.withOpacity(0.08) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: isEnabled ? color : ColorConst.textgrey.withOpacity(0.4), size: 16),
         ),
       ),
     );
@@ -158,49 +168,73 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
     }
     final avg = totalMin ~/ allRecords.length;
 
-    return Container(
-      margin: EdgeInsets.all(size.width * 0.04),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [ColorConst.themeColor, ColorConst.themeColor.withOpacity(0.7)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: ColorConst.themeColor.withOpacity(0.28), blurRadius: 16, offset: const Offset(0, 6))],
-      ),
-      child: Stack(
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.015),
+      child: Column(
         children: [
-          Positioned(right: -24, top: -24, child: Container(width: 110, height: 110, decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), shape: BoxShape.circle))),
-          Positioned(left: -16, bottom: -16, child: Container(width: 70, height: 70, decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), shape: BoxShape.circle))),
-          Padding(
-            padding: EdgeInsets.all(size.width * 0.04),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _statChip(size, '${allRecords.length}', 'Participants', Icons.people_outline),
-                    _statChip(size, '${avg ~/ 60}h ${avg % 60}m', 'Avg Hours', Icons.access_time),
-                    _statChip(size, '${maxMin ~/ 60}h ${maxMin % 60}m', 'Top Hours', Icons.emoji_events_outlined),
-                  ],
+          Row(
+            children: [
+              Expanded(
+                child: _buildModernStatCard(
+                  size,
+                  participantsString,
+                  '${allRecords.length}',
+                  Icons.people_outline,
+                  ColorConst.themeColor,
                 ),
-                SizedBox(height: size.height * 0.012),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildModernStatCard(
+                  size,
+                  avgHoursString,
+                  '${avg ~/ 60}${LanguageProvider.translate("h", "h")} ${avg % 60}${LanguageProvider.translate("m", "m")}',
+                  Icons.schedule_rounded,
+                  Colors.teal,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: ColorConst.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: ColorConst.textBorder.withOpacity(0.5), width: 1),
+            ),
+            child: Row(
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: Colors.white.withOpacity(0.25), width: 1),
+                    color: ColorConst.gold.withOpacity(0.12),
+                    shape: BoxShape.circle,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Icon(Icons.stars_rounded, color: ColorConst.gold, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 18),
-                      const SizedBox(width: 8),
-                      Text('Top Performer: $topName', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text(
+                        topPerformerString,
+                        style: TextStyle(color: ColorConst.textgrey, fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        topName,
+                        style: TextStyle(color: ColorConst.black, fontSize: 14, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
+                ),
+                Text(
+                  '${maxMin ~/ 60}${LanguageProvider.translate("h", "h")} ${maxMin % 60}${LanguageProvider.translate("m", "m")}',
+                  style: TextStyle(color: ColorConst.goldText, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -210,17 +244,176 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
     );
   }
 
-  Widget _statChip(Size size, String value, String label, IconData icon) {
+  Widget _buildModernStatCard(Size size, String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ColorConst.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: ColorConst.textBorder.withOpacity(0.5), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(color: ColorConst.textgrey, fontSize: 11, fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(color: ColorConst.black, fontSize: 15, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVisualPodium(Size size, LeaderborderProvider provider) {
+    final first = provider.firstPlace.isNotEmpty ? provider.firstPlace.first : null;
+    final second = provider.secondPlace.isNotEmpty ? provider.secondPlace.first : null;
+    final third = provider.thirdPlace.isNotEmpty ? provider.thirdPlace.first : null;
+
+    if (first == null && second == null && third == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+      decoration: BoxDecoration(
+        color: ColorConst.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: ColorConst.textBorder.withOpacity(0.5), width: 1),
+      ),
+      child: Column(
+        children: [
+          Text(
+            topPerformerString,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ColorConst.black, letterSpacing: 0.3),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 2nd Place Column
+              Expanded(
+                child: second != null
+                    ? _podiumCol(size, second, ColorConst.silver, ColorConst.silverLight, 75, '🥈')
+                    : const SizedBox.shrink(),
+              ),
+              // 1st Place Column
+              Expanded(
+                child: first != null
+                    ? _podiumCol(size, first, ColorConst.gold, ColorConst.goldLight, 105, '👑')
+                    : const SizedBox.shrink(),
+              ),
+              // 3rd Place Column
+              Expanded(
+                child: third != null
+                    ? _podiumCol(size, third, ColorConst.bronze, ColorConst.bronzeLight, 60, '🥉')
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _podiumCol(Size size, WinnerModels winner, Color themeCol, Color bgCol, double height, String badge) {
+    final initials = winner.name.split(' ').take(2).map((p) => p.isNotEmpty ? p[0] : '').join();
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: EdgeInsets.all(size.width * 0.025),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.18), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.2), width: 1)),
-          child: Icon(icon, color: Colors.white, size: size.width * 0.045),
-        ),
+        // Badge icon (crown or medal)
+        Text(badge, style: const TextStyle(fontSize: 24)),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        // Avatar circle
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: themeCol,
+            boxShadow: [
+              BoxShadow(
+                color: themeCol.withOpacity(0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Center(
+            child: Text(
+              initials.toUpperCase(),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Name
+        Text(
+          _formatName(winner.name),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ColorConst.black),
+        ),
+        const SizedBox(height: 4),
+        // Hours text
+        Text(
+          winner.hours,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: themeCol),
+        ),
+        const SizedBox(height: 8),
+        // Physical podium block
+        Container(
+          height: height,
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            color: bgCol,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+            ),
+            border: Border.all(color: themeCol.withOpacity(0.2), width: 1.5),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '#${winner.rank}',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: themeCol),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${winner.totalDays}D',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: ColorConst.textgrey),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -234,23 +427,37 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
     final chartData = top5.take(5).toList();
     final maxMinutes = chartData.map((e) => e.netWorkingMinutes ?? 0).reduce((a, b) => a > b ? a : b);
 
-    final barColors = [ColorConst.gold, ColorConst.silver, ColorConst.bronze, ColorConst.themeColor.withOpacity(0.75), ColorConst.themeColor.withOpacity(0.55)];
+    final barColors = [
+      ColorConst.gold, 
+      ColorConst.silver, 
+      ColorConst.bronze, 
+      ColorConst.themeColor.withOpacity(0.75), 
+      ColorConst.themeColor.withOpacity(0.55)
+    ];
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
       padding: EdgeInsets.all(size.width * 0.04),
-      decoration: BoxDecoration(color: ColorConst.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))]),
+      decoration: BoxDecoration(
+        color: ColorConst.white, 
+        borderRadius: BorderRadius.circular(24), 
+        border: Border.all(color: ColorConst.textBorder.withOpacity(0.5), width: 1),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(padding: EdgeInsets.all(size.width * 0.02), decoration: BoxDecoration(color: ColorConst.themeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.bar_chart, size: size.width * 0.045, color: ColorConst.themeColor)),
+              Container(
+                padding: const EdgeInsets.all(8), 
+                decoration: BoxDecoration(color: ColorConst.themeColor.withOpacity(0.08), borderRadius: BorderRadius.circular(12)), 
+                child: Icon(Icons.bar_chart_rounded, size: 20, color: ColorConst.themeColor),
+              ),
               const SizedBox(width: 12),
-              Text('Performance Overview', style: TextStyle(fontSize: size.width * 0.038, fontWeight: FontWeight.bold, color: ColorConst.textHeadingColor)),
+              Text(performanceOverviewString, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: ColorConst.black)),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           ...List.generate(chartData.length, (index) {
             final emp = chartData[index];
             final minutes = emp.netWorkingMinutes ?? 0;
@@ -259,124 +466,51 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
             final barColor = barColors[index];
 
             return Padding(
-              padding: EdgeInsets.only(bottom: size.height * 0.015),
+              padding: EdgeInsets.only(bottom: size.height * 0.018),
               child: Row(
                 children: [
-                  Container(width: size.width * 0.08, height: size.width * 0.08, decoration: BoxDecoration(color: barColor.withOpacity(0.12), borderRadius: BorderRadius.circular(10), border: Border.all(color: barColor.withOpacity(0.35), width: 1)), child: Center(child: Text('${index + 1}', style: TextStyle(fontSize: size.width * 0.03, fontWeight: FontWeight.bold, color: barColor)))),
+                  Container(
+                    width: 32, 
+                    height: 32, 
+                    decoration: BoxDecoration(
+                      color: barColor.withOpacity(0.08), 
+                      borderRadius: BorderRadius.circular(10), 
+                    ), 
+                    child: Center(
+                      child: Text(
+                        '${index + 1}', 
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: barColor),
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: TextStyle(fontSize: size.width * 0.033, fontWeight: FontWeight.w600, color: ColorConst.textHeadingColor), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        Text(name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: ColorConst.black), maxLines: 1, overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 6),
-                        ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: pct, backgroundColor: barColor.withOpacity(0.1), valueColor: AlwaysStoppedAnimation<Color>(ColorConst.greenProgress), minHeight: 8)),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10), 
+                          child: LinearProgressIndicator(
+                            value: pct, 
+                            backgroundColor: ColorConst.isDark ? Colors.white.withOpacity(0.05) : barColor.withOpacity(0.08), 
+                            valueColor: AlwaysStoppedAnimation<Color>(barColor), 
+                            minHeight: 6,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(minutes ~/ 60 > 0 ? '${minutes ~/ 60}h ${minutes % 60}m' : '${minutes}m', style: TextStyle(fontSize: size.width * 0.028, fontWeight: FontWeight.w600, color: barColor)),
+                  const SizedBox(width: 14),
+                  Text(
+                    minutes ~/ 60 > 0 ? '${minutes ~/ 60}${LanguageProvider.translate("h", "h")} ${minutes % 60}${LanguageProvider.translate("m", "m")}' : '${minutes}${LanguageProvider.translate("m", "m")}', 
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: barColor),
+                  ),
                 ],
               ),
             );
           }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPodiumCards(Size size, LeaderborderProvider provider) {
-    final podiumData = [
-      {'title': 'Gold Medalists', 'icon': '🥇', 'color': ColorConst.gold, 'light': ColorConst.goldLight, 'border': ColorConst.goldBorder, 'text': ColorConst.goldText, 'shadow': ColorConst.goldShadow, 'winners': provider.firstPlace},
-      {'title': 'Silver Medalists', 'icon': '🥈', 'color': ColorConst.silver, 'light': ColorConst.silverLight, 'border': ColorConst.silverBorder, 'text': ColorConst.silverText, 'shadow': ColorConst.silverShadow, 'winners': provider.secondPlace},
-      {'title': 'Bronze Medalists', 'icon': '🥉', 'color': ColorConst.bronze, 'light': ColorConst.bronzeLight, 'border': ColorConst.bronzeBorder, 'text': ColorConst.bronzeText, 'shadow': ColorConst.bronzeShadow, 'winners': provider.thirdPlace},
-    ];
-
-    return Column(
-      children: podiumData.where((p) => (p['winners'] as List).isNotEmpty).map((podium) {
-        final color = podium['color'] as Color;
-        final light = podium['light'] as Color;
-        final border = podium['border'] as Color;
-        final text = podium['text'] as Color;
-        final shadow = podium['shadow'] as Color;
-        final winners = podium['winners'] as List<WinnerModels>;
-
-        return Container(
-          margin: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.008),
-          decoration: BoxDecoration(color: ColorConst.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: shadow, blurRadius: 14, offset: const Offset(0, 5))], border: Border.all(color: border, width: 1)),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.012), color: light,
-                  child: Row(
-                    children: [
-                      Text(podium['icon'].toString(), style: TextStyle(fontSize: size.width * 0.055)),
-                      const SizedBox(width: 10),
-                      Text(podium['title'].toString(), style: TextStyle(fontSize: size.width * 0.035, fontWeight: FontWeight.bold, color: text)),
-                      const Spacer(),
-                      Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.03, vertical: size.height * 0.004), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
-                        child: Text('${winners.length} ${winners.length == 1 ? 'Winner' : 'Winners'}', style: TextStyle(fontSize: size.width * 0.022, color: Colors.white, fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
-                ),
-                ...List.generate(winners.length, (index) {
-                  final winner = winners[index];
-                  final progress = (winner.netWorkingMinutes / (provider.firstPlace.isNotEmpty ? provider.firstPlace[0].netWorkingMinutes : 1)).clamp(0.0, 1.0);
-                  return _buildWinnerCard(size, winner, progress, color, border);
-                }),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildWinnerCard(Size size, WinnerModels winner, double progress, Color color, Color borderColor) {
-    final initials = winner.name.split(' ').take(2).map((p) => p.isNotEmpty ? p[0] : '').join();
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.012),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: borderColor.withOpacity(0.3)))),
-      child: Row(
-        children: [
-          Container(width: size.width * 0.08, height: size.width * 0.08, decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.3), width: 1)),
-            child: Center(child: Text('${winner.rank}', style: TextStyle(fontSize: size.width * 0.03, fontWeight: FontWeight.bold, color: color)))),
-          const SizedBox(width: 14),
-          Container(width: size.width * 0.11, height: size.width * 0.11, decoration: BoxDecoration(color: color, shape: BoxShape.circle, boxShadow: [BoxShadow(color: color.withOpacity(0.35), blurRadius: 8, offset: const Offset(0, 3))]),
-            child: Center(child: Text(initials.toUpperCase(), style: TextStyle(fontSize: size.width * 0.035, fontWeight: FontWeight.bold, color: Colors.white)))),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(winner.name, style: TextStyle(fontSize: size.width * 0.035, fontWeight: FontWeight.w600, color: ColorConst.textHeadingColor)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(value: progress, backgroundColor: color.withOpacity(0.1), valueColor: AlwaysStoppedAnimation<Color>(ColorConst.greenProgress), minHeight: 7))),
-                    const SizedBox(width: 12),
-                    Text(winner.hours, style: TextStyle(fontSize: size.width * 0.03, fontWeight: FontWeight.w600, color: color)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: size.width * 0.024, color: ColorConst.textgrey),
-                    const SizedBox(width: 6),
-                    Text('${winner.totalDays} days', style: TextStyle(fontSize: size.width * 0.024, color: ColorConst.settingTextColors, fontWeight: FontWeight.w500)),
-                    const SizedBox(width: 16),
-                    Icon(Icons.free_breakfast, size: size.width * 0.024, color: ColorConst.textgrey),
-                    const SizedBox(width: 6),
-                    Text(winner.totalBreakHours, style: TextStyle(fontSize: size.width * 0.024, color: ColorConst.settingTextColors, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -390,32 +524,43 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
 
     return Container(
       margin: EdgeInsets.only(left: size.width * 0.04, right: size.width * 0.04, bottom: size.height * 0.03),
-      decoration: BoxDecoration(color: ColorConst.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))]),
+      decoration: BoxDecoration(
+        color: ColorConst.white, 
+        borderRadius: BorderRadius.circular(24), 
+        border: Border.all(color: ColorConst.textBorder.withOpacity(0.5), width: 1),
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.014), decoration: BoxDecoration(color: ColorConst.othersHeader, border: Border(bottom: BorderSide(color: ColorConst.textBorder, width: 1)),),
-              child: Row(
-                children: [
-                  Container(padding: EdgeInsets.all(size.width * 0.01), decoration: BoxDecoration(color: ColorConst.othersAvatar, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.people_alt, size: size.width * 0.04, color: ColorConst.othersAvatarText)),
-                  const SizedBox(width: 12),
-                  Text('Other Participants', style: TextStyle(fontSize: size.width * 0.035, fontWeight: FontWeight.w700, color: ColorConst.othersHeaderText, letterSpacing: 0.3)),
-                  const Spacer(),
-                  Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.03, vertical: size.height * 0.005), decoration: BoxDecoration(gradient: LinearGradient(colors: [ColorConst.othersBadge, ColorConst.othersBadge.withOpacity(0.8)]), borderRadius: BorderRadius.circular(20)),
-                    child: Text('${others.length} Participants', style: TextStyle(fontSize: size.width * 0.022, color: Colors.white, fontWeight: FontWeight.w600)),
-                  ),
-                ],
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.016), 
+              decoration: BoxDecoration(
+                color: ColorConst.othersHeader, 
+                border: Border(bottom: BorderSide(color: ColorConst.textBorder.withOpacity(0.5), width: 1)),
               ),
-            ),
-            Container(padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.012), color: ColorConst.greyOpicityColor,
               child: Row(
                 children: [
-                  SizedBox(width: size.width * 0.07), const SizedBox(width: 12), SizedBox(width: size.width * 0.09), const SizedBox(width: 12),
-                  Expanded(child: Text('Employee Name', style: TextStyle(fontSize: size.width * 0.028, fontWeight: FontWeight.w600, color: ColorConst.textgrey, letterSpacing: 0.3))),
-                  SizedBox(width: size.width * 0.12),
-                  Text('Hours', style: TextStyle(fontSize: size.width * 0.028, fontWeight: FontWeight.w600, color: ColorConst.textgrey, letterSpacing: 0.3)),
+                  Container(
+                    padding: const EdgeInsets.all(6), 
+                    decoration: BoxDecoration(color: ColorConst.othersAvatar, borderRadius: BorderRadius.circular(10)), 
+                    child: Icon(Icons.people_alt_rounded, size: 16, color: ColorConst.othersAvatarText),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(otherParticipantsString, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: ColorConst.othersHeaderText, letterSpacing: 0.3)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
+                    decoration: BoxDecoration(
+                      color: ColorConst.othersBadge.withOpacity(0.12), 
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${others.length} $participantsString', 
+                      style: TextStyle(fontSize: 11, color: ColorConst.othersBadge, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -423,7 +568,7 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: others.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: ColorConst.textBorder),
+              separatorBuilder: (_, __) => Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.5)),
               itemBuilder: (ctx, i) => _buildOtherRow(size, others[i], maxMinutes, i),
             ),
           ],
@@ -439,38 +584,88 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
 
     return Container(
       color: rowColor,
-      padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.014),
+      padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.016),
       child: Row(
         children: [
-          Container(width: size.width * 0.07, height: size.width * 0.07, decoration: BoxDecoration(gradient: LinearGradient(colors: [ColorConst.othersRankBg, ColorConst.othersRankBg.withOpacity(0.7)]), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 2, offset: const Offset(0, 1))]),
-            child: Center(child: Text('${winner.rank}', style: TextStyle(fontSize: size.width * 0.03, fontWeight: FontWeight.w800, color: ColorConst.othersRankText)))),
+          Container(
+            width: 28, 
+            height: 28, 
+            decoration: BoxDecoration(
+              color: ColorConst.othersRankBg, 
+              borderRadius: BorderRadius.circular(8), 
+            ),
+            child: Center(
+              child: Text(
+                '${winner.rank}', 
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ColorConst.othersRankText),
+              ),
+            ),
+          ),
           const SizedBox(width: 12),
-          Container(width: size.width * 0.09, height: size.width * 0.09, decoration: BoxDecoration(gradient: LinearGradient(colors: [ColorConst.othersAvatar, ColorConst.othersAvatar.withOpacity(0.7)]), shape: BoxShape.circle, boxShadow: [BoxShadow(color: ColorConst.othersAvatarText.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))]),
-            child: Center(child: Text(initials.toUpperCase(), style: TextStyle(fontSize: size.width * 0.032, fontWeight: FontWeight.w700, color: ColorConst.othersAvatarText)))),
+          Container(
+            width: 36, 
+            height: 36, 
+            decoration: BoxDecoration(
+              color: ColorConst.othersAvatar, 
+              shape: BoxShape.circle, 
+            ),
+            child: Center(
+              child: Text(
+                initials.toUpperCase(), 
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ColorConst.othersAvatarText),
+              ),
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(winner.name, style: TextStyle(fontSize: size.width * 0.035, fontWeight: FontWeight.w600, color: ColorConst.textHeadingColor), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 8),
+                Text(winner.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: ColorConst.black), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    Expanded(flex: 3, child: Container(height: 8, decoration: BoxDecoration(color: ColorConst.greenProgress.withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: progress, backgroundColor: Colors.transparent, valueColor: AlwaysStoppedAnimation<Color>(ColorConst.greenProgress), minHeight: 8)))),
+                    Expanded(
+                      flex: 3, 
+                      child: Container(
+                        height: 6, 
+                        decoration: BoxDecoration(
+                          color: ColorConst.isDark ? Colors.white.withOpacity(0.05) : ColorConst.themeColor.withOpacity(0.08), 
+                          borderRadius: BorderRadius.circular(3),
+                        ), 
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3), 
+                          child: LinearProgressIndicator(
+                            value: progress, 
+                            backgroundColor: Colors.transparent, 
+                            valueColor: AlwaysStoppedAnimation<Color>(ColorConst.themeColor), 
+                            minHeight: 6,
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(flex: 1, child: Text(winner.hours, style: TextStyle(fontSize: size.width * 0.028, fontWeight: FontWeight.w700, color: ColorConst.greenProgress), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Expanded(
+                      flex: 1, 
+                      child: Text(
+                        winner.hours, 
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ColorConst.themeColor), 
+                        maxLines: 1, 
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: size.width * 0.024, color: ColorConst.textgrey),
-                    const SizedBox(width: 6),
-                    Text('${winner.totalDays} days', style: TextStyle(fontSize: size.width * 0.024, color: ColorConst.settingTextColors, fontWeight: FontWeight.w500)),
-                    Container(width: 5, height: 5, margin: EdgeInsets.symmetric(horizontal: size.width * 0.02), decoration: BoxDecoration(color: ColorConst.textgrey, shape: BoxShape.circle)),
-                    Icon(Icons.free_breakfast, size: size.width * 0.024, color: ColorConst.textgrey),
-                    const SizedBox(width: 6),
-                    Text(winner.totalBreakHours, style: TextStyle(fontSize: size.width * 0.024, color: ColorConst.settingTextColors, fontWeight: FontWeight.w500)),
+                    Icon(Icons.calendar_today_rounded, size: 12, color: ColorConst.textgrey),
+                    const SizedBox(width: 4),
+                    Text('${winner.totalDays} $daysString', style: TextStyle(fontSize: 11, color: ColorConst.textgrey, fontWeight: FontWeight.w500)),
+                    Container(width: 4, height: 4, margin: EdgeInsets.symmetric(horizontal: 8), decoration: BoxDecoration(color: ColorConst.textgrey.withOpacity(0.5), shape: BoxShape.circle)),
+                    Icon(Icons.coffee_rounded, size: 12, color: ColorConst.textgrey),
+                    const SizedBox(width: 4),
+                    Text(winner.totalBreakHours, style: TextStyle(fontSize: 11, color: ColorConst.textgrey, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ],
@@ -481,16 +676,24 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
     );
   }
 
-  Widget _buildEmptyState(Size size, DateTime selectedMonth) {
+  Widget _buildEmptyState(Size size, DateTime selectedMonth, String locale) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(padding: EdgeInsets.all(size.width * 0.06), decoration: BoxDecoration(color: ColorConst.greyOpicityColor, shape: BoxShape.circle), child: Icon(Icons.emoji_events_outlined, size: size.width * 0.12, color: ColorConst.textgrey)),
+          Container(
+            padding: const EdgeInsets.all(24), 
+            decoration: BoxDecoration(color: ColorConst.greyOpicityColor, shape: BoxShape.circle), 
+            child: Icon(Icons.emoji_events_outlined, size: 48, color: ColorConst.textgrey.withOpacity(0.6)),
+          ),
           const SizedBox(height: 20),
-          Text('No Data Available', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: ColorConst.textHeadingColor)),
+          Text(noDataAvailableString, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: ColorConst.black)),
           const SizedBox(height: 8),
-          Text('No records found for\n${DateFormat('MMMM yyyy').format(selectedMonth)}', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: ColorConst.textgrey)),
+          Text(
+            '$noRecordsFoundForString\n${DateFormat('MMMM yyyy', locale).format(selectedMonth)}', 
+            textAlign: TextAlign.center, 
+            style: TextStyle(fontSize: 13, color: ColorConst.textgrey),
+          ),
         ],
       ),
     );

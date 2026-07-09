@@ -30,24 +30,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isDialogShowing = false;
   bool _isCalculating = false;
   late final HomeProvider _homeProvider;
-  
-  // Flag for expandable grid menu (Admin only)
-  bool _isGridExpanded = false;
+  final ScrollController _scrollController = ScrollController();
 
-  // Add this at the top of your _HomeScreenState class
-  void useEffect(Function callback, List<dynamic> dependencies) {
-    bool isFirstRun = true;
-    
-    void effect() {
-      final dispose = callback();
-      isFirstRun = false;
-      return dispose;
-    }
-    
-    if (isFirstRun) {
-      effect();
-    }
-  }
+
   
   // GlobalKey to track dialog
   final GlobalKey _dialogKey = GlobalKey();
@@ -62,8 +47,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _homeProvider.startWorkingHoursTimer(context);
     }
     
-    // Start auto refresh timer for admin attendance board
+    // Load admin attendance on init
     if (curentUser['Role'] == 'Admin') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Provider.of<AdminAttenDanceServices>(context, listen: false)
+            .toDayDateAttendance(DateTime.now());
+      });
       _startAutoRefreshTimer();
     }
   }
@@ -74,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _autoRefreshTimer = Timer.periodic(Duration(seconds: 30), (timer) {
       final attendanceService = Provider.of<AdminAttenDanceServices>(context, listen: false);
       if (mounted) {
-        attendanceService.toDayDateAttendance(DateTime.now());
+        attendanceService.toDayDateAttendance(DateTime.now(), isBackground: true);
       }
     });
   }
@@ -85,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _isDialogShowing = false;
     _isCalculating = false;
     _autoRefreshTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -96,33 +86,32 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
         appBar: _buildAppBar(size, homeProvider),
-        body: Column(
-          children: [
-            if(curentUser['Role'] != 'Admin') ...[
-              buildDateHeader(size),
-            ] else ...[
-              buildAttendanceBoard(size, useEffect, mounted,
-                onAllPressed:(){
-                  lastBottomIndex = 1;
-                  selectedIndex = 1;
-                  fabSelected = false;
-                  homeProvider.notifyListeners();
-                },
-              )
-            ],
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildGridMenu(size, homeProvider),
-                    // if(curentUser['Role'] == 'Admin') ...{
-                      LeaderboardWidget(),
-                    // }
-                  ],
-                ),
-              ),
-            )
-          ],
+        body: Scrollbar(
+          controller: _scrollController,
+          thickness: 6,
+          radius: const Radius.circular(10),
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                if(curentUser['Role'] != 'Admin') ...[
+                  buildDateHeader(size),
+                ] else ...[
+                  buildAttendanceBoard(size, mounted,
+                    onAllPressed:(){
+                      lastBottomIndex = 1;
+                      selectedIndex = 1;
+                      fabSelected = false;
+                      homeProvider.notifyListeners();
+                    },
+                  )
+                ],
+                _buildGridMenu(size, homeProvider),
+                const LeaderboardWidget(),
+              ],
+            ),
+          ),
         ),
       );
   }
@@ -196,24 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildGridMenu(Size size, HomeProvider homeProvider) {
-    final bool isAdmin = curentUser['Role'] == 'Admin';
     final menuList = homeProvider.homeGridOptionList;
-    
-    // For Admin: Show only 6 items when not expanded, show all when expanded
-    // For non-Admin: Show all items
-    final int initialVisibleCount = 5;
-    final int visibleCount = _isGridExpanded ? menuList.length : initialVisibleCount;
-    
-    // Create display list with menu items
-    List<dynamic> displayList = [];
-    if (isAdmin) {
-      displayList = menuList.take(visibleCount).toList();
-    } else {
-      displayList = menuList;
-    }
-    
-    final bool showViewMore = isAdmin && menuList.length > initialVisibleCount && !_isGridExpanded;
-    final bool showShowLess = isAdmin && _isGridExpanded;
     
     return Column(
       children: [
@@ -221,141 +193,102 @@ class _HomeScreenState extends State<HomeScreen> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.all(size.width * 0.02),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 5,
-            mainAxisSpacing: 5,
-            childAspectRatio: 1.2,
+          padding: EdgeInsets.symmetric(
+            horizontal: size.width * 0.03,
+            vertical: size.width * 0.02,
           ),
-          itemCount: displayList.length + (showViewMore || showShowLess ? 1 : 0),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: menuList.length + 1,
           itemBuilder: (context, index) {
-            // If this is the last item and we need to show toggle button
-            if ((showViewMore || showShowLess) && index == displayList.length) {
-              return _buildToggleCard(size, showViewMore);
+            if (index == menuList.length) {
+              if(curentUser['Role'] == 'Admin') {
+                return _ScrollDownButton(size: size, controller: _scrollController);
+              } else {
+                return null;
+              }
             }
-            return _buildMenuItem(size, homeProvider, displayList[index]);
+            return _buildMenuItem(size, homeProvider, menuList[index], index);
           },
         ),
       ],
     );
   }
 
-  Widget _buildMenuItem(Size size, HomeProvider homeProvider, dynamic menuItem) {
+  Widget _buildMenuItem(Size size, HomeProvider homeProvider, dynamic menuItem, int index) {
+    final List<Color> creativeColors = [
+      const Color(0xff1864EC), // Theme Blue
+      const Color(0xff10B981), // Emerald Green
+      const Color(0xffF59E0B), // Amber Yellow
+      const Color(0xffEF4444), // Red
+      const Color(0xff8B5CF6), // Purple
+      const Color(0xffEC4899), // Pink
+      const Color(0xff06B6D4), // Cyan
+      const Color(0xffF97316), // Orange
+      const Color(0xff14B8A6), // Teal
+      const Color(0xff6366F1), // Indigo
+    ];
+    
+    final Color itemColor = menuItem.color ?? creativeColors[index % creativeColors.length];
+
     return GestureDetector(
       onTap: () {
         homeProvider.homeMenuiHandleSubmit(context, menuItem);
       },
       child: Container(
-        padding: EdgeInsets.all(size.width * 0.04),
+        padding: EdgeInsets.all(size.width * 0.02),
         decoration: BoxDecoration(
           color: ColorConst.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: ColorConst.grey,
-              spreadRadius: 0.1,
-              blurRadius: 0.1,
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Image.asset(
-              menuItem.image,
-              color: menuItem.color,
-              height: size.width * 0.07,
-              width: size.width * 0.07,
-            ),
-            Text(
-              menuItem.title,
-              style: TextStyle(
-                color: ColorConst.black,
-                fontFamily: fontInterSemiBoldString,
-                fontWeight: FontWeight.w600,
-                fontSize: 10.1,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToggleCard(Size size, bool showViewMore) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _isGridExpanded = !_isGridExpanded;
-        });
-      },
-      child: Container(
-        padding: EdgeInsets.all(size.width * 0.04),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              ColorConst.greyOpicityColor,
-              ColorConst.white,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: ColorConst.themeColor.withOpacity(0.3),
-            width: 1.5,
+            color: ColorConst.isDark 
+                ? Colors.white.withOpacity(0.06) 
+                : Colors.black.withOpacity(0.04),
+            width: 1,
           ),
           boxShadow: [
-            BoxShadow(
-              color: ColorConst.themeColor.withOpacity(0.1),
-              spreadRadius: 0.1,
-              blurRadius: 0.1,
+            BoxShadow(  
+              color: ColorConst.isDark 
+                  ? Colors.black.withOpacity(0.2) 
+                  : Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  showViewMore ? Icons.expand_more : Icons.expand_less,
-                  size: size.width * 0.08,
-                  color: ColorConst.themeColor,
-                ),
-                if (showViewMore) ...[
-                  SizedBox(height: size.height * 0.004),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: size.width * 0.03,
-                      vertical: size.height * 0.003,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_homeProvider.homeGridOptionList.length - 6} more',
-                      style: TextStyle(
-                        fontSize: size.width * 0.022,
-                        fontWeight: FontWeight.bold,
-                        color: ColorConst.themeColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+            Container(
+              padding: EdgeInsets.all(size.width * 0.02),
+              decoration: BoxDecoration(
+                color: itemColor.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Image.asset(
+                menuItem.image,
+                color: itemColor,
+                height: size.width * 0.055,
+                width: size.width * 0.055,
+              ),
             ),
-            SizedBox(height: size.height * 0.008),
-            Text(
-              showViewMore ? 'View More' : 'Show Less',
-              style: TextStyle(
-                fontSize: size.width * 0.032,
-                fontWeight: FontWeight.w600,
-                color: ColorConst.themeColor,
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                menuItem.title,
+                style: TextStyle(
+                  color: ColorConst.black,
+                  fontFamily: fontInterSemiBoldString,
+                  fontWeight: FontWeight.w600,
+                  fontSize: size.width * 0.025,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -435,5 +368,109 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+}
+
+class _ScrollDownButton extends StatefulWidget {
+  final Size size;
+  final ScrollController controller;
+  const _ScrollDownButton({required this.size, required this.controller});
+
+  @override
+  State<_ScrollDownButton> createState() => _ScrollDownButtonState();
+}
+
+class _ScrollDownButtonState extends State<_ScrollDownButton> with SingleTickerProviderStateMixin {
+  late final AnimationController _animationController;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0, end: 6).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        widget.controller.animateTo(
+          widget.controller.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.all(widget.size.width * 0.02),
+        decoration: BoxDecoration(
+          color: ColorConst.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: ColorConst.themeColor.withOpacity(0.2),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: ColorConst.themeColor.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedBuilder(
+              animation: _animation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _animation.value),
+                  child: child,
+                );
+              },
+              child: Container(
+                padding: EdgeInsets.all(widget.size.width * 0.02),
+                decoration: BoxDecoration(
+                  color: ColorConst.themeColor.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.arrow_downward_rounded,
+                  color: ColorConst.themeColor,
+                  size: widget.size.width * 0.055,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                leaderboardString,
+                style: TextStyle(
+                  color: ColorConst.themeColor,
+                  fontFamily: fontInterSemiBoldString,
+                  fontWeight: FontWeight.bold,
+                  fontSize: widget.size.width * 0.025,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

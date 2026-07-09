@@ -4,6 +4,7 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lottie/lottie.dart';
@@ -268,7 +269,7 @@ class _GpsDialogState extends State<_GpsDialog> with WidgetsBindingObserver {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(cancelString),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(

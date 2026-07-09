@@ -238,7 +238,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 horizontal: 10,
                                 vertical: 8,
                               ),
-                              hintText: 'Search for an employee...',
+                              hintText: searchForAnEmployeeString,
                               hintStyle: const TextStyle(fontSize: 12),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -415,16 +415,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           final activeWidgets = <Widget>[];
   
                           if (!_isZeroValue(totalHoursVal)) {
-                            activeWidgets.add(_compactSummaryTile(context, size, 'Total Hours', totalHoursVal, ColorConst.themeColor));
+                            activeWidgets.add(_compactSummaryTile(context, size, totalHoursString, totalHoursVal, ColorConst.themeColor));
                           }
                           if (!_isZeroValue(totalBreakVal)) {
-                            activeWidgets.add(_compactSummaryTile(context, size, 'Total Break', totalBreakVal, ColorConst.red));
+                            activeWidgets.add(_compactSummaryTile(context, size, totalBreakString, totalBreakVal, ColorConst.red));
                           }
                           if (!_isZeroValue(paidLeaveVal)) {
-                            activeWidgets.add(_compactSummaryTile(context, size, 'Paid Leave Hrs', paidLeaveVal, ColorConst.paidLeaveColor));
+                            activeWidgets.add(_compactSummaryTile(context, size, paidLeaveHrsString, paidLeaveVal, ColorConst.paidLeaveColor));
                           }
                           if (!_isZeroValue(holidayVal)) {
-                            activeWidgets.add(_compactSummaryTile(context, size, 'Holiday Hrs', holidayVal, ColorConst.holidayColor));
+                            activeWidgets.add(_compactSummaryTile(context, size, holidayHrsString, holidayVal, ColorConst.holidayColor));
                           }
   
                           if (activeWidgets.isEmpty) {
@@ -479,7 +479,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                           return const SizedBox.shrink();
                         },
                           weekDayBuilder: (day) {
-                          const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                          final weekDays = [monString, tueString, wedString, thuString, friString, satString, sunString];
                           return Center(
                             child: Text(
                               weekDays[day % 7],

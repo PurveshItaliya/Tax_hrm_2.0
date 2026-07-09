@@ -14,6 +14,8 @@ import 'package:tax_hrm/page/setting/setting_page.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/provider/theme_provider.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
@@ -67,6 +69,8 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     Size size = MediaQuery.of(context).size;
     final homeProvider = Provider.of<HomeProvider>(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
+    Provider.of<ThemeProvider>(context);
+    Provider.of<LanguageProvider>(context);
     
     return WillPopScope(
       onWillPop: () => commonDialogBoxDesign(context: context, size: size, title: exitString),
@@ -77,6 +81,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
           color: ColorConst.white,
           child: SafeArea(
             child: StylishBottomBar(
+              key: ValueKey(Provider.of<LanguageProvider>(context).currentLanguage),
               backgroundColor: ColorConst.white,
             items: [
               BottomBarItem(

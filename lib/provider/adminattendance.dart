@@ -39,6 +39,22 @@ class AdminAttenDanceServices extends ChangeNotifier {
     }
   }
 
+  static final Map<String, List<AllEmployeAttendance>> _attendanceCache = {};
+
+  bool _areAttendanceListsEqual(List<AllEmployeAttendance> a, List<AllEmployeAttendance> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].empId != b[i].empId ||
+          a[i].present != b[i].present ||
+          a[i].isOnLeave != b[i].isOnLeave ||
+          a[i].inTime != b[i].inTime ||
+          a[i].outTime != b[i].outTime) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   List<AllEmployeAttendance> mainHoldEmpList = [];
   List<AllEmployeAttendance> empAttendanceList = [];
 
@@ -47,14 +63,16 @@ class AdminAttenDanceServices extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Add this method to AdminAttenDanceServices class
-  Future<void> toDayDateAttendance(setDate) async {
+  Future<void> toDayDateAttendance(setDate, {bool isBackground = false}) async {
+    final bool showLoader = !isBackground && mainHoldEmpList.isEmpty;
+    if (showLoader) {
+      setloading(true);
+    }
     try {
       DateTime inputDatetime;
       if (setDate is DateTime) {
         inputDatetime = setDate;
       } else {
-        // Handle null or invalid date strings
         if (setDate == null || setDate.toString().isEmpty) {
           inputDatetime = DateTime.now();
         } else {
@@ -69,24 +87,45 @@ class AdminAttenDanceServices extends ChangeNotifier {
       DateTime dateOnly = DateTime(inputDatetime.year, inputDatetime.month, inputDatetime.day);
       String formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss.SSS').format(dateOnly);
       
-      final response = await AdminAttenDanceApis().getDateAttendance(formattedDate);
-      
-      // Handle null response safely
-      if (response != null) {
-        mainHoldEmpList = response;
-        empAttendanceList = response;
-      } else {
-        mainHoldEmpList = [];
-        empAttendanceList = [];
+      if (!isBackground && _attendanceCache.containsKey(formattedDate)) {
+        final cached = _attendanceCache[formattedDate]!;
+        mainHoldEmpList = List.from(cached);
+        empAttendanceList = List.from(cached);
+        setCounters(notify: false);
+        notifyListeners();
       }
       
-      setCounters();
-      notifyListeners();
+      final response = await AdminAttenDanceApis().getDateAttendance(formattedDate);
+      
+      if (response != null) {
+        final bool isChanged = !_areAttendanceListsEqual(mainHoldEmpList, response);
+        _attendanceCache[formattedDate] = response;
+        if (isChanged) {
+          mainHoldEmpList = response;
+          empAttendanceList = response;
+          setCounters(notify: false);
+          notifyListeners();
+        }
+      } else {
+        if (mainHoldEmpList.isNotEmpty) {
+          mainHoldEmpList = [];
+          empAttendanceList = [];
+          _attendanceCache[formattedDate] = [];
+          setCounters(notify: false);
+          notifyListeners();
+        }
+      }
     } catch (e) {
-      // Set empty lists on error to avoid null issues
-      mainHoldEmpList = [];
-      empAttendanceList = [];
-      notifyListeners();
+      if (!isBackground) {
+        mainHoldEmpList = [];
+        empAttendanceList = [];
+        setCounters(notify: false);
+        notifyListeners();
+      }
+    } finally {
+      if (showLoader) {
+        setloading(false);
+      }
     }
   }
 
@@ -95,7 +134,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
   int totalAbsent = 0;
   int totalIsOnLeave = 0;
 
-  setCounters() {
+  setCounters({bool notify = true}) {
     totalPresents = 0;
     totalAbsent = 0;
     totalIsOnLeave = 0;
@@ -117,7 +156,9 @@ class AdminAttenDanceServices extends ChangeNotifier {
         totalAbsent++;
       }
     }
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   Future<void> changeDate(bool isNext) async {

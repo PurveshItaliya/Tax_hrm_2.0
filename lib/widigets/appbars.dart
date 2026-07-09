@@ -111,14 +111,14 @@ PreferredSizeWidget showCustomAppbarWithPagination(
                 );
               });
             },
-            child: const Row(
+            child: Row(
               children: [
                 Icon(
                   Icons.switch_account_sharp,
                   color: Colors.black,
                 ),
                 SizedBox(width: 10),
-                Text("Status"),
+                Text(statusString),
               ],
             ),
           ),      
@@ -130,14 +130,14 @@ PreferredSizeWidget showCustomAppbarWithPagination(
                 showNumberOfData(context,size,usedListFilters ?? [],);
               });
             },
-            child: const Row(
+            child: Row(
               children: [
                 Icon(
                   Icons.settings,
                   color: Colors.black,
                 ),
                 SizedBox(width: 10),
-                Text("Length"),
+                Text(lengthString),
               ],
             ),
           ),
@@ -153,14 +153,14 @@ PreferredSizeWidget showCustomAppbarWithPagination(
                   () {onTapExcel?.call();},
               );
             },
-            child: const Row(
+            child: Row(
               children: [
                 Icon(
                   Icons.mediation_rounded,
                   color: Colors.black,
                 ),
                 SizedBox(width: 10),
-                Text("More"),
+                Text(moreString),
               ],
             ),
           ),

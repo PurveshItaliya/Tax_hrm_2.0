@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 
 class LeaveApproveCard extends StatelessWidget {
@@ -103,7 +104,7 @@ class LeaveApproveCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Reason for Leave",
+                    reasonForLeaveString,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,

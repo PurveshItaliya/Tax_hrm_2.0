@@ -133,7 +133,7 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: CommonTextField(
-                          hintText: "Search employee...",
+                          hintText: searchEmployeeHintString,
                           controller: employeeMProvider.searchController,
                           onChanged: (value) {
                             employeeMProvider.searchEmployee(value);

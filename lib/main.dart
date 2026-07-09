@@ -12,10 +12,12 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/theme_provider.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:tax_hrm/firebase_options.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 // --- DUMMY FIREBASE HANDLER TO PREVENT CRASH FROM OLD CACHE ---
 @pragma('vm:entry-point')
@@ -34,6 +36,7 @@ const taskName = "LocationTimeLines";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting();
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -352,8 +355,8 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: AppProviders.providers,
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      child: Consumer2<ThemeProvider, LanguageProvider>(
+        builder: (context, themeProvider, languageProvider, child) {
           return MaterialApp(
             navigatorKey: FcmTokenService.navigatorKey,
             title: appNameString,

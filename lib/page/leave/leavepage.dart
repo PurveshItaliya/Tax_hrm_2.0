@@ -144,7 +144,7 @@ class _LeaveViewPageState extends State<LeaveViewPage> with SingleTickerProvider
                   children: [
                     Icon(Icons.upcoming, size: 18),
                     SizedBox(width: 8),
-                    Text('Upcoming'),
+                    Text(upcomingString),
                     if (leaveMastServices.filteredUpcomingLeaves.isNotEmpty)
                       Container(
                         margin: EdgeInsets.only(left: 8),
@@ -161,7 +161,7 @@ class _LeaveViewPageState extends State<LeaveViewPage> with SingleTickerProvider
                   children: [
                     Icon(Icons.history, size: 18),
                     SizedBox(width: 8),
-                    Text('Past'),
+                    Text(pastString),
                     if (leaveMastServices.filteredPastLeaves.isNotEmpty)
                       Container(
                         margin: EdgeInsets.only(left: 8),

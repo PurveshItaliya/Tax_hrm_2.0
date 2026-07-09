@@ -7,6 +7,7 @@ import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 
 // Main Add Punch Dialog
 Future<void> showAddPunchDialog(BuildContext context, Size size, DateTime currentDate, String setCguid, String setAttendanceIds, employeeId) async {
@@ -81,7 +82,7 @@ Future<void> showAddPunchDialog(BuildContext context, Size size, DateTime curren
                                       if (logs.isEmpty) {
                                         return Center(
                                           child: Text(
-                                            "No punches found for this date",
+                                            noPunchesFoundForThisDateString,
                                             style: TextStyle(color: Colors.grey.shade600),
                                           ),
                                         );
@@ -206,7 +207,7 @@ Future<dynamic> showAddTimeDialog(BuildContext context, Size size, {String? exis
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                existingTime == null ? 'Add Time' : 'Edit Time',
+                                existingTime == null ? addTimeString : editTimeString,
                                 style: TextStyle(
                                   fontSize: size.width * 0.04,
                                   fontWeight: FontWeight.bold,
@@ -214,7 +215,7 @@ Future<dynamic> showAddTimeDialog(BuildContext context, Size size, {String? exis
                                 ),
                               ),
                               Text(
-                                'Select punch time and type',
+                                selectPunchTimeAndTypeString,
                                 style: TextStyle(
                                   fontSize: size.width * 0.025,
                                   color: Colors.white.withOpacity(0.8),
@@ -270,7 +271,7 @@ Future<dynamic> showAddTimeDialog(BuildContext context, Size size, {String? exis
                                   ),
                                   SizedBox(width: size.width * 0.02),
                                   Text(
-                                    'Date',
+                                    dateString,
                                     style: TextStyle(
                                       fontSize: size.width * 0.035,
                                       fontWeight: FontWeight.w600,
@@ -324,7 +325,7 @@ Future<dynamic> showAddTimeDialog(BuildContext context, Size size, {String? exis
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Selected Time',
+                                            selectedTimeString,
                                             style: TextStyle(
                                               fontSize: size.width * 0.025,
                                               color: Colors.grey.shade500,
@@ -374,7 +375,7 @@ Future<dynamic> showAddTimeDialog(BuildContext context, Size size, {String? exis
                                           borderRadius: BorderRadius.circular(20),
                                         ),
                                         child: Text(
-                                          'Change',
+                                          changeString,
                                           style: TextStyle(
                                             fontSize: size.width * 0.028,
                                             fontWeight: FontWeight.w600,
@@ -517,7 +518,7 @@ Widget _buildHeader(Size size, BuildContext context) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Add Punch',
+                addPunchString,
                 style: TextStyle(
                   fontSize: size.width * 0.04,
                   fontWeight: FontWeight.bold,
@@ -525,7 +526,7 @@ Widget _buildHeader(Size size, BuildContext context) {
                 ),
               ),
               Text(
-                'Manage employee attendance',
+                manageEmployeeAttendanceString,
                 style: TextStyle(
                   fontSize: size.width * 0.028,
                   color: Colors.white.withOpacity(0.8),
@@ -581,7 +582,7 @@ Widget _buildDateSection(Size size,dateTitle) {
               SizedBox(width: size.width * 0.02),
               Flexible(
                 child: Text(
-                  'Date',
+                  dateString,
                   style: TextStyle(
                     fontSize: size.width * 0.032,
                     fontWeight: FontWeight.w600,
@@ -623,7 +624,7 @@ Widget _buildTableHeader(Size size) {
         Expanded(
           flex: 2,
           child: Text(
-            'Time',
+            timeString,
             style: TextStyle(
               fontSize: size.width * 0.03,
               fontWeight: FontWeight.bold,
@@ -635,7 +636,7 @@ Widget _buildTableHeader(Size size) {
           flex: 2,
           child: Center(
             child: Text(
-              'In',
+              inString,
               style: TextStyle(
                 fontSize: size.width * 0.03,
                 fontWeight: FontWeight.bold,
@@ -648,7 +649,7 @@ Widget _buildTableHeader(Size size) {
           flex: 2,
           child: Center(
             child: Text(
-              'Out',
+              outString,
               style: TextStyle(
                 fontSize: size.width * 0.03,
                 fontWeight: FontWeight.bold,
@@ -661,7 +662,7 @@ Widget _buildTableHeader(Size size) {
           flex: 2,
           child: Center(
             child: Text(
-              'Action',
+              actionString,
               style: TextStyle(
                 fontSize: size.width * 0.03,
                 fontWeight: FontWeight.bold,
@@ -803,13 +804,13 @@ void _showDeleteConfirmationDialog(BuildContext context, Size size, String time,
             Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
             SizedBox(width: 10),
             Text(
-              'Delete Entry',
+              deleteEntryString,
               style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         content: Text(
-          'Are you sure you want to delete the punch entry at $time?',
+          '$areYouSureDeletePunchString $time?',
           style: TextStyle(fontSize: size.width * 0.035),
         ),
         actions: [
@@ -843,7 +844,7 @@ void _showDeleteConfirmationDialog(BuildContext context, Size size, String time,
                 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Punch entry at $time deleted'),
+                    content: Text('$punchEntryDeletedString $time $deletedString'),
                     backgroundColor: Colors.green,
                     duration: Duration(seconds: 2),
                   ),
@@ -858,7 +859,7 @@ void _showDeleteConfirmationDialog(BuildContext context, Size size, String time,
               padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
             ),
             child: Text(
-              'Delete',
+              deleteString,
               style: TextStyle(fontSize: size.width * 0.032),
             ),
           ),
@@ -897,7 +898,7 @@ Widget _buildAddTimeButton(Size size, BuildContext context, DateTime currentDate
             
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Added new punch at $timeStr'),
+                content: Text('$addedNewPunchAtString $timeStr'),
                 backgroundColor: Colors.green,
                 duration: const Duration(seconds: 2),
               ),
@@ -910,7 +911,7 @@ Widget _buildAddTimeButton(Size size, BuildContext context, DateTime currentDate
           Navigator.pop(context); // close loader on error
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to add punch: $e'),
+              content: Text('$failedToAddPunchString: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -944,7 +945,7 @@ Widget _buildAddTimeButton(Size size, BuildContext context, DateTime currentDate
           ),
           SizedBox(width: size.width * 0.02),
           Text(
-            'Add Time',
+            addTimeString,
             style: TextStyle(
               fontSize: size.width * 0.035,
               fontWeight: FontWeight.w600,
@@ -987,7 +988,7 @@ Widget _buildActionButtons(BuildContext context, Size size) {
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Punch entries saved successfully'),
+                content: Text(punchEntriesSavedSuccessfullyString),
                 backgroundColor: Colors.green,
                 duration: Duration(seconds: 2),
               ),

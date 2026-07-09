@@ -152,16 +152,16 @@ String getLeaveStatusText(LeaveListData leave) {
   final toDate = DateTime.tryParse(leave.toDate.toString()) ?? DateTime.now();
   
   if (leave.approveStatus == 'A') {
-    if (fromDate.isAfter(today)) return 'Approved';
-    else if (fromDate.isAtSameMomentAs(today)) return 'Today';
-    else if (toDate.isAfter(today) && fromDate.isBefore(today)) return 'Ongoing';
-    else if (toDate.isBefore(today)) return 'Completed';
+    if (fromDate.isAfter(today)) return approvedString;
+    else if (fromDate.isAtSameMomentAs(today)) return todayString;
+    else if (toDate.isAfter(today) && fromDate.isBefore(today)) return ongoingString;
+    else if (toDate.isBefore(today)) return completedString;
   }
   switch (leave.approveStatus) {
-    case 'A': return 'Approved';
-    case 'R': return 'Rejected';
-    case 'P': return 'Pending';
-    default: return 'Pending';
+    case 'A': return approvedString;
+    case 'R': return rejectedString;
+    case 'P': return pendingString;
+    default: return pendingString;
   }
 }
 
@@ -257,7 +257,7 @@ Widget buildEligibleInfo(Size size, LeaveUserProvider provider) {
             Icon(Icons.info_outline, color: Colors.orange.shade700, size: 18),
             SizedBox(width: 8),
             Text(
-              'Leave Eligibility',
+              leaveEligibilityString,
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.orange.shade800),
             ),
           ],
@@ -266,9 +266,9 @@ Widget buildEligibleInfo(Size size, LeaveUserProvider provider) {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildInfoItem('Gain', provider.showGainCounting, Colors.green),
-            _buildInfoItem('Used', provider.showUsedCounting, Colors.red),
-            _buildInfoItem('Eligible', provider.showEligibleCounting, Colors.blue),
+            _buildInfoItem(gainString, provider.showGainCounting, Colors.green),
+            _buildInfoItem(usedString, provider.showUsedCounting, Colors.red),
+            _buildInfoItem(eligibleString, provider.showEligibleCounting, Colors.blue),
           ],
         ),
       ],
@@ -442,7 +442,7 @@ Widget buildEmployeeDropdown(Size size, LeaveUserProvider leaveProvider, Employe
       expandedFillColor: ColorConst.white,
     ),
     initialItem: leaveProvider.selectedEmployee,
-    hintText: 'Select Employee',
+    hintText: selectEmployeeString,
     futureRequest: empProvider.getFilterEmployeeList,
     items: empProvider.emplists,
     listItemBuilder: (context, item, isSelected, onItemSelect) {
@@ -457,7 +457,7 @@ Widget buildEmployeeDropdown(Size size, LeaveUserProvider leaveProvider, Employe
     headerBuilder: (context, selectedItem, enabled) {
       return Text(
         leaveProvider.selectedEmployee == null
-            ? 'Select Employee'
+            ? selectEmployeeString
             : "${leaveProvider.selectedEmployee!.firstName.toString()} ${leaveProvider.selectedEmployee!.lastName.toString()}",
         style: TextStyle(
           color: leaveProvider.selectedEmployee == null ? ColorConst.hintextColor : ColorConst.black,

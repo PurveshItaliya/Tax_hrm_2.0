@@ -1,5 +1,6 @@
 
 import 'package:intl/intl.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/employee_master/pdf_csv_print_function.dart';
@@ -12,18 +13,18 @@ Future<void> generateEmployeeCsvFile(List<Employeelists> getEmployeeList, title)
 
   // Define the headers
   List<dynamic> row = [];
-  row.add("No");
-  row.add("First Name");
-  row.add("Last Name");
-  row.add("Email");
-  row.add("DOB");
-  row.add("DOJ");
-  row.add("Gender");
-  row.add("Mobile1");
-  row.add("PAN");
-  row.add("UserName");
-  row.add("Password");
-  row.add("Role");
+  row.add(noString);
+  row.add(firstNameString);
+  row.add(lastNameString);
+  row.add(emailUserString);
+  row.add(dobString);
+  row.add(dojString);
+  row.add(genderString);
+  row.add(mobile1String);
+  row.add(panString);
+  row.add(userNameString);
+  row.add(passwordString);
+  row.add(roleString);
   rows.add(row);
 
   // Add data rows
@@ -85,18 +86,18 @@ Future generateEmployeePrintFile({required List<Employeelists> getEmployeeList, 
                   color: PdfColors.blue,
                   child: pw.Row(
                     children: [
-                      pw.SizedBox(width: 40, child: pw.Text("No", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("First Name", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("Last Name", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 80, child: pw.Text("Email", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("DOB", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("DOJ", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("Gender", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("Mobile1", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("PAN", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("UserName", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("Password", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
-                      pw.SizedBox(width: 60, child: pw.Text("Role", style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 40, child: pw.Text(noString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(firstNameString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(lastNameString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 80, child: pw.Text(emailUserString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(dobString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(dojString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(genderString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(mobile1String, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(panString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(userNameString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(passwordString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
+                      pw.SizedBox(width: 60, child: pw.Text(roleString, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7),textAlign: pw.TextAlign.center),),
                     ],
                   ),
                 ),

@@ -187,7 +187,7 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
-                                        Text('Total Holidays', style: TextStyle(fontSize: size.width * 0.04, color: Colors.grey, fontFamily: fontInterMediumString, fontWeight: FontWeight.w500)),
+                                        Text(totalHolidaysString, style: TextStyle(fontSize: size.width * 0.04, color: Colors.grey, fontFamily: fontInterMediumString, fontWeight: FontWeight.w500)),
                                         Text(payRollProviders.totalHolidayCount.toInt().toString(), style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString)),
                                       ],
                                     ),

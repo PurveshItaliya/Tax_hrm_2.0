@@ -10,6 +10,8 @@ import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 
+import '../../utils/titlesfile.dart';
+
 class WinnerModel {
   final String name;
   final String hours;
@@ -110,7 +112,7 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'No data available for ${homeProvider.getLeaderboardMonthName()}',
+                            '$noDataAvailableString ${homeProvider.getLeaderboardMonthName()}',
                             style: TextStyle(
                               color: ColorConst.textgrey.withOpacity(0.7),
                               fontSize: size.width * 0.038,
@@ -137,7 +139,7 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Leaderboard',
+              leaderboardString,
               style: TextStyle(
                 fontSize: size.width * 0.046,
                 fontWeight: FontWeight.bold,

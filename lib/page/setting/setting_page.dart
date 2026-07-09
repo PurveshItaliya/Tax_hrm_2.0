@@ -16,6 +16,7 @@ import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/provider/theme_provider.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/userloginprovider.dart';
 import 'package:tax_hrm/repository/background_location_repository.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
@@ -136,6 +137,12 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     final settingProvider = Provider.of<SettingProvider>(context);
+    Provider.of<ThemeProvider>(context);
+    Provider.of<LanguageProvider>(context);
+
+    // Refresh settings menu items so they translate instantly
+    settingProvider.settingMenuGet(context);
+
     safeAreaBgAndTextColor(
       context,
       safeAreaBgColor: ColorConst.themeColor,
@@ -436,7 +443,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                       Text(
                         curentUser['Role'] == 'Admin'
                             ? 'Administrator'
-                            : 'Employee',
+                            : employeeRoleString,
                         style: TextStyle(
                           fontSize: 13,
                           color: ColorConst.textgrey,
@@ -470,6 +477,13 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
           );
         },
       ),
+    );
+    list.add(Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)));
+
+    // Language Selection Tile
+    final languageProvider = Provider.of<LanguageProvider>(context);
+    list.add(
+      _buildLanguageTile(size, languageProvider),
     );
     list.add(Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)));
 
@@ -665,7 +679,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
           ),
         ),
         title: Text(
-          "Admin Mode",
+          adminModeString,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
@@ -705,7 +719,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
           ),
         ),
         title: Text(
-          "Dark Theme",
+          darkThemeString,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
@@ -720,4 +734,205 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
       ),
     );
   }
+
+  Widget _buildLanguageTile(Size size, LanguageProvider languageProvider) {
+    final Map<String, String> languages = {
+      'en': 'English',
+      'hi': 'हिन्दी',
+      'gu': 'ગુજરાતી',
+      'mr': 'मराठी',
+      'bn': 'বাংলা',
+      'ta': 'தமிழ்',
+      'te': 'తెలుగు',
+      'kn': 'ಕನ್ನಡ',
+      'ml': 'മലയാളം',
+      'pa': 'ਪੰਜਾਬੀ',
+      'or': 'ଓଡ଼ିଆ',
+      'as': 'অসমীয়া',
+    };
+
+    final langName =
+        languages[languageProvider.currentLanguage] ?? 'English';
+
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+            color: ColorConst.themeColor.withOpacity(0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.language_rounded,
+            color: ColorConst.themeColor,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          'Language',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: ColorConst.settingTextColors,
+          ),
+        ),
+        subtitle: Text(
+          langName,
+          style: TextStyle(
+            fontSize: 12,
+            color: ColorConst.textgrey,
+          ),
+        ),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: ColorConst.settingIconsColors,
+        ),
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: ColorConst.white,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+            ),
+            builder: (_) => _LanguageSelectionBottomSheet(
+              languages: languages,
+              languageProvider: languageProvider,
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
+
+class _LanguageSelectionBottomSheet extends StatefulWidget {
+  final Map<String, String> languages;
+  final LanguageProvider languageProvider;
+
+  const _LanguageSelectionBottomSheet({
+    required this.languages,
+    required this.languageProvider,
+  });
+
+  @override
+  State<_LanguageSelectionBottomSheet> createState() => _LanguageSelectionBottomSheetState();
+}
+
+class _LanguageSelectionBottomSheetState extends State<_LanguageSelectionBottomSheet> {
+  String _searchQuery = "";
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredLanguages = widget.languages.entries
+        .where((e) => e.value.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+
+    return Padding(
+      padding: EdgeInsets.only(
+        top: 16,
+        left: 16,
+        right: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ColorConst.textgrey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              LanguageProvider.translate('Select Language', 'Select Language'),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: ColorConst.settingTextColors,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val;
+                });
+              },
+              style: TextStyle(color: ColorConst.settingTextColors),
+              decoration: InputDecoration(
+                hintText: LanguageProvider.translate('Search Language', 'Search Language...'),
+                hintStyle: TextStyle(color: ColorConst.hintextColor),
+                prefixIcon: Icon(Icons.search, color: ColorConst.settingIconsColors),
+                filled: true,
+                fillColor: ColorConst.scaffoldColor,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: ColorConst.textBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: ColorConst.themeColor),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: filteredLanguages.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: ColorConst.textBorder.withOpacity(0.5),
+                  ),
+                  itemBuilder: (context, index) {
+                    final code = filteredLanguages[index].key;
+                    final label = filteredLanguages[index].value;
+                    final isSelected = widget.languageProvider.currentLanguage == code;
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        label,
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? ColorConst.themeColor : ColorConst.settingTextColors,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(Icons.check_circle_rounded, color: ColorConst.themeColor)
+                          : null,
+                      onTap: () {
+                        widget.languageProvider.changeLanguage(code);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
