@@ -24,6 +24,7 @@ import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/page/employee_master/pdf_csv_print_function.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
+import 'package:tax_hrm/page/attendance/monthly_attendance_excel_service.dart';
 
 class ShowAttenDanceEmployeData extends StatefulWidget {
   const ShowAttenDanceEmployeData({super.key});
@@ -144,11 +145,42 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   }
 
   Widget _buildExportButton() {
-    return GestureDetector(
-      onTap: _downloadExcel,
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'daily') {
+          _downloadExcel();
+        } else if (value == 'monthly') {
+          final attendanceProviders = Provider.of<AdminAttenDanceServices>(context, listen: false);
+          MonthlyAttendanceExcelService.showMonthYearPickerAndGenerate(context, initialDate: attendanceProviders.currentMonth);
+        }
+      },
+      offset: const Offset(0, 45),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => [
+        const PopupMenuItem<String>(
+          value: 'daily',
+          child: Row(
+            children: [
+              Icon(Icons.calendar_today_rounded, size: 18, color: Colors.blue),
+              SizedBox(width: 10),
+              Text('Today Attendance Report', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'monthly',
+          child: Row(
+            children: [
+              Icon(Icons.date_range_rounded, size: 18, color: Colors.green),
+              SizedBox(width: 10),
+              Text('Monthly Excel Report', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+      ],
       child: Container(
         height: 40,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: ColorConst.themeColor,
           borderRadius: BorderRadius.circular(10),
@@ -166,7 +198,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             const Icon(Icons.download_rounded, color: Colors.white, size: 16),
             const SizedBox(width: 6),
             Text(
-              'Excel',
+              'Export',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -174,6 +206,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                 fontSize: 12,
               ),
             ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 18),
           ],
         ),
       ),
