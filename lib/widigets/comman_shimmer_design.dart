@@ -781,3 +781,66 @@ Widget payslipMasterShimmer(Size size) {
     ),
   );
 }
+
+// Attendance Board Shimmer
+Widget attendanceBoardShimmer(Size size) {
+  return Shimmer(
+    child: Row(
+      children: [
+        // Progress circle skeleton
+        Container(
+          width: size.width * 0.16,
+          height: size.width * 0.16,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Vertical divider skeleton
+        Container(
+          height: size.width * 0.12,
+          width: 1.2,
+          color: Colors.grey.shade300,
+        ),
+        const SizedBox(width: 12),
+        // Stat cards skeletons
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: size.width * 0.16,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Container(
+                  height: size.width * 0.16,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Container(
+                  height: size.width * 0.16,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}

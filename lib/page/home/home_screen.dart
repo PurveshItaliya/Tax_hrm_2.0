@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
 
 
-  
+
   // GlobalKey to track dialog
   final GlobalKey _dialogKey = GlobalKey();
 

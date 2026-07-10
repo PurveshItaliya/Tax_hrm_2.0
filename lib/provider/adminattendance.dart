@@ -14,9 +14,10 @@ import 'package:tax_hrm/models/leaveM/getleavemaster.dart';
 import 'package:tax_hrm/provider/leaveProviders.dart';
 import 'package:tax_hrm/provider/leavemployeeprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminAttenDanceServices extends ChangeNotifier {
-  bool islodering = false;
+  bool islodering = true;
 
   bool get isloderings => islodering;
 
@@ -64,10 +65,6 @@ class AdminAttenDanceServices extends ChangeNotifier {
   }
 
   Future<void> toDayDateAttendance(setDate, {bool isBackground = false}) async {
-    final bool showLoader = !isBackground && mainHoldEmpList.isEmpty;
-    if (showLoader) {
-      setloading(true);
-    }
     try {
       DateTime inputDatetime;
       if (setDate is DateTime) {
@@ -87,12 +84,40 @@ class AdminAttenDanceServices extends ChangeNotifier {
       DateTime dateOnly = DateTime(inputDatetime.year, inputDatetime.month, inputDatetime.day);
       String formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss.SSS').format(dateOnly);
       
+      // 1. Try in-memory cache first
       if (!isBackground && _attendanceCache.containsKey(formattedDate)) {
         final cached = _attendanceCache[formattedDate]!;
         mainHoldEmpList = List.from(cached);
         empAttendanceList = List.from(cached);
         setCounters(notify: false);
+        setloading(false);
         notifyListeners();
+      } 
+      // 2. Try SharedPreferences cache
+      else if (!isBackground && mainHoldEmpList.isEmpty) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final localKey = 'admin_attendance_cache_$formattedDate';
+          if (prefs.containsKey(localKey)) {
+            final cachedStr = prefs.getString(localKey);
+            if (cachedStr != null && cachedStr.isNotEmpty) {
+              final cachedList = allEmployeAttendanceFromJson(cachedStr);
+              mainHoldEmpList = List.from(cachedList);
+              empAttendanceList = List.from(cachedList);
+              _attendanceCache[formattedDate] = cachedList;
+              setCounters(notify: false);
+              setloading(false);
+              notifyListeners();
+            }
+          }
+        } catch (e) {
+          // ignore cache read error
+        }
+      }
+      
+      final bool showLoader = !isBackground && mainHoldEmpList.isEmpty;
+      if (showLoader) {
+        setloading(true);
       }
       
       final response = await AdminAttenDanceApis().getDateAttendance(formattedDate);
@@ -100,6 +125,16 @@ class AdminAttenDanceServices extends ChangeNotifier {
       if (response != null) {
         final bool isChanged = !_areAttendanceListsEqual(mainHoldEmpList, response);
         _attendanceCache[formattedDate] = response;
+        
+        // Save to SharedPreferences
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final localKey = 'admin_attendance_cache_$formattedDate';
+          await prefs.setString(localKey, allEmployeAttendanceToJson(response));
+        } catch (e) {
+          // ignore cache write error
+        }
+
         if (isChanged) {
           mainHoldEmpList = response;
           empAttendanceList = response;
@@ -123,9 +158,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
         notifyListeners();
       }
     } finally {
-      if (showLoader) {
-        setloading(false);
-      }
+      setloading(false);
     }
   }
 

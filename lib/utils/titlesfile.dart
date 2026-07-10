@@ -508,3 +508,22 @@ String get exportMonthlyAttendanceReportString => LanguageProvider.translate("Ex
 String get loadingAttendanceDataString => LanguageProvider.translate("Loading attendance data...", "Loading attendance data...");
 String get selectMonthString => LanguageProvider.translate("Select Month", "Select Month");
 
+// New localization getters
+String get alwaysAllowString => LanguageProvider.translate("Always Allow — active for shift tracking", "Always Allow — active for shift tracking");
+String get requiredLocationTrackString => LanguageProvider.translate("Required to track location during your shift", "Required to track location during your shift");
+String get backgroundLocationString => LanguageProvider.translate("Background Location", "Background Location");
+String get dateSelectionString => LanguageProvider.translate("Date Selection", "Date Selection");
+String get locationTimelineString => LanguageProvider.translate("Location Timeline", "Location Timeline");
+String get loadingCoordinatesString => LanguageProvider.translate("Loading coordinates...", "Loading coordinates...");
+String get coordinatesLoggedString => LanguageProvider.translate("coordinates logged", "coordinates logged");
+String get breakHoursString => LanguageProvider.translate("Break Hours", "Break Hours");
+String get netHoursString => LanguageProvider.translate("Net Hours", "Net Hours");
+String get remainingHoursString => LanguageProvider.translate("Remaining Hours", "Remaining Hours");
+String get overtimeHoursString => LanguageProvider.translate("Overtime Hours", "Overtime Hours");
+String get deletePayrollDataString => LanguageProvider.translate("Delete Payroll Data", "Delete Payroll Data");
+String get deletePayrollDecString => LanguageProvider.translate("Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.", "Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.");
+String get breakString => LanguageProvider.translate("Break", "Break");
+String get totalString => LanguageProvider.translate("Total", "Total");
+String get hrsString => LanguageProvider.translate("Hrs", "Hrs");
+String get workString => LanguageProvider.translate("Work", "Work");
+

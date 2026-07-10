@@ -80,7 +80,7 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                         Icon(Icons.warning_amber_rounded, color: Colors.red.shade400, size: 28),
                         SizedBox(width: size.width * 0.02),
                         Text(
-                          'Delete Payroll Data',
+                          deletePayrollDataString,
                           style: TextStyle(
                             fontSize: size.width * 0.045,
                             fontWeight: FontWeight.bold,
@@ -90,7 +90,7 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                       ],
                     ),
                     content: Text(
-                      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+                      deletePayrollDecString,
                       style: TextStyle(
                         fontSize: size.width * 0.035,
                         color: Colors.grey.shade700,
@@ -101,10 +101,10 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext),
                         style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
+                          padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.015),
                         ),
                         child: Text(
-                          'Cancel',
+                          cancelString,
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontWeight: FontWeight.w600,
@@ -126,7 +126,7 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                           await payrollAdminProvider.deletePayrollData(context);
                         },
                         child: Text(
-                          'Delete',
+                          deleteString,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -251,12 +251,12 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  buildTableHeaderCell(size, 'Date', width: size.width*0.2),
-                                  buildTableHeaderCell(size, 'In Time', width: size.width*0.15),
-                                  buildTableHeaderCell(size, 'Out Time', width: size.width*0.15),
-                                  buildTableHeaderCell(size, 'Break', width: size.width*0.14),
-                                  buildTableHeaderCell(size, 'Total\nHrs', width: size.width*0.14),
-                                  buildTableHeaderCell(size, 'Work\nHrs', width: size.width*0.14),
+                                  buildTableHeaderCell(size, dateString, width: size.width*0.2),
+                                  buildTableHeaderCell(size, inTimeString, width: size.width*0.15),
+                                  buildTableHeaderCell(size, outTimeString, width: size.width*0.15),
+                                  buildTableHeaderCell(size, breakString, width: size.width*0.14),
+                                  buildTableHeaderCell(size, '$totalString\n$hrsString', width: size.width*0.14),
+                                  buildTableHeaderCell(size, '$workString\n$hrsString', width: size.width*0.14),
                                 ],
                               ),
                             ),

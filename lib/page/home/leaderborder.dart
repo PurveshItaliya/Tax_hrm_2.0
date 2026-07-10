@@ -231,7 +231,7 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
             child: Row(
               children: [
                 Text(
-                  'See All',
+                  seeAllString,
                   style: TextStyle(
                     color: ColorConst.themeColor,
                     fontWeight: FontWeight.bold,

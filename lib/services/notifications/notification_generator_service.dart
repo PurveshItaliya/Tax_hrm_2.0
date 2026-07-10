@@ -215,11 +215,13 @@ class NotificationGeneratorService {
           channelDescription: 'Notifications for employee birthdays, work anniversaries, and company holidays',
           importance: Importance.max,
           priority: Priority.high,
+          sound: RawResourceAndroidNotificationSound('soft_notify_sound'),
         );
         const iosDetails = DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
+          sound: 'soft_notify_sound.mp3',
         );
         const notificationDetails = NotificationDetails(
           android: androidDetails,

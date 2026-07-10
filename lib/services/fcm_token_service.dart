@@ -51,6 +51,7 @@ class FcmTokenService {
           description: 'This channel is used for high priority push notifications.', // description
           importance: Importance.max,
           playSound: true,
+          sound: RawResourceAndroidNotificationSound('soft_notify_sound'),
           enableVibration: true,
         );
 
@@ -246,6 +247,7 @@ class FcmTokenService {
         channelDescription: 'This channel is used for high priority push notifications.',
         importance: Importance.max,
         priority: Priority.high,
+        sound: const RawResourceAndroidNotificationSound('soft_notify_sound'),
         icon: '@mipmap/ic_launcher',
         largeIcon: largeIconPath != null ? FilePathAndroidBitmap(largeIconPath) : null,
         styleInformation: bigPicturePath != null
@@ -266,6 +268,7 @@ class FcmTokenService {
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
+        sound: 'soft_notify_sound.mp3',
         attachments: attachments,
       );
 

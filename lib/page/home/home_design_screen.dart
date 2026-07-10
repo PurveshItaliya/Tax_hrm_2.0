@@ -8,6 +8,7 @@ import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
+import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 
 Widget buildDateHeader(Size size) {
   return Consumer<HomeProvider>(
@@ -154,8 +155,6 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
       // Get current date
       DateTime currentDate = DateTime.now();
       
-      // Track if this is first load
-      bool isFirstLoad = attendanceService.mainHoldEmpList.isEmpty;
 
       // Calculate percentage based on actual data
       int totalEmployees = attendanceService.mainHoldEmpList.length;
@@ -302,30 +301,9 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
             
             const SizedBox(height: 16),
             
-            // Show loader only on first load, not during auto-refresh
-            if (attendanceService.islodering && isFirstLoad)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24.0),
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(
-                        color: ColorConst.themeColor,
-                        strokeWidth: 3,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        loadingAttendanceDataString,
-                        style: TextStyle(
-                          fontSize: size.width * 0.03,
-                          fontFamily: fontInterSemiBoldString,
-                          color: ColorConst.textgrey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
+            // Show loader when explicitly loading (e.g., initial load or manual refresh)
+            if (attendanceService.islodering)
+              attendanceBoardShimmer(size)
             else if (totalEmployees == 0 && !attendanceService.islodering)
               // Show empty state when no data
               SizedBox(

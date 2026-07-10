@@ -202,7 +202,7 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    "Date Selection",
+                                    dateSelectionString,
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: ColorConst.textgrey,
@@ -326,7 +326,7 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                "Location Timeline",
+                                                locationTimelineString,
                                                 style: TextStyle(
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
@@ -337,8 +337,8 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                                               const SizedBox(height: 4),
                                               Text(
                                                 timeLineServices.islodering
-                                                    ? "Loading coordinates..."
-                                                    : "${timeLineServices.showUserTimeLines.length} coordinates logged",
+                                                    ? loadingCoordinatesString
+                                                    : "${timeLineServices.showUserTimeLines.length} $coordinatesLoggedString",
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   color: ColorConst.textgrey,

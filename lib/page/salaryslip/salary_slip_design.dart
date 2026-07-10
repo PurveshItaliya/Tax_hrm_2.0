@@ -39,7 +39,7 @@ Widget buildWorkingHoursCard(Size size, SalaryStructureProvider provider) {
             ),
             widthSpacer(size.width * 0.03),
             Text(
-              'Working Hours',
+              workingHoursString,
               style: TextStyle(
                 fontSize: size.width * 0.04,
                 fontWeight: FontWeight.w700,
@@ -57,7 +57,7 @@ Widget buildWorkingHoursCard(Size size, SalaryStructureProvider provider) {
           children: [
             _buildHourCard(
               size,
-              title: 'Total Hours',
+              title: totalHoursString,
               value: provider.totalWorkingHours > 0 ? provider.formattedTotalWorkingHours : '0.00',
               icon: Icons.access_time,
               color: const Color(0xFF1A73E8),
@@ -65,7 +65,7 @@ Widget buildWorkingHoursCard(Size size, SalaryStructureProvider provider) {
             widthSpacer(size.width * 0.03),
             _buildHourCard(
               size,
-              title: 'Break Hours',
+              title: breakHoursString,
               value: provider.formattedTotalBreakHours,
               icon: Icons.free_breakfast,
               color: const Color(0xFFF28C18),
@@ -79,7 +79,7 @@ Widget buildWorkingHoursCard(Size size, SalaryStructureProvider provider) {
           children: [
             _buildHourCard(
               size,
-              title: 'Net Hours',
+              title: netHoursString,
               value: provider.formattedNetWorkingHours,
               icon: Icons.work,
               color: const Color(0xFF15A04E),
@@ -87,7 +87,7 @@ Widget buildWorkingHoursCard(Size size, SalaryStructureProvider provider) {
             widthSpacer(size.width * 0.03),
             _buildHourCard(
               size,
-              title: 'Remaining Hours',
+              title: remainingHoursString,
               value: provider.formattedRemainingHours,
               icon: Icons.schedule,
               color: const Color(0xFF9C27B0),
@@ -113,7 +113,7 @@ Widget buildWorkingHoursCard(Size size, SalaryStructureProvider provider) {
                     Icon(Icons.timer, size: size.width * 0.045, color: const Color(0xFF1A73E8)),
                     widthSpacer(size.width * 0.02),
                     Text(
-                      'Overtime Hours',
+                      overtimeHoursString,
                       style: TextStyle(
                         fontSize: size.width * 0.035,
                         fontWeight: FontWeight.w600,

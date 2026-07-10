@@ -580,7 +580,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
           ),
         ),
         title: Text(
-          'Background Location',
+          backgroundLocationString,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
@@ -589,8 +589,8 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
         ),
         subtitle: Text(
           granted
-              ? 'Always Allow — active for shift tracking'
-              : 'Required to track location during your shift',
+              ? alwaysAllowString
+              : requiredLocationTrackString,
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -773,7 +773,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
           ),
         ),
         title: Text(
-          'Language',
+          languageTitleString,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,

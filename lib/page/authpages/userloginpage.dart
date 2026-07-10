@@ -64,7 +64,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               heightSpacer(size.height * 0.08),
-                              Text("${widget.isAdmin == false ? LanguageProvider.translate("Employee", "Employee") : LanguageProvider.translate("Owner / Admin Access", "Owner / Admin Access")} $loginString",style: TextStyle(color: ColorConst.black, fontFamily: fontInterBoldString, fontSize: size.width * 0.04),),
+                              Text("${widget.isAdmin == false ? employeeMasterTitleString : welcomeTitle2String} $loginString",style: TextStyle(color: ColorConst.black, fontFamily: fontInterBoldString, fontSize: size.width * 0.045),),
                               heightSpacer(size.height * 0.012),
                               Text(loginTitleString,style: TextStyle(color: ColorConst.textgrey, fontFamily: fontInterSemiBoldString, fontSize: size.width * 0.045),),
                               heightSpacer(size.height * 0.04),
