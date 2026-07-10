@@ -303,4 +303,9 @@ final Map<String, String> knTranslations = {
   'No data available to download': 'ಡೌನ್‌ಲೋಡ್ ಮಾಡಲು ಯಾವುದೇ ಡೇಟಾ ಲಭ್ಯವಿಲ್ಲ',
   'Export Daily Attendance Report': 'ದೈನಂದಿನ ಹಾಜರಾತಿ ವರದಿಯನ್ನು ರಫ್ತು ಮಾಡಿ',
   'Export Monthly Attendance Report': 'ಮಾಸಿಕ ಹಾಜರಾತಿ ವರದಿಯನ್ನು ರಫ್ತು ಮಾಡಿ',
+  'Loading attendance data...': 'ಹಾಜರಾತಿ ಡೇಟಾ ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
+  'Today\'s Attendance': 'ಇಂದಿನ ಹಾಜರಾತಿ',
+  'See All': 'ಎಲ್ಲವನ್ನೂ ವೀಕ್ಷಿಸಿ',
+  'Leaderboard': 'ಲೀಡರ್‌ಬೋರ್ಡ್',
+  'Select Month': 'ತಿಂಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ',
 };

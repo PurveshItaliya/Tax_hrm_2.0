@@ -303,4 +303,9 @@ final Map<String, String> teTranslations = {
   'No data available to download': 'డౌన్‌లోడ్ చేయడానికి డేటా అందుబాటులో లేదు',
   'Export Daily Attendance Report': 'దైనందిన హాజరు నివేదికను ఎగుమతి చేయండి',
   'Export Monthly Attendance Report': 'నెలవారీ హాజరు నివేదికను ఎగుమతి చేయండి',
+  'Loading attendance data...': 'హాజరు డేటా లోడ్ అవుతోంది...',
+  'Today\'s Attendance': 'నేటి హాజరు',
+  'See All': 'అన్నీ చూడండి',
+  'Leaderboard': 'లీడర్‌బోర్డ్',
+  'Select Month': 'నెలను ఎంచుకోండి',
 };

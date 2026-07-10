@@ -307,4 +307,5 @@ final Map<String, String> hiTranslations = {
   'Today\'s Attendance': 'आज की उपस्थिति',
   'See All': 'सभी देखें',
   'Leaderboard': 'लीडरबोर्ड',
+  'Select Month': 'महीना चुनें',
 };

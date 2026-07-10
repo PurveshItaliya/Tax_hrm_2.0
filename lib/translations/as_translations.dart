@@ -303,4 +303,9 @@ final Map<String, String> asTranslations = {
   'No data available to download': 'ডাউনলোড কৰিবলৈ কোনো তথ্য উপলব্ধ নাই',
   'Export Daily Attendance Report': 'দৈনিক উপস্থিতিৰ প্ৰতিবেদন ৰপ্তানি কৰক',
   'Export Monthly Attendance Report': 'মাহিলী উপস্থিতিৰ প্ৰতিবেদন ৰপ্তানি কৰক',
+  'Loading attendance data...': 'উপস্থিতিৰ তথ্য লোড হৈ আছে...',
+  'Today\'s Attendance': 'আজিৰ উপস্থিতি',
+  'See All': 'সকলো চাওক',
+  'Leaderboard': 'লিডাৰবৰ্ড',
+  'Select Month': 'মাহ বাছনি কৰক',
 };

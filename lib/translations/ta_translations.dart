@@ -303,4 +303,9 @@ final Map<String, String> taTranslations = {
   'No data available to download': 'பதிவிறக்க எந்த தரவும் இல்லை',
   'Export Daily Attendance Report': 'தினசரி வருகை அறிக்கையை ஏற்றுமதி செய்க',
   'Export Monthly Attendance Report': 'மாதாந்திர வருகை அறிக்கையை ஏற்றுமதி செய்க',
+  'Loading attendance data...': 'வருகை தரவு ஏற்றப்படுகிறது...',
+  'Today\'s Attendance': 'இன்றைய வருகை',
+  'See All': 'அனைத்தையும் காண்க',
+  'Leaderboard': 'முன்னணி பலகை',
+  'Select Month': 'மாதத்தைத் தேர்ந்தெடுக்கவும்',
 };

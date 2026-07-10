@@ -3,6 +3,7 @@ import 'package:simple_month_year_picker/custom.dialog.dart';
 import 'package:simple_month_year_picker/month.container.dart';
 import 'package:simple_month_year_picker/month.model.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 
 class SimpleMonthYearPicker {
   /// list of Months
@@ -107,7 +108,7 @@ class SimpleMonthYearPicker {
                       Padding(
                         padding: const EdgeInsets.only(left: 15, top: 15),
                         child: Text(
-                          'Select Month ',
+                          selectMonthString,
                           style: titleTextStyle ??
                               TextStyle(
                                 fontFamily: 'Rajdhani',

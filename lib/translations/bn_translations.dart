@@ -303,4 +303,9 @@ final Map<String, String> bnTranslations = {
   'No data available to download': 'ডাউনলোড করার জন্য কোন তথ্য উপলব্ধ নেই',
   'Export Daily Attendance Report': 'দৈনিক উপস্থিতি রিপোর্ট রপ্তানি করুন',
   'Export Monthly Attendance Report': 'মাসিক উপস্থিতি রিপোর্ট রপ্তানি করুন',
+  'Loading attendance data...': 'উপস্থিতির ডেটা লোড হচ্ছে...',
+  'Today\'s Attendance': 'আজকের উপস্থিতি',
+  'See All': 'সব দেখুন',
+  'Leaderboard': 'লিডারবোর্ড',
+  'Select Month': 'মাস নির্বাচন করুন',
 };

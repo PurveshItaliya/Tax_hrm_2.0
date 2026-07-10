@@ -303,4 +303,9 @@ final Map<String, String> paTranslations = {
   'No data available to download': 'ਡਾਊਨਲੋਡ ਕਰਨ ਲਈ ਕੋਈ ਡਾਟਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ',
   'Export Daily Attendance Report': 'ਰੋਜ਼ਾਨਾ ਹਾਜ਼ਰੀ ਰਿਪੋਰਟ ਨਿਰਯਾਤ ਕਰੋ',
   'Export Monthly Attendance Report': 'ਮਹੀਨਾਵਾਰ ਹਾਜ਼ਰੀ ਰਿਪੋਰਟ ਨਿਰਯਾਤ ਕਰੋ',
+  'Loading attendance data...': 'ਹਾਜ਼ਰੀ ਡੇਟਾ ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...',
+  'Today\'s Attendance': 'ਅੱਜ ਦੀ ਹਾਜ਼ਰੀ',
+  'See All': 'ਸਾਰੇ ਦੇਖੋ',
+  'Leaderboard': 'ਲੀਡਰਬੋਰਡ',
+  'Select Month': 'ਮਹੀਨਾ ਚੁਣੋ',
 };

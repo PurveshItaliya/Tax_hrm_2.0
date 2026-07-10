@@ -307,4 +307,5 @@ final Map<String, String> mrTranslations = {
   'Today\'s Attendance': 'आजची हजेरी',
   'See All': 'सर्व पहा',
   'Leaderboard': 'लीडरबोर्ड',
+  'Select Month': 'महिना निवडा',
 };

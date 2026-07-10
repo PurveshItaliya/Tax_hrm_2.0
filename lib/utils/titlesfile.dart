@@ -506,4 +506,5 @@ String get secondsString => LanguageProvider.translate("seconds", "seconds");
 String get exportDailyAttendanceReportString => LanguageProvider.translate("Export Daily Attendance Report", "Export Daily Attendance Report");
 String get exportMonthlyAttendanceReportString => LanguageProvider.translate("Export Monthly Attendance Report", "Export Monthly Attendance Report");
 String get loadingAttendanceDataString => LanguageProvider.translate("Loading attendance data...", "Loading attendance data...");
+String get selectMonthString => LanguageProvider.translate("Select Month", "Select Month");
 

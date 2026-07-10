@@ -307,4 +307,5 @@ final Map<String, String> enTranslations = {
   'Today\'s Attendance': 'Today\'s Attendance',
   'See All': 'See All',
   'Leaderboard': 'Leaderboard',
+  'Select Month': 'Select Month',
 };

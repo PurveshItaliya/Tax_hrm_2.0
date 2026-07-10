@@ -307,4 +307,5 @@ final Map<String, String> guTranslations = {
   'Today\'s Attendance': 'આજની હાજરી',
   'See All': 'બધા જુઓ',
   'Leaderboard': 'લીડરબોર્ડ',
+  'Select Month': 'મહિનો પસંદ કરો',
 };

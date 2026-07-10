@@ -303,4 +303,9 @@ final Map<String, String> mlTranslations = {
   'No data available to download': 'ഡൗൺലോഡ് ചെയ്യാൻ ഡാറ്റ ലഭ്യമല്ല',
   'Export Daily Attendance Report': 'പ്രതിദിന ഹാജർ റിപ്പോർട്ട് എക്‌സ്‌പോർട്ട് ചെയ്യുക',
   'Export Monthly Attendance Report': 'പ്രതിമാസ ഹാജർ റിപ്പോർട്ട് എക്‌സ്‌പോർട്ട് ചെയ്യുക',
+  'Loading attendance data...': 'ഹാജർ ഡാറ്റ ലോഡുചെയ്യുന്നു...',
+  'Today\'s Attendance': 'ഇന്നത്തെ ഹാജർ',
+  'See All': 'എല്ലാം കാണുക',
+  'Leaderboard': 'ലീഡർബോർഡ്',
+  'Select Month': 'മാസം തിരഞ്ഞെടുക്കുക',
 };

@@ -303,4 +303,9 @@ final Map<String, String> orTranslations = {
   'No data available to download': 'ଡାଉନଲୋଡ୍ କରିବାକୁ କୌଣସି ତଥ୍ୟ ଉପଲବ୍ଧ ନାହିଁ',
   'Export Daily Attendance Report': 'ଦୈନିକ ଉପସ୍ଥାନ ରିପୋର୍ଟ ରପ୍ତାନି କରନ୍ତୁ',
   'Export Monthly Attendance Report': 'ମାସିକ ଉପସ୍ଥାନ ରିପୋର୍ଟ ରପ୍ତାନି କରନ୍ତୁ',
+  'Loading attendance data...': 'ଉପସ୍ଥାନ ଡାଟା ଲୋଡ୍ ହେଉଛି...',
+  'Today\'s Attendance': 'ଆଜିର ଉପସ୍ଥାନ',
+  'See All': 'ସମସ୍ତ ଦେଖନ୍ତୁ',
+  'Leaderboard': 'ଲିଡରବୋର୍ଡ',
+  'Select Month': 'ମାସ ବାଛନ୍ତୁ',
 };
