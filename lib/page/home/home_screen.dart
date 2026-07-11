@@ -11,13 +11,13 @@ import 'package:tax_hrm/page/home/leaderborder.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
+import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
-import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 
@@ -45,11 +45,20 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _homeProvider = Provider.of<HomeProvider>(context, listen: false);
-    _homeProvider.homeLoadDatas(context);
-    if(curentUser['Role'] != 'Admin'){
+    _initHome();
+  }
+
+  Future<void> _initHome() async {
+    // Await company/menu setup so selectedcurentcompany is ready before attendance fetch
+    await _homeProvider.homeLoadDatas(context);
+    if (!mounted) return;
+
+    if (curentUser['Role'] != 'Admin') {
       _homeProvider.startWorkingHoursTimer(context);
+      // Periodic attendance refresh every 60 seconds for non-admin users
+      _startUserAttendanceRefreshTimer();
     }
-    
+
     // Load admin attendance on init
     if (curentUser['Role'] == 'Admin') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Timer? _autoRefreshTimer;
+  Timer? _userAttendanceRefreshTimer;
 
   void _startAutoRefreshTimer() {
     _autoRefreshTimer = Timer.periodic(Duration(seconds: 30), (timer) {
@@ -71,12 +81,24 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _startUserAttendanceRefreshTimer() {
+    _userAttendanceRefreshTimer = Timer.periodic(Duration(seconds: 60), (timer) {
+      if (mounted && curentUser['Role'] != 'Admin') {
+        final selfiePunchProvider = Provider.of<SelfiePunchProvider>(context, listen: false);
+        selfiePunchProvider.checkLastPunch(curentUser['Id'], context).then((_) {
+          _homeProvider.refreshWorkingHours(context);
+        });
+      }
+    });
+  }
+
   @override
   void dispose() {
     _homeProvider.stopWorkingHoursTimer();
     _isDialogShowing = false;
     _isCalculating = false;
     _autoRefreshTimer?.cancel();
+    _userAttendanceRefreshTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }

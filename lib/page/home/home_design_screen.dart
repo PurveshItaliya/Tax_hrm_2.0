@@ -312,11 +312,7 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.bar_chart_rounded,
-                        size: size.width * 0.1,
-                        color: ColorConst.textgrey.withOpacity(0.5),
-                      ),
+                      CircularProgressIndicator(color: ColorConst.textgrey.withOpacity(0.5),),
                       const SizedBox(height: 8),
                       Text(
                         '$noDataAvailableString $todaysAttendanceString',

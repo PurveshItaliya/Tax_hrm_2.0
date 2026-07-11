@@ -252,20 +252,21 @@ class HomeProvider extends ChangeNotifier {
     // Instantly update UI with cached status if any
     _updateWorkingHours(selfiePunchProvider);
 
+    // Start the 1-second UI update timer immediately (no guard — timer is set here first)
+    _workingHoursTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (timer.isActive) {
+        _updateWorkingHours(selfiePunchProvider);
+      }
+    });
+
+    // Fetch fresh attendance data on first frame after the timer is ready
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (_workingHoursTimer == null) return;
       try {
         await selfiePunchProvider.checkLastPunch(curentUser['Id'], context);
       } catch (e) {
         // ignore errors
       }
       _updateWorkingHours(selfiePunchProvider);
-    });
-    
-    _workingHoursTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (timer.isActive) {
-        _updateWorkingHours(selfiePunchProvider);
-      }
     });
   }
 

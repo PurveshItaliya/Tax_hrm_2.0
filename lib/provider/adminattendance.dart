@@ -17,7 +17,7 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminAttenDanceServices extends ChangeNotifier {
-  bool islodering = true;
+  bool islodering = false;
 
   bool get isloderings => islodering;
 
