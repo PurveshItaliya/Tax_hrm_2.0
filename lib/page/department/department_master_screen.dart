@@ -79,6 +79,7 @@ class _DepartmentScreenState extends State<DepartmentScreen> {
                       ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noDepartmentAddedString,nodataFoundsImagString)))) 
                       : Expanded(
                         child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: departmentServices.showedepartment.length,
                           padding: EdgeInsets.only(bottom: size.height * 0.075),
                           itemBuilder: (context, index) {

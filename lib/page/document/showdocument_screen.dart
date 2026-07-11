@@ -55,12 +55,17 @@ class _ShowDocumentScreenState extends State<ShowDocumentScreen> {
               appBar: showCustomeAppBar(documentString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){
                 backScreen(context);
               }),
-              body: documentproviders.islodering ? 
-                holidaysShimmer(size): 
-                documentproviders.showDocumentList.isEmpty
-                  ? SizedBox(width: size.width,child: noDataFoundsDesign(size, noDocumentAddedString,nodataFoundsImagString))
-                  : ListView.separated(
-                      padding: EdgeInsets.symmetric(vertical: size.height * 0.015),
+              body: refreshIndicatorDesign(
+                onRefreshOntap: () async {
+                  await Provider.of<DocumentsProvider>(context, listen: false).loadingData();
+                },
+                widgetDesign: documentproviders.islodering ? 
+                  holidaysShimmer(size): 
+                  documentproviders.showDocumentList.isEmpty
+                    ? SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(), child: SizedBox(width: size.width,height: size.height * 0.7, child: noDataFoundsDesign(size, noDocumentAddedString,nodataFoundsImagString)))
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(vertical: size.height * 0.015),
                       itemCount: documentproviders.showDocumentList.length,
                       itemBuilder: (context, index) {
                         return Container(
@@ -101,6 +106,7 @@ class _ShowDocumentScreenState extends State<ShowDocumentScreen> {
                         return heightSpacer(size.height * 0.015);
                       },
                     ),
+              ),
             );
   }
 }

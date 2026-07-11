@@ -110,9 +110,9 @@ class _PaySlipMaterScreenState extends State<PaySlipMaterScreen> {
                       ),
                       heightSpacer(size.height*0.012),
                       paySlipProviders.showPaySlips.isEmpty
-                        ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noDataFoundsString,nodataFoundsImagString)))) 
+                        ? Expanded(child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(),child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noDataFoundsString,nodataFoundsImagString)))) 
                         : Expanded(
-                          child: ListView.builder(
+                          child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                             itemCount: paySlipProviders.showPaySlips.length,
                             padding: EdgeInsets.only(bottom: size.height * 0.01),
                             itemBuilder: (context, index) {

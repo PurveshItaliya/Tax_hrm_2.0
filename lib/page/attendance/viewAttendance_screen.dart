@@ -150,7 +150,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
         appBar: showBottomAppBar(isAdminBack: _currentEmpData == null ? false : true, _currentEmpData == null ? attendanceString : '${_currentEmpData!.firstName} ${_currentEmpData!.lastName}', size, centerTitles: false, actions: const <Widget>[]),
-        body: SingleChildScrollView(
+        body: refreshIndicatorDesign(
+          onRefreshOntap: () async {
+            final attendanceEmp = Provider.of<AttendanceEmp>(context, listen: false);
+            await attendanceEmp.loadingData(_currentEmpData, context);
+            await attendanceEmp.getDuration(context, _currentEmpData);
+          },
+          widgetDesign: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
               if (_currentEmpData != null && Provider.of<AdminAttenDanceServices>(context, listen: false).mainHoldEmpList.isNotEmpty)
@@ -643,6 +650,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                 ),
               ),
             ],
+          ),
           ),
         ),
       );

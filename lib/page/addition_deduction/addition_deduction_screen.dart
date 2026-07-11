@@ -75,6 +75,7 @@ class _AdditionDeductionScreenState extends State<AdditionDeductionScreen> {
                       ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noDataFoundsString,nodataFoundsImagString)))) 
                       : Expanded(
                         child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: additionProvider.mainAdditionGroupList.length,
                           padding: EdgeInsets.only(bottom: size.height * 0.075),
                           itemBuilder: (context, index) {

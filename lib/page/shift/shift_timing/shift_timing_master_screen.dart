@@ -77,9 +77,9 @@ class _ShiftTimingMasterScreenState extends State<ShiftTimingMasterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       shiftTiminigMasterProvider.mainShiftMasterGroupList.isEmpty
-                      ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, addShiftMasterString,nodataFoundsImagString)))) 
+                      ? Expanded(child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(),child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, addShiftMasterString,nodataFoundsImagString)))) 
                       : Expanded(
-                        child: ListView.builder(
+                        child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: shiftTiminigMasterProvider.mainShiftMasterGroupList.length,
                           padding: EdgeInsets.only(bottom: size.height * 0.075),
                           itemBuilder: (context, index) {

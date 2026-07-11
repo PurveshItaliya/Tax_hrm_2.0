@@ -206,8 +206,13 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                     style: TextStyle(fontSize: 15,fontWeight: FontWeight.w800,fontFamily: fontInterMediumString,color: ColorConst.textHeadingColor),
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
+                    child: refreshIndicatorDesign(
+                      onRefreshOntap: () async {
+                        await Provider.of<AdminPayrollslipProvider>(context, listen: false).loadAddData(context);
+                      },
+                      widgetDesign: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Column(
                         children: [
                           if(payrollAdminProvider.selectedAddEmployeeList != null)...[
                             GridView.count(
@@ -305,6 +310,7 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                           ]
                         ],
                       ),
+                    ),
                     ),
                   )
                 ],

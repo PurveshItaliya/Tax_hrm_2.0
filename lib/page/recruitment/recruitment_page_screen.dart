@@ -70,9 +70,9 @@ class _RecruitmentPageScreenState extends State<RecruitmentPageScreen> {
                       CommonTextField(controller: recuritmentProvider.txtSerchController,fillColors: ColorConst.white,borderColor: ColorConst.transparent,hintText: searchCandidateListString,prefixIcon: Padding(padding: const EdgeInsets.only(left: 10,right: 10),child: Icon(Icons.search,color: ColorConst.commatextIconsColors,),),onChanged: (value) {recuritmentProvider.searchAllRecuritmentData(value);},),
                       heightSpacer(size.height*0.02,),
                       recuritmentProvider.getRecuirtmentGroupList.isEmpty
-                          ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noCandidateAddedString,nodataFoundsImagString)))) 
+                          ? Expanded(child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(),child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noCandidateAddedString,nodataFoundsImagString)))) 
                           : Expanded(
-                            child: ListView.builder(
+                            child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: recuritmentProvider.getRecuirtmentGroupList.length,
                               padding: EdgeInsets.only(
                                 bottom: size.height * 0.10,

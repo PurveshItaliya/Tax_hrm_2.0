@@ -17,7 +17,9 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
+import 'package:tax_hrm/widigets/commanWidget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -88,30 +90,38 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
         appBar: _buildAppBar(size, homeProvider),
-        body: Scrollbar(
-          controller: _scrollController,
-          thickness: 6,
-          radius: const Radius.circular(10),
-          child: SingleChildScrollView(
+        body: refreshIndicatorDesign(
+          onRefreshOntap: () async {
+            _homeProvider.homeLoadDatas(context);
+            if (curentUser['Role'] == 'Admin') {
+              Provider.of<AdminAttenDanceServices>(context, listen: false).toDayDateAttendance(DateTime.now());
+            }
+          },
+          widgetDesign: Scrollbar(
             controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              children: [
-                if(curentUser['Role'] != 'Admin') ...[
-                  buildDateHeader(size),
-                ] else ...[
-                  buildAttendanceBoard(size, mounted,
-                    onAllPressed:(){
-                      lastBottomIndex = 1;
-                      selectedIndex = 1;
-                      fabSelected = false;
-                      homeProvider.notifyListeners();
-                    },
-                  )
+            thickness: 6,
+            radius: const Radius.circular(10),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  if(curentUser['Role'] != 'Admin') ...[
+                    buildDateHeader(size),
+                  ] else ...[
+                    buildAttendanceBoard(size, mounted,
+                      onAllPressed:(){
+                        lastBottomIndex = 1;
+                        selectedIndex = 1;
+                        fabSelected = false;
+                        homeProvider.notifyListeners();
+                      },
+                    )
+                  ],
+                  _buildGridMenu(size, homeProvider),
+                  const LeaderboardWidget(),
                 ],
-                _buildGridMenu(size, homeProvider),
-                const LeaderboardWidget(),
-              ],
+              ),
             ),
           ),
         ),

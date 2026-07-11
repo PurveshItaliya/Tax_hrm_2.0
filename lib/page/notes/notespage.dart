@@ -58,10 +58,13 @@ class _NotesViewPageState extends State<NotesViewPage> {
                     Padding(padding: EdgeInsets.only(left: size.height*0.02,right: size.height*0.02),child: CommonTextField(controller: notesProvidersData.txtNotesController,fillColors: ColorConst.white,borderColor: ColorConst.transparent,hintText: searchNotesString,prefixIcon: Padding(padding: const EdgeInsets.only(left: 10,right: 10),child: Icon(Icons.search,color: ColorConst.commatextIconsColors,),),onChanged: (value) {notesProvidersData.searchAllNotesData(value);},),),
                     heightSpacer(size.height*0.02,),
                     notesProvidersData.showUserNotesList.isEmpty
-                    ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noNotesAddedString,nodataFoundsImagString)))) :
+                    ? Expanded(child: refreshIndicatorDesign(onRefreshOntap: () async { await Provider.of<NotesProviders>(context, listen: false).loadingData(); }, widgetDesign: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(), child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noNotesAddedString,nodataFoundsImagString))))) :
                     Expanded(
-                      child: ListView.separated(
-                        shrinkWrap: true,
+                      child: refreshIndicatorDesign(
+                        onRefreshOntap: () async { await Provider.of<NotesProviders>(context, listen: false).loadingData(); },
+                        widgetDesign: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          shrinkWrap: true,
                         itemCount: notesProvidersData.showUserNotesList.length,
                         padding: EdgeInsets.symmetric(vertical: size.height * 0.01),
                         separatorBuilder: (context, index) {
@@ -94,6 +97,7 @@ class _NotesViewPageState extends State<NotesViewPage> {
                             )
                           );
                         },
+                        ),
                       ),
                     ),
                   ],

@@ -147,7 +147,7 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
                     /// SHIMMER LOADING STATE - Using provider's isLoading
                     if (employeeMProvider.islodering)
                       Expanded(
-                        child: ListView.builder(
+                        child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.all(8),
                           itemCount: 5,
                           itemBuilder: (context, index) => _buildShimmerItem(),
@@ -155,7 +155,7 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
                       )
                     else if (employeeMProvider.emplists.isEmpty)
                       Expanded(
-                        child: SingleChildScrollView(
+                        child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(),
                           child: SizedBox(
                             width: size.width,
                             height: size.height * 0.65,
@@ -169,7 +169,7 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
                       )
                     else
                       Expanded(
-                        child: ListView.builder(
+                        child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.all(8),
                           itemCount: employeePageItemCount,
                           itemBuilder: (context, index) {

@@ -310,8 +310,13 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                               ),
                             ),
                             Expanded(
-                              child: ListView.builder(
-                                controller: scrollController,
+                              child: refreshIndicatorDesign(
+                                onRefreshOntap: () async {
+                                  await Provider.of<TimeLineServices>(context, listen: false).timeViewLoadData(setEmpId: widget.userId);
+                                },
+                                widgetDesign: ListView.builder(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  controller: scrollController,
                                 itemCount: itemCount,
                                 padding: EdgeInsets.zero,
                                 itemBuilder: (context, index) {
@@ -563,6 +568,7 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                                   }
                                 },
                               ),
+                            ),
                             ),
                           ],
                         ),

@@ -70,9 +70,9 @@ class _EventPageScreenState extends State<EventPageScreen> {
                       CommonTextField(controller: eventsMastServices.txtEventSerchController,fillColors: ColorConst.white,borderColor: ColorConst.transparent,hintText: searchEventString,prefixIcon: Padding(padding: const EdgeInsets.only(left: 10,right: 10),child: Icon(Icons.search,color: ColorConst.commatextIconsColors,),),onChanged: (value) {eventsMastServices.searchAllEventData(value);},),
                       heightSpacer(size.height*0.02,),
                       eventsMastServices.getEventList.isEmpty
-                          ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noEventAddedString,nodataFoundsImagString)))) 
+                          ? Expanded(child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(),child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noEventAddedString,nodataFoundsImagString)))) 
                           : Expanded(
-                            child: ListView.builder(
+                            child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: eventsMastServices.getEventList.length,
                               padding: EdgeInsets.only(
                                 bottom: size.height * 0.10,

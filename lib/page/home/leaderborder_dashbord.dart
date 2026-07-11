@@ -12,6 +12,7 @@ import 'package:tax_hrm/models/top_hrm_model.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
+import 'package:tax_hrm/widigets/commanWidget.dart';
 
 class LeaderboardDetailPage extends StatefulWidget {
   final DateTime initialMonth;
@@ -69,8 +70,15 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
       ),
       body: leaderProvider.isLoading
           ? Center(child: CircularProgressIndicator(color: ColorConst.themeColor))
-          : CustomScrollView(
-              physics: const BouncingScrollPhysics(),
+          : refreshIndicatorDesign(
+              onRefreshOntap: () async {
+                await leaderProvider.getTopLeaderboard(
+                  month: leaderProvider.selectedMonth.month,
+                  year: leaderProvider.selectedMonth.year,
+                );
+              },
+              widgetDesign: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(child: _buildMonthSelector(size, leaderProvider, locale)),
                 if (leaderProvider.allRecords.isEmpty)
@@ -87,6 +95,7 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
                 ],
               ],
             ),
+          ),
     );
   }
 

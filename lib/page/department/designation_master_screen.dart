@@ -77,9 +77,9 @@ class _DesignationScreenState extends State<DesignationScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       desigNationMasterService.showPositions.isEmpty
-                      ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noDesignationAddedString,nodataFoundsImagString)))) 
+                      ? Expanded(child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(),child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noDesignationAddedString,nodataFoundsImagString)))) 
                       : Expanded(
-                        child: ListView.builder(
+                        child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: desigNationMasterService.showPositions.length,
                           padding: EdgeInsets.only(bottom: size.height * 0.075),
                           itemBuilder: (context, index) {

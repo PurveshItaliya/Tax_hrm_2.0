@@ -18,6 +18,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:tax_hrm/firebase_options.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 // --- DUMMY FIREBASE HANDLER TO PREVENT CRASH FROM OLD CACHE ---
 @pragma('vm:entry-point')
@@ -371,6 +372,25 @@ class _MyAppState extends State<MyApp> {
               scaffoldBackgroundColor: const Color(0xff121212),
               primaryColor: const Color(0xff1864EC),
             ),
+            supportedLocales: const [
+              Locale('en', ''), // English
+              Locale('hi', ''), // Hindi
+              Locale('gu', ''), // Gujarati
+              Locale('mr', ''), // Marathi
+              Locale('bn', ''), // Bengali
+              Locale('ta', ''), // Tamil
+              Locale('te', ''), // Telugu
+              Locale('kn', ''), // Kannada
+              Locale('ml', ''), // Malayalam
+              Locale('pa', ''), // Punjabi
+              Locale('or', ''), // Odia
+              Locale('as', ''), // Assamese
+            ],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             debugShowCheckedModeBanner: false,
             builder: (context, child) {
               final mChild = MediaQuery(

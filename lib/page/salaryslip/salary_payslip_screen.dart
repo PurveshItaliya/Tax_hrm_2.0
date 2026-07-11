@@ -71,8 +71,13 @@ class _SalaryPayslipScreenState extends State<SalaryPayslipScreen> {
         body: salaryStructureProvider.isloderings ? buildShimmerSalaryContent(size) : Column(
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
+              child: refreshIndicatorDesign(
+                onRefreshOntap: () async {
+                  Provider.of<SalaryStructureProvider>(context, listen: false).initializeData();
+                },
+                widgetDesign: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
                   children: [
                     Container(
                       padding: EdgeInsets.all(size.width * 0.02),
@@ -224,8 +229,9 @@ class _SalaryPayslipScreenState extends State<SalaryPayslipScreen> {
                 ),
               ),
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }  
 }

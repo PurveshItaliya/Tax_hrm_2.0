@@ -65,9 +65,9 @@ class _ShiftMasterScreenState extends State<ShiftMasterScreen> {
                   child: shiftMasterProvider.islodering ? departmentMasterShimmer(size,false) : Column(
                     children: [
                       shiftMasterProvider.mainShiftGroupList.isEmpty
-                          ? Expanded(child: SingleChildScrollView(child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noShiftAddedString,nodataFoundsImagString)))) 
+                          ? Expanded(child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(),child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noShiftAddedString,nodataFoundsImagString)))) 
                           : Expanded(
-                            child: ListView.builder(
+                            child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: shiftMasterProvider.mainShiftGroupList.length,
                               padding: EdgeInsets.only(
                                 left: size.height * 0.01,

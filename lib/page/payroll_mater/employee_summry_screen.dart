@@ -100,7 +100,12 @@ class _EmployeeSummryScreenState extends State<EmployeeSummryScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: SingleChildScrollView(
+                          child: refreshIndicatorDesign(
+                            onRefreshOntap: () async {
+                              await _initializeData();
+                            },
+                            widgetDesign: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
                             child: Column(
                               children: [
                                 // Employee Details
@@ -210,6 +215,7 @@ class _EmployeeSummryScreenState extends State<EmployeeSummryScreen> {
                               ],
                             ),
                           ),
+                        ),
                         ),
                         
                         // Net Payable Container
