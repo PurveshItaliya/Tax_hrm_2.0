@@ -80,7 +80,7 @@ String get shiftMasterString => LanguageProvider.translate("Shift Master", "Shif
 String get shiftGroupMasterString => LanguageProvider.translate("Shift Group Master", "Shift Group Master");
 String get shiftTimingString => LanguageProvider.translate("Shift Timing", "Shift Timing");
 String get departmentString => LanguageProvider.translate("Department", "Department");
-String get eventString => LanguageProvider.translate("Event", "Event");
+String get eventString => LanguageProvider.translate("Announcement", "Announcement");
 String get recuritmentString => LanguageProvider.translate("Recuritment", "Recuritment");
 String get addDeduString => LanguageProvider.translate("Addition Deduction", "Addition Deduction");
 String get employeeMasterTitleString => LanguageProvider.translate("Employee", "Employee");
@@ -280,8 +280,8 @@ String get errorWorkingString => LanguageProvider.translate("Please select at le
 String get positionErrorString => LanguageProvider.translate("Position is already used !!!", "Position is already used !!!");
 
 // event screen titles
-String get addEventString => LanguageProvider.translate("Add Event", "Add Event"); 
-String get editEventString => LanguageProvider.translate("Edit Event", "Edit Event"); 
+String get addEventString => LanguageProvider.translate("Add Announcement", "Add Announcement"); 
+String get editEventString => LanguageProvider.translate("Edit Announcement", "Edit Announcement"); 
 String get addPunchString => LanguageProvider.translate("Add Punch", "Add Punch");
 String get noEventAddedString => LanguageProvider.translate("No Event Added!", "No Event Added!");
 String get eventPlaceString => LanguageProvider.translate("Place", "Place");

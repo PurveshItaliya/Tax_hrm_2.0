@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 
 Widget commonDropDownField({size, borderColor, fillColors, onChanged,List<String>? listName,selectedValue,hintextString}) {
@@ -23,14 +24,14 @@ Widget commonDropDownField({size, borderColor, fillColors, onChanged,List<String
               (String item) => DropdownItem<String>(
                 value: item,
                 child: Text(
-                  item,
+                  LanguageProvider.translate(item, item),
                   style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold,color: ColorConst.black,),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             )
             .toList(),
-        hint: Text(selectedValue ?? hintextString,style: TextStyle(color: selectedValue != null ? ColorConst.black : ColorConst.hintextColor,fontFamily: fontInterMediumString,fontSize: 15,),),
+        hint: Text(selectedValue != null ? LanguageProvider.translate(selectedValue, selectedValue) : hintextString,style: TextStyle(color: selectedValue != null ? ColorConst.black : ColorConst.hintextColor,fontFamily: fontInterMediumString,fontSize: 15,),),
         onChanged: onChanged,
         isExpanded: true,
         

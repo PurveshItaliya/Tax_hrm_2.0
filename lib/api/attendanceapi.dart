@@ -94,7 +94,7 @@ class AttendanceApis{
     log("----------------------------$bodys");
     
     var url = Uri.parse('${apibaseurl}api/master/RegisterDevice');
-    await http.post(
+    var response = await http.post(
       url,
       body: jsonEncode(bodys),
       headers: {
@@ -102,6 +102,8 @@ class AttendanceApis{
         'Authorization': 'bearer ${curentUser['token']}',
       },
     );
+
+    log("------------------------------------${response.body}");
   }
   
   //---------------------- Create Punch ---------------------------------------\\

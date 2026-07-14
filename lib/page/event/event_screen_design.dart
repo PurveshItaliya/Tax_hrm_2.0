@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:tax_hrm/page/department/department_screen_design.dart';
+import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
@@ -35,7 +36,7 @@ Widget eventCard({size,titles,editOntap,deleteOntap,place,remark,startDate,endDa
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
-                    titles,
+                    LanguageProvider.translate(titles, titles),
                     style: TextStyle(fontSize: 15,fontWeight: FontWeight.w800,fontFamily: fontInterMediumString),
                   ),
                   ritchTextDesign(heading: "$eventPlaceString :- ",titles: place,headingColor: ColorConst.textHeadingColor,headingSize: 10.0,titlesSize: 9.0,textAligmnment: TextAlign.left),

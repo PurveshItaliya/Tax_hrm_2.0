@@ -1,7 +1,7 @@
 //BasUrl Of Api
-String apibaseurl = 'https://taxcrmtesting.taxfile.co.in/';
-
-String trubaseurl = 'https://taxfilecrm.taxfile.co.in';
+String livebaseurl = 'https://taxcrmtesting.taxfile.co.in/';
+String testingbaseurl = 'https://taxfilecrm.taxfile.co.in';
+String apibaseurl = livebaseurl;
 
 // bottom bar select
 int selectedIndex = 0;
