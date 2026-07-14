@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/ifsc/ifsc_model.dart';
 import 'package:tax_hrm/provider/ifsc_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class IfscCodeDropdown extends StatefulWidget {
@@ -39,7 +40,7 @@ class _IfscCodeDropdownState extends State<IfscCodeDropdown> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Select Ifsc Code',
+            selectIfscCodeString,
             style: normalHeadingText(size),
           ),
           heightSpacer(size.height * 0.008), // Reduced from 0.01 to 0.008
@@ -48,7 +49,7 @@ class _IfscCodeDropdownState extends State<IfscCodeDropdown> {
             child: AppSearchableDropdown<IfscListModel>(
               dropdownKey: ValueKey(widget.ifscList),
               initialItem: widget.ifscList,
-              hintText: 'Select Ifsc',
+              hintText: selectIfscString,
               futureRequest: getFilterIfsc,
               items: ifscProvider.getallIfscDataList,
               itemAsString: (item) => item.iFSC.toString(),
@@ -56,7 +57,7 @@ class _IfscCodeDropdownState extends State<IfscCodeDropdown> {
                 return Row(
                   children: [
                     Text(widget.ifscList == null
-                        ? 'Select IfscCode '
+                        ? selectIfscCodeString
                         : widget.ifscList!.iFSC.toString()),
                     const Spacer(),
                     widget.ifscList == null

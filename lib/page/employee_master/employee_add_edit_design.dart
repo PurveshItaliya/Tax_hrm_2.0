@@ -176,7 +176,7 @@ Widget buildProfileCard(Size size) {
               child: Text(
                 provider.firstNameController.text.isNotEmpty || provider.lastNameController.text.isNotEmpty
                     ? "${provider.firstNameController.text} ${provider.lastNameController.text}".trim()
-                    : "Employee Name",
+                    : employessNameString,
                 style: TextStyle(
                   fontSize: 18, 
                   fontWeight: FontWeight.w700,
@@ -186,7 +186,7 @@ Widget buildProfileCard(Size size) {
             ),
             const SizedBox(height: 6),
             Text(
-              provider.selectedPostions?.positionName ?? "Designation",
+              provider.selectedPostions?.positionName ?? positionString,
               style: TextStyle(
                 fontSize: 14, 
                 color: Colors.grey.shade600,
@@ -270,7 +270,7 @@ Widget buildExpandableSections(
       child: Column(
         children: [
           _buildExpandableSection(
-            title: "Account Information",
+            title: accountInformationString,
             icon: Icons.account_circle_outlined,
             child: _accountTab(provider, size, context),
             isExpanded: provider.isAccountSectionExpanded,
@@ -278,7 +278,7 @@ Widget buildExpandableSections(
           ),
           const SizedBox(height: 16),
           _buildExpandableSection(
-            title: "Personal Information",
+            title: personalInformationString,
             icon: Icons.person_outline,
             child: _personalTab(provider, size, context),
             isExpanded: provider.isPersonalSectionExpanded,
@@ -286,7 +286,7 @@ Widget buildExpandableSections(
           ),
           const SizedBox(height: 16),
           _buildExpandableSection(
-            title: "Contact Information",
+            title: contactInformationString,
             icon: Icons.contact_phone_outlined,
             child: _contactTab(size, context, provider),
             isExpanded: provider.isContactSectionExpanded,
@@ -294,7 +294,7 @@ Widget buildExpandableSections(
           ),
           const SizedBox(height: 16),
           _buildExpandableSection(
-            title: "Education Details",
+            title: educationDetailsString,
             icon: Icons.school_outlined,
             child: _educationTab(size, provider),
             isExpanded: provider.isEducationSectionExpanded,
@@ -302,7 +302,7 @@ Widget buildExpandableSections(
           ),
           const SizedBox(height: 16),
           _buildExpandableSection(
-            title: "Bank Details",
+            title: bankDetailsString,
             icon: Icons.account_balance_outlined,
             child: _bankDetailsTab(size, provider),
             isExpanded: provider.isBankSectionExpanded,
@@ -432,7 +432,7 @@ Widget _accountTab(
     return Column(
       children: [
         /// LOGIN CREDENTIALS
-        _buildSubSectionHeader("Login Credentials", Icons.lock_outline),
+        _buildSubSectionHeader(loginCredentialsString, Icons.lock_outline),
         const SizedBox(height: 16),
       
         /// USERNAME & PASSWORD
@@ -441,14 +441,14 @@ Widget _accountTab(
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: "Username",
+                label: userNameString,
                 isRequired: true,
                 child: CommonTextField(
                   controller: provider.usernameController,
                   borderRadius: 8.0,
                   validator:(value) {
                     if(value == null || value.isEmpty) {
-                      return 'User Name is required';
+                      return userNameRequiredString;
                     }
                     return null;
                   },
@@ -458,7 +458,7 @@ Widget _accountTab(
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeledField(
-                label: "Password",
+                label: passwordString,
                 isRequired: true,
                 child: CommonTextField(
                   controller: provider.passwordController,
@@ -476,7 +476,7 @@ Widget _accountTab(
                   ),
                   validator:(value) {
                     if(value == null || value.isEmpty) {
-                      return 'Password is required';
+                      return passwordRequiredString;
                     }
                     return null;
                   },
@@ -489,23 +489,23 @@ Widget _accountTab(
         const SizedBox(height: 24),
       
         /// ORGANIZATION DETAILS
-        _buildSubSectionHeader("Organization Details", Icons.business_center),
+        _buildSubSectionHeader(organizationDetailsString, Icons.business_center),
         const SizedBox(height: 16),
       
         /// DEPARTMENT & DESIGNATION
         _buildLabeledField(
-          label: "Department",
+          label: departmentString,
           isRequired: true,
           child: AppSearchableDropdown<DepartMnetModel>(
             dropdownKey: ValueKey(provider.selectedDepartment),
             initialItem: provider.selectedDepartment,
-            hintText: 'Select Department',
+            hintText: selectDepartmentNameString,
             futureRequest: (value) => provider.getfilterDepartment(value, context),
             items: Provider.of<DepartmentServices>(context, listen: false).alldepartment,
             itemAsString: (item) => item.departmentName.toString(),
             validator: (value) {
               if (value == null) {
-                return "Select Department";
+                return selectDepartmentNameString;
               }
               return null;
             },
@@ -517,7 +517,7 @@ Widget _accountTab(
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                       provider.selectedDepartment == null
-                          ? 'Select Department'
+                          ? selectDepartmentNameString
                           : provider.selectedDepartment!.departmentName.toString(),
                     ),
                   ),
@@ -544,18 +544,18 @@ Widget _accountTab(
         const SizedBox(height: 18),
       
         _buildLabeledField(
-          label: "Designation",
+          label: positionString,
           isRequired: true,
           child: AppSearchableDropdown<PositionDataL>(
             dropdownKey: ValueKey(provider.selectedPostions),
             initialItem: provider.selectedPostions,
-            hintText: 'Select Designation',
+            hintText: selectDesignationNameString,
             futureRequest: (value) => provider.getfiltersPostions(value, context),
             items: Provider.of<PositionMasterService>(context, listen: false).getFiltersPostionList,
             itemAsString: (item) => item.positionName.toString(),
             validator: (value) {
               if (value == null) {
-                return "Select Designation";
+                return selectDesignationNameString;
               }
               return null;
             },
@@ -567,7 +567,7 @@ Widget _accountTab(
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       provider.selectedPostions == null
-                          ? 'Select Position'
+                          ? selectDesignationNameString
                           : provider.selectedPostions!.positionName.toString(),
                     ),
                   ),
@@ -592,11 +592,11 @@ Widget _accountTab(
       
         /// ROLE
         _buildLabeledField(
-          label: "Role",
+          label: roleString,
           child: AppSearchableDropdown<Getrolemodel>(
             dropdownKey: ValueKey(provider.selectedRole),
             initialItem: provider.selectedRole,
-            hintText: 'Select Role',
+            hintText: selectRoleString,
             futureRequest: (value) => provider.getroleFilters(value, context),
             items: Provider.of<RoleMstServices>(context, listen: false).getRoleList,
             itemAsString: (item) => item.role.toString(),
@@ -606,7 +606,7 @@ Widget _accountTab(
                   Expanded(
                     child: Text(
                       provider.selectedRole == null
-                          ? 'Select Role'
+                          ? selectRoleString
                           : provider.selectedRole!.role.toString(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -639,7 +639,7 @@ Widget _accountTab(
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: "Office Location",
+                label: officeString,
                 child: Container(
                   height: 50.0,
                   decoration: BoxDecoration(
@@ -652,7 +652,7 @@ Widget _accountTab(
                       hint: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          'Select Office',
+                          selectOfficeString,
                           style: TextStyle(
                             fontSize: 14,
                             color: ColorConst.hintextColor,
@@ -687,7 +687,7 @@ Widget _accountTab(
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeledField(
-                label: "Work Type",
+                label: workTypeString,
                 child: Container(
                   height: 50.0,
                   decoration: BoxDecoration(
@@ -700,7 +700,7 @@ Widget _accountTab(
                       hint: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          'Select Work Type',
+                          selectWorkTypeString,
                           style: TextStyle(
                             fontSize: 14,
                             color: ColorConst.hintextColor,
@@ -743,7 +743,7 @@ Widget _accountTab(
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: "Fetch Location",
+                label: fetchLocationString,
                 child: Container(
                   height: 50.0,
                   decoration: BoxDecoration(
@@ -756,7 +756,7 @@ Widget _accountTab(
                       Padding(
                         padding: const EdgeInsets.only(left: 12.0),
                         child: Text(
-                          provider.isFetchLocation ? "Enabled" : "Disabled",
+                          provider.isFetchLocation ? enabledString : disabledString,
                           style: const TextStyle(fontSize: 15),
                         ),
                       ),
@@ -775,19 +775,19 @@ Widget _accountTab(
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeledField(
-                label: "Location Radius (m)",
+                label: locationRadiusString,
                 isRequired: true,
                 child: CommonTextField(
                   controller: provider.locationRadiusController,
                   borderRadius: 8.0,
                   keyboardType: TextInputType.number,
-                  hintText: "e.g. 50",
+                  hintText: egRadiusHintString,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Radius is required';
+                      return radiusRequiredString;
                     }
                     if (int.tryParse(value) == null) {
-                      return 'Enter valid number';
+                      return enterValidNumberString;
                     }
                     return null;
                   },
@@ -823,7 +823,7 @@ Widget _personalTab(
     return Column(
       children: [
         /// PERSONAL INFORMATION
-        _buildSubSectionHeader("Personal Information", Icons.person_outline),
+        _buildSubSectionHeader(personalInformationString, Icons.person_outline),
         const SizedBox(height: 16),
       
         /// FIRST NAME & LAST NAME
@@ -832,14 +832,14 @@ Widget _personalTab(
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: "First Name",
+                label: firstNameString,
                 isRequired: true,
                 child: CommonTextField(
                   controller: provider.firstNameController,
                   borderRadius: 8.0,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'First Name is required';
+                      return firstNameRequiredString;
                     }
                     return null;
                   },
@@ -849,14 +849,14 @@ Widget _personalTab(
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeledField(
-                label: "Last Name",
+                label: lastNameString,
                 isRequired: true,
                 child: CommonTextField(
                   controller: provider.lastNameController,
                   borderRadius: 8.0,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Last Name is required';
+                      return lastNameRequiredString;
                     }
                     return null;
                   },
@@ -874,12 +874,12 @@ Widget _personalTab(
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: "Date Of Birth",
+                label: dateofBirthString,
                 child: CommonTextField(
                   controller: provider.dobController,
                   borderRadius: 8.0,
                   readOnly: true,
-                  hintText: "Select DOB",
+                  hintText: selectDOBString,
                   suffixIcon: IgnorePointer(
                     child: IconButton(
                       onPressed: () {},
@@ -916,16 +916,16 @@ Widget _personalTab(
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeledField(
-                label: "Date Of Joining",
+                label: dateOfJoiningString,
                 isRequired: true,
                 child: CommonTextField(
                   controller: provider.joiningController,
                   borderRadius: 8.0,
                   readOnly: true,
-                  hintText: "Select Joining Date",
+                  hintText: selectJoiningDateString,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Date of Joining is required';
+                      return dojRequiredString;
                     }
                     return null;
                   },
@@ -973,7 +973,7 @@ Widget _personalTab(
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: "Gender",
+                label: genderString,
                 child: Container(
                   height: 50.0,
                   decoration: BoxDecoration(
@@ -985,7 +985,7 @@ Widget _personalTab(
                       isExpanded: true,
                       hint: FixText(
                         dataName: provider.selectGender == null
-                            ? 'Gender'
+                            ? genderString
                             : provider.selectGender!.values,
                         textSize: 14,
                         colors: ColorConst.hintextColor,
@@ -1012,7 +1012,7 @@ Widget _personalTab(
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeledField(
-                label: "Marital Status",
+                label: maritalStatusString,
                 child: Container(
                   height: 50.0,
                   decoration: BoxDecoration(
@@ -1024,7 +1024,7 @@ Widget _personalTab(
                       isExpanded: true,
                       hint: FixText(
                         dataName: provider.selectedmarital == null
-                            ? 'Marital Status'
+                            ? maritalStatusString
                             : provider.selectedmarital.toString(),
                         textSize: 14,
                         colors: ColorConst.hintextColor,
@@ -1052,7 +1052,7 @@ Widget _personalTab(
         const SizedBox(height: 24),
       
         /// EMPLOYMENT DETAILS
-        _buildSubSectionHeader("Employment Details", Icons.work_outline),
+        _buildSubSectionHeader(employmentDetailsString, Icons.work_outline),
         const SizedBox(height: 16),
       
         /// SALARY TYPE & SALARY
@@ -1061,7 +1061,7 @@ Widget _personalTab(
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: "Salary Type",
+                label: salaryTypeString,
                 child: Container(
                   height: 50.0,
                   decoration: BoxDecoration(
@@ -1073,7 +1073,7 @@ Widget _personalTab(
                       isExpanded: true,
                       hint: FixText(
                         dataName: provider.seselectedSalaryTypesle == null
-                            ? 'Salary Type'
+                            ? salaryTypeString
                             : provider.seselectedSalaryTypesle!.values,
                         textSize: 14,
                         colors: ColorConst.hintextColor,
@@ -1098,7 +1098,7 @@ Widget _personalTab(
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeledField(
-                label: "Salary",
+                label: salaryAmountString,
                 isRequired: true,
                 child: CommonTextField(
                   controller: provider.salaryController,
@@ -1106,7 +1106,7 @@ Widget _personalTab(
                   keyboardType: const TextInputType.numberWithOptions(),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Salary is required';
+                      return salaryRequiredString;
                     }
                     return null;
                   },
@@ -1124,7 +1124,7 @@ Widget _personalTab(
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: "Total Hours",
+                label: totalHoursString,
                 isRequired: true,
                 child: CommonTextField(
                   controller: provider.totalHoursController,
@@ -1132,7 +1132,7 @@ Widget _personalTab(
                   keyboardType: const TextInputType.numberWithOptions(),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Total Hours is required';
+                      return totalHoursRequiredString;
                     }
                     return null;
                   },
@@ -1142,7 +1142,7 @@ Widget _personalTab(
             const SizedBox(width: 12),
             Expanded(
               child: _buildLabeledField(
-                label: "Pan No",
+                label: panString,
                 child: CommonTextField(
                   controller: provider.panNOController,
                   borderRadius: 8.0,
@@ -1153,7 +1153,7 @@ Widget _personalTab(
                     // Only validate format if value is provided
                     RegExp panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
                     if (!panRegex.hasMatch(value.toUpperCase())) {
-                      return 'Invalid format! Valid format "ABCDE1234A"';
+                      return invalidPanFormatString;
                     }
                     return null;
                   },
@@ -1188,11 +1188,11 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       /// ADDRESS INFORMATION
-      _buildSubSectionHeader("Address Information", Icons.location_on),
+      _buildSubSectionHeader(addressInformationString, Icons.location_on),
       const SizedBox(height: 16),
       
       _buildLabeledField(
-        label: "Address 1",
+        label: address1String,
         child: CommonTextField(
           controller: provider.address1Controller,
           borderRadius: 8.0,
@@ -1206,7 +1206,7 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
         children: [
           Expanded(
             child: _buildLabeledField(
-              label: "Address 2",
+              label: address2String,
               child: CommonTextField(
                 controller: provider.address2Controller,
                 borderRadius: 8.0,
@@ -1216,7 +1216,7 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           const SizedBox(width: 12),
           Expanded(
             child: _buildLabeledField(
-              label: "Address 3",
+              label: address3String,
               child: CommonTextField(
                 controller: provider.address3Controller,
                 borderRadius: 8.0,
@@ -1229,18 +1229,18 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
       const SizedBox(height: 24),
       
       /// CONTACT DETAILS
-      _buildSubSectionHeader("Contact Details", Icons.phone_outlined),
+      _buildSubSectionHeader(contactDetailsString, Icons.phone_outlined),
       const SizedBox(height: 16),
       
       _buildLabeledField(
-        label: "Mobile 1",
+        label: mobile1String,
         isRequired: true,
         child: PhoneNumberTextFiled(
           controller: provider.mobile1Controller,
           borderRadius: 8.0,
           validator: (value) {
             if (value == null || value.number.isEmpty) {
-              return 'Phone number is required';
+              return phoneRequiredString;
             }
             return null;
           },
@@ -1255,7 +1255,7 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
       const SizedBox(height: 18),
       
       _buildLabeledField(
-        label: "Mobile 2",
+        label: mobile2String,
         child: PhoneNumberTextFiled(
           controller: provider.mobile2Controller,
           borderRadius: 8.0,
@@ -1270,7 +1270,7 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
       const SizedBox(height: 18),
       
       _buildLabeledField(
-        label: "Email",
+        label: emailUserString,
         child: CommonTextField(
           controller: provider.emailController,
           borderRadius: 8.0,
@@ -1280,7 +1280,7 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
       const SizedBox(height: 24),
       
       /// LOCATION DETAILS
-      _buildSubSectionHeader("Location Details", Icons.map_outlined),
+      _buildSubSectionHeader(locationDetailsString, Icons.map_outlined),
       const SizedBox(height: 16),
       
       Row(
@@ -1288,16 +1288,16 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
         children: [
           Expanded(
             child: _buildLabeledField(
-              label: "State",
+              label: stateString,
               child: AppSearchableDropdown<Statelistm>(
                 dropdownKey: ValueKey(provider.selectedStates),
                 initialItem: provider.selectedStates,
-                hintText: 'State',
+                hintText: stateString,
                 futureRequest: (value) => provider.getFilterState(value, context),
                 items: Provider.of<AddresProviders>(context, listen: false).mainStateList,
                 itemAsString: (item) => item.stateName.toString(),
                 headerBuilder: (context, selectedItem, enabled) {
-                  return Text(provider.selectedStates == null ? 'Select State' : provider.selectedStates!.stateName.toString());
+                  return Text(provider.selectedStates == null ? selectStateString : provider.selectedStates!.stateName.toString());
                 },
                 onChanged: (vals) {
                   provider.selectedStates = vals;
@@ -1310,16 +1310,16 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           const SizedBox(width: 12),
           Expanded(
             child: _buildLabeledField(
-              label: "City",
+              label: cityString,
               child: AppSearchableDropdown<Citylistm>(
                 dropdownKey: ValueKey(provider.selectedCitys),
                 initialItem: provider.selectedCitys,
-                hintText: 'City',
+                hintText: cityString,
                 futureRequest: (value) => provider.getFilterCitys(value, context),
                 items: Provider.of<AddresProviders>(context, listen: false).filtersCityList,
                 itemAsString: (item) => item.cityName.toString(),
                 headerBuilder: (context, selectedItem, enabled) {
-                  return Text(provider.selectedCitys == null ? 'Select City' : provider.selectedCitys!.cityName.toString());
+                  return Text(provider.selectedCitys == null ? selectCityString : provider.selectedCitys!.cityName.toString());
                 },
                 onChanged: (vals) {
                   provider.selectedCitys = vals;
@@ -1334,16 +1334,16 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
       const SizedBox(height: 18),
       
       _buildLabeledField(
-        label: "Pincode",
+        label: pincodeString,
         child: AppSearchableDropdown<pincodem>(
           dropdownKey: ValueKey(provider.selectedPincodes),
           initialItem: provider.selectedPincodes,
-          hintText: 'Pincode',
+          hintText: pincodeString,
           futureRequest: (value) => provider.getFilterPincode(value, context),
           items: Provider.of<AddresProviders>(context, listen: false).filtersPincodeList,
           itemAsString: (item) => item.code.toString(),
           headerBuilder: (context, selectedItem, enabled) {
-            return Text(provider.selectedPincodes == null ? 'Select Pincode' : provider.selectedPincodes!.code.toString());
+            return Text(provider.selectedPincodes == null ? selectPincodeString : provider.selectedPincodes!.code.toString());
           },
           onChanged: (vals) {
             provider.selectedPincodes = vals;
@@ -1370,14 +1370,14 @@ Widget _educationTab(Size size, EmployeeMasterProvider provider) {
     children: [
       responsiveRow(
         child1: _buildLabeledField(
-          label: "Highest Degree",
+          label: highestDegreeString,
           child: CommonTextField(
             controller: provider.heighestDegreeController,
             borderRadius: 8.0,
           ),
         ),
         child2: _buildLabeledField(
-          label: "Degree Name",
+          label: degreeNameString,
           child: CommonTextField(
             controller: provider.degreeNameController,
             borderRadius: 8.0,
@@ -1387,14 +1387,14 @@ Widget _educationTab(Size size, EmployeeMasterProvider provider) {
       const SizedBox(height: 18),
       responsiveRow(
         child1: _buildLabeledField(
-          label: "University/School",
+          label: universitySchoolString,
           child: CommonTextField(
             controller: provider.uniSclController,
             borderRadius: 8.0,
           ),
         ),
         child2: _buildLabeledField(
-          label: "Passing Year",
+          label: passingYearString,
           child: CommonTextField(
             controller: provider.passingYearController,
             borderRadius: 8.0,
@@ -1437,7 +1437,7 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
       
       responsiveRow(
         child1: _buildLabeledField(
-          label: "Bank Name",
+          label: bankNameString,
           child: CommonTextField(
             controller: provider.bankNameController,
             borderRadius: 8.0,
@@ -1445,7 +1445,7 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
           ),
         ),
         child2: _buildLabeledField(
-          label: "Branch Name",
+          label: branchNameString,
           child: CommonTextField(
             controller: provider.branchNameController,
             borderRadius: 8.0,
@@ -1457,7 +1457,7 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
       const SizedBox(height: 18),
       
       _buildLabeledField(
-        label: "Account No",
+        label: accountNoString,
         child: CommonTextField(
           controller: provider.accNoController,
           borderRadius: 8.0,
@@ -1469,7 +1469,7 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
       const SizedBox(height: 18),
       
       _buildLabeledField(
-        label: "Account Type",
+        label: accountTypeString,
         child: Container(
           height: 50.0,
           decoration: BoxDecoration(
@@ -1480,7 +1480,7 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
             child: DropdownButton2<Mstclass>(
               isExpanded: true,
               hint: Text(
-                provider.selectedAccounttype == null ? 'Account Type' : provider.selectedAccounttype!.description.toString(),
+                provider.selectedAccounttype == null ? accountTypeString : provider.selectedAccounttype!.description.toString(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
@@ -1499,7 +1499,7 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
                   return Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      provider.selectedAccounttype == null ? 'Account Type' : provider.selectedAccounttype!.description.toString(),
+                      provider.selectedAccounttype == null ? accountTypeString : provider.selectedAccounttype!.description.toString(),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -1522,14 +1522,14 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
       
       responsiveRow(
         child1: _buildLabeledField(
-          label: "UAN Number",
+          label: uanNumberString,
           child: CommonTextField(
             controller: provider.uanNOController,
             borderRadius: 8.0,
           ),
         ),
         child2: _buildLabeledField(
-          label: "ESIC Number",
+          label: esicNumberString,
           child: CommonTextField(
             controller: provider.esicController,
             borderRadius: 8.0,

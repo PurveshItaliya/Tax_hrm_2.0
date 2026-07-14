@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
-import 'package:tax_hrm/page/attendance/viewimage.dart';
 import 'package:tax_hrm/page/usertimelineview/usertimeline.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
@@ -1032,150 +1031,134 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Avatar
-                  Container(
-                    height: 32,
-                    width: 32,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [ColorConst.themeColor.withOpacity(0.8), ColorConst.themeColor],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: ColorConst.themeColor.withOpacity(0.2),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        )
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${employee.firstName?[0] ?? ''}${employee.lastName?[0] ?? ''}'.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+              // Avatar
+              Container(
+                height: 32,
+                width: 32,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [ColorConst.themeColor.withOpacity(0.8), ColorConst.themeColor],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(width: 8),
-                  
-                  // Details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${employee.firstName} ${employee.lastName}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
-                            fontFamily: fontInterBoldString,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 1),
-                        Text(
-                          'ID: ${employee.empId}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                            fontFamily: fontInterMediumString,
-                          ),
-                        ),
-                      ],
-                    ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: ColorConst.themeColor.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    )
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${employee.firstName?[0] ?? ''}${employee.lastName?[0] ?? ''}'.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 0.5,
                   ),
-                  
-                  // Actions
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildSmallActionButton(
-                        onTap: () {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          nextScreen(
-                            context,
-                            EmployeTimelines(userId: employee.empId.toString()),
-                            onthenValue: (value) {},
-                          );
-                        },
-                        icon: Icons.timeline,
-                        color: ColorConst.themeColor,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 4),
-                      _buildSmallActionButton(
-                        onTap: () async {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          var url = 'https://Wa.me/$setPhone';
-                          await launch(url);
-                        },
-                        isImage: true,
-                        image: whatsappImgString,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 4),
-                      _buildSmallActionButton(
-                        onTap: () async {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          await Future.delayed(const Duration(milliseconds: 150));
-                          final attendanceEmp = Provider.of<AttendanceEmp>(context, listen: false);
-                          String timestampString = attendanceProviders.currentMonth.toString();
-                          String formattedTimestampString = timestampString.replaceAll('Z', '');
-                          
-                          await attendanceEmp.getDateBloges(formattedTimestampString, employee.empId.toString());
-                          
-                          if (context.mounted) {
-                             showDayDetails(
-                               context,
-                               size,
-                               attendanceEmp.selectedDateLog,
-                               timestampString,
-                               1,
-                               attendanceEmp,
-                               attendanceProviders,
-                               curentUser,
-                               employee,
-                             );
-                          }
-                        },
-                        icon: Icons.calendar_today_rounded,
-                        color: ColorConst.blueColor,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(width: 8),
               
-              // Status and Punch Row
+              // Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${employee.firstName} ${employee.lastName}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                        fontFamily: fontInterBoldString,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      'ID: ${employee.empId}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        fontFamily: fontInterMediumString,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildStatusBadge(
+                      isOnLeave: isOnLeave,
+                      isPresent: isPresent,
+                      isAbsent: isAbsent,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Actions
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Status Badge
-                  _buildStatusBadge(
-                    isOnLeave: isOnLeave,
-                    isPresent: isPresent,
-                    isAbsent: isAbsent,
+                  _buildSmallActionButton(
+                    onTap: () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      nextScreen(
+                        context,
+                        EmployeTimelines(userId: employee.empId.toString()),
+                        onthenValue: (value) {},
+                      );
+                    },
+                    icon: Icons.timeline,
+                    color: ColorConst.themeColor,
                     isDark: isDark,
                   ),
-                  
-                  // Punch Button
-                  _buildPunchButton(size, attendanceProviders, employee, index, displayList),
+                  const SizedBox(width: 4),
+                  _buildSmallActionButton(
+                    onTap: () async {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      var url = 'https://Wa.me/$setPhone';
+                      await launch(url);
+                    },
+                    isImage: true,
+                    image: whatsappImgString,
+                    isDark: isDark,
+                  ),
+                  const SizedBox(width: 4),
+                  _buildSmallActionButton(
+                    onTap: () async {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      await Future.delayed(const Duration(milliseconds: 150));
+                      final attendanceEmp = Provider.of<AttendanceEmp>(context, listen: false);
+                      String timestampString = attendanceProviders.currentMonth.toString();
+                      String formattedTimestampString = timestampString.replaceAll('Z', '');
+                      
+                      await attendanceEmp.getDateBloges(formattedTimestampString, employee.empId.toString());
+                      
+                      if (context.mounted) {
+                         showDayDetails(
+                           context,
+                           size,
+                           attendanceEmp.selectedDateLog,
+                           timestampString,
+                           1,
+                           attendanceEmp,
+                           attendanceProviders,
+                           curentUser,
+                           employee,
+                         );
+                      }
+                    },
+                    icon: Icons.calendar_today_rounded,
+                    color: ColorConst.blueColor,
+                    isDark: isDark,
+                  ),
                 ],
               ),
             ],
@@ -1274,299 +1257,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     );
   }
 
-  Widget _buildPunchButton(Size size, AdminAttenDanceServices attendanceProviders, dynamic employee, int index, List displayList) {
-    return GestureDetector(
-      onTap: () {
-        attendanceProviders.punchInTimeController.text = employee.inTime == null 
-            ? punchInTimeString 
-            : DateFormat('hh:mm a').format(DateTime.parse(employee.inTime.toString()));
-        attendanceProviders.punchOutTimeController.text = employee.outTime == null 
-            ? punchOutTimeString 
-            : DateFormat('hh:mm a').format(DateTime.parse(employee.outTime.toString()));
-        
-        _showAttendanceBottomSheet(context, size, attendanceProviders, index, displayList);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [ColorConst.themeColor, ColorConst.themeColor.withOpacity(0.8)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: ColorConst.themeColor.withOpacity(0.3),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.access_time, size: 12, color: Colors.white),
-            const SizedBox(width: 4),
-            Text(
-              punchTimeString,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontFamily: fontInterSemiBoldString,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  // ==================== ATTENDANCE BOTTOM SHEET ====================
-  void _showAttendanceBottomSheet(BuildContext context, Size size, AdminAttenDanceServices attendanceProviders, int index, List displayList) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentDate = attendanceProviders.currentMonth;
-    final formattedDate = DateFormat('EEEE, d MMMM yyyy').format(currentDate);
-    final dayName = DateFormat('EEEE').format(currentDate);
-    final dayNumber = DateFormat('d').format(currentDate);
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return SafeArea(
-              child: Container(
-                height: 420,
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-                      blurRadius: 15,
-                      offset: const Offset(0, -4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(top: 10),
-                      width: 50,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [ColorConst.themeColor, ColorConst.themeColor.withOpacity(0.7)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: ColorConst.themeColor.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  dayNumber,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    fontFamily: fontInterBoldString,
-                                    height: 1.1,
-                                  ),
-                                ),
-                                Text(
-                                  dayName.substring(0, 3).toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.white70,
-                                    fontWeight: FontWeight.w600,
-                                    fontFamily: fontInterMediumString,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${displayList[index].firstName} ${displayList[index].lastName}',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.white : ColorConst.black,
-                                    fontFamily: fontInterBoldString,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  formattedDate,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                                    fontFamily: fontInterRegularString,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 18,
-                                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    Container(
-                      height: 1,
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    buildPunchCard(
-                      size: size,
-                      title: punchInString.toUpperCase(),
-                      time: attendanceProviders.punchInTimeController.text,
-                      icon: Icons.login_rounded,
-                      color: Colors.green,
-                      gradientStart: const Color(0xFF00B4DB),
-                      gradientEnd: const Color(0xFF0083B0),
-                      status: displayList[index].inTime != null ? completedString : pendingString,
-                      onTap: () async {
-                        if (displayList[index].inTime == null) {
-                          await attendanceProviders.showTimePickerDialog(
-                            context: context,
-                            title: punchInString,
-                            isPunchIn: true,
-                            attendanceProviders: attendanceProviders,
-                            empId: displayList[index].empId!.toInt(),
-                            attendanceId: null,
-                            currentMonth: currentDate,
-                          );
-                          setSheetState(() {});
-                          // Refresh data after punch in
-                          setState(() {
-                            _filterEmployees();
-                          });
-                        }
-                      },
-                      isCompleted: displayList[index].inTime != null,
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    buildPunchCard(
-                      size: size,
-                      title: punchOutString.toUpperCase(),
-                      time: attendanceProviders.punchOutTimeController.text,
-                      icon: Icons.logout_rounded,
-                      color: Colors.red,
-                      gradientStart: const Color(0xFFFA709A),
-                      gradientEnd: const Color(0xFFFEE140),
-                      status: displayList[index].outTime != null ? completedString : pendingString,
-                      onTap: () async {
-                        if (displayList[index].inTime != null && 
-                            displayList[index].outTime == null) {
-                          await attendanceProviders.showTimePickerDialog(
-                            context: context,
-                            title: punchOutString,
-                            isPunchIn: false,
-                            attendanceProviders: attendanceProviders,
-                            empId: displayList[index].empId!.toInt(),
-                            attendanceId: displayList[index].attendenceID,
-                            currentMonth: currentDate,
-                          );
-                          setSheetState(() {});
-                          // Refresh data after punch out
-                          setState(() {
-                            _filterEmployees();
-                          });
-                        }
-                      },
-                      isCompleted: displayList[index].outTime != null,
-                    ),
-                    
-                    const Spacer(),
-                    
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: ColorConst.themeColor.withOpacity(isDark ? 0.15 : 0.05),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: ColorConst.themeColor.withOpacity(isDark ? 0.3 : 0.15)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, size: 16, color: ColorConst.themeColor),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              punchInBeforeString,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-                                fontFamily: fontInterRegularString,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+
+
 }

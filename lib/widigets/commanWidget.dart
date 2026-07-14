@@ -165,15 +165,17 @@ Widget summaryTile(BuildContext context, Size size, String title, String value, 
             ),
           ),
           widthSpacer(size.width * 0.02),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(title, style:  TextStyle( fontSize: size.width * 0.035, color: Colors.grey, fontFamily: fontInterMediumString, fontWeight: FontWeight.w500)),
-              num.tryParse(value) != null 
-                  ? AnimatedCountText(value: num.parse(value), style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString))
-                  : Text(value, style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style:  TextStyle( fontSize: size.width * 0.035, color: Colors.grey, fontFamily: fontInterMediumString, fontWeight: FontWeight.w500)),
+                num.tryParse(value) != null
+                    ? AnimatedCountText(value: num.parse(value), style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString))
+                    : Text(value, style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString)),
+              ],
+            ),
           )
         ],
       ),

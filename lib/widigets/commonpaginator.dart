@@ -1,7 +1,6 @@
 // ignore_for_file: must_be_immutable
 
 import 'package:flutter/material.dart';
-import 'package:number_paginator/number_paginator.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 
 class CommonPagination extends StatefulWidget {
@@ -20,62 +19,79 @@ class CommonPagination extends StatefulWidget {
 }
 
 class _CommonPaginationState extends State<CommonPagination> {
-  final NumberPaginatorController controller = NumberPaginatorController();
-  @override
   @override
   Widget build(BuildContext context) {
-    Size size = MediaQuery.of(context).size;
-    return SizedBox(
-      height: size.height * 0.05,
-      child: NumberPaginator(
-        key: ValueKey(widget.initialPage),
-        controller: controller,
-        initialPage: widget.initialPage,
-        numberPages: widget.numberPages,
-        onPageChange: widget.onPageChange,
-        child: Row(
-          children: [
-            PrevButton(child: Icon(Icons.chevron_left,color: ColorConst.greyColor,size: 30,),),
-            Expanded(
-              child: NumberContent(
-                buttonBuilder: (context, index, isSelected) {
-                  return GestureDetector(
-                    onTap: () {
-                      controller.navigateToPage(index); // Update page
-                      if (widget.onPageChange != null) {
-                        widget.onPageChange!(index); // Call external function
-                      }
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+    if (widget.numberPages <= 1) return const SizedBox.shrink();
+    
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(
+            Icons.chevron_left_rounded, 
+            color: widget.initialPage > 0 ? ColorConst.themeColor : Colors.grey.shade400, 
+            size: 26,
+          ),
+          onPressed: widget.initialPage > 0
+              ? () => widget.onPageChange?.call(widget.initialPage - 1)
+              : null,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(widget.numberPages, (index) {
+                final isSelected = index == widget.initialPage;
+                return GestureDetector(
+                  onTap: () => widget.onPageChange?.call(index),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: isSelected ? ColorConst.themeColor : Colors.grey.shade100,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? ColorConst.themeColor : Colors.grey.shade300,
+                        width: 0.5,
                       ),
-                      decoration: BoxDecoration(
-                        color: controller.currentPage == index
-                            ? ColorConst.themeColor
-                            : Colors.grey[300],
-                        shape: BoxShape.circle,
-                      ),
+                    ),
+                    child: Center(
                       child: Text(
                         '${index + 1}',
                         style: TextStyle(
-                          color: controller.currentPage == index
-                              ? ColorConst.white
-                              : Colors.black,
+                          color: isSelected ? ColorConst.white : Colors.black87,
                           fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              }),
             ),
-            NextButton(child: Icon(Icons.chevron_right,color: ColorConst.greyColor,size: 30,),),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: Icon(
+            Icons.chevron_right_rounded, 
+            color: widget.initialPage < widget.numberPages - 1 ? ColorConst.themeColor : Colors.grey.shade400, 
+            size: 26,
+          ),
+          onPressed: widget.initialPage < widget.numberPages - 1
+              ? () => widget.onPageChange?.call(widget.initialPage + 1)
+              : null,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+        ),
+      ],
     );
   }
 }
