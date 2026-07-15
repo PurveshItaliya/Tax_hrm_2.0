@@ -60,8 +60,6 @@ class CompanyMasterApi {
         }
       }
     }
-
-    print('------------------------>>>> CompanyFileupload req.fields: ${req.fields} | files count: ${req.files.length}');
     var response = await req.send();
     return response.statusCode;
   }

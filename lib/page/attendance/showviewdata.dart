@@ -1115,11 +1115,12 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                         onthenValue: (value) {},
                       );
                     },
-                    icon: Icons.timeline,
+                    icon: Icons.history_rounded,
                     color: ColorConst.themeColor,
                     isDark: isDark,
+                    tooltip: 'View Timeline',
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   _buildSmallActionButton(
                     onTap: () async {
                       FocusManager.instance.primaryFocus?.unfocus();
@@ -1128,9 +1129,11 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     },
                     isImage: true,
                     image: whatsappImgString,
+                    color: ColorConst.greenColor,
                     isDark: isDark,
+                    tooltip: 'WhatsApp Message',
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   _buildSmallActionButton(
                     onTap: () async {
                       FocusManager.instance.primaryFocus?.unfocus();
@@ -1155,9 +1158,12 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                          );
                       }
                     },
-                    icon: Icons.calendar_today_rounded,
+                    isImage: true,
+                    image: punchHistoryImgString,
                     color: ColorConst.blueColor,
+                    imageColor: isDark ? Colors.white : ColorConst.blueColor,
                     isDark: isDark,
+                    tooltip: 'Day Attendance Log',
                   ),
                 ],
               ),
@@ -1239,22 +1245,32 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     String? image,
     Color color = Colors.white,
     bool isDark = false,
+    String? tooltip,
+    Color? imageColor,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: isImage
-              ? (isDark ? Colors.grey.shade800 : Colors.grey.shade100)
-              : color.withOpacity(isDark ? 0.2 : 0.1),
-          borderRadius: BorderRadius.circular(6),
+    Color btnColor = color == Colors.white && isImage ? ColorConst.greenColor : color;
+    Widget button = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: btnColor.withOpacity(isDark ? 0.2 : 0.1),
+            border: Border.all(color: btnColor.withOpacity(isDark ? 0.5 : 0.4), width: 0.8),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: (isImage || image != null) && image != null
+              ? Image.asset(image, height: 19, width: 19, color: imageColor)
+              : Icon(icon, size: 19, color: isDark ? Colors.white : btnColor),
         ),
-        child: isImage && image != null
-            ? Image.asset(image, height: 14, width: 14)
-            : Icon(icon, size: 14, color: color),
       ),
     );
+    if (tooltip != null && tooltip.isNotEmpty) {
+      return Tooltip(message: tooltip, child: button);
+    }
+    return button;
   }
 
 

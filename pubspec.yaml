@@ -93,6 +93,7 @@ dependencies:
   firebase_messaging: 
   flutter_localizations:
     sdk: flutter
+  firebase_crashlytics:
 
 dev_dependencies:
   flutter_test:

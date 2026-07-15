@@ -54,11 +54,13 @@
   String rateImgString = 'assets/images/rating.png';
   String settingsImgString = 'assets/images/settings.png';
   String shareImgString = 'assets/images/share.png';
+  String contactUsImgString = 'assets/images/whatsapp.png';
   String userTimelineImgString = 'assets/images/userTimeline.svg';
 
   // department screen
   String departmentimgString = 'assets/images/departmentimg.svg';
   String designationimgString = 'assets/images/designationimg.svg';
   String whatsappImgString = 'assets/images/whatsapp.png';
+  String punchHistoryImgString = 'assets/images/punch_history.png';
 
 

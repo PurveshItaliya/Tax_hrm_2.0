@@ -154,6 +154,7 @@ String get personalInfoString => LanguageProvider.translate("Personal info", "Pe
 String get whatsNewString => LanguageProvider.translate("What’s New", "What’s New");
 String get shareString => LanguageProvider.translate("Share", "Share");
 String get rateString => LanguageProvider.translate("Rate Us", "Rate Us");     
+String get contactUsString => LanguageProvider.translate("Contact Us", "Contact Us");
 String get exitString => LanguageProvider.translate("Exit", "Exit");
 
 // user profile title

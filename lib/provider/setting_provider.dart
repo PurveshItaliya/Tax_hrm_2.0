@@ -12,6 +12,7 @@ import 'package:tax_hrm/models/getMenuSettings_model.dart';
 import 'package:tax_hrm/models/usermaster/userbyid.dart';
 import 'package:tax_hrm/page/document/showdocument_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
+import 'package:tax_hrm/page/setting/contact_us_screen.dart';
 import 'package:tax_hrm/page/whats_new/whats_new_screen.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -60,6 +61,11 @@ class SettingProvider extends ChangeNotifier {
         isUser = false;
         showRoleRightsSelectDialog(context,size: MediaQuery.of(context).size);
       }),
+      HomeGridClass(image: contactUsImgString, title: contactUsString,onTap: () {
+        nextScreen(context, const ContactUsScreen(),onthenValue: (value) {
+          safeAreaBgAndTextColor(context,safeAreaBgColor: ColorConst.themeColor,safeAreaBrightness: Brightness.light);
+        },);
+      }),
       HomeGridClass(image: whatsNewImgString, title: whatsNewString,onTap: () {
         nextScreen(context, WhatsNewPage(),onthenValue: (value) {
           safeAreaBgAndTextColor(context,safeAreaBgColor: ColorConst.themeColor,safeAreaBrightness: Brightness.light);
@@ -77,6 +83,11 @@ class SettingProvider extends ChangeNotifier {
       }),
       HomeGridClass(image: documentImageString, title: documentString,onTap: () {
          nextScreen(context, ShowDocumentScreen(),onthenValue: (value){
+          safeAreaBgAndTextColor(context,safeAreaBgColor: ColorConst.themeColor,safeAreaBrightness: Brightness.light);
+        },);
+      }),
+      HomeGridClass(image: contactUsImgString, title: contactUsString,onTap: () {
+        nextScreen(context, const ContactUsScreen(),onthenValue: (value) {
           safeAreaBgAndTextColor(context,safeAreaBgColor: ColorConst.themeColor,safeAreaBrightness: Brightness.light);
         },);
       }),
