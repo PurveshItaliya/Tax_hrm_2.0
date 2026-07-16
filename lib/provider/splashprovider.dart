@@ -123,6 +123,7 @@ class SplashProvider extends ChangeNotifier {
           role: curentUser['Role']?.toString() ?? 'Employee',
           employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
         );
+        await FcmTokenService.instance.subscribeToCompanyTopic();
       }
       await ReminderNotificationService.scheduleAllNotifications();
     } catch (e) { /* ignored */ }
@@ -137,6 +138,7 @@ class SplashProvider extends ChangeNotifier {
           role: curentUser['Role']?.toString() ?? 'Employee',
           employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
         );
+        FcmTokenService.instance.subscribeToCompanyTopic();
       }
       ReminderNotificationService.scheduleAllNotifications();
     } catch (e) { /* ignored */ }
@@ -184,6 +186,7 @@ class SplashProvider extends ChangeNotifier {
           }
         });
       } else{
+        await FcmTokenService.instance.handleLogout();
         triggerNextScreen(context, LoginScreen());
       }
     });
@@ -193,6 +196,7 @@ class SplashProvider extends ChangeNotifier {
     await AuthLoginService().calllogin(curentUser['Username'],curentUser['Password']).then((value) async{
       UserLogin loginReponse =value as UserLogin;
       if(loginReponse.id == 0 && loginReponse.role == null){
+        await FcmTokenService.instance.handleLogout();
         SaveUser().saveUserData('');
         SaveUser().saveselectedcopany('');
         triggerNextScreen(context, LoginScreen());
@@ -213,6 +217,7 @@ class SplashProvider extends ChangeNotifier {
     await AuthLoginService().callEmployeLogin(curentUser['UserName'],curentUser['Password']).then((value) async{
       EmpUserLogin loginReponse =value as EmpUserLogin;
       if(loginReponse.success == false || loginReponse.hRM  == false){
+        await FcmTokenService.instance.handleLogout();
         SaveUser().saveUserData('');
         SaveUser().saveselectedcopany('');
         triggerNextScreen(context, LoginScreen());

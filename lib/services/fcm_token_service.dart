@@ -29,6 +29,9 @@ class FcmTokenService {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   Map<String, dynamic>? _pendingPayload;
   bool _isInitialized = false;
+  String? _currentSubscribedTopic;
+  bool _isTopicOperationInProgress = false;
+  final Set<String> _customSubscribedTopics = {};
 
   /// Initialize FCM listeners and retrieve token if user is logged in
   Future<void> initialize() async {
@@ -163,14 +166,111 @@ class FcmTokenService {
       print('[FCM] Uploading token to server for EmpId $empId...');
       await AttendanceApis().notificationTokens(token, empId);
       print('[FCM] Token uploaded successfully.');
+      await subscribeToCompanyTopic();
     } catch (e) {
       print('[FCM] Error uploading token: $e');
+    }
+  }
+
+  /// Subscribe to a specific topic
+  Future<void> subscribeToTopic(String topic) async {
+    if (_customSubscribedTopics.contains(topic)) {
+      print('[FCM] Already subscribed to custom topic: $topic. Skipping duplicate entry.');
+      return;
+    }
+    try {
+      print('[FCM] Subscribing to topic: $topic...');
+      await FirebaseMessaging.instance.subscribeToTopic(topic);
+      _customSubscribedTopics.add(topic);
+      print('[FCM] Successfully subscribed to topic: $topic');
+    } catch (e) {
+      print('[FCM] Error subscribing to topic $topic: $e');
+    }
+  }
+
+  /// Unsubscribe from a specific topic
+  Future<void> unsubscribeFromTopic(String topic) async {
+    try {
+      print('[FCM] Unsubscribing from topic: $topic...');
+      await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
+      _customSubscribedTopics.remove(topic);
+      print('[FCM] Successfully unsubscribed from topic: $topic');
+    } catch (e) {
+      print('[FCM] Error unsubscribing from topic $topic: $e');
+    }
+  }
+
+  /// Subscribe to company topic ("ALL_USER_COMPANYID") without multiple duplicate entries
+  Future<void> subscribeToCompanyTopic() async {
+    final companyId = selectedcurentcompany?.companyId ?? curentUser?['CompanyId'];
+    if (companyId == null) {
+      print('[FCM] Skipping company topic subscription: Company ID not found.');
+      return;
+    }
+    if (_isTopicOperationInProgress) {
+      print('[FCM] Topic subscription already in progress, skipping duplicate call.');
+      return;
+    }
+
+    _isTopicOperationInProgress = true;
+    try {
+      final String topic = 'ALL_USER_$companyId';
+      final prefs = await SharedPreferences.getInstance();
+      final String? savedTopic = _currentSubscribedTopic ?? prefs.getString('fcm_subscribed_topic');
+
+      if (savedTopic == topic) {
+        print('[FCM] Already subscribed to topic: $topic. Skipping duplicate entry.');
+        _currentSubscribedTopic = topic;
+        return;
+      }
+
+      if (savedTopic != null && savedTopic != topic) {
+        print('[FCM] Unsubscribing from previous topic: $savedTopic...');
+        await FirebaseMessaging.instance.unsubscribeFromTopic(savedTopic);
+        await prefs.remove('fcm_subscribed_topic');
+      }
+      print('[FCM] Subscribing to company topic: $topic...');
+      await FirebaseMessaging.instance.subscribeToTopic(topic);
+      _currentSubscribedTopic = topic;
+      await prefs.setString('fcm_subscribed_topic', topic);
+      print('[FCM] Successfully subscribed to company topic: $topic');
+    } catch (e) {
+      print('[FCM] Error subscribing to company topic: $e');
+    } finally {
+      _isTopicOperationInProgress = false;
+    }
+  }
+
+  /// Unsubscribe from the current company topic
+  Future<void> unsubscribeFromCompanyTopic() async {
+    if (_isTopicOperationInProgress) {
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? savedTopic = _currentSubscribedTopic ?? prefs.getString('fcm_subscribed_topic');
+
+      if (savedTopic == null && (selectedcurentcompany?.companyId != null || curentUser?['CompanyId'] != null)) {
+        final companyId = selectedcurentcompany?.companyId ?? curentUser?['CompanyId'];
+        savedTopic = 'ALL_USER_$companyId';
+      }
+
+      if (savedTopic != null) {
+        print('[FCM] Unsubscribing from company topic: $savedTopic...');
+        await FirebaseMessaging.instance.unsubscribeFromTopic(savedTopic);
+        await prefs.remove('fcm_subscribed_topic');
+        _currentSubscribedTopic = null;
+        print('[FCM] Successfully unsubscribed from company topic: $savedTopic');
+      }
+    } catch (e) {
+      print('[FCM] Error unsubscribing from company topic: $e');
     }
   }
 
   /// Delete/Deactivate token on logout
   Future<void> handleLogout() async {
     try {
+      await unsubscribeFromCompanyTopic();
       // Clear token on server first
       if (curentUser != null && curentUser['Id'] != null) {
         final empId = curentUser['Id'];

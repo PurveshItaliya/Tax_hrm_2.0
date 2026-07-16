@@ -407,6 +407,9 @@ class Otpverificationprovider extends ChangeNotifier {
           }
         });
       }
+      if (selectedcurentcompany != null) {
+        FcmTokenService.instance.subscribeToCompanyTopic();
+      }
     });
   }
 }

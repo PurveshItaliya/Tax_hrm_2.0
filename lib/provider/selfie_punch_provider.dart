@@ -33,6 +33,7 @@ import 'package:tax_hrm/provider/shiftprovider.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
+import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
@@ -522,6 +523,7 @@ class SelfiePunchProvider extends ChangeNotifier {
 
       if (setresponse.success != true) {
         showtoastmessage('Your Account is InActive');
+        await FcmTokenService.instance.handleLogout();
         SaveUser().saveUserData('');
         SaveUser().saveselectedcopany('');
         nextscreenRemove(context, ShowSpleshPage(), onthenValue: (vaolue) {});
@@ -531,6 +533,7 @@ class SelfiePunchProvider extends ChangeNotifier {
 
       if (setresponse.password != curentUser['Password']) {
         showtoastmessage('Your password has been changed');
+        await FcmTokenService.instance.handleLogout();
         SaveUser().saveUserData('');
         SaveUser().saveselectedcopany('');
         nextscreenRemove(context, ShowSpleshPage(), onthenValue: (vaolue) {});
