@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -32,6 +33,7 @@ class FcmTokenService {
   String? _currentSubscribedTopic;
   bool _isTopicOperationInProgress = false;
   final Set<String> _customSubscribedTopics = {};
+  Future<void>? _pendingSubscriptionOp;
 
   /// Initialize FCM listeners and retrieve token if user is logged in
   Future<void> initialize() async {
@@ -135,10 +137,16 @@ class FcmTokenService {
     try {
       if (Platform.isIOS) {
         String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-        if (apnsToken == null) {
-          print('[FCM] APNs token is null. Retrying in 2 seconds...');
+        int retries = 0;
+        while (apnsToken == null && retries < 5) {
+          print('[FCM] APNs token is null. Retrying in 2 seconds (attempt ${retries + 1}/5)...');
           await Future.delayed(const Duration(seconds: 2));
           apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+          retries++;
+        }
+        if (apnsToken == null) {
+          print('[FCM] APNs token could not be retrieved after retries. Skip fetching FCM token.');
+          return;
         }
         print('[FCM] APNs Token retrieved: $apnsToken');
       }
@@ -172,105 +180,224 @@ class FcmTokenService {
     }
   }
 
+  Future<bool> _waitForApnsTokenIfNeeded() async {
+    if (!Platform.isIOS) return true;
+    try {
+      String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+      int retries = 0;
+      while (apnsToken == null && retries < 5) {
+        print('[FCM] APNs token not available for topic operation. Retrying in 2 seconds (attempt ${retries + 1}/5)...');
+        await Future.delayed(const Duration(seconds: 2));
+        apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+        retries++;
+      }
+      return apnsToken != null;
+    } catch (e) {
+      print('[FCM] Error checking APNs token: $e');
+      return false;
+    }
+  }
+
+  Future<void> _queueOperation(Future<void> Function() operation) async {
+    final completer = Completer<void>();
+    final previousOp = _pendingSubscriptionOp;
+    _pendingSubscriptionOp = completer.future;
+
+    if (previousOp != null) {
+      try {
+        await previousOp;
+      } catch (_) {}
+    }
+
+    try {
+      await operation();
+    } finally {
+      completer.complete();
+    }
+  }
+
   /// Subscribe to a specific topic
   Future<void> subscribeToTopic(String topic) async {
-    if (_customSubscribedTopics.contains(topic)) {
-      print('[FCM] Already subscribed to custom topic: $topic. Skipping duplicate entry.');
-      return;
-    }
-    try {
-      print('[FCM] Subscribing to topic: $topic...');
-      await FirebaseMessaging.instance.subscribeToTopic(topic);
-      _customSubscribedTopics.add(topic);
-      print('[FCM] Successfully subscribed to topic: $topic');
-    } catch (e) {
-      print('[FCM] Error subscribing to topic $topic: $e');
-    }
+    await _queueOperation(() async {
+      if (Platform.isIOS) {
+        final hasApns = await _waitForApnsTokenIfNeeded();
+        if (!hasApns) {
+          print('[FCM] Aborting subscribeToTopic: APNs token is not set on iOS.');
+          return;
+        }
+      }
+      final sanitized = sanitizeTopic(topic);
+      if (_customSubscribedTopics.contains(sanitized)) {
+        print('[FCM] Already subscribed to custom topic: $sanitized. Skipping duplicate entry.');
+        return;
+      }
+      try {
+        print('[FCM] Subscribing to topic: $sanitized...');
+        await FirebaseMessaging.instance.subscribeToTopic(sanitized);
+        _customSubscribedTopics.add(sanitized);
+        print('[FCM] Successfully subscribed to topic: $sanitized');
+      } catch (e) {
+        print('[FCM] Error subscribing to topic $sanitized: $e');
+      }
+    });
   }
 
   /// Unsubscribe from a specific topic
   Future<void> unsubscribeFromTopic(String topic) async {
-    try {
-      print('[FCM] Unsubscribing from topic: $topic...');
-      await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
-      _customSubscribedTopics.remove(topic);
-      print('[FCM] Successfully unsubscribed from topic: $topic');
-    } catch (e) {
-      print('[FCM] Error unsubscribing from topic $topic: $e');
-    }
+    await _queueOperation(() async {
+      if (Platform.isIOS) {
+        final hasApns = await _waitForApnsTokenIfNeeded();
+        if (!hasApns) {
+          print('[FCM] Aborting unsubscribeFromTopic: APNs token is not set on iOS.');
+          return;
+        }
+      }
+      final sanitized = sanitizeTopic(topic);
+      try {
+        print('[FCM] Unsubscribing from topic: $sanitized...');
+        await FirebaseMessaging.instance.unsubscribeFromTopic(sanitized);
+        _customSubscribedTopics.remove(sanitized);
+        print('[FCM] Successfully unsubscribed from topic: $sanitized');
+      } catch (e) {
+        print('[FCM] Error unsubscribing from topic $sanitized: $e');
+      }
+    });
   }
 
-  /// Subscribe to company topic ("ALL_USER_COMPANYID") without multiple duplicate entries
-  Future<void> subscribeToCompanyTopic() async {
-    final companyId = selectedcurentcompany?.companyId ?? curentUser?['CompanyId'];
-    if (companyId == null) {
-      print('[FCM] Skipping company topic subscription: Company ID not found.');
-      return;
-    }
-    if (_isTopicOperationInProgress) {
-      print('[FCM] Topic subscription already in progress, skipping duplicate call.');
-      return;
-    }
+  /// Sanitize topic names to match FCM constraints ([a-zA-Z0-9-_.~%]+)
+  String sanitizeTopic(String topic) {
+    return topic.replaceAll(RegExp(r'[^a-zA-Z0-9\-_.~%]'), '_');
+  }
 
-    _isTopicOperationInProgress = true;
-    try {
-      final String topic = 'ALL_USER_$companyId';
-      final prefs = await SharedPreferences.getInstance();
-      final String? savedTopic = _currentSubscribedTopic ?? prefs.getString('fcm_subscribed_topic');
-
-      if (savedTopic == topic) {
-        print('[FCM] Already subscribed to topic: $topic. Skipping duplicate entry.');
-        _currentSubscribedTopic = topic;
+  /// Update topic subscriptions dynamically based on user and company details
+  Future<void> updateTopicSubscriptions() async {
+    await _queueOperation(() async {
+      if (curentUser == null || curentUser['Id'] == null) {
+        print('[FCM] User is not logged in. Skipping topic subscriptions update.');
         return;
       }
 
-      if (savedTopic != null && savedTopic != topic) {
-        print('[FCM] Unsubscribing from previous topic: $savedTopic...');
-        await FirebaseMessaging.instance.unsubscribeFromTopic(savedTopic);
-        await prefs.remove('fcm_subscribed_topic');
+      if (Platform.isIOS) {
+        final hasApns = await _waitForApnsTokenIfNeeded();
+        if (!hasApns) {
+          print('[FCM] Aborting updateTopicSubscriptions: APNs token is not set on iOS.');
+          return;
+        }
       }
-      print('[FCM] Subscribing to company topic: $topic...');
-      await FirebaseMessaging.instance.subscribeToTopic(topic);
-      _currentSubscribedTopic = topic;
-      await prefs.setString('fcm_subscribed_topic', topic);
-      print('[FCM] Successfully subscribed to company topic: $topic');
-    } catch (e) {
-      print('[FCM] Error subscribing to company topic: $e');
-    } finally {
-      _isTopicOperationInProgress = false;
-    }
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final List<String> oldTopics = prefs.getStringList('fcm_subscribed_topics') ?? [];
+        final List<String> newTopics = [];
+
+        // 1. 'all'
+        newTopics.add('all');
+
+        // 2. Role-based topic
+        final role = curentUser['Role']?.toString() ?? '';
+        if (role == 'Admin') {
+          newTopics.add('all_admin');
+        } else if (role == 'Sub-Admin') {
+          newTopics.add('all_subadmin');
+        } else {
+          newTopics.add('all_user');
+        }
+
+        // 3. Company-based topic
+        final companyId = selectedcurentcompany?.companyId ?? curentUser?['CompanyId'];
+        if (companyId != null) {
+          newTopics.add(sanitizeTopic('company_$companyId'));
+        }
+
+        // 4. Branch-based topic (optional)
+        final branchId = curentUser?['BranchId'] ?? curentUser?['branchId'];
+        if (branchId != null) {
+          newTopics.add(sanitizeTopic('branch_$branchId'));
+        }
+
+        // 5. Individual user topic
+        final userId = curentUser?['Id'];
+        final userName = curentUser?['UserName'] ?? curentUser?['Username'];
+        if (userId != null && userName != null) {
+          newTopics.add(sanitizeTopic('user_${userId}_$userName'));
+        }
+
+        print('[FCM] Updating subscriptions. Old: $oldTopics, New: $newTopics');
+
+        // Unsubscribe from old topics that are not in new list
+        for (final topic in oldTopics) {
+          if (!newTopics.contains(topic)) {
+            try {
+              await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
+              print('[FCM] Successfully unsubscribed from old topic: $topic');
+            } catch (e) {
+              print('[FCM] Error unsubscribing from old topic $topic: $e');
+            }
+          }
+        }
+
+        // Subscribe to new topics that are not in old list
+        for (final topic in newTopics) {
+          if (!oldTopics.contains(topic)) {
+            try {
+              await FirebaseMessaging.instance.subscribeToTopic(topic);
+              print('[FCM] Successfully subscribed to new topic: $topic');
+            } catch (e) {
+              print('[FCM] Error subscribing to new topic $topic: $e');
+            }
+          }
+        }
+
+        await prefs.setStringList('fcm_subscribed_topics', newTopics);
+      } catch (e) {
+        print('[FCM] Error updating topic subscriptions: $e');
+      }
+    });
   }
 
-  /// Unsubscribe from the current company topic
+  /// Unsubscribe from all currently subscribed topics
+  Future<void> unsubscribeFromAllTopics() async {
+    await _queueOperation(() async {
+      if (Platform.isIOS) {
+        final hasApns = await _waitForApnsTokenIfNeeded();
+        if (!hasApns) {
+          print('[FCM] Aborting unsubscribeFromAllTopics: APNs token is not set on iOS.');
+          return;
+        }
+      }
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final List<String> subscribedTopics = prefs.getStringList('fcm_subscribed_topics') ?? [];
+        for (final topic in subscribedTopics) {
+          try {
+            await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
+            print('[FCM] Successfully unsubscribed from topic: $topic');
+          } catch (e) {
+            print('[FCM] Error unsubscribing from topic $topic: $e');
+          }
+        }
+        await prefs.remove('fcm_subscribed_topics');
+      } catch (e) {
+        print('[FCM] Error unsubscribing from all topics: $e');
+      }
+    });
+  }
+
+  /// Subscribe to company topic (remapped to sync all topics)
+  Future<void> subscribeToCompanyTopic() async {
+    await updateTopicSubscriptions();
+  }
+
+  /// Unsubscribe from the current company topic (remapped to unsubscribe from all)
   Future<void> unsubscribeFromCompanyTopic() async {
-    if (_isTopicOperationInProgress) {
-      await Future.delayed(const Duration(milliseconds: 300));
-    }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      String? savedTopic = _currentSubscribedTopic ?? prefs.getString('fcm_subscribed_topic');
-
-      if (savedTopic == null && (selectedcurentcompany?.companyId != null || curentUser?['CompanyId'] != null)) {
-        final companyId = selectedcurentcompany?.companyId ?? curentUser?['CompanyId'];
-        savedTopic = 'ALL_USER_$companyId';
-      }
-
-      if (savedTopic != null) {
-        print('[FCM] Unsubscribing from company topic: $savedTopic...');
-        await FirebaseMessaging.instance.unsubscribeFromTopic(savedTopic);
-        await prefs.remove('fcm_subscribed_topic');
-        _currentSubscribedTopic = null;
-        print('[FCM] Successfully unsubscribed from company topic: $savedTopic');
-      }
-    } catch (e) {
-      print('[FCM] Error unsubscribing from company topic: $e');
-    }
+    await unsubscribeFromAllTopics();
   }
 
   /// Delete/Deactivate token on logout
   Future<void> handleLogout() async {
     try {
-      await unsubscribeFromCompanyTopic();
+      await unsubscribeFromAllTopics();
       // Clear token on server first
       if (curentUser != null && curentUser['Id'] != null) {
         final empId = curentUser['Id'];

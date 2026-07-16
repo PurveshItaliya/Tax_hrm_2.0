@@ -517,6 +517,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
               }
               await SaveUser().saveAdminSwitch(switchValue);
               await SaveUser().saveUserData(jsonEncode(curentUser));
+              await FcmTokenService.instance.updateTopicSubscriptions();
 
               if (!context.mounted) return;
               Provider.of<HomeProvider>(

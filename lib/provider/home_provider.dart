@@ -46,6 +46,7 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
+import 'package:tax_hrm/page/notifications/admin_notifications_screen.dart';
 
 class HomeProvider extends ChangeNotifier {
   bool _notifyScheduled = false;
@@ -131,6 +132,9 @@ class HomeProvider extends ChangeNotifier {
       }),
       HomeGridClass(image: aediDecImageString, title: addDeduString, onTap: () {
         nextScreen(context, AdditionDeductionScreen(), onthenValue: (value) {});
+      }),
+      HomeGridClass(image: whatsNewImgString, title: notificationString, onTap: () {
+        nextScreen(context, const AdminNotificationsScreen(), onthenValue: (value) {});
       }),
     ] : [
       HomeGridClass(image: attendanceUserString, title: attendanceString,onTap: (){
@@ -224,15 +228,14 @@ class HomeProvider extends ChangeNotifier {
   }
 
   selectCompanyOntap(item,context) async {
-    await FcmTokenService.instance.unsubscribeFromCompanyTopic();
     selectedcurentcompany = item;
     notifyListeners();
     Navigator.pop(context);
     String setdata =  jsonEncode(selectedcurentcompany);
     SaveUser().saveselectedcopany(setdata);
-    setcompanyselected();
+    await setcompanyselected();
     ReminderNotificationService.scheduleAllNotifications(forceRefresh: true);
-    FcmTokenService.instance.subscribeToCompanyTopic();
+    await FcmTokenService.instance.updateTopicSubscriptions();
   }
 
   // Working Hours Related
