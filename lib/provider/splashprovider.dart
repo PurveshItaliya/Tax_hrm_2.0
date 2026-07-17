@@ -123,6 +123,7 @@ class SplashProvider extends ChangeNotifier {
           role: curentUser['Role']?.toString() ?? 'Employee',
           employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
         );
+        await FcmTokenService.instance.subscribeLoginTopics();
       }
       await ReminderNotificationService.scheduleAllNotifications();
     } catch (e) { /* ignored */ }
@@ -137,6 +138,7 @@ class SplashProvider extends ChangeNotifier {
           role: curentUser['Role']?.toString() ?? 'Employee',
           employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
         );
+        FcmTokenService.instance.subscribeLoginTopics();
       }
       ReminderNotificationService.scheduleAllNotifications();
     } catch (e) { /* ignored */ }
