@@ -1,8 +1,10 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, strict_top_level_inference, file_names, avoid_function_literals_in_foreach_calls
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tax_hrm/api/leavesapi.dart';
 import 'package:tax_hrm/models/Holidays/getholiday.dart';
 import 'package:tax_hrm/models/createcguid.dart';
@@ -24,6 +26,7 @@ import 'package:tax_hrm/widigets/toastmessage.dart';
 
 class LeaveMastServices extends ChangeNotifier {
   bool islodering = false;
+  bool _hasFetchedLeaves = false;
 
   bool get isloderings => islodering;
 
@@ -441,42 +444,76 @@ class LeaveMastServices extends ChangeNotifier {
   }
 
   Future getUserLeaveLists() async {
-    setloading(true);
+    const cacheKey = 'leave_list_cache';
+    const ttlMs = 15 * 60 * 1000; // 15 minutes TTL
+
+    // ── Step 1: Show local cache immediately (no clearing, no flicker) ────────
+    bool loadedFromCache = false;
+    if (mainallLeavesData.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cachedJson = prefs.getString(cacheKey);
+        final cachedTs = prefs.getInt('${cacheKey}_ts') ?? 0;
+        final age = DateTime.now().millisecondsSinceEpoch - cachedTs;
+        if (cachedJson != null && age < ttlMs) {
+          final List decoded = jsonDecode(cachedJson);
+          mainallLeavesData = decoded.map((e) => LeaveListData.fromJson(e)).toList();
+          loadedFromCache = true;
+          _rebuildLeaveLists();
+          notifyListeners();
+        }
+      } catch (_) {}
+      // Only show loader on truly first load (no cached data)
+      if (!loadedFromCache && !_hasFetchedLeaves) setloading(true);
+    }
+
+    // ── Step 2: Background API refresh ────────────────────────────────────────
+    try {
+      final freshData = await LeaveApiService().userLeaveList();
+      mainallLeavesData = freshData;
+
+      // Persist to cache
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(cacheKey, jsonEncode(freshData.map((e) => e.toJson()).toList()));
+        await prefs.setInt('${cacheKey}_ts', DateTime.now().millisecondsSinceEpoch);
+      } catch (_) {}
+
+      _rebuildLeaveLists();
+    } catch (_) {
+      // Keep showing cached data on failure
+    } finally {
+      _hasFetchedLeaves = true;
+      setloading(false);
+      notifyListeners();
+    }
+  }
+
+  /// Rebuilds all filtered leave lists from mainallLeavesData.
+  void _rebuildLeaveLists() {
     allLeavesData.clear();
     upcomingLeaves.clear();
     pastLeaves.clear();
-    
-    await LeaveApiService().userLeaveList().then((value) {
-      mainallLeavesData = value;
-      
-      if (curentUser['Role'] != 'Admin') {
-        allLeavesData.clear();
-        for (var element in mainallLeavesData) {
-          if (element.empId == curentUser['Id']) {
-            allLeavesData.add(element);
-          }
-        }
-      } else {
-        pandingLeaveRequest.clear();
-        allLeavesData.clear();
-        for (var element in mainallLeavesData) {
-          if (element.approveStatus == 'P') {
-            pandingLeaveRequest.add(element);
-          } else {
-            allLeavesData.add(element);
-          }
+
+    if (curentUser['Role'] != 'Admin') {
+      for (var element in mainallLeavesData) {
+        if (element.empId == curentUser['Id']) {
+          allLeavesData.add(element);
         }
       }
-      
-      // Filter upcoming and past leaves
-      filterLeaves();
-      _filterLeavesed();
-      setloading(false);
-      notifyListeners();
-    }).catchError((error) {
-      setloading(false);
-      notifyListeners();
-    });
+    } else {
+      pandingLeaveRequest.clear();
+      for (var element in mainallLeavesData) {
+        if (element.approveStatus == 'P') {
+          pandingLeaveRequest.add(element);
+        } else {
+          allLeavesData.add(element);
+        }
+      }
+    }
+
+    filterLeaves();
+    _filterLeavesed();
   }
 
   Future applyLeave({setEmpid, setFromDate, setLeaveTypeId, setLeaveYears, setLeavedes, setRemarks, setCguid, todate, setLeavestatuss, setDayTypes, setleaveTypeCguids, showToastmessages}) async {

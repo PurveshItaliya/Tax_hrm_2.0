@@ -170,13 +170,16 @@ void punchDeniedShowDialog(String msg, context) {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: ColorConst.black,
               ),
             ),
             const SizedBox(height: 10),
             Text(
               msg,
-              style: TextStyle(fontSize: 16, color: Colors.black54),
+              style: TextStyle(
+                fontSize: 16, 
+                color: ColorConst.isDark ? Colors.white60 : Colors.black54,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -306,7 +309,7 @@ Future<bool> showIosBackgroundLocationExplanationDialog(BuildContext context) as
     barrierDismissible: false,
     builder: (ctx) => Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: Colors.white,
+      backgroundColor: ColorConst.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -322,32 +325,48 @@ Future<bool> showIosBackgroundLocationExplanationDialog(BuildContext context) as
               child: Icon(Icons.location_on, color: ColorConst.themeColor, size: 36),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Background Location Access',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.bold, 
+                color: ColorConst.black,
+              ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'To accurately track your attendance and work location throughout your shift, this app needs to access your location even when running in the background.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.5),
+              style: TextStyle(
+                fontSize: 14, 
+                color: ColorConst.isDark ? Colors.white60 : Colors.black54, 
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: ColorConst.isDark ? const Color(0xFF1E3A5F) : Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
+                  Icon(
+                    Icons.info_outline, 
+                    color: ColorConst.isDark ? Colors.blue.shade300 : Colors.blue.shade700, 
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'On the next screen, please select "Always Allow" to enable background tracking.',
-                      style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.4),
+                      style: TextStyle(
+                        fontSize: 12, 
+                        color: ColorConst.isDark ? Colors.white60 : Colors.black54, 
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ],
@@ -371,7 +390,13 @@ Future<bool> showIosBackgroundLocationExplanationDialog(BuildContext context) as
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Not Now', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                child: Text(
+                  'Not Now', 
+                  style: TextStyle(
+                    fontSize: 14, 
+                    color: ColorConst.isDark ? Colors.grey.shade400 : Colors.grey,
+                  ),
+                ),
               ),
             ),
           ],
@@ -395,7 +420,7 @@ Future<bool> showIosBackgroundLocationSettingsDialog(BuildContext context) async
     barrierDismissible: false,
     builder: (ctx) => Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: Colors.white,
+      backgroundColor: ColorConst.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -405,22 +430,34 @@ Future<bool> showIosBackgroundLocationSettingsDialog(BuildContext context) async
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: ColorConst.isDark ? const Color(0xFF4C3000) : Colors.orange.shade50,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.location_disabled, color: Colors.orange.shade700, size: 36),
+              child: Icon(
+                Icons.location_disabled, 
+                color: ColorConst.isDark ? Colors.orange.shade300 : Colors.orange.shade700, 
+                size: 36,
+              ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Enable Background Location',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.bold, 
+                color: ColorConst.black,
+              ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Background location access was not granted. To enable it:',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.5),
+              style: TextStyle(
+                fontSize: 14, 
+                color: ColorConst.isDark ? Colors.white60 : Colors.black54, 
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 12),
             _buildStep('1', 'Open Settings'),
@@ -448,7 +485,13 @@ Future<bool> showIosBackgroundLocationSettingsDialog(BuildContext context) async
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Skip for Now', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                child: Text(
+                  'Skip for Now', 
+                  style: TextStyle(
+                    fontSize: 14, 
+                    color: ColorConst.isDark ? Colors.grey.shade400 : Colors.grey,
+                  ),
+                ),
               ),
             ),
           ],
@@ -475,7 +518,13 @@ Widget _buildStep(String number, String text) {
           child: Text(number, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(width: 10),
-        Text(text, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+        Text(
+          text, 
+          style: TextStyle(
+            fontSize: 14, 
+            color: ColorConst.isDark ? Colors.white70 : Colors.black87,
+          ),
+        ),
       ],
     ),
   );

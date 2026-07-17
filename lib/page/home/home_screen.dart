@@ -13,7 +13,6 @@ import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
-import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
@@ -114,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: _buildAppBar(size, homeProvider),
         body: refreshIndicatorDesign(
           onRefreshOntap: () async {
-            _homeProvider.homeLoadDatas(context);
+            _homeProvider.homeLoadDatas(context, forceRefresh: true);
             if (curentUser['Role'] == 'Admin') {
               Provider.of<AdminAttenDanceServices>(context, listen: false).toDayDateAttendance(DateTime.now());
             }
@@ -133,10 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ] else ...[
                     buildAttendanceBoard(size, mounted,
                       onAllPressed:(){
-                        lastBottomIndex = 1;
-                        selectedIndex = 1;
-                        fabSelected = false;
-                        homeProvider.notifyListeners();
+                        homeProvider.changeSelectBottomBar(1);
                       },
                     )
                   ],

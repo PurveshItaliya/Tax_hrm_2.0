@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tax_hrm/page/splashPage.dart';
 import 'package:tax_hrm/utils/app_providers.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
@@ -35,8 +36,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 const taskName = "LocationTimeLines";
 
+late SharedPreferences globalPrefs;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  globalPrefs = await SharedPreferences.getInstance();
   await initializeDateFormatting();
   try {
     await Firebase.initializeApp(

@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/shiftapi.dart';
 import 'package:tax_hrm/models/createcguid.dart';
 import 'package:tax_hrm/models/departmentclass/Designationmasterclass/position.dart';
@@ -38,15 +41,58 @@ class ShiftMasterProvider extends ChangeNotifier {
 
   //-----------------------Get shift Master Data Page -----------------------\\
 
-  shiftGroupMasterLoadingData() async {
+  bool _hasLoadedShiftGroupsThisSession = false;
+
+  shiftGroupMasterLoadingData({bool forceRefresh = false}) async {
+    final cacheKey = '${LocalCacheService.keyMasterData}_shift_groups';
+    const ttlMs = 24 * 60 * 60 * 1000;
+
+    if (!forceRefresh && _hasLoadedShiftGroupsThisSession && mainShiftGroupList.isNotEmpty) {
+      islodering = false;
+      notifyListeners();
+      return;
+    }
+
     try {
-      setloading(true);
-      await getshiftGroupMasterData();
-      setloading(false);
+      bool loadedFromCache = false;
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            mainShiftGroupList = jsonList.map((e) => ShiftGroup.fromJson(e)).toList();
+            _hasLoadedShiftGroupsThisSession = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {}
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        setloading(true);
+      }
+
+      unawaited(_fetchShiftGroupsFromApi(cacheKey));
     } catch (e) {
       setloading(false);
     }
-    notifyListeners();
+  }
+
+  Future<void> _fetchShiftGroupsFromApi(String cacheKey) async {
+    try {
+      final value = await ShiftApiClass().getshiftGroupMaster();
+      mainShiftGroupList = value;
+      _hasLoadedShiftGroupsThisSession = true;
+      setloading(false);
+
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      notifyListeners();
+    } catch (e) {
+      setloading(false);
+    }
   }
 
   Future getshiftGroupMasterData()async{
@@ -135,15 +181,63 @@ class ShiftMasterProvider extends ChangeNotifier {
 
   //-----------------------Get shift Timing Data Page -----------------------\\
 
-  shiftTimingLoadingData() async {
+  bool _hasLoadedShiftTimingThisSession = false;
+
+  shiftTimingLoadingData({bool forceRefresh = false}) async {
+    final cacheKey = '${LocalCacheService.keyMasterData}_shift_timing';
+    const ttlMs = 24 * 60 * 60 * 1000;
+
+    if (!forceRefresh && _hasLoadedShiftTimingThisSession) {
+      islodering = false;
+      notifyListeners();
+      return;
+    }
+
     try {
-      setloading(true);
-      await getShiftTimintgMasterData();
-      setloading(false);
+      bool loadedFromCache = false;
+      
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            final cachedList = jsonList.map((e) => GetShiftMasterData.fromJson(e)).toList();
+            mainShiftMasterList = cachedList;
+            mainShiftMasterGroupList = cachedList;
+            
+            _hasLoadedShiftTimingThisSession = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {}
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        setloading(true);
+      }
+
+      unawaited(_fetchShiftTimingFromApi(cacheKey));
     } catch (e) {
       setloading(false);
     }
-    notifyListeners();
+  }
+
+  Future<void> _fetchShiftTimingFromApi(String cacheKey) async {
+    try {
+      final value = await ShiftApiClass().getShiftTimingMaster();
+      mainShiftMasterList = value;
+      mainShiftMasterGroupList = value;
+      _hasLoadedShiftTimingThisSession = true;
+      setloading(false);
+
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      notifyListeners();
+    } catch (e) {
+      setloading(false);
+    }
   }
 
   List<GetShiftMasterData> mainShiftMasterList = [];

@@ -218,11 +218,13 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                           // 4. Securely clear SharedPreferences (preserving isDarkMode theme)
                           try {
                             final prefs = await SharedPreferences.getInstance();
-                            final isDarkMode =
-                                prefs.getBool('isDarkMode') ?? false;
+                            final hasKey = prefs.containsKey('isDarkMode');
+                            final isDarkMode = prefs.getBool('isDarkMode');
                             await prefs.clear();
-                            // Restore dark mode
-                            await prefs.setBool('isDarkMode', isDarkMode);
+                            // Restore dark mode preference only if it was manually set
+                            if (hasKey && isDarkMode != null) {
+                              await prefs.setBool('isDarkMode', isDarkMode);
+                            }
                           } catch (e) {}
 
                           // 5. Reset all global session variables
@@ -525,7 +527,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
               ).changeSelectBottomBar(0);
               nextscreenRemove(
                 context,
-                const AnimatedBottomBar(),
+                AnimatedBottomBar(),
                 onthenValue: (value) {},
               );
             },

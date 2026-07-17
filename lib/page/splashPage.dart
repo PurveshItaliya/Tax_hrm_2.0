@@ -32,28 +32,6 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset(splashVideoString)
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {});
-          _controller?.setLooping(false);
-          _controller?.play();
-          _controller?.addListener(() {
-            if (_controller != null && _controller!.value.isInitialized) {
-              final pos = _controller!.value.position;
-              final dur = _controller!.value.duration;
-              final isPlaying = _controller!.value.isPlaying;
-              if (dur > Duration.zero &&
-                  (pos >= dur || (!isPlaying && pos >= dur - const Duration(milliseconds: 600)))) {
-                _triggerNavigation();
-              }
-            }
-          });
-        }
-      }).catchError((_) {
-        _triggerNavigation();
-      });
-
     Future.delayed(const Duration(seconds: 6), () {
       _triggerNavigation();
     });
@@ -68,6 +46,37 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller == null) {
+      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+      String videoToPlay = isDarkMode ? splashLightModeVideoString : splashDarkModeVideoString;
+      _controller = VideoPlayerController.asset(videoToPlay)
+        ..initialize().then((_) {
+          if (mounted) {
+            setState(() {});
+            _controller?.setVolume(0.0);
+            _controller?.setLooping(false);
+            _controller?.play();
+            _controller?.addListener(() {
+              if (_controller != null && _controller!.value.isInitialized) {
+                final pos = _controller!.value.position;
+                final dur = _controller!.value.duration;
+                final isPlaying = _controller!.value.isPlaying;
+                if (dur > Duration.zero &&
+                    (pos >= dur || (!isPlaying && pos >= dur - const Duration(milliseconds: 600)))) {
+                  _triggerNavigation();
+                }
+              }
+            });
+          }
+        }).catchError((_) {
+          _triggerNavigation();
+        });
+    }
+  }
+
+  @override
   void dispose() {
     _controller?.dispose();
     super.dispose();
@@ -76,21 +85,24 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    safeAreaBgAndTextColor(context, safeAreaBgColor: ColorConst.white);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDarkMode ? const Color(0xff121212) : const Color(0xfff2f2f2);
+
+    safeAreaBgAndTextColor(context, safeAreaBgColor: bgColor);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(
       context,
     );
     return checkInterNetConnection.connectionType == 0
         ? const NoInternetViewPage()
         : Scaffold(
-            backgroundColor: Color(0xfff2f2f2),
+            backgroundColor: bgColor,
             body: Container(
-              color: Color(0xfff2f2f2),
+              color: bgColor,
               height: size.height,
               width: size.width,
               child: _controller != null && _controller!.value.isInitialized
                   ? Container(
-                      color: Color(0xfff2f2f2),
+                      color: bgColor,
                       child: SizedBox.expand(
                         child: FittedBox(
                           fit: BoxFit.cover,
@@ -102,7 +114,7 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
                         ),
                       ),
                     )
-                  : Container(color: ColorConst.white),
+                  : Container(color: bgColor),
             ),
           );
   }

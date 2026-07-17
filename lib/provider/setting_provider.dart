@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
@@ -94,9 +95,10 @@ class SettingProvider extends ChangeNotifier {
 
   settingMenuLoading(context) async {
     try {
-      setloading(true);
+      setloading(false); // Never show full screen loader for settings
       await settingMenuGet(context);
-      await settingLoadding(context);
+      // Run profile fetch in background without awaiting or blocking UI
+      settingLoadding(context);
     } catch (e) {
       setloading(false);
     }
@@ -104,40 +106,70 @@ class SettingProvider extends ChangeNotifier {
   }
 
   settingLoadding(context) async {
+    // SWR fetch without loader
     try {
-      setloading(true);
-      notifyListeners();
-      setEmpProfile = null;
-      setAdminProfile = null;
       await getUserEmployeeData(context);
-      setloading(false);
     } catch (e) {
-      setloading(false);
+      /* ignored */
     }
-    notifyListeners();
   }
 
   getUserEmployeeData(context) async {
+    const cacheKey = 'emp_profile_cache';
+    const adminCacheKey = 'admin_profile_cache';
+    const ttlMs = 12 * 60 * 60 * 1000; // 12 hours TTL for profile
+
+    // ── Step 1: Load from local cache immediately ───────────────────────────
     try {
-      if(curentUser['Role'] == 'Admin' && curentUser['OriginalRole'] == null) {
-        await Provider.of<EmployeMastServices>(context, listen: false).getemployee();
-        await AdminProfileApiClass().getAdminProfileData().then((value) {
-          setAdminProfile = value;
-        }).onError((error, stackTrace) {
-          setloading(false);
-        },);
-      } else{
-        await Provider.of<EmployeMastServices>(context, listen: false).getemployee().then((value) {
-          Provider.of<EmployeMastServices>(context, listen: false).emplists.forEach((element) {
-            if (curentUser['UserName'] == element.userName.toString() && curentUser['Mobile1'] == element.mobile1) {
-              setEmpProfile = element;
-            }
-          });
-        }).onError((error, stackTrace) {
-          setloading(false);
-        },);
+      final prefs = await SharedPreferences.getInstance();
+      if (setEmpProfile == null && curentUser['Role'] != 'Admin') {
+        final cachedJson = prefs.getString(cacheKey);
+        final cachedTs = prefs.getInt('${cacheKey}_ts') ?? 0;
+        if (cachedJson != null && (DateTime.now().millisecondsSinceEpoch - cachedTs) < ttlMs) {
+          setEmpProfile = Employeelists.fromJson(jsonDecode(cachedJson));
+          notifyListeners();
+        }
+      } else if (setAdminProfile == null && curentUser['Role'] == 'Admin') {
+        final cachedJson = prefs.getString(adminCacheKey);
+        final cachedTs = prefs.getInt('${adminCacheKey}_ts') ?? 0;
+        if (cachedJson != null && (DateTime.now().millisecondsSinceEpoch - cachedTs) < ttlMs) {
+          setAdminProfile = AdminProfiles.fromJson(jsonDecode(cachedJson));
+          notifyListeners();
+        }
       }
-    } catch (e) {
+    } catch (_) {}
+
+    // ── Step 2: Background API refresh ─────────────────────────────────────
+    try {
+      if (curentUser['Role'] == 'Admin' && curentUser['OriginalRole'] == null) {
+        await Provider.of<EmployeMastServices>(context, listen: false).getemployee();
+        final adminProfile = await AdminProfileApiClass().getAdminProfileData();
+        setAdminProfile = adminProfile;
+        
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(adminCacheKey, jsonEncode(adminProfile.toJson()));
+          await prefs.setInt('${adminCacheKey}_ts', DateTime.now().millisecondsSinceEpoch);
+        } catch (_) {}
+        notifyListeners();
+      } else {
+        await Provider.of<EmployeMastServices>(context, listen: false).getemployee();
+        for (var element in Provider.of<EmployeMastServices>(context, listen: false).emplists) {
+          if (curentUser['UserName'] == element.userName.toString() &&
+              curentUser['Mobile1'] == element.mobile1) {
+            setEmpProfile = element;
+            // Persist fresh profile to cache
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString(cacheKey, jsonEncode(element.toJson()));
+              await prefs.setInt('${cacheKey}_ts', DateTime.now().millisecondsSinceEpoch);
+            } catch (_) {}
+            break;
+          }
+        }
+        notifyListeners();
+      }
+    } catch (_) {
       setloading(false);
     }
   }

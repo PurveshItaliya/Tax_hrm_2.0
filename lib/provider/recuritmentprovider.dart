@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/recuritmentApi.dart';
 import 'package:tax_hrm/models/createcguid.dart';
 import 'package:tax_hrm/models/departmentclass/Designationmasterclass/position.dart';
@@ -51,16 +54,64 @@ class RecuritmentProvider extends ChangeNotifier {
   Employeelists? selectedEmployeeList;
   List<PositionDataL>  getFiltersPostionList= [];
 
-  recuritmentLoadingData() async {
+  bool _hasLoadedRecruitmentThisSession = false;
+
+  recuritmentLoadingData({bool forceRefresh = false}) async {
+    final cacheKey = '${LocalCacheService.keyMasterData}_recruitment';
+    const ttlMs = 24 * 60 * 60 * 1000;
+
+    if (!forceRefresh && _hasLoadedRecruitmentThisSession) {
+      islodering = false;
+      notifyListeners();
+      return;
+    }
+
     try {
-      setloading(true);
+      bool loadedFromCache = false;
       txtSerchController.clear();
-      await getrecuritmentMasterData();
-      setloading(false);
+
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            final cachedList = jsonList.map((e) => RecruitmentModal.fromJson(e)).toList();
+            mainRecuirtmentLists = cachedList;
+            getRecuirtmentGroupList = cachedList;
+            
+            _hasLoadedRecruitmentThisSession = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {}
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        setloading(true);
+      }
+
+      unawaited(_fetchRecruitmentFromApi(cacheKey));
     } catch (e) {
       setloading(false);
     }
-    notifyListeners();
+  }
+
+  Future<void> _fetchRecruitmentFromApi(String cacheKey) async {
+    try {
+      final value = await RecuritmetntApiClass().getrecuritmentgroup();
+      mainRecuirtmentLists = value;
+      getRecuirtmentGroupList = value;
+      _hasLoadedRecruitmentThisSession = true;
+      setloading(false);
+
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      notifyListeners();
+    } catch (e) {
+      setloading(false);
+    }
   }
 
   // get to recuritment master

@@ -3,6 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/api/payrollapi.dart';
 import 'package:tax_hrm/api/payslipapi.dart';
@@ -51,22 +54,79 @@ class PayRollProviders extends ChangeNotifier {
   Employeelists? selectedEmployeeList;
   DateTime payRollcurrentMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
-  loadingData(usetEmpid, refreshValue) async {
+  bool _hasLoadedPayrollThisSession = false;
+
+  loadingData(usetEmpid, refreshValue, {bool forceRefresh = false}) async {
     try {
-      setloading(true);
       if (refreshValue) {
         selectedEmployeeList = null;
         payRollcurrentMonth = DateTime(DateTime.now().year, DateTime.now().month == 1 ? 12 : DateTime.now().month - 1);
       }
-      await AttendancePerformanceLogger.instance.track(
-        'PayRollProviders.getSalarysData',
-        () => getSalarysData(usetEmpid: usetEmpid, usetMonths: payRollcurrentMonth.month, usetYears: payRollcurrentMonth.year)
+      
+      final cacheKey = '${LocalCacheService.keyMasterData}_payroll_${usetEmpid}_${payRollcurrentMonth.month}_${payRollcurrentMonth.year}';
+      const ttlMs = 24 * 60 * 60 * 1000;
+
+      if (!forceRefresh && _hasLoadedPayrollThisSession) {
+        islodering = false;
+        notifyListeners();
+        return;
+      }
+
+      bool loadedFromCache = false;
+
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            final cachedList = jsonList.map((e) => Salarys.fromJson(e)).toList();
+            holdMainSalaryList = cachedList;
+            getSalaryList = cachedList;
+            _hasLoadedPayrollThisSession = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {}
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        setloading(true);
+      }
+
+      unawaited(
+        AttendancePerformanceLogger.instance.track(
+          'PayRollProviders.getSalarysData',
+          () => _fetchAndCacheSalarysData(
+            usetEmpid: usetEmpid, 
+            usetMonths: payRollcurrentMonth.month, 
+            usetYears: payRollcurrentMonth.year,
+            cacheKey: cacheKey
+          )
+        )
       );
-      setloading(false);
+
     } catch (e) {
       setloading(false);
     }
     notifyListeners();
+  }
+
+  Future<void> _fetchAndCacheSalarysData({usetEmpid, usetMonths, usetYears, required String cacheKey}) async {
+    try {
+      final value = await PayRollApiSerices().getSalaryData(setEmpid: usetEmpid, setMonths: usetMonths, setYears: usetYears);
+      holdMainSalaryList = value;
+      getSalaryList = value;
+      _hasLoadedPayrollThisSession = true;
+      setloading(false);
+
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      notifyListeners();
+    } catch (e) {
+      setloading(false);
+    }
   }
 
   getSalarysData({usetEmpid, usetMonths, usetYears}) async {

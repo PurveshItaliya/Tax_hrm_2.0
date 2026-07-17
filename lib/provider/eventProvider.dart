@@ -2,6 +2,9 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/companiapi.dart';
 import 'package:tax_hrm/api/eventsapi.dart';
 import 'package:tax_hrm/models/createcguid.dart';
@@ -186,16 +189,64 @@ class EventsMastServices extends ChangeNotifier {
     }
   }
 
-  eventLoadingData() async {
+  bool _hasLoadedEventsThisSession = false;
+
+  eventLoadingData({bool forceRefresh = false}) async {
+    final cacheKey = '${LocalCacheService.keyMasterData}_events';
+    const ttlMs = 24 * 60 * 60 * 1000;
+
+    if (!forceRefresh && _hasLoadedEventsThisSession) {
+      islodering = false;
+      notifyListeners();
+      return;
+    }
+
     try {
-      setloading(true);
+      bool loadedFromCache = false;
       txtEventSerchController = TextEditingController();
-      await getEventMasterData();
-      setloading(false);
+
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            final cachedList = jsonList.map((e) => GetEvents.fromJson(e)).toList();
+            mainEventLists = cachedList;
+            getEventList = cachedList;
+            
+            _hasLoadedEventsThisSession = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {}
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        setloading(true);
+      }
+
+      unawaited(_fetchEventsFromApi(cacheKey));
     } catch (e) {
       setloading(false);
     }
-    notifyListeners();
+  }
+
+  Future<void> _fetchEventsFromApi(String cacheKey) async {
+    try {
+      final value = await EventsApiClass().getEventsData();
+      mainEventLists = value;
+      getEventList = value;
+      _hasLoadedEventsThisSession = true;
+      setloading(false);
+
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      notifyListeners();
+    } catch (e) {
+      setloading(false);
+    }
   }
 
   // get to event master

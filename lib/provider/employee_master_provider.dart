@@ -3,6 +3,9 @@
 // ignore_for_file: empty_catches, unrelated_type_equality_checks, use_build_context_synchronously, strict_top_level_inference, unused_field
 
 import 'dart:io';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -1110,24 +1113,87 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
   notifyListeners();
 }
 
-  Future<void> loadAllEmployeeData(BuildContext context) async {
-    islodering = true;
-    
-    try {
-      // Get internet connection data
-      Provider.of<InternetConnectionProvider>(context, listen: false).getAllConnectionData();
-      
-      // Load employee data
-      await employeeLoadnigData();
-      
-      // Setup pagination
-      Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(
-        emplists, 
-        0
-      );
-    } catch (e) {
-    } finally {
+  bool _hasLoadedEmployeesThisSession = false;
+
+  Future<void> loadAllEmployeeData(BuildContext context, {bool forceRefresh = false}) async {
+    final cacheKey = '${LocalCacheService.keyMasterData}_employees';
+    const ttlMs = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (!forceRefresh && _hasLoadedEmployeesThisSession) {
       islodering = false;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      bool loadedFromCache = false;
+      searchController.clear();
+      
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            final cachedList = jsonList.map((e) => Employeelists.fromJson(e)).toList();
+            
+            employeeList = cachedList;
+            employeeGroupList = cachedList;
+            filteredUsers = cachedList;
+            allemployes = cachedList;
+            filterEmployeeData();
+            
+            _hasLoadedEmployeesThisSession = true;
+            loadedFromCache = true;
+            
+            if (context.mounted) {
+              Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(emplists, 0);
+            }
+            islodering = false;
+            notifyListeners();
+          } catch (e) {
+            // silent fallback
+          }
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        islodering = true;
+        notifyListeners();
+      }
+
+      // Start background fetch
+      unawaited(_fetchEmployeesFromApi(context, cacheKey));
+
+    } catch (e) {
+      islodering = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _fetchEmployeesFromApi(BuildContext context, String cacheKey) async {
+    try {
+      final value = await Employeeclass().emppppapi();
+      
+      employeeList = value;
+      employeeGroupList = value;
+      filteredUsers = value;
+      allemployes = value;
+      filterEmployeeData();
+      
+      _hasLoadedEmployeesThisSession = true;
+      islodering = false;
+
+      // Save cache
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      if (context.mounted) {
+        Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(emplists, 0);
+      }
+      notifyListeners();
+    } catch (e) {
+      islodering = false;
+      notifyListeners();
     }
   }
 

@@ -121,6 +121,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           if (mounted) {
             setState(() {
               _isFirstLoad = false;
+              _monthViewKey = GlobalKey<MonthViewState>();
             });
           }
         }
@@ -139,8 +140,21 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final leaveProviders =  Provider.of<LeaveMastServices>(context);
     safeAreaBgAndTextColor(context,);
-    // Show full-screen shimmer on very first load
-    if (_isFirstLoad) {
+
+    // GUARANTEE the calendar is on the right month. If the widget tree
+    // retains the old PageController state during a fast data refresh,
+    // this will forcefully sync it back to the correct month.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_isMonthChanging && !attendanceEmp.isloderings) {
+        try {
+          if (_monthViewKey.currentState != null) {
+            _monthViewKey.currentState!.animateToMonth(attendanceEmp.currentMonth);
+          }
+        } catch (_) {}
+      }
+    });
+    // Show full-screen shimmer on very first load ONLY IF we have no cached data
+    if (_isFirstLoad && attendanceEmp.getMonthAttenDance.isEmpty) {
       return Scaffold(
           backgroundColor: ColorConst.scaffoldColor,
           appBar: showBottomAppBar(isAdminBack: _currentEmpData == null ? false : true, _currentEmpData == null ? attendanceString : '${_currentEmpData!.firstName} ${_currentEmpData!.lastName}', size, centerTitles: false, actions: const <Widget>[]),
@@ -153,8 +167,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         body: refreshIndicatorDesign(
           onRefreshOntap: () async {
             final attendanceEmp = Provider.of<AttendanceEmp>(context, listen: false);
-            await attendanceEmp.loadingData(_currentEmpData, context);
+            await attendanceEmp.loadingData(_currentEmpData, context, forceRefresh: true);
             await attendanceEmp.getDuration(context, _currentEmpData);
+            if (mounted) {
+              setState(() {
+                _monthViewKey = GlobalKey<MonthViewState>();
+              });
+            }
           },
           widgetDesign: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -466,12 +485,14 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                         
                     heightSpacer(size.height * 0.015),
                     SizedBox(
-                      height: size.height * 0.45,
+                      height: size.height * 0.54,
                       // Show the same clean shimmer for BOTH arrow-button nav and
                       // manual swipe by checking islodering at the widget level.
                       child: (_isMonthChanging || attendanceEmp.islodering)
                           ? _buildCalendarShimmer(size)
-                          : MonthView(
+                          : PageStorage(
+                              bucket: PageStorageBucket(),
+                              child: MonthView(
                         key: _monthViewKey,
                         controller: attendanceEmp.eventController,
                         monthViewStyle: MonthViewStyle(
@@ -518,7 +539,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                             AttendancePerformanceLogger.instance.printSummary();
                           }
                         },
-                          cellBuilder: (date, events, isToday, isInMonth, hideDaysNotInMonth) {
+cellBuilder: (date, events, isToday, isInMonth, hideDaysNotInMonth) {
                           int showType = 0;
                           bool isAfter10AM = false;
                           if(date.isAfter(DateTime.now())){
@@ -560,6 +581,10 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                   //  attendanceEmp.totalAbset = attendanceEmp.totalAbset + 1;
                                    showType = 7;
                                   }
+                             } else {
+                                if (date.weekday == 7) {
+                                  showType = 7;
+                                }
                              }
 
                              //----------------------------------Check For  Holidays --------------------------------------------\\
@@ -646,6 +671,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                         ),
                       ),
                     ),
+                    )
                   ],
                 ),
               ),
@@ -661,8 +687,6 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
     final leaveProviders =  Provider.of<LeaveMastServices>(context, listen: false);
     final adminAttenDanceServices = Provider.of<AdminAttenDanceServices>(context, listen: false);
     final size = MediaQuery.of(context).size;
-
-    attendanceEmp.setloading(true);
                           leaveDurationTypesShow = '';
                           leaveStatusShow = '';
 
@@ -695,7 +719,11 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                           attendanceEmp.setShowTimeValues(date);
                           DateTime usedTapDate = DateTime(date.year,date.month,date.day);
 
-                          Provider.of<PayRollProviders>(context, listen: false).getMonthsBreaks(setMonth: usedTapDate.month, setYear: usedTapDate.year, setEmployeId: curentUser['Id']);
+                          Provider.of<PayRollProviders>(context, listen: false).getMonthsBreaks(
+                            setMonth: usedTapDate.month,
+                            setYear: usedTapDate.year,
+                            setEmployeId: _currentEmpData != null ? _currentEmpData!.empId : curentUser['Id'],
+                          );
                           if (date.isBefore(DateTime.now())) {
                             String showdayname = DateFormat('EEEE').format(
                                     DateTime(date.year, date.month, date.day));
@@ -718,6 +746,7 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                           showdayname.toString().substring(0, 3).toLowerCase() == 'sat') {
                                 
                                           attendanceEmp.setShowDateType(7);
+                                          Future<void>? fetchTask;
                                           if(attendanceEmp.showDateType == 7){
                              
                                             int findweekOffPunch = Provider.of<AttendanceEmp>(context, listen: false).getMonthAttenDance.indexWhere((element) =>  DateTime.parse(element.attendenceDate.toString()) == usedTapDate && element.present  == true);
@@ -726,10 +755,12 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                               String timestampString = date.toString();
                                               String formattedTimestampString = timestampString.replaceAll('Z', '');
                                               attendanceEmp.setShowDateType(1);
-                                              await attendanceEmp.getDateBloges(formattedTimestampString, _currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}');
+                                              fetchTask = attendanceEmp.getDateBloges(formattedTimestampString, _currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}', showLoading: false).then((_) {
+                                                Provider.of<AttendanceEmp>(context, listen: false).attendanceCalculate(context);
+                                              });
                                             }
                                           }
-                                          showDayDetails(context,size, attendanceEmp.selectedDateLog,date.toString(),7, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons);
+                                          showDayDetails(context,size, null,date.toString(),7, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons, fetchFuture: fetchTask);
                                       } else {
                                         int findHoliday = attendanceEmp.curentMonthHoliday.indexWhere((element) => date.isAtSameMomentAs(DateTime.parse(element.holidayDate.toString())));
 
@@ -740,7 +771,9 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                         } else {
                                           String timestampString = date.toString();
                                           String formattedTimestampString = timestampString.replaceAll('Z', '');
-                                          await attendanceEmp.getDateBloges(formattedTimestampString,_currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}');
+                                          Future<void> fetchTask = attendanceEmp.getDateBloges(formattedTimestampString,_currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}', showLoading: false).then((_) {
+                                              Provider.of<AttendanceEmp>(context, listen: false).attendanceCalculate(context);
+                                          });
                                           
                                           // Check for leaves
                                           int leaveIndex = attendanceEmp.getMonthAttenDance.indexWhere((element) {
@@ -767,12 +800,11 @@ padding: EdgeInsets.symmetric(horizontal: size.width * 0.02),
                                           }
 
                                         attendanceEmp.setShowDateType(typeToPass);
-                                        showDayDetails(context,size,attendanceEmp.selectedDateLog,date.toString(),typeToPass, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons);
+                                        showDayDetails(context,size,null,date.toString(),typeToPass, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons, fetchFuture: fetchTask);
                                       }
                                   }
                                 }
                           }
-                          attendanceEmp.setloading(false);
   }
 
   bool _parseBool(dynamic value) {
@@ -889,28 +921,29 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
   String? leaveStatusShow;
   String?  leaveResons;
 
-  Future<void> showDayDetails(BuildContext context,Size size,AttendanceDayBlog? setDataLog,String? showdate,int selectedDatTypes, AttendanceEmp attendanceEmp, AdminAttenDanceServices adminAttenDanceServices, dynamic curentUser, dynamic currentEmpData, {String? leaveTypesShow, String? leaveDurationTypesShow, String? leaveStatusShow, String? leaveResons}) async {
+  Future<void> showDayDetails(BuildContext context,Size size,AttendanceDayBlog? currentDataLog,String? showdate,int selectedDatTypes, AttendanceEmp attendanceEmp, AdminAttenDanceServices adminAttenDanceServices, dynamic curentUser, dynamic currentEmpData, {String? leaveTypesShow, String? leaveDurationTypesShow, String? leaveStatusShow, String? leaveResons, Future<void>? fetchFuture}) async {
     attendanceEmp.totalHour = '';
     attendanceEmp.totalWorkHour = '';
     attendanceEmp.totalbreaks = '';
-    if (setDataLog != null && setDataLog.attendence != null && setDataLog.attendence!.attendenceDate != null) {
+    if (fetchFuture == null && currentDataLog != null && currentDataLog.attendence != null && currentDataLog.attendence!.attendenceDate != null) {
       attendanceEmp.getMonthAttenDance.forEach((element) {
         DateTime asusedData = DateTime.parse(element.attendenceDate.toString());
-        if (DateTime.parse(setDataLog.attendence!.attendenceDate.toString()) == asusedData) {
+        if (DateTime.parse(currentDataLog.attendence!.attendenceDate.toString()) == asusedData) {
           leaveTypesShow = element.leaveTypeFName.toString();
           leaveResons= element.remarks.toString();
         }
       });
       attendanceEmp.attendanceCalculate(context);
     }
-    if(curentUser['Role'] == 'Admin') {
-      await adminAttenDanceServices.leaveEditTypeSet(context, currentEmpData!);
+    if(curentUser['Role'] == 'Admin' && currentEmpData != null) {
+      await adminAttenDanceServices.leaveEditTypeSet(context, currentEmpData);
     }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: ColorConst.white,
+      backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : ColorConst.white,
       builder: (BuildContext context) {
 
         int setindexs = 0;
@@ -919,10 +952,11 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
           setindexs = Provider.of<AttendanceEmp>(context,listen: false).curentMonthHoliday.indexWhere((element) => DateTime.parse(element.holidayDate.toString()) == DateTime.parse(showdate.toString()));
         }
         //-------------------  Showing Absent -------------------\\
-        return SafeArea(
-          child: DraggableScrollableSheet(
+        Widget buildSheetContent(AttendanceDayBlog? currentDataLog) {
+          return SafeArea(
+            child: DraggableScrollableSheet(
             expand: false,
-            initialChildSize: setDataLog == null ? 0.7 : (setDataLog.attendenceLog == null || setDataLog.attendenceLog!.isEmpty) ? 0.4 : 0.7,
+            initialChildSize: currentDataLog == null ? 0.7 : (currentDataLog.attendenceLog == null || currentDataLog.attendenceLog!.isEmpty) ? 0.4 : 0.7,
             minChildSize: 0.25,
             maxChildSize: 0.95,
             builder: (context, scrollController) {
@@ -936,7 +970,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                           heightSpacer(size.height *0.02),
                           Padding(
                             padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
-                            child: Text(dateFormatddMMMyyyy(DateTime.parse(setDataLog!.attendence!.attendenceDate.toString())),style: TextStyle(fontSize: size.height *0.022,fontWeight: FontWeight.bold),textAlign: TextAlign.end,),
+                            child: Text(dateFormatddMMMyyyy(DateTime.parse(currentDataLog!.attendence!.attendenceDate.toString())),style: TextStyle(fontSize: size.height *0.022,fontWeight: FontWeight.bold),textAlign: TextAlign.end,),
                           ),
 
                           Padding(
@@ -1054,10 +1088,10 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
 
                         heightSpacer(size.height *0.01),
 
-                        setDataLog!.attendence != null?
+                        currentDataLog!.attendence != null?
                         Padding(
                           padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
-                          child: Text(dateFormatddMMMyyyy(DateTime.parse(setDataLog.attendence!.attendenceDate.toString())),style: TextStyle(fontSize: size.height *0.022,fontWeight: FontWeight.bold),textAlign: TextAlign.end,),
+                          child: Text(dateFormatddMMMyyyy(DateTime.parse(currentDataLog.attendence!.attendenceDate.toString())),style: TextStyle(fontSize: size.height *0.022,fontWeight: FontWeight.bold),textAlign: TextAlign.end,),
                         ):Container(),
 
                         curentUser['Role'] == 'Admin' ? Container() :
@@ -1099,7 +1133,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                   widthSpacer(size.width *0.02),
                                   SelectionView(absentString,adminAttenDanceServices.selectedPresent == false ? Colors.redAccent : ColorConst.white, adminAttenDanceServices.selectedPresent == false ? ColorConst.white: Colors.red,(){
                                     adminAttenDanceServices.setAbsentEmployes(
-                                      attendanceDate: setDataLog.attendence!.attendenceDate,
+                                      attendanceDate: currentDataLog.attendence!.attendenceDate,
                                       context: context,
                                       setEmpid: currentEmpData!.empId,
                                       setattendanceCguid: currentEmpData!.cguid,
@@ -1134,12 +1168,12 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                           ),
                         ) :
 
-                        setDataLog.attendence!= null?
-                        setDataLog.attendence!.present == true?   Padding(
+                        currentDataLog.attendence!= null?
+                        currentDataLog.attendence!.present == true?   Padding(
                           padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
                           child:  AttendancTypeContainer(size, 'Present', ColorConst.themeColor),
                         ):
-                        setDataLog.attendence!.isOnLeave  == true ?
+                        currentDataLog.attendence!.isOnLeave  == true ?
                         Padding(
                           padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
                           child: Column(
@@ -1172,11 +1206,11 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                         ): Container(),
                         heightSpacer(size.height * 0.01),
 
-                        if (setDataLog.attendenceLog != null && setDataLog.attendenceLog!.isNotEmpty)
+                        if (currentDataLog.attendenceLog != null && currentDataLog.attendenceLog!.isNotEmpty)
                           Expanded(
                             child: ListView.separated(
                               shrinkWrap: true,
-                              itemCount: setDataLog.attendenceLog!.length,
+                              itemCount: currentDataLog.attendenceLog!.length,
                               padding: EdgeInsets.symmetric(horizontal: size.width * 0.03),
                               separatorBuilder: (context, index) {
                                 return heightSpacer(size.height * 0.015);
@@ -1201,8 +1235,8 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                     children: [
                                       GestureDetector(
                                         onTap: () {
-                                          if(setDataLog.attendenceLog![index].fileURL != null) {
-                                            nextScreen(context, FullPageImage(setDataLog.attendenceLog![index].fileURL ?? '', ''), onthenValue: (value) {});
+                                          if(currentDataLog.attendenceLog![index].fileURL != null) {
+                                            nextScreen(context, FullPageImage(currentDataLog.attendenceLog![index].fileURL ?? '', ''), onthenValue: (value) {});
                                           }
                                         },
                                         child: Container(
@@ -1215,7 +1249,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                           child: ClipRRect(
                                             borderRadius: BorderRadiusGeometry.circular(10),
                                             child: CachedNetworkImage(
-                                              imageUrl: setDataLog.attendenceLog![index].fileURL ?? '',
+                                              imageUrl: currentDataLog.attendenceLog![index].fileURL ?? '',
                                               placeholder: (context, url) =>  Center(child: CircularProgressIndicator(color: ColorConst.themeColor, strokeWidth: 2)),
                                               errorWidget: (context, url, error) => Icon(Icons.person, color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, size: 30),
                                               fit: BoxFit.cover,
@@ -1236,23 +1270,23 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                                 Container(
                                                   padding: EdgeInsets.symmetric(horizontal: size.width * 0.03, vertical: size.height * 0.005),
                                                   decoration: BoxDecoration(
-                                                    color: setDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor.withOpacity(0.15) : ColorConst.red.withOpacity(0.15),
+                                                    color: currentDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor.withOpacity(0.15) : ColorConst.red.withOpacity(0.15),
                                                     borderRadius: BorderRadius.circular(20),
-                                                    border: Border.all(color: setDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor.withOpacity(0.3) : ColorConst.red.withOpacity(0.3)),
+                                                    border: Border.all(color: currentDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor.withOpacity(0.3) : ColorConst.red.withOpacity(0.3)),
                                                   ),
                                                   child: Text(
-                                                    setDataLog.attendenceLog![index].status == "IN" ? punchInString : punchOutString,
-                                                    style:  TextStyle(color: setDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor : ColorConst.red, fontSize: 12, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.bold),
+                                                    currentDataLog.attendenceLog![index].status == "IN" ? punchInString : punchOutString,
+                                                    style:  TextStyle(color: currentDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor : ColorConst.red, fontSize: 12, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.bold),
                                                   ),
                                                 ),
                                                 widthSpacer(size.width * 0.02),
-                                                Text(setDataLog.attendenceLog![index].time == null? '' : DateFormat.jm().format(DateTime.parse(setDataLog.attendenceLog![index].time.toString())), style: TextStyle(fontFamily: fontInterBoldString, fontWeight: FontWeight.bold, fontSize: 14)),
+                                                Text(currentDataLog.attendenceLog![index].time == null? '' : DateFormat.jm().format(DateTime.parse(currentDataLog.attendenceLog![index].time.toString())), style: TextStyle(fontFamily: fontInterBoldString, fontWeight: FontWeight.bold, fontSize: 14)),
 
                                               if(curentUser['Role'] == 'Admin') ...{
                                                 Spacer(),
                                                 GestureDetector(
                                                   onTap: () async {
-                                                    showDialog(context: context, builder: (context) => CustomDialog(setDataLog.attendenceLog![index], setDataLog.attendence?.cguid ?? currentEmpData!.cguid ?? '', (setDataLog.attendence?.attendenceID ?? currentEmpData!.attendenceID).toString(), 'Log Update', false)).then((value) {
+                                                    showDialog(context: context, builder: (context) => CustomDialog(currentDataLog.attendenceLog![index], currentDataLog.attendence?.cguid ?? currentEmpData!.cguid ?? '', (currentDataLog.attendence?.attendenceID ?? currentEmpData!.attendenceID).toString(), 'Log Update', false)).then((value) {
                                                       String timestampString = DateTime.parse(showdate.toString()).toString();
                                                       String formattedTimestampString = timestampString.replaceAll('Z', '');
                                                       attendanceEmp.getDateBloges(formattedTimestampString, currentEmpData!.empId);
@@ -1273,7 +1307,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                                 GestureDetector(
                                                   onTap: () async {
                                                     showDeleteDialog(context, size, noOnTap: () => Navigator.pop(context), yesOntap: () {
-                                                      adminAttenDanceServices.deletePunchlog(attendanceId: setDataLog.attendence?.attendenceID ?? currentEmpData!.attendenceID, setEmpid: setDataLog.attendenceLog![index].empId, setLogId: setDataLog.attendenceLog![index].logId, setStatus: setDataLog.attendenceLog![index].status).then((value) {
+                                                      adminAttenDanceServices.deletePunchlog(attendanceId: currentDataLog.attendence?.attendenceID ?? currentEmpData!.attendenceID, setEmpid: currentDataLog.attendenceLog![index].empId, setLogId: currentDataLog.attendenceLog![index].logId, setStatus: currentDataLog.attendenceLog![index].status).then((value) {
                                                         String timestampString = DateTime.parse(showdate.toString()).toString();
                                                         String formattedTimestampString = timestampString.replaceAll('Z', '');
                                                         attendanceEmp.getDateBloges(formattedTimestampString, currentEmpData!.empId);
@@ -1301,13 +1335,13 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
 
                                           heightSpacer(size.height * 0.01),
 
-                                          setDataLog.attendenceLog![index].location == '' || setDataLog.attendenceLog![index].location == null ? Container() : Row(
+                                          currentDataLog.attendenceLog![index].location == '' || currentDataLog.attendenceLog![index].location == null ? Container() : Row(
                                             children: [
                                               Icon(Icons.location_on, size: 14, color: Colors.grey),
                                               SizedBox(width: 4),
                                               Expanded(
                                                 child: Text(
-                                                  setDataLog.attendenceLog![index].location ?? "",
+                                                  currentDataLog.attendenceLog![index].location ?? "",
                                                   style: TextStyle(fontSize: 12, color: Colors.grey, fontFamily: fontInterRegularString, fontWeight: FontWeight.w400),
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
@@ -1365,6 +1399,200 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
             },
           ),
         );
+        }
+
+        if (fetchFuture != null) {
+          return FutureBuilder<void>(
+            future: fetchFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return _buildPunchLogsShimmer(context, size, showdate.toString(), curentUser);
+              }
+              final actualDataLog = Provider.of<AttendanceEmp>(context, listen: false).selectedDateLog;
+              return buildSheetContent(actualDataLog);
+            },
+          );
+        }
+        
+        return buildSheetContent(currentDataLog);
       },
+    );
+  }
+
+  Widget _buildPunchLogsShimmer(BuildContext context, Size size, String showdate, dynamic curentUser) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SafeArea(
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        minChildSize: 0.25,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) {
+          return SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                heightSpacer(5),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 5,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade400,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                heightSpacer(size.height * 0.01),
+                heightSpacer(size.height * 0.01),
+                Padding(
+                  padding: EdgeInsets.only(left: size.width * 0.05, top: size.height * 0.01),
+                  child: Text(
+                    dateFormatddMMMyyyy(DateTime.parse(showdate)),
+                    style: TextStyle(fontSize: size.height * 0.022, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+                if (curentUser['Role'] != 'Admin')
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Shimmer(
+                            child: Container(
+                              height: size.height * 0.06,
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Shimmer(
+                            child: Container(
+                              height: size.height * 0.06,
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Shimmer(
+                            child: Container(
+                              height: size.height * 0.06,
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                Padding(
+                  padding: EdgeInsets.only(left: size.width * 0.05, top: size.height * 0.01),
+                  child: Shimmer(
+                    child: Container(
+                      height: 25,
+                      width: 70,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+                heightSpacer(size.height * 0.01),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: size.width * 0.03),
+                  child: Column(
+                    children: List.generate(3, (index) {
+                      return Container(
+                        margin: EdgeInsets.only(bottom: size.height * 0.015),
+                        padding: EdgeInsets.all(size.width * 0.03),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Shimmer(
+                              child: Container(
+                                height: size.width * 0.16,
+                                width: size.width * 0.16,
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                            widthSpacer(size.width * 0.03),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Shimmer(
+                                        child: Container(
+                                          height: 20,
+                                          width: 50,
+                                          decoration: BoxDecoration(
+                                            color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                        ),
+                                      ),
+                                      widthSpacer(size.width * 0.02),
+                                      Shimmer(
+                                        child: Container(
+                                          height: 14,
+                                          width: 60,
+                                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  heightSpacer(size.height * 0.01),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.location_on, size: 14, color: isDark ? Colors.grey.shade600 : Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Shimmer(
+                                          child: Container(
+                                            height: 12,
+                                            width: double.infinity,
+                                            color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }

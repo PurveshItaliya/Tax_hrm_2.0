@@ -1,6 +1,9 @@
 // ignore_for_file: strict_top_level_inference
 
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/holidayapi.dart';
 import 'package:tax_hrm/models/Holidays/getholiday.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -33,37 +36,96 @@ class HolidayeMastServices extends ChangeNotifier {
   bool dateError = false;
   HolidayById?  getholiday;
 
-  loadingData() async {
-    try {
-      setloading(true);
-      await getAllHoliday();
-      setloading(false);
-    } catch (e) {
-      setloading(false);
+  bool _hasLoadedHolidaysThisSession = false;
+
+  Future<void> loadingData({bool forceRefresh = false}) async {
+    final cacheKey = '${LocalCacheService.keyMasterData}_holidays';
+    const ttlMs = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (!forceRefresh && _hasLoadedHolidaysThisSession) {
+      islodering = false;
+      notifyListeners();
+      return;
     }
-    notifyListeners();
+
+    try {
+      bool loadedFromCache = false;
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            final cachedList = jsonList.map((e) => GetHolidayViews.fromJson(e)).toList();
+            
+            _processHolidayList(cachedList);
+            
+            _hasLoadedHolidaysThisSession = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {
+             // silent fallback
+          }
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        islodering = true;
+        notifyListeners();
+      }
+
+      unawaited(_fetchHolidaysFromApi(cacheKey));
+
+    } catch (e) {
+      islodering = false;
+      notifyListeners();
+    }
+  }
+
+  void _processHolidayList(List<GetHolidayViews> value) {
+    int currentYear = DateTime.now().year;
+    mainHolidayList = value;
+    showHolidayList = value.where((element) {
+      if (element.holidayDate != null) {
+        try {
+          DateTime d = DateTime.parse(element.holidayDate.toString());
+          return d.year == currentYear;
+        } catch (e) {
+          return false;
+        }
+      }
+      return false;
+    }).toList();
+  }
+
+  Future<void> _fetchHolidaysFromApi(String cacheKey) async {
+    try {
+      final value = await HolidayAPIS().getHolidays();
+      _processHolidayList(value);
+      
+      _hasLoadedHolidaysThisSession = true;
+      islodering = false;
+
+      // Save to cache
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      notifyListeners();
+    } catch (e) {
+      islodering = false;
+      notifyListeners();
+    }
   }
 
   //----------------------------------Get Holiday List -------------------\\
 
-  getAllHoliday() async {
-    await HolidayAPIS().getHolidays().then((value) {
-      int currentYear = DateTime.now().year;
-      mainHolidayList = value;
-      showHolidayList = value.where((element) {
-        if (element.holidayDate != null) {
-          try {
-            DateTime d = DateTime.parse(element.holidayDate.toString());
-            return d.year == currentYear;
-          } catch (e) {
-            return false;
-          }
-        }
-        return false;
-      }).toList();
-    }).onError((error, stackTrace) {
+  Future<void> getAllHoliday() async {
+    try {
+      final value = await HolidayAPIS().getHolidays();
+      _processHolidayList(value);
+    } catch (e) {
       setloading(false);
-    },);
+    }
   }
 
   //----------------------------------Get Holiday List -------------------\\

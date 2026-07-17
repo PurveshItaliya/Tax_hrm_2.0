@@ -11,6 +11,7 @@ import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 
+import 'package:shimmer_animation/shimmer_animation.dart';
 import '../../utils/titlesfile.dart';
 
 class WinnerModel {
@@ -85,13 +86,33 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
           ),
         ],
       ),
-      child: homeProvider.isLeaderboardLoading
-          ? SizedBox(
-              height: 200,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: ColorConst.themeColor,
-                ),
+      child: (homeProvider.isLeaderboardLoading || homeProvider.setHrmTopRecord == null)
+          ? Shimmer(
+              duration: const Duration(milliseconds: 1200),
+              color: Colors.grey.shade300,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(width: size.width * 0.3, height: 24, color: Colors.grey.shade200),
+                      Container(width: size.width * 0.2, height: 24, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8))),
+                    ],
+                  ),
+                  SizedBox(height: size.height * 0.04),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(width: size.width * 0.2, height: 80, color: Colors.grey.shade200),
+                      const SizedBox(width: 8),
+                      Container(width: size.width * 0.22, height: 110, color: Colors.grey.shade200),
+                      const SizedBox(width: 8),
+                      Container(width: size.width * 0.2, height: 60, color: Colors.grey.shade200),
+                    ],
+                  ),
+                ],
               ),
             )
           : Column(
@@ -99,8 +120,7 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
               children: [
                 _buildHeader(size, homeProvider),
                 SizedBox(height: size.height * 0.025),
-                if (homeProvider.setHrmTopRecord == null ||
-                    homeProvider.setHrmTopRecord!.isEmpty)
+                if (homeProvider.setHrmTopRecord!.isEmpty)
                   Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: size.height * 0.04),
@@ -343,85 +363,71 @@ class _PodiumColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('${winners.hashCode}_$rank'),
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 500 + (rank * 100)),
-      curve: Curves.decelerate,
-      builder: (context, animValue, child) {
-        return Opacity(
-          opacity: animValue,
-          child: Transform.translate(
-            offset: Offset(0, 10 * (1 - animValue)),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Avatars
-                _AvatarStack(
-                  winners: winners,
-                  rankColor: rankColor,
-                  isWinner: isWinner,
-                  size: size,
-                ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Avatars
+        _AvatarStack(
+          winners: winners,
+          rankColor: rankColor,
+          isWinner: isWinner,
+          size: size,
+        ),
 
-                const SizedBox(height: 10),
+        const SizedBox(height: 10),
 
-                // Podium Card
-                Container(
-                  width: double.infinity,
-                  height: podiumHeight,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: borderColor,
-                      width: isWinner ? 1.5 : 1,
-                    ),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        lightColor,
-                        ColorConst.white,
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: ColorConst.black.withOpacity(0.02),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: size.width * 0.075,
-                      height: size.width * 0.075,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: lightColor,
-                        border: Border.all(
-                          color: borderColor,
-                          width: 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$rank',
-                          style: TextStyle(
-                            fontSize: size.width * 0.038,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+        // Podium Card
+        Container(
+          width: double.infinity,
+          height: podiumHeight,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: borderColor,
+              width: isWinner ? 1.5 : 1,
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                lightColor,
+                ColorConst.white,
               ],
             ),
+            boxShadow: [
+              BoxShadow(
+                color: ColorConst.black.withOpacity(0.02),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-        );
-      },
+          child: Center(
+            child: Container(
+              width: size.width * 0.075,
+              height: size.width * 0.075,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: lightColor,
+                border: Border.all(
+                  color: borderColor,
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  '$rank',
+                  style: TextStyle(
+                    fontSize: size.width * 0.038,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

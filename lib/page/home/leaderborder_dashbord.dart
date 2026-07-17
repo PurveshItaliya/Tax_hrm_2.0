@@ -499,13 +499,22 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
                       children: [
                         Text(name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: ColorConst.black), maxLines: 1, overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10), 
-                          child: LinearProgressIndicator(
-                            value: pct, 
-                            backgroundColor: ColorConst.isDark ? Colors.white.withOpacity(0.05) : barColor.withOpacity(0.08), 
-                            valueColor: AlwaysStoppedAnimation<Color>(barColor), 
-                            minHeight: 6,
+                        Container(
+                          height: 6,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: ColorConst.isDark ? Colors.white.withOpacity(0.05) : barColor.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.centerLeft,
+                          child: FractionallySizedBox(
+                            widthFactor: pct.clamp(0.0, 1.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: barColor,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -637,18 +646,20 @@ class _LeaderboardDetailPageState extends State<LeaderboardDetailPage> {
                     Expanded(
                       flex: 3, 
                       child: Container(
-                        height: 6, 
+                        height: 6,
+                        width: double.infinity,
                         decoration: BoxDecoration(
-                          color: ColorConst.isDark ? Colors.white.withOpacity(0.05) : ColorConst.themeColor.withOpacity(0.08), 
-                          borderRadius: BorderRadius.circular(3),
-                        ), 
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(3), 
-                          child: LinearProgressIndicator(
-                            value: progress, 
-                            backgroundColor: Colors.transparent, 
-                            valueColor: AlwaysStoppedAnimation<Color>(ColorConst.themeColor), 
-                            minHeight: 6,
+                          color: ColorConst.grey,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: progress.clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: ColorConst.themeColor,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),

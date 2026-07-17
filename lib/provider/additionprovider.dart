@@ -3,6 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/additionApi.dart';
 import 'package:tax_hrm/models/additions/additem.dart';
 import 'package:tax_hrm/models/additions/createadditionmodal.dart';
@@ -32,15 +35,62 @@ class AdditionProvider extends ChangeNotifier {
     islodering = value;
   }
 
-  additionLoadingData() async {
+  bool _hasLoadedAdditionThisSession = false;
+
+  additionLoadingData({bool forceRefresh = false}) async {
+    final cacheKey = '${LocalCacheService.keyMasterData}_addition';
+    const ttlMs = 24 * 60 * 60 * 1000;
+
+    if (!forceRefresh && _hasLoadedAdditionThisSession) {
+      islodering = false;
+      notifyListeners();
+      return;
+    }
+
     try {
-      setloading(true);
-      await getAdditionMasterData();
-      setloading(false);
+      bool loadedFromCache = false;
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            final cachedList = jsonList.map((e) => AdditionModal.fromJson(e)).toList();
+            mainAdditionLists = cachedList;
+            mainAdditionGroupList = cachedList;
+            
+            _hasLoadedAdditionThisSession = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {}
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        setloading(true);
+      }
+
+      unawaited(_fetchAdditionFromApi(cacheKey));
     } catch (e) {
       setloading(false);
     }
-    notifyListeners();
+  }
+
+  Future<void> _fetchAdditionFromApi(String cacheKey) async {
+    try {
+      final value = await AdditionApiClass().getadditiongroup();
+      mainAdditionLists = value;
+      mainAdditionGroupList = value;
+      _hasLoadedAdditionThisSession = true;
+      setloading(false);
+
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      notifyListeners();
+    } catch (e) {
+      setloading(false);
+    }
   }
 
   // Get Addition List

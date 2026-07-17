@@ -2,6 +2,9 @@
 
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/leaveapi.dart';
 import 'package:tax_hrm/api/leavesapi.dart';
 import 'package:tax_hrm/models/leaveM/getleavemaster.dart';
@@ -10,6 +13,7 @@ import 'package:tax_hrm/widigets/toastmessage.dart';
 
 class AdminLeaveProvider extends ChangeNotifier {
   bool islodering = false;
+  bool _isInitialized = false;
 
   bool get isloderings => islodering;
 
@@ -24,12 +28,79 @@ class AdminLeaveProvider extends ChangeNotifier {
   List<LeaveListData> rejectedLeaves = [];
   List<GetLeaveMaster> mainLeaveTypeList = [];
 
-  initializeData() async {
+  bool _hasLoadedLeaveDataThisSession = false;
+
+  initializeData({bool forceRefresh = false}) async {
+    final cacheKeyTypes = '${LocalCacheService.keyMasterData}_admin_leave_types';
+    final cacheKeyList = '${LocalCacheService.keyMasterData}_admin_leave_list';
+    const ttlMs = 24 * 60 * 60 * 1000;
+
+    if (!forceRefresh && _hasLoadedLeaveDataThisSession) {
+      islodering = false;
+      notifyListeners();
+      return;
+    }
+
     try {
-      setloading(true);
-      await getLeaveTypeList();
-      await getUserLeaveLists();
+      bool loadedFromCache = false;
+      if (!forceRefresh) {
+        final cachedTypes = await LocalCacheService.instance.getCache(cacheKeyTypes, ttlMilliseconds: ttlMs);
+        final cachedList = await LocalCacheService.instance.getCache(cacheKeyList, ttlMilliseconds: ttlMs);
+
+        if (cachedTypes != null && cachedList != null) {
+          try {
+            final List<dynamic> jsonTypes = jsonDecode(cachedTypes);
+            mainLeaveTypeList = jsonTypes.map((e) => GetLeaveMaster.fromJson(e)).toList();
+
+            final List<dynamic> jsonList = jsonDecode(cachedList);
+            mainallLeavesData = jsonList.map((e) => LeaveListData.fromJson(e)).toList();
+            
+            await filterLeavesByStatus();
+            
+            _hasLoadedLeaveDataThisSession = true;
+            _isInitialized = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {
+             // silent fallback
+          }
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        setloading(true);
+      }
+
+      unawaited(_fetchLeaveDataFromApi(cacheKeyTypes, cacheKeyList));
+
+    } catch (e) {
       setloading(false);
+    }
+  }
+
+  Future<void> _fetchLeaveDataFromApi(String cacheKeyTypes, String cacheKeyList) async {
+    try {
+      final types = await LeaveMasterApiService().getLeaveMlist();
+      mainLeaveTypeList = types;
+      
+      final list = await LeaveApiService().userLeaveList();
+      mainallLeavesData = list;
+      
+      await filterLeavesByStatus();
+      
+      _hasLoadedLeaveDataThisSession = true;
+      _isInitialized = true;
+      setloading(false);
+
+      // Save to cache
+      final jsonTypes = types.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKeyTypes, jsonEncode(jsonTypes));
+
+      final jsonList = list.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKeyList, jsonEncode(jsonList));
+
+      notifyListeners();
     } catch (e) {
       setloading(false);
     }

@@ -292,7 +292,7 @@ class Otpverificationprovider extends ChangeNotifier {
                 .of<HomeProvider>(context, listen: false,)
                 .changeSelectBottomBar(0);
             nextScreen(
-                context, const AnimatedBottomBar(), onthenValue: (value) {});
+                context, AnimatedBottomBar(), onthenValue: (value) {});
           } else if (curentUser['Role'] == 'Sub-Admin') {
             await companySelect(context);
           } else {
@@ -303,7 +303,7 @@ class Otpverificationprovider extends ChangeNotifier {
                 .of<HomeProvider>(context, listen: false,)
                 .selectFloadButton();
             nextScreen(
-                context, const AnimatedBottomBar(), onthenValue: (value) {});
+                context, AnimatedBottomBar(), onthenValue: (value) {});
           }
         }
       });

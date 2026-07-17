@@ -1,5 +1,9 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, unnecessary_null_comparison, avoid_function_literals_in_foreach_calls, strict_top_level_inference, empty_catches
 import 'dart:async';
+import 'package:get/get.dart';
+import 'package:tax_hrm/controllers/main_bottom_bar_controller.dart';
+import 'package:tax_hrm/services/local_cache_service.dart';
+import 'package:tax_hrm/models/top_hrm_model.dart' show HrmTopListReport;
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -76,24 +80,23 @@ class HomeProvider extends ChangeNotifier {
   List<HomeGridClass> homeGridOptionList = [];
 
 
-  homeLoadDatas(context) async {
+  bool _hasLeaderboardLoadedThisSession = false;
+
+  homeLoadDatas(context, {bool forceRefresh = false}) async {
     await companySelect();
     await homepageMenuGet(context);
-    await getTopLeaderboard();
+    // Leaderboard runs in background — does not block home screen load
+    unawaited(getTopLeaderboard(forceRefresh: forceRefresh));
   }
 
   // home menu design
   homepageMenuGet(context) {
     homeGridOptionList = curentUser['Role'] == 'Admin' ? [
       HomeGridClass(image: attendanceUserString, title: attendanceString, onTap: () {
-        lastBottomIndex = 1;
-        selectedIndex = 1;
-        fabSelected = false;
+        changeSelectBottomBar(1);
       },),
       HomeGridClass(image: leaveImgString, title: leaveString, onTap: (){
-        lastBottomIndex = 2;
-        selectedIndex = 2;
-        fabSelected = false;
+        changeSelectBottomBar(2);
       }),
       HomeGridClass(image: employeeMasterImageString, title: employeeMasterTitleString, onTap: () {
         nextScreen(context, EmployeeMasterScreen(), onthenValue: (value) {});
@@ -133,14 +136,10 @@ class HomeProvider extends ChangeNotifier {
       }),
     ] : [
       HomeGridClass(image: attendanceUserString, title: attendanceString,onTap: (){
-        lastBottomIndex = 1;
-        selectedIndex = 1;
-        fabSelected = false;
+        changeSelectBottomBar(1);
       }),
       HomeGridClass(image: leaveImgString, title: leaveString,onTap: (){
-        lastBottomIndex = 2;
-        selectedIndex = 2;
-        fabSelected = false;
+        changeSelectBottomBar(2);
       }),
       HomeGridClass(image: salarySlipsImageString, title: salarySlipString,onTap: () {
         nextScreen(context, SalaryPayslipScreen(), onthenValue: (value) {});
@@ -167,12 +166,20 @@ class HomeProvider extends ChangeNotifier {
     lastBottomIndex = value;
     selectedIndex = value;
     fabSelected = false;
+    try {
+      final bottomBarController = Get.find<MainBottomBarController>();
+      bottomBarController.changeTab(value);
+    } catch (e) {}
     notifyListeners();
   }
 
   selectFloadButton() {
     fabSelected = true;
     selectedIndex = lastBottomIndex;
+    try {
+      final bottomBarController = Get.find<MainBottomBarController>();
+      bottomBarController.selectFab();
+    } catch (e) {}
     notifyListeners();
   }
 
@@ -770,33 +777,99 @@ bool get isLeaderboardLoading => _isLeaderboardLoading;
 String _leaderboardErrorMessage = '';
 String get leaderboardErrorMessage => _leaderboardErrorMessage;
 
-// Update your existing getTopLeaderboard method
-Future<void> getTopLeaderboard({int? month, int? year}) async {
-  _isLeaderboardLoading = true;
-  _leaderboardErrorMessage = '';
-  notifyListeners();
+bool _isFetchingLeaderboard = false;
+
+// Leaderboard — Stale-While-Revalidate: show cache instantly, refresh silently
+Future<void> getTopLeaderboard({int? month, int? year, bool forceRefresh = false}) async {
+  if (_isFetchingLeaderboard) return;
   
+  final selectedMonth = month ?? _leaderboardSelectedMonth.month;
+  final selectedYear = year ?? _leaderboardSelectedMonth.year;
+  final cacheKey = '${LocalCacheService.keyLeaderboard}_${selectedYear}_${selectedMonth.toString().padLeft(2, '0')}';
+  const ttlMs = 30 * 60 * 1000; // 30 minutes
+
+  _leaderboardErrorMessage = '';
+
+  // ── Step 1: Show memory cache immediately ─────────────────────────────────
+  if (!forceRefresh && _hasLeaderboardLoadedThisSession && _setHrmTopRecord != null && _setHrmTopRecord!.isNotEmpty &&
+      _leaderboardSelectedMonth.month == selectedMonth &&
+      _leaderboardSelectedMonth.year == selectedYear) {
+    _isLeaderboardLoading = false;
+    notifyListeners();
+    return;
+  } else {
+    // ── Step 2: Try local (SharedPreferences) cache BEFORE showing spinner ──
+    try {
+      final cached = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+      if (cached != null && cached is List) {
+        _setHrmTopRecord = (cached)
+            .map((e) => HrmTopListReport.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        _isLeaderboardLoading = false;
+        notifyListeners();
+        _hasLeaderboardLoadedThisSession = true;
+        if (!forceRefresh) return;
+      } else {
+        // No local cache found. Now we show the spinner for the network call.
+        _isLeaderboardLoading = true;
+        notifyListeners();
+      }
+    } catch (_) {
+      _isLeaderboardLoading = true;
+      notifyListeners();
+    }
+  }
+
+  // ── Step 3: Background API refresh ───────────────────────────────────────
+  _isFetchingLeaderboard = true;
   try {
-    final selectedMonth = month ?? _leaderboardSelectedMonth.month;
-    final selectedYear = year ?? _leaderboardSelectedMonth.year;
-    
     final monthStr = selectedMonth.toString().padLeft(2, '0');
     final yearStr = selectedYear.toString();
+    final freshData = await AttendanceApis().getCompanyDataList(monthStr, yearStr);
     
-    await AttendanceApis().getCompanyDataList(monthStr, yearStr).then((value) {
-      _setHrmTopRecord = value;
+    bool isSame = false;
+    if (_setHrmTopRecord != null && freshData.length == _setHrmTopRecord!.length) {
+      isSame = true;
+      for (int i = 0; i < freshData.length; i++) {
+        if (freshData[i].empName != _setHrmTopRecord![i].empName || 
+            freshData[i].netWorkingMinutes != _setHrmTopRecord![i].netWorkingMinutes ||
+            freshData[i].totalDays != _setHrmTopRecord![i].totalDays) {
+          isSame = false;
+          break;
+        }
+      }
+    }
+    
+    bool needsUpdate = false;
+    if (!isSame) {
+      _setHrmTopRecord = freshData;
+      // Persist to local cache
+      await LocalCacheService.instance.saveCache(
+        cacheKey,
+        freshData.map((e) => e.toJson()).toList(),
+      );
+      needsUpdate = true;
+    }
+    
+    // If it was showing shimmer, we must update to show data
+    if (_isLeaderboardLoading) {
+      needsUpdate = true;
+    }
+
+    _isLeaderboardLoading = false;
+    _isFetchingLeaderboard = false;
+    _hasLeaderboardLoadedThisSession = true;
+    
+    if (needsUpdate) {
       notifyListeners();
-    }).catchError((error) {
-      _leaderboardErrorMessage = error.toString();
-      _setHrmTopRecord = [];
-      notifyListeners();
-    });
+    }
   } catch (e) {
     _leaderboardErrorMessage = e.toString();
-    _setHrmTopRecord = [];
-    notifyListeners();
-  } finally {
+    if (_setHrmTopRecord == null) {
+      _setHrmTopRecord = [];
+    }
     _isLeaderboardLoading = false;
+    _isFetchingLeaderboard = false;
     notifyListeners();
   }
 }

@@ -84,11 +84,13 @@ class AdminAttenDanceServices extends ChangeNotifier {
       DateTime dateOnly = DateTime(inputDatetime.year, inputDatetime.month, inputDatetime.day);
       String formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss.SSS').format(dateOnly);
       
+      bool loadedFromCache = false;
       // 1. Try in-memory cache first
       if (!isBackground && _attendanceCache.containsKey(formattedDate)) {
         final cached = _attendanceCache[formattedDate]!;
         mainHoldEmpList = List.from(cached);
         empAttendanceList = List.from(cached);
+        loadedFromCache = true;
         setCounters(notify: false);
         setloading(false);
         notifyListeners();
@@ -105,6 +107,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
               mainHoldEmpList = List.from(cachedList);
               empAttendanceList = List.from(cachedList);
               _attendanceCache[formattedDate] = cachedList;
+              loadedFromCache = true;
               setCounters(notify: false);
               setloading(false);
               notifyListeners();
@@ -115,7 +118,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
         }
       }
       
-      final bool showLoader = !isBackground && mainHoldEmpList.isEmpty;
+      final bool showLoader = !isBackground && !loadedFromCache;
       if (showLoader) {
         setloading(true);
       }
