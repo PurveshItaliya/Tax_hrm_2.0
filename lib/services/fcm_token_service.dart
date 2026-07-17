@@ -77,8 +77,17 @@ class FcmTokenService {
           sound: true,
         );
         print('[FCM] iOS permission status: ${settings.authorizationStatus}');
+        
+        // CRITICAL FOR IOS: This allows FCM notifications to show as heads-up
+        // alerts even when the app is currently in the foreground.
+        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        print('[FCM] iOS foreground presentation options set.');
       } catch (e) {
-        print('[FCM] Error requesting iOS FCM permission: $e');
+        print('[FCM] Error requesting iOS FCM permission or setting foreground options: $e');
       }
     }
 

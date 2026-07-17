@@ -13,9 +13,9 @@ import workmanager_apple
         GeneratedPluginRegistrant.register(with: registry)
     }
     
-    if #available(iOS 10.0, *) {
-      UNUserNotificationCenter.current().delegate = self
-    }
+    // UNUserNotificationCenter delegate is handled automatically by 
+    // flutter_local_notifications and firebase_messaging plugins.
+    // Explicitly setting it to `self` here can break their delegate swizzling.
     
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in
         GeneratedPluginRegistrant.register(with: registry)
