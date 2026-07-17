@@ -46,7 +46,6 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
-import 'package:tax_hrm/page/notifications/admin_notifications_screen.dart';
 
 class HomeProvider extends ChangeNotifier {
   bool _notifyScheduled = false;
@@ -132,9 +131,6 @@ class HomeProvider extends ChangeNotifier {
       }),
       HomeGridClass(image: aediDecImageString, title: addDeduString, onTap: () {
         nextScreen(context, AdditionDeductionScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: whatsNewImgString, title: notificationString, onTap: () {
-        nextScreen(context, const AdminNotificationsScreen(), onthenValue: (value) {});
       }),
     ] : [
       HomeGridClass(image: attendanceUserString, title: attendanceString,onTap: (){

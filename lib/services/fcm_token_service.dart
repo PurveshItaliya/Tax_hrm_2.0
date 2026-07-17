@@ -30,8 +30,6 @@ class FcmTokenService {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   Map<String, dynamic>? _pendingPayload;
   bool _isInitialized = false;
-  String? _currentSubscribedTopic;
-  bool _isTopicOperationInProgress = false;
   final Set<String> _customSubscribedTopics = {};
   Future<void>? _pendingSubscriptionOp;
 
