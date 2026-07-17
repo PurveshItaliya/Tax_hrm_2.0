@@ -23,6 +23,9 @@ plugins {
     // START: FlutterFire Configuration
     id("com.google.gms.google-services") version "4.3.15" apply false
     // END: FlutterFire Configuration
+    // START: FlutterFire Crashlytics
+    id("com.google.firebase.crashlytics") version "3.0.5" apply false
+    // END: FlutterFire Crashlytics
 }
 
 include(":app")

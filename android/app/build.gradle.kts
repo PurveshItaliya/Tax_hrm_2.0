@@ -8,6 +8,9 @@ plugins {
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
     // END: FlutterFire Configuration
+    // START: FlutterFire Crashlytics
+    id("com.google.firebase.crashlytics")
+    // END: FlutterFire Crashlytics
 }
 
 

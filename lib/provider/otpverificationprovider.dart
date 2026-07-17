@@ -407,6 +407,10 @@ class Otpverificationprovider extends ChangeNotifier {
           }
         });
       }
+      // Subscribe to role/company/user topics after successful login
+      if (selectedcurentcompany != null) {
+        FcmTokenService.instance.subscribeLoginTopics();
+      }
     });
   }
 }
