@@ -367,7 +367,29 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Verify mandatory topics are still intact every time the app comes to
+  /// the foreground. This self-heals any subscriptions that were lost while
+  /// the app was in the background (e.g. uninstall/reinstall, token rotation).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Fire-and-forget: never block the UI thread
+      FcmTokenService.instance.verifyMandatoryTopics();
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return MultiProvider(

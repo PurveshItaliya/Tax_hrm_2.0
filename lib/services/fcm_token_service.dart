@@ -16,6 +16,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/services/notifications/notification_logger_service.dart';
+import 'package:tax_hrm/services/fcm_topic_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
 import 'package:tax_hrm/provider/home_provider.dart';
@@ -35,8 +36,10 @@ class FcmTokenService {
   Map<String, dynamic>? _pendingPayload;
   bool _isInitialized = false;
 
-  // Set to true to disable FCM topic subscriptions/unsubscriptions during local testing/debugging
-  static const bool disableTopicsForTesting = true;
+  // Set to true to disable ALL FCM topic subscriptions during local testing.
+  // ⚠️  Keep false in production — mandatory topics (all_users, all_users_{companyId})
+  //     must reach every user regardless of build mode.
+  static const bool disableTopicsForTesting = false;
 
   // ── Topic strategy ─────────────────────────────────────────────────────────
   // Serial gate: prevents concurrent subscribe/unsubscribe calls from racing
@@ -103,11 +106,15 @@ class FcmTokenService {
       }
     }
 
-    // Listen to token refresh
+    // Listen to token refresh — re-subscribe mandatory topics because the
+    // old FCM token is now invalid and topic bindings live per-token.
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       print('[FCM] Token refreshed: $newToken');
+      NotificationLoggerService.fcmTopic('FCM token refreshed — re-syncing mandatory topics');
       await _saveTokenLocally(newToken);
       await uploadTokenToServer(newToken);
+      // Force re-subscription because the new token starts with no topics
+      await _resubscribeMandatoryTopicsAfterTokenRefresh();
     });
 
     // Listen to foreground messages
@@ -220,61 +227,87 @@ class FcmTokenService {
   Future<void> uploadTokenToServer(String token) async {
     if (curentUser == null || curentUser['Id'] == null || selectedcurentcompany == null) {
       print('[FCM] Skipping upload: User is not logged in or company is not selected.');
+      NotificationLoggerService.fcmTopic('Token upload skipped — user not logged in or no company selected');
       return;
     }
     try {
       final empId = curentUser['Id'];
-      print('[FCM] Uploading token to server for EmpId $empId...');
+      final companyId = selectedcurentcompany?.companyId?.toString() ?? curentUser['CompanyId']?.toString() ?? '';
+      final role = curentUser['Role']?.toString() ?? 'Unknown';
+      print('[FCM] Uploading token to server | EmpId=$empId CompanyId=$companyId Role=$role');
+      NotificationLoggerService.fcmTopic(
+          'Uploading FCM token | EmpId=$empId CompanyId=$companyId Role=$role Token=${token.length > 20 ? '${token.substring(0, 20)}...' : token}');
       await AttendanceApis().notificationTokens(token, empId);
       print('[FCM] Token uploaded successfully.');
-      // After successful token upload, sync all login-scoped topic subscriptions.
+      NotificationLoggerService.fcmTopic('Token upload successful for EmpId=$empId');
+      // After successful token upload, sync all login-scoped AND mandatory topic subscriptions.
       unawaited(subscribeLoginTopics());
     } catch (e) {
       print('[FCM] Error uploading token: $e');
+      NotificationLoggerService.error('Token upload failed: $e');
     }
   }
 
   /// Delete/Deactivate token on logout.
-  /// Unsubscribes from all login-scoped topics but KEEPS 'all' so the device
-  /// still receives global announcements while logged out.
+  /// Unsubscribes from all login-scoped topics AND the mandatory topics
+  /// (`all_users`, `all_users_{companyId}`). Clears all topic caches so the
+  /// previous account's notifications cannot reach this device.
   Future<void> handleLogout() async {
     try {
-      // 1. Fire-and-forget the topic unsubscriptions in the background
+      final empId = curentUser?['Id'];
+      final companyId = selectedcurentcompany?.companyId?.toString() ??
+          curentUser?['CompanyId']?.toString() ?? '';
+      print('[FCM] handleLogout | EmpId=$empId CompanyId=$companyId');
+      NotificationLoggerService.fcmTopic(
+          'Logout initiated | EmpId=$empId CompanyId=$companyId — unsubscribing all topics');
+
+      // 1. Unsubscribe from mandatory topics (all_users, all_users_{companyId})
+      unawaited(FcmTopicService.instance.unsubscribeFromMandatoryTopics());
+
+      // 2. Unsubscribe from all other login-scoped topics
       unawaited(unsubscribeLoginTopics());
 
-      // 2. Clear token on server (awaited, fast, with 2-second timeout to prevent blocking if offline)
-      if (curentUser != null && curentUser['Id'] != null) {
-        final empId = curentUser['Id'];
+      // 3. Clear all mandatory topic cache immediately so next user starts clean
+      await FcmTopicService.instance.clearAllTopicCache();
+
+      // 4. Clear token on server (2-second timeout to prevent blocking if offline)
+      if (empId != null) {
         print('[FCM] Clearing token on server for EmpId $empId...');
         try {
           await AttendanceApis()
               .notificationTokens('', empId)
               .timeout(const Duration(seconds: 2));
+          NotificationLoggerService.fcmTopic('Server token cleared for EmpId=$empId');
         } catch (e) {
           print('[FCM] Timeout or error clearing token on server: $e');
+          NotificationLoggerService.error('Server token clear failed: $e');
         }
       }
 
-      // 3. Fire-and-forget FCM token deletion in the background
+      // 5. Fire-and-forget FCM token deletion so next login gets a fresh token
       unawaited(() async {
         try {
           await FirebaseMessaging.instance.deleteToken();
           await _clearLocalToken();
           print('[FCM] Token deleted successfully.');
+          NotificationLoggerService.fcmTopic('FCM token deleted on logout');
 
-          // Reset local cache of topic subscriptions as the token has changed
+          // Reset all local topic caches — token changed so old subscriptions
+          // are now invalid.
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove(_kSubscribedAllKey);
           await prefs.remove(_kLoginTopicsKey);
 
-          // Re-subscribe to 'ALL' for the new token
+          // Re-subscribe to global 'ALL' broadcast topic for the new (anonymous) token
           await _subscribeToGlobalAll();
         } catch (e) {
           print('[FCM] Error during logout token deletion: $e');
+          NotificationLoggerService.error('Logout token deletion failed: $e');
         }
       }());
     } catch (e) {
       print('[FCM] Error during logout: $e');
+      NotificationLoggerService.error('handleLogout unexpected error: $e');
     }
   }
 
@@ -283,12 +316,27 @@ class FcmTokenService {
   // ══════════════════════════════════════════════════════════════════════════
 
   /// Call after login / company selection.
-  /// Subscribes to COMPANY_{id}_ADMIN|COMPANY_{id}_USER (or ALL_USER|ALL_ADMIN if company is null), COMPANY_{id}, USER_{id}_{name}.
-  /// Diffs against previously stored topics to avoid duplicate calls.
+  ///
+  /// Subscribes to:
+  ///   • Mandatory:  `all_users`, `all_users_{companyId}` (via FcmTopicService)
+  ///   • Role-based: `ALL_ADMIN_{companyId}` or `ALL_USER_{companyId}`
+  ///   • Company:    `COMPANY_{companyId}`
+  ///
+  /// Diffs against previously stored topics to avoid duplicate FCM calls.
   Future<void> subscribeLoginTopics() async {
+    final empId = curentUser?['Id'];
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    final role = curentUser?['Role']?.toString() ?? 'Unknown';
+
+    print('[FCM] subscribeLoginTopics | EmpId=$empId CompanyId=$companyId Role=$role');
+    NotificationLoggerService.fcmTopic(
+        'subscribeLoginTopics called | EmpId=$empId CompanyId=$companyId Role=$role');
+
     await _runTopicOp(() async {
       if (curentUser == null || curentUser['Id'] == null) {
         print('[FCM Topic] No logged-in user. Ensuring all login-scoped topics are unsubscribed.');
+        NotificationLoggerService.fcmTopic('No logged-in user — clearing all login-scoped topics');
         final prefs = await SharedPreferences.getInstance();
         final List<String> current = prefs.getStringList(_kLoginTopicsKey) ?? [];
         if (current.isNotEmpty) {
@@ -306,6 +354,8 @@ class FcmTokenService {
       final bool isActive = await _checkIfUserActive();
       if (!isActive) {
         print('[FCM Topic] User is inactive, blocked, or deleted. Unsubscribing login-scoped topics.');
+        NotificationLoggerService.fcmTopic(
+            'User EmpId=$empId is inactive/deleted — removing login-scoped topics');
         final prefs = await SharedPreferences.getInstance();
         final List<String> current = prefs.getStringList(_kLoginTopicsKey) ?? [];
         for (final t in current) {
@@ -321,8 +371,9 @@ class FcmTokenService {
       final prefs = await SharedPreferences.getInstance();
       final List<String> current = prefs.getStringList(_kLoginTopicsKey) ?? [];
 
-      print('[FCM Topic] Subscribing login topics. Current: $current → Desired: $desired');
-      NotificationLoggerService.fcmTopic('Subscribing login topics. Current: $current → Desired: $desired');
+      print('[FCM Topic] Login topics | Current: $current → Desired: $desired');
+      NotificationLoggerService.fcmTopic(
+          'Login topics | Current: $current → Desired: $desired');
 
       // Unsubscribe topics no longer needed
       for (final t in current) {
@@ -340,6 +391,16 @@ class FcmTokenService {
       }
       await prefs.setStringList(_kLoginTopicsKey, desired);
     });
+
+    // ── Always sync mandatory topics (all_users, all_users_{companyId}) ────
+    // This runs OUTSIDE the serial gate to avoid blocking the existing
+    // login-scoped subscriptions above.
+    if (companyId.isNotEmpty) {
+      unawaited(subscribeMandatoryTopics());
+    } else {
+      NotificationLoggerService.fcmTopic(
+          'Mandatory topic subscription skipped — companyId not available yet');
+    }
   }
 
   /// Call on logout.
@@ -360,9 +421,76 @@ class FcmTokenService {
   }
 
   /// Call when the user switches company or role.
-  /// Diffs the old vs new topic set and adjusts subscriptions accordingly.
+  /// Re-syncs both login-scoped topics AND mandatory topics.
   Future<void> updateTopicSubscriptions() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    print('[FCM] updateTopicSubscriptions | CompanyId=$companyId');
+    NotificationLoggerService.fcmTopic(
+        'updateTopicSubscriptions | CompanyId=$companyId');
     await subscribeLoginTopics();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Mandatory Topic Public API — delegates to FcmTopicService
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Subscribe to `all_users` and `all_users_{companyId}`.
+  ///
+  /// Call after login, on app resume, or after a company change.
+  /// Safe to call multiple times — deduplication is handled internally.
+  Future<void> subscribeMandatoryTopics() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    final empId = curentUser?['Id'];
+    final role = curentUser?['Role']?.toString() ?? 'Unknown';
+
+    print('[FCM] subscribeMandatoryTopics | EmpId=$empId CompanyId=$companyId Role=$role');
+    NotificationLoggerService.fcmTopic(
+        'subscribeMandatoryTopics | EmpId=$empId CompanyId=$companyId Role=$role');
+
+    if (companyId.isEmpty) {
+      print('[FCM] subscribeMandatoryTopics: companyId empty — skipping');
+      return;
+    }
+    await FcmTopicService.instance
+        .subscribeToMandatoryTopics(companyId: companyId);
+  }
+
+  /// Unsubscribe from `all_users` and `all_users_{companyId}`.
+  ///
+  /// Call on logout. Also invoked by [handleLogout].
+  Future<void> unsubscribeMandatoryTopics() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    print('[FCM] unsubscribeMandatoryTopics | CompanyId=$companyId');
+    NotificationLoggerService.fcmTopic(
+        'unsubscribeMandatoryTopics | CompanyId=$companyId');
+    await FcmTopicService.instance.unsubscribeFromMandatoryTopics();
+  }
+
+  /// Verify mandatory topics are intact and repair any missing subscriptions.
+  ///
+  /// Call on app resume (AppLifecycleState.resumed) or token refresh.
+  Future<void> verifyMandatoryTopics() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    if (curentUser == null || companyId.isEmpty) return;
+    print('[FCM] verifyMandatoryTopics | CompanyId=$companyId');
+    await FcmTopicService.instance
+        .verifyAndRepairSubscriptions(companyId: companyId);
+  }
+
+  /// Internal: called after an FCM token refresh to force re-subscription
+  /// on the new token (which starts with zero topic bindings).
+  Future<void> _resubscribeMandatoryTopicsAfterTokenRefresh() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    if (companyId.isEmpty) return;
+    // Clear stored topics so they are re-subscribed unconditionally
+    await FcmTopicService.instance.clearAllTopicCache();
+    await FcmTopicService.instance
+        .subscribeToMandatoryTopics(companyId: companyId);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
