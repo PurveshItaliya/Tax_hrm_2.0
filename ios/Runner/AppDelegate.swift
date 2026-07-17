@@ -14,7 +14,7 @@ import workmanager_apple
     }
     
     if #available(iOS 10.0, *) {
-      UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+      UNUserNotificationCenter.current().delegate = self
     }
     
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in

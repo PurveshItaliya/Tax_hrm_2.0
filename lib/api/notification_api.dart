@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class NotificationApi {
-  // Pointing to local node backend running on port 5000
-  static const String baseUrl = 'http://localhost:5000/api';
+  // Backend URL that routes topic notification requests to Firebase via the server.
+  // Using the same live server as all other API calls in the app.
+  static const String baseUrl = 'https://taxcrmtesting.taxfile.co.in/api';
 
   Future<bool> sendNotification({
     required String title,

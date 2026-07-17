@@ -45,7 +45,7 @@ import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
-import 'package:tax_hrm/services/fcm_token_service.dart';
+
 
 class HomeProvider extends ChangeNotifier {
   bool _notifyScheduled = false;
@@ -214,7 +214,7 @@ class HomeProvider extends ChangeNotifier {
         setcompanyselected();
       }
       if (selectedcurentcompany != null) {
-        FcmTokenService.instance.subscribeToCompanyTopic();
+        // Topic subscriptions removed — using token-based delivery only
       }
     });
   }
@@ -231,7 +231,6 @@ class HomeProvider extends ChangeNotifier {
     SaveUser().saveselectedcopany(setdata);
     await setcompanyselected();
     ReminderNotificationService.scheduleAllNotifications(forceRefresh: true);
-    await FcmTokenService.instance.updateTopicSubscriptions();
   }
 
   // Working Hours Related
