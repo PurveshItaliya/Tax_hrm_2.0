@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:http/http.dart' as http;
+import 'package:tax_hrm/models/fixeddat.dart';
 
 class NotificationApi {
   // Backend URL that routes topic notification requests to Firebase via the server.
@@ -20,6 +22,7 @@ class NotificationApi {
         url,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'bearer ${curentUser['token']}',
         },
         body: jsonEncode({
           'title': title,
@@ -34,11 +37,11 @@ class NotificationApi {
       if (response.statusCode == 200) {
         return true;
       } else {
-        print('[NotificationApi] Failed to send: ${response.body}');
+        log('[NotificationApi] Failed to send: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('[NotificationApi] Error sending notification: $e');
+      log('[NotificationApi] Error sending notification: $e');
       return false;
     }
   }

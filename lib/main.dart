@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print, deprecated_member_use, empty_catches, strict_top_level_inference, unused_local_variable
 
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -33,7 +34,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   } catch (e) {
     // Already initialized or failed
   }
-  print("[FCM] Background message received: ${message.messageId}");
+  log("[FCM] Background message received: ${message.messageId}");
 }
 
 const taskName = "LocationTimeLines";
@@ -51,7 +52,7 @@ Future<void> main() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     await FcmTokenService.instance.initialize();
   } catch (e) {
-    print('Firebase initialization error: $e');
+    log('Firebase initialization error: $e');
   }
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 

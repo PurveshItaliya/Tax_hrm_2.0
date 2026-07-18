@@ -25,7 +25,7 @@ class NotificationLoggerService {
     }
 
     if (kDebugMode) {
-      print(logMessage);
+     // log(logMessage);
     }
   }
 

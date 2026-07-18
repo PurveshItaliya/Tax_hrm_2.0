@@ -300,12 +300,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: itemColor.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
-              child: Image.asset(
-                menuItem.image,
-                color: itemColor,
-                height: size.width * 0.055,
-                width: size.width * 0.055,
-              ),
+              child: menuItem.image.isEmpty
+                  ? Icon(
+                      Icons.notifications_active_outlined,
+                      color: itemColor,
+                      size: size.width * 0.055,
+                    )
+                  : Image.asset(
+                      menuItem.image,
+                      color: itemColor,
+                      height: size.width * 0.055,
+                      width: size.width * 0.055,
+                    ),
             ),
             const SizedBox(height: 6),
             Flexible(

@@ -1,8 +1,10 @@
 // ignore_for_file: avoid_print
 
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -270,10 +272,33 @@ class FcmTopicService {
   // iOS APNs Guard
   // ══════════════════════════════════════════════════════════════════════════
 
+  bool? _isSimulator;
+
+  Future<bool> _checkIfSimulator() async {
+    if (_isSimulator != null) return _isSimulator!;
+    if (!Platform.isIOS) {
+      _isSimulator = false;
+      return false;
+    }
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final iosInfo = await deviceInfo.iosInfo;
+      _isSimulator = !iosInfo.isPhysicalDevice;
+    } catch (e) {
+      _isSimulator = false;
+    }
+    return _isSimulator!;
+  }
+
   /// Returns true immediately on Android (APNs not required).
   /// On iOS, polls for the APNs token up to 5 times (10 s total).
   Future<bool> _waitForApnsToken() async {
     if (!Platform.isIOS) return true;
+
+    if (await _checkIfSimulator()) {
+      _log('[iOS] Running on Simulator — skipping APNs token wait');
+      return false;
+    }
 
     // Check if user has denied notifications — APNs token will never arrive
     try {
@@ -330,7 +355,7 @@ class FcmTopicService {
   void _log(String message) {
     final timestamp = DateTime.now().toIso8601String().split('.').first;
     final entry = '[$timestamp] [FCM_TOPIC] $message';
-    if (kDebugMode) print(entry);
+    if (kDebugMode) log(entry);
     NotificationLoggerService.fcmTopic(message);
   }
 }

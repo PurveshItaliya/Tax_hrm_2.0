@@ -1,5 +1,6 @@
 // ignore_for_file: strict_top_level_inference, file_names
 
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -322,12 +323,12 @@ class EventsMastServices extends ChangeNotifier {
   }
 
   Future addNewDocuments({List<FileUploadClass>? setlist, setCompanyId, setCguid}) async {
-    debugPrint('------------------------>>>> addNewDocuments | setCguid: $setCguid | CompanyId: $setCompanyId | files count: ${setlist?.length}');
+    log('------------------------>>>> addNewDocuments | setCguid: $setCguid | CompanyId: $setCompanyId | files count: ${setlist?.length}');
     await CompanyMasterApi().uploadDocuments(companyid: setCompanyId, files: setlist, cguid: setCguid).then((value) {
       if (value == 200) {
         showtoastmessage('Document Uploaded Successfully');
       }
-      debugPrint('------------------------>>>> uploadDocuments status code: $value');
+      log('------------------------>>>> uploadDocuments status code: $value');
     });
   }
 
@@ -360,7 +361,7 @@ class EventsMastServices extends ChangeNotifier {
               String imgType = 'Event';
               for (var file in attachedFiles) {
                 if (file.path != null) {
-                  debugPrint('------------------------>>>> FileUploadClass | File: ${file.path} | cguid: ${addEditFlag == true ? setGuid : setdid.cguid}');
+                  log('------------------------>>>> FileUploadClass | File: ${file.path} | cguid: ${addEditFlag == true ? setGuid : setdid.cguid}');
                   fileUploadList.add(
                     FileUploadClass(
                       selectedImages: File(file.path!),
@@ -371,7 +372,7 @@ class EventsMastServices extends ChangeNotifier {
                 }
               }
               if (fileUploadList.isNotEmpty) {
-                debugPrint('------------------------>>>> Calling addNewDocuments | cguid: ${addEditFlag == true ? setGuid : setdid.cguid}');
+                log('------------------------>>>> Calling addNewDocuments | cguid: ${addEditFlag == true ? setGuid : setdid.cguid}');
                 await addNewDocuments(
                   setlist: fileUploadList,
                   setCompanyId: selectedcurentcompany!.companyId,

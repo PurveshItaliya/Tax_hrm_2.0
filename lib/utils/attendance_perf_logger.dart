@@ -1,5 +1,7 @@
 // ignore_for_file: avoid_print
 
+import 'dart:developer';
+
 /// ─────────────────────────────────────────────────────────────────────────────
 /// AttendancePerformanceLogger
 /// ─────────────────────────────────────────────────────────────────────────────
@@ -205,7 +207,7 @@ class AttendancePerformanceLogger {
     return '🟢 OK  ';
   }
 
-  static void _log(String msg) => print('[AttendancePerfLogger] $msg');
+  static void _log(String msg) => log('[AttendancePerfLogger] $msg');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
