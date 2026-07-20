@@ -27,7 +27,6 @@ import 'package:tax_hrm/models/role/get_role_model.dart';
 import 'package:tax_hrm/provider/address_provider.dart';
 import 'package:tax_hrm/provider/department_provider.dart';
 import 'package:tax_hrm/provider/ifsc_provider.dart';
-import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/pagniation.dart';
 import 'package:tax_hrm/provider/position_provider.dart';
 import 'package:tax_hrm/provider/role_provider.dart';
