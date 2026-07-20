@@ -21,6 +21,7 @@ import 'package:tax_hrm/services/fcm_topic_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
 import 'package:tax_hrm/provider/home_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
@@ -150,18 +151,18 @@ class FcmTokenService {
     // Handle token at startup (if logged in)
     await handleTokenSync();
 
-    // ── Subscribe ALL topic on every app start ─────────────────────────────
-    // 'ALL' is the global broadcast topic. All installed devices must be
-    // subscribed regardless of login state so general announcements reach them.
-    unawaited(_runTopicOp(() async {
-      final prefs = await SharedPreferences.getInstance();
-      final hasCleanedLegacyAll = prefs.getBool('fcm_cleaned_legacy_all') ?? false;
-      if (!hasCleanedLegacyAll) {
-        await _doUnsubscribe('all');
-        await prefs.setBool('fcm_cleaned_legacy_all', true);
-      }
-      await _subscribeToGlobalAll();
-    }));
+    // ── Subscribe ALL topic on every app start (only if logged in) ────────
+    if (curentUser != null && curentUser['Id'] != null) {
+      unawaited(_runTopicOp(() async {
+        final prefs = await SharedPreferences.getInstance();
+        final hasCleanedLegacyAll = prefs.getBool('fcm_cleaned_legacy_all') ?? false;
+        if (!hasCleanedLegacyAll) {
+          await _doUnsubscribe('all');
+          await prefs.setBool('fcm_cleaned_legacy_all', true);
+        }
+        await _subscribeToGlobalAll();
+      }));
+    }
   }
 
   /// Request notification permissions
@@ -308,8 +309,7 @@ class FcmTokenService {
           await prefs.remove(_kSubscribedAllKey);
           await prefs.remove(_kLoginTopicsKey);
 
-          // Re-subscribe to global 'ALL' broadcast topic for the new (anonymous) token
-          await _subscribeToGlobalAll();
+          // Without login, no global ALL topic should be subscribed.
         } catch (e) {
           log('[FCM] Error during logout token deletion: $e');
           NotificationLoggerService.error('Logout token deletion failed: $e');
@@ -414,7 +414,7 @@ class FcmTokenService {
   }
 
   /// Call on logout.
-  /// Removes all login-scoped topics; keeps 'all' intact.
+  /// Removes all login-scoped topics, including the global ALL topic.
   Future<void> unsubscribeLoginTopics() async {
     await _runTopicOp(() async {
       final prefs = await SharedPreferences.getInstance();
@@ -422,11 +422,17 @@ class FcmTokenService {
       log('[FCM Topic] Unsubscribing login topics: $current');
       NotificationLoggerService.fcmTopic('Unsubscribing login topics: $current');
       for (final t in current) {
-        if (t != 'ALL') {
-          await _doUnsubscribe(t);
-        }
+        await _doUnsubscribe(t);
       }
       await prefs.remove(_kLoginTopicsKey);
+
+      // Also explicitly unsubscribe from global ALL topic if stored in the other key
+      final isSubscribedAll = prefs.getBool(_kSubscribedAllKey) ?? false;
+      if (isSubscribedAll) {
+        log('[FCM Topic] Unsubscribing from global ALL topic on logout...');
+        await _doUnsubscribe('ALL');
+        await prefs.remove(_kSubscribedAllKey);
+      }
     });
   }
 
@@ -516,25 +522,18 @@ class FcmTokenService {
 
     // Role-based topic
     final role = curentUser?['Role']?.toString() ?? '';
+
     if (companyId != null) {
-      if (role == 'Admin' || role == 'Owner') {
+      // 1. Company-based topic
+      topics.add(_sanitize('COMPANY_$companyId'));
+
+      // 3. Compatibility general roles (including ALL_ADMIN_, ALL_USER_, and ALL_EMPLOYEE_)
+      if (role == 'Admin' || role == 'Owner' || role == 'Sub-Admin') {
         topics.add(_sanitize('ALL_ADMIN_$companyId'));
       } else {
-        topics.add(_sanitize('ALL_USER_$companyId'));
+        topics.add(_sanitize('ALL_EMPLOYEE_$companyId'));
       }
     }
-
-    // Company-based topic
-    if (companyId != null) {
-      topics.add(_sanitize('COMPANY_$companyId'));
-    }
-
-    // Individual user topic
-    // final userId = curentUser?['Id'];
-    // final userName = (curentUser?['UserName'] ?? curentUser?['Username'])?.toString();
-    // if (userId != null && userName != null && userName.isNotEmpty) {
-    //   topics.add(_sanitize('USER_${userId}_$userName'));
-    // }
 
     return topics;
   }
@@ -679,6 +678,10 @@ class FcmTokenService {
 
   /// Subscribe to the global broadcast topic 'ALL' only if not already subscribed.
   Future<void> _subscribeToGlobalAll() async {
+    if (curentUser == null || curentUser['Id'] == null) {
+      log('[FCM Topic] User not logged in. Skipping global ALL topic subscription.');
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final isSubscribed = prefs.getBool(_kSubscribedAllKey) ?? false;
     if (!isSubscribed) {
@@ -841,6 +844,25 @@ class FcmTokenService {
     }
   }
 
+  bool _isValidUrl(String? value) {
+    if (value == null || value.trim().isEmpty) return false;
+    final trimmed = value.trim();
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  }
+
+  Future<void> _openUrl(String urlStr) async {
+    try {
+      final uri = Uri.parse(urlStr.trim());
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        log('[FCM] Cannot launch URL: $urlStr');
+      }
+    } catch (e) {
+      log('[FCM] Error launching URL $urlStr: $e');
+    }
+  }
+
   /// Route user context to target screen based on payload
   void _navigateToScreen(Map<String, dynamic> data) {
     final context = navigatorKey.currentContext;
@@ -850,34 +872,64 @@ class FcmTokenService {
       return;
     }
 
-    final screen = data['screen']?.toString();
-    if (screen == null) return;
+    String? urlStr;
+    String? screenStr;
+
+    data.forEach((key, value) {
+      final lowerKey = key.toLowerCase();
+      if (lowerKey == 'url' || lowerKey == 'link') {
+        urlStr = value?.toString();
+      } else if (lowerKey == 'screen' || lowerKey == 'page' || lowerKey == 'screen_id' || lowerKey == 'page_id') {
+        screenStr = value?.toString();
+      }
+    });
+
+    final bool isUrlPresent = _isValidUrl(urlStr) || _isValidUrl(screenStr);
+    final String? targetUrl = _isValidUrl(urlStr) ? urlStr : (_isValidUrl(screenStr) ? screenStr : null);
+
+    if (isUrlPresent && targetUrl != null) {
+      log('[FCM] Notification contains URL: $targetUrl. Opening URL...');
+      _openUrl(targetUrl);
+      return;
+    }
+
+    final String? targetScreen = (screenStr != null && !_isValidUrl(screenStr)) ? screenStr : null;
 
     if (curentUser == null || curentUser['Id'] == null) {
-      log('[FCM] User is not logged in. Cannot redirect to $screen.');
+      log('[FCM] User is not logged in. Cannot redirect to screen/dashboard.');
       return;
     }
 
     try {
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-      if (screen == 'attendance') {
-        homeProvider.changeSelectBottomBar(1);
-      } else if (screen == 'leave') {
-        homeProvider.changeSelectBottomBar(2);
-      } else if (screen == 'home') {
+      if (targetScreen != null && targetScreen.trim().isNotEmpty) {
+        final screen = targetScreen.trim();
+        log('[FCM] Navigating to screen: $screen');
+        if (screen == 'attendance') {
+          homeProvider.changeSelectBottomBar(1);
+        } else if (screen == 'leave') {
+          homeProvider.changeSelectBottomBar(2);
+        } else if (screen == 'home') {
+          homeProvider.changeSelectBottomBar(0);
+        } else if (screen == 'setting') {
+          homeProvider.changeSelectBottomBar(3);
+        } else if (screen == 'profile') {
+          nextScreen(context, ProfileViewPage(isEdit: false));
+        } else if (screen == 'salary_payslip') {
+          nextScreen(context, const SalaryPayslipScreen());
+        } else if (screen == 'holidays') {
+          nextScreen(context, const ShowHolidayViews());
+        } else if (screen == 'notes') {
+          nextScreen(context, const NotesViewPage());
+        } else if (screen == 'document') {
+          nextScreen(context, const ShowDocumentScreen());
+        } else {
+          log('[FCM] Unknown screen: $screen. Falling back to default Home/Dashboard.');
+          homeProvider.changeSelectBottomBar(0);
+        }
+      } else {
+        log('[FCM] Neither URL nor page identifier provided. Opening default Home/Dashboard.');
         homeProvider.changeSelectBottomBar(0);
-      } else if (screen == 'setting') {
-        homeProvider.changeSelectBottomBar(3);
-      } else if (screen == 'profile') {
-        nextScreen(context, ProfileViewPage(isEdit: false));
-      } else if (screen == 'salary_payslip') {
-        nextScreen(context, const SalaryPayslipScreen());
-      } else if (screen == 'holidays') {
-        nextScreen(context, const ShowHolidayViews());
-      } else if (screen == 'notes') {
-        nextScreen(context, const NotesViewPage());
-      } else if (screen == 'document') {
-        nextScreen(context, const ShowDocumentScreen());
       }
     } catch (e) {
       log('[FCM] Navigation error: $e');
