@@ -92,6 +92,7 @@ dependencies:
   cloud_firestore: 
   firebase_messaging: 
   get:
+  liquid_glass_easy:
   flutter_localizations:
     sdk: flutter
   firebase_crashlytics:

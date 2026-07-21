@@ -21,7 +21,17 @@ import workmanager_apple
         GeneratedPluginRegistrant.register(with: registry)
     }
     WorkmanagerPlugin.registerBGProcessingTask(withIdentifier: "LocationTimeLines")
-    
+
+    // Register native Liquid Glass tab bar platform view.
+    // On iOS 26+ the UITabBar automatically renders the real
+    // Liquid Glass material with spring animation and haptics.
+    if let registrar = registrar(forPlugin: "NativeLiquidGlassTabBar") {
+      let factory = NativeLiquidGlassTabBarFactory(
+        messenger: registrar.messenger()
+      )
+      registrar.register(factory, withId: "native_liquid_glass_tab_bar")
+    }
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

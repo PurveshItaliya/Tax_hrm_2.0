@@ -2,6 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- ══════════════════════════════════════════════════════════════════════
+	     iOS 26 Liquid Glass design language opt-in.
+	     Setting this to false allows UITabBar (and other system chrome) to
+	     render the genuine Liquid Glass material on iOS 26+. Remove or set
+	     to true to force the pre-iOS-26 flat appearance.
+	     ══════════════════════════════════════════════════════════════════════ -->
+	<key>UIDesignRequiresCompatibility</key>
+	<false/>
+
 	<!-- ═══════════════════════════════════════════════════════════════════
 	     App Identity
 	     ═══════════════════════════════════════════════════════════════════ -->
