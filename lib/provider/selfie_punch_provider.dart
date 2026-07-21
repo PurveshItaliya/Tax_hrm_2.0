@@ -420,9 +420,9 @@ class SelfiePunchProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> getAddressFromLatLng(long, lat) async {
+  Future<void> getAddressFromLatLng(double long, double lat) async {
     try {
-      List<Placemark> placemark = await placemarkFromCoordinates(lat, long);
+      List<Placemark> placemark = await Geocoding().placemarkFromCoordinates(lat, long);
       if (placemark.isNotEmpty) {
         Placemark place = placemark[0];
         

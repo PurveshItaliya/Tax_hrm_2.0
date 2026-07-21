@@ -1,10 +1,10 @@
 // ignore_for_file: file_names, must_be_immutable
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
-import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:video_player/video_player.dart';
@@ -87,7 +87,16 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDarkMode ? const Color(0xff121212) : const Color(0xfff2f2f2);
 
-    safeAreaBgAndTextColor(context, safeAreaBgColor: bgColor);
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+      ),
+    );
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(
       context,
     );

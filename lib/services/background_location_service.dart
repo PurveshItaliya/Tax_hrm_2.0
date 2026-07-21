@@ -336,7 +336,7 @@ Future<void> _callApiFunction({
   String postalCode = '';
 
   try {
-    final List<Placemark> placemarks = await placemarkFromCoordinates(
+    final List<Placemark> placemarks = await Geocoding().placemarkFromCoordinates(
       position.latitude, position.longitude,
     );
     if (placemarks.isNotEmpty) {

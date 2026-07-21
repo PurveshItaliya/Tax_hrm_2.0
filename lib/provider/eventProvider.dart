@@ -1,8 +1,9 @@
-// ignore_for_file: strict_top_level_inference, file_names
+// ignore_for_file: empty_catches, strict_top_level_inference, file_names
 
-import 'dart:developer';
 import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:tax_hrm/utils/colorsfile.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:tax_hrm/services/local_cache_service.dart';
@@ -164,6 +165,79 @@ class EventsMastServices extends ChangeNotifier {
   }
 
   Future<void> pickEventAttachments(BuildContext context) async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Icon(Icons.photo_library, color: ColorConst.themeColor),
+                title: Text(LanguageProvider.translate("Choose from Gallery", "Choose from Gallery")),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickFromSource(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: ColorConst.themeColor),
+                title: Text(LanguageProvider.translate("Take a Photo", "Take a Photo")),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickFromSource(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.insert_drive_file, color: ColorConst.themeColor),
+                title: Text(LanguageProvider.translate("Choose Files/Documents", "Choose Files/Documents")),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickDocuments();
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickFromSource(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(source: source);
+      if (photo != null) {
+        final file = File(photo.path);
+        final length = await file.length();
+        final platformFile = PlatformFile(
+          path: photo.path,
+          name: photo.name,
+          size: length,
+        );
+        if (!attachedFiles.any((e) => e.path == platformFile.path)) {
+          attachedFiles.add(platformFile);
+          notifyListeners();
+        }
+      }
+    } catch (e) {    }
+  }
+
+  Future<void> _pickDocuments() async {
     try {
       FilePickerResult? result = await FilePicker.pickFiles(
         allowMultiple: true,
@@ -179,7 +253,6 @@ class EventsMastServices extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      showtoastmessage('Error picking files: $e');
     }
   }
 
@@ -270,7 +343,8 @@ class EventsMastServices extends ChangeNotifier {
         NotesClass deleteResponse = value as NotesClass;
         if(deleteResponse.success == true) {
           if(deleteResponse.data == "Success"){
-            await getEventMasterData();
+            _hasLoadedEventsThisSession = false;
+            await eventLoadingData(forceRefresh: true);
           }
         }
         setloading(false);
@@ -323,12 +397,10 @@ class EventsMastServices extends ChangeNotifier {
   }
 
   Future addNewDocuments({List<FileUploadClass>? setlist, setCompanyId, setCguid}) async {
-    log('------------------------>>>> addNewDocuments | setCguid: $setCguid | CompanyId: $setCompanyId | files count: ${setlist?.length}');
     await CompanyMasterApi().uploadDocuments(companyid: setCompanyId, files: setlist, cguid: setCguid).then((value) {
       if (value == 200) {
         showtoastmessage('Document Uploaded Successfully');
       }
-      log('------------------------>>>> uploadDocuments status code: $value');
     });
   }
 
@@ -346,22 +418,23 @@ class EventsMastServices extends ChangeNotifier {
       String finalEventName = selectedEventName == 'Other' ? txtOtherEventNameController.text.trim() : selectedEventName!;
       if (selectedEventName == 'Other' && finalEventName.isEmpty) {
         showtoastmessage(dynamicValidationNameMessage);
-        notifyListeners();
+        notifyListeners();  
         return;
       }
       if (isFormValid) {
         setloading(true);
         String setGuid = generateCustomUuid();
-        await EventsApiClass().createEvent(setCguid:addEditFlag == true? setGuid: setdid.cguid,eventPlaces: txtEventPlaceController.text.toString(),setDescription: txtEventRemarksController.text.toString(),setEndDate: dateFormatdateYMDate(eventEndDate).toString(),setEventname: txtEventNameController.text.toString(),setStartDat: dateFormatdateYMDate(eventStartDate).toString(),checkInsert: addEditFlag,setEventIds: addEditFlag ?setdid:setdid.eventId).then((value) async {
+        await EventsApiClass().createEvent(setCguid:addEditFlag == true? setGuid: setdid.cguid,eventPlaces: txtEventPlaceController.text.toString(),setDescription: txtEventRemarksController.text.toString(),setEndDate: dateFormatdateYMDate(eventEndDate).toString(),setEventname: finalEventName,setStartDat: dateFormatdateYMDate(eventStartDate).toString(),checkInsert: addEditFlag,setEventIds: addEditFlag ?setdid:setdid.eventId).then((value) async {
           NewEvents setResponse = value as NewEvents;
           if (setResponse.success == true) {
+            _hasLoadedEventsThisSession = false;
+            unawaited(eventLoadingData(forceRefresh: true));
             
             if (attachedFiles.isNotEmpty && selectedcurentcompany != null) {
               List<FileUploadClass> fileUploadList = [];
               String imgType = 'Event';
               for (var file in attachedFiles) {
                 if (file.path != null) {
-                  log('------------------------>>>> FileUploadClass | File: ${file.path} | cguid: ${addEditFlag == true ? setGuid : setdid.cguid}');
                   fileUploadList.add(
                     FileUploadClass(
                       selectedImages: File(file.path!),
@@ -372,7 +445,6 @@ class EventsMastServices extends ChangeNotifier {
                 }
               }
               if (fileUploadList.isNotEmpty) {
-                log('------------------------>>>> Calling addNewDocuments | cguid: ${addEditFlag == true ? setGuid : setdid.cguid}');
                 await addNewDocuments(
                   setlist: fileUploadList,
                   setCompanyId: selectedcurentcompany!.companyId,
@@ -410,15 +482,25 @@ class EventsMastServices extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateEventStartDate(DateTime date) {
+    eventStartDate = date;
+    txtEventStratDateController.text = dateFormatdate(date);
+    notifyListeners();
+  }
+
+  void updateEventEndDate(DateTime date) {
+    eventEndDate = date;
+    txtEventEndDateController.text = dateFormatdate(date);
+    notifyListeners();
+  }
+
   // edit handle Submit
   Future editHandleSubmit(context,GetEvents getEventsData) async {
     try {
-      islodering = true;
-      notifyListeners();
-      txtEventNameController.text = getEventsData.eventName.toString();
+      txtEventNameController.text = getEventsData.eventName?.toString() ?? '';
       txtOtherEventNameController = TextEditingController();
       attachedFiles = [];
-      String eventNameStr = getEventsData.eventName.toString();
+      String eventNameStr = getEventsData.eventName?.toString() ?? '';
       List<String> defaultList = [
         'Event',
         'General Announcement',
@@ -438,15 +520,36 @@ class EventsMastServices extends ChangeNotifier {
       } else {
         selectedEventName = null;
       }
-      txtEventStratDateController.text = dateFormatdate(DateTime.parse(getEventsData.startDate.toString()));
-      txtEventEndDateController.text = dateFormatdate(DateTime.parse(getEventsData.endDate.toString()));
-      txtEventPlaceController.text = getEventsData.eventPlace.toString();
-      txtEventRemarksController.text = getEventsData.description.toString();
-      eventStartDate = DateTime.parse(getEventsData.startDate.toString());
-      eventEndDate = DateTime.parse(getEventsData.endDate.toString());
+
+      DateTime parsedStart = DateTime.now();
+      try {
+        if (getEventsData.startDate != null && getEventsData.startDate!.isNotEmpty) {
+          parsedStart = DateTime.parse(getEventsData.startDate!).toLocal();
+        }
+      } catch (e) {
+      }
+
+      DateTime parsedEnd = DateTime.now();
+      try {
+        if (getEventsData.endDate != null && getEventsData.endDate!.isNotEmpty) {
+          parsedEnd = DateTime.parse(getEventsData.endDate!).toLocal();
+        }
+      } catch (e) {
+      }
+
+      eventStartDate = parsedStart;
+      eventEndDate = parsedEnd;
+
+      txtEventStratDateController.text = dateFormatdate(eventStartDate);
+      txtEventEndDateController.text = dateFormatdate(eventEndDate);
+      txtEventPlaceController.text = getEventsData.eventPlace?.toString() ?? '';
+      txtEventRemarksController.text = getEventsData.description?.toString() ?? '';
       islodering = false;
       notifyListeners();
-      await nextScreen(context,AddEventScreen(getEventsData: getEventsData, addEditFlag: false,),onthenValue: (value) {});
+      await nextScreen(context,AddEventScreen(getEventsData: getEventsData, addEditFlag: false,),onthenValue: (value) {
+        _hasLoadedEventsThisSession = false;
+        eventLoadingData(forceRefresh: true);
+      });
      
     } catch (e) {
       islodering = false;

@@ -36,12 +36,15 @@ class CompanyMasterApi {
     if (cguid != null) {
       req.fields['Cguid'] = cguid.toString();
     }
+    req.fields['Category'] = 'Event';
 
     //-----------Send Multiple File  ---------------\\
     if (files != null) {
       for (var item in files) {
         if (item.setImgType != null) {
           req.fields['Category'] = item.setImgType!;
+        } else {
+          req.fields['Category'] = 'Event';
         }
         if (companyid != null) {
           req.fields['CompanyId'] = companyid.toString();
