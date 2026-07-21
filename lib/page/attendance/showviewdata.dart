@@ -131,6 +131,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             ? attendanceAllEmployeeShimmer(size) 
             : SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.only(bottom: size.height * 0.12),
                 child: Column(
                   children: [
                     _buildHeaderSection(size, attendanceProviders, formattedDate),

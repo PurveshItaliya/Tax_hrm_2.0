@@ -118,28 +118,24 @@ class _HomeScreenState extends State<HomeScreen> {
               Provider.of<AdminAttenDanceServices>(context, listen: false).toDayDateAttendance(DateTime.now());
             }
           },
-          widgetDesign: Scrollbar(
+          widgetDesign: SingleChildScrollView(
             controller: _scrollController,
-            thickness: 6,
-            radius: const Radius.circular(10),
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  if(curentUser['Role'] != 'Admin') ...[
-                    buildDateHeader(size),
-                  ] else ...[
-                    buildAttendanceBoard(size, mounted,
-                      onAllPressed:(){
-                        homeProvider.changeSelectBottomBar(1);
-                      },
-                    )
-                  ],
-                  _buildGridMenu(size, homeProvider),
-                  const LeaderboardWidget(),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                if(curentUser['Role'] != 'Admin') ...[
+                  buildDateHeader(size),
+                ] else ...[
+                  buildAttendanceBoard(size, mounted,
+                    onAllPressed:(){
+                      homeProvider.changeSelectBottomBar(1);
+                    },
+                  )
                 ],
-              ),
+                _buildGridMenu(size, homeProvider),
+                const LeaderboardWidget(),
+                SizedBox(height: 80,)
+              ],
             ),
           ),
         ),

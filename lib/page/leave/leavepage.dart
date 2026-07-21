@@ -51,7 +51,7 @@ class _LeaveViewPageState extends State<LeaveViewPage> with SingleTickerProvider
         appBar: showBottomAppBar(leaveString, size, centerTitles: false),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: Padding(
-          padding: EdgeInsets.only(bottom: size.height * 0.02),
+          padding: EdgeInsets.only(bottom: size.height * 0.10),
           child: iconWithTextBtnDesign(
             size,
             applyNewLeaveString,

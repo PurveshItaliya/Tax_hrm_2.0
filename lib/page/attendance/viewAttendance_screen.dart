@@ -177,6 +177,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           },
           widgetDesign: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(bottom: size.height * 0.12),
           child: Column(
             children: [
               if (_currentEmpData != null && Provider.of<AdminAttenDanceServices>(context, listen: false).mainHoldEmpList.isNotEmpty)

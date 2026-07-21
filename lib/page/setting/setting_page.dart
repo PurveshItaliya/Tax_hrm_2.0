@@ -295,7 +295,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
