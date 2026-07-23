@@ -768,8 +768,29 @@ class FcmTokenService {
   Future<void> _showLocalNotification(RemoteMessage message) async {
     try {
       final notification = message.notification;
-      final title = notification?.title ?? message.data['title'] ?? 'Notification';
+      String title = notification?.title ?? message.data['title'] ?? 'Notification';
+      
+      // Strip any "Tax HRM" app name prefix from the title (e.g., "Tax HRM: Title" -> "Title")
+      final prefixRegex = RegExp(r'^Tax\s+HRM\s*(\s*2\.0\s*)?[:\-]?\s*', caseSensitive: false);
+      title = title.replaceFirst(prefixRegex, '');
+      
       final body = notification?.body ?? message.data['body'] ?? '';
+      
+      // If title is not empty and body is empty, do not display the notification
+      if (title.trim().isNotEmpty && body.trim().isEmpty) {
+        log('[FCM] Title is not empty but body is empty. Skipping display.');
+        return;
+      }
+      
+      // If both title and body are empty, do not display the notification
+      if (title.trim().isEmpty && body.trim().isEmpty) {
+        log('[FCM] Both title and body are empty. Skipping display.');
+        return;
+      }
+      
+      if (title.trim().isEmpty) {
+        title = 'Notification';
+      }
       
       final imageUrl = notification?.android?.imageUrl ??
                        notification?.apple?.imageUrl ??

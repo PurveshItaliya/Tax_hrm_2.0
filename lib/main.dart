@@ -43,6 +43,13 @@ late SharedPreferences globalPrefs;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    try {
+      await const MethodChannel('native_liquid_glass_bar/cleanup').invokeMethod('cleanup');
+    } catch (e) {
+      log('Platform views cleanup error: $e');
+    }
+  }
   globalPrefs = await SharedPreferences.getInstance();
   await initializeDateFormatting();
   try {

@@ -781,6 +781,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       child: GridView.count(
         crossAxisCount: 2,
         shrinkWrap: true,
+        padding: EdgeInsets.zero,
         physics: const NeverScrollableScrollPhysics(),
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,

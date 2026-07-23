@@ -30,6 +30,15 @@ import workmanager_apple
         messenger: registrar.messenger()
       )
       registrar.register(factory, withId: "native_liquid_glass_tab_bar")
+
+      let cleanupChannel = FlutterMethodChannel(name: "native_liquid_glass_bar/cleanup", binaryMessenger: registrar.messenger())
+      cleanupChannel.setMethodCallHandler { (call, result) in
+        if call.method == "cleanup" {
+          result(nil)
+        } else {
+          result(FlutterMethodNotImplemented)
+        }
+      }
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
