@@ -519,19 +519,26 @@ class FcmTokenService {
     topics.add('ALL');
 
     final companyId = selectedcurentcompany?.companyId ?? curentUser?['CompanyId'];
+    final custId = selectedcurentcompany?.custId ?? curentUser?['CustId']?.toString() ?? '';
+    final userId = curentUser?['Id']?.toString() ?? '';
 
     // Role-based topic
     final role = curentUser?['Role']?.toString() ?? '';
 
-    if (companyId != null) {
-      // 1. Company-based topic
-      topics.add(_sanitize('COMPANY_$companyId'));
+    if (companyId != null && custId.isNotEmpty) {
+      // 1. Company-based topic: COMPANY_{custId}_{companyId}
+      topics.add(_sanitize('COMPANY_${custId}_$companyId'));
 
-      // 3. Compatibility general roles (including ALL_ADMIN_, ALL_USER_, and ALL_EMPLOYEE_)
+      // 2. Role-based topics: ALL_ADMIN_{custId}_{companyId} or ALL_EMPLOYEE_{custId}_{companyId}
       if (role == 'Admin' || role == 'Owner' || role == 'Sub-Admin') {
-        topics.add(_sanitize('ALL_ADMIN_$companyId'));
+        topics.add(_sanitize('ALL_ADMIN_${custId}_$companyId'));
       } else {
-        topics.add(_sanitize('ALL_EMPLOYEE_$companyId'));
+        topics.add(_sanitize('ALL_EMPLOYEE_${custId}_$companyId'));
+      }
+
+      // 3. Personal user topic: USER_{userId}_{custId}_{companyId}
+      if (userId.isNotEmpty) {
+        topics.add(_sanitize('USER_${userId}_${custId}_$companyId'));
       }
     }
 
