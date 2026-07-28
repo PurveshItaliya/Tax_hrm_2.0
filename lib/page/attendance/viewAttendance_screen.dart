@@ -747,21 +747,28 @@ cellBuilder: (date, events, isToday, isInMonth, hideDaysNotInMonth) {
                                           showdayname.toString().substring(0, 3).toLowerCase() == 'sat') {
                                 
                                           attendanceEmp.setShowDateType(7);
-                                          Future<void>? fetchTask;
-                                          if(attendanceEmp.showDateType == 7){
-                             
-                                            int findweekOffPunch = Provider.of<AttendanceEmp>(context, listen: false).getMonthAttenDance.indexWhere((element) =>  DateTime.parse(element.attendenceDate.toString()) == usedTapDate && element.present  == true);
+                                           Future<void>? fetchTask;
+                                           if(attendanceEmp.showDateType == 7){
+                              
+                                             int findweekOffPunch = Provider.of<AttendanceEmp>(context, listen: false).getMonthAttenDance.indexWhere((element) {
+                                               if (element.attendenceDate == null) return false;
+                                               DateTime asusedData = DateTime.parse(element.attendenceDate.toString()).toLocal();
+                                               return asusedData.year == date.year && asusedData.month == date.month && asusedData.day == date.day &&
+                                                 (element.present == true || _parseBool(element.present) || (element.inTime != null && element.inTime.toString().trim().isNotEmpty && element.inTime.toString() != 'null'));
+                                             });
 
-                                            if(findweekOffPunch != -1){
-                                              String timestampString = date.toString();
-                                              String formattedTimestampString = timestampString.replaceAll('Z', '');
-                                              attendanceEmp.setShowDateType(1);
-                                              fetchTask = attendanceEmp.getDateBloges(formattedTimestampString, _currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}', showLoading: false).then((_) {
-                                                Provider.of<AttendanceEmp>(context, listen: false).attendanceCalculate(context);
-                                              });
-                                            }
-                                          }
-                                          showDayDetails(context,size, null,date.toString(),7, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons, fetchFuture: fetchTask);
+                                             if(findweekOffPunch != -1 || curentUser['Role'] == 'Admin'){
+                                               String timestampString = date.toString();
+                                               String formattedTimestampString = timestampString.replaceAll('Z', '');
+                                               if (findweekOffPunch != -1) {
+                                                 attendanceEmp.setShowDateType(1);
+                                               }
+                                               fetchTask = attendanceEmp.getDateBloges(formattedTimestampString, _currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}', showLoading: false).then((_) {
+                                                 Provider.of<AttendanceEmp>(context, listen: false).attendanceCalculate(context);
+                                               });
+                                             }
+                                           }
+                                           showDayDetails(context,size, null,date.toString(),(attendanceEmp.showDateType == 1 ? 1 : 7), attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons, fetchFuture: fetchTask);
                                       } else {
                                         int findHoliday = attendanceEmp.curentMonthHoliday.indexWhere((element) => date.isAtSameMomentAs(DateTime.parse(element.holidayDate.toString())));
 
@@ -922,6 +929,14 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
   String? leaveStatusShow;
   String?  leaveResons;
 
+bool _parseBool(dynamic value) {
+  if (value == null) return false;
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  String valStr = value.toString().toLowerCase().trim();
+  return valStr == 'true' || valStr == '1' || valStr == 'yes';
+}
+
   Future<void> showDayDetails(BuildContext context,Size size,AttendanceDayBlog? currentDataLog,String? showdate,int selectedDatTypes, AttendanceEmp attendanceEmp, AdminAttenDanceServices adminAttenDanceServices, dynamic curentUser, dynamic currentEmpData, {String? leaveTypesShow, String? leaveDurationTypesShow, String? leaveStatusShow, String? leaveResons, Future<void>? fetchFuture}) async {
     attendanceEmp.totalHour = '';
     attendanceEmp.totalWorkHour = '';
@@ -954,10 +969,12 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
         }
         //-------------------  Showing Absent -------------------\\
         Widget buildSheetContent(AttendanceDayBlog? currentDataLog) {
+          final attendence = currentDataLog?.attendence;
+          final attendenceLog = currentDataLog?.attendenceLog;
           return SafeArea(
             child: DraggableScrollableSheet(
             expand: false,
-            initialChildSize: currentDataLog == null ? 0.7 : (currentDataLog.attendenceLog == null || currentDataLog.attendenceLog!.isEmpty) ? 0.4 : 0.7,
+            initialChildSize: (attendenceLog == null || attendenceLog.isEmpty) ? 0.4 : 0.7,
             minChildSize: 0.25,
             maxChildSize: 0.95,
             builder: (context, scrollController) {
@@ -983,7 +1000,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                       ),
                     ):
                     //--------------------------  WeekOff----------------------\\
-                    selectedDatTypes == 7 ? SizedBox(
+                    (selectedDatTypes == 7 && (currentDataLog == null || ((currentDataLog.attendenceLog == null || currentDataLog.attendenceLog!.isEmpty) && (currentDataLog.attendence == null || (currentDataLog.attendence!.present != true && !_parseBool(currentDataLog.attendence!.present)))))) ? SizedBox(
                       height: size.height * 0.2,
                       width: size.width,
                       child: Column(
@@ -1089,24 +1106,41 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
 
                         heightSpacer(size.height *0.01),
 
-                        currentDataLog!.attendence != null?
+                        (currentDataLog != null && currentDataLog.attendence != null) ?
                         Padding(
                           padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
                           child: Text(dateFormatddMMMyyyy(DateTime.parse(currentDataLog.attendence!.attendenceDate.toString())),style: TextStyle(fontSize: size.height *0.022,fontWeight: FontWeight.bold),textAlign: TextAlign.end,),
-                        ):Container(),
-
-                        curentUser['Role'] == 'Admin' ? Container() :
+                        ):
                         Padding(
-                          padding:  EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
-                          child: Row(
-                            children: [
-                              Expanded(child: _compactSummaryTile(context, size, 'Total Hours', '${attendanceEmp.totalHour.isEmpty ? '0' : attendanceEmp.totalHour} Hr', ColorConst.themeColor)),
-                              SizedBox(width: 8),
-                              Expanded(child: _compactSummaryTile(context, size, 'Break Time', '${attendanceEmp.totalbreaks == null || attendanceEmp.totalbreaks == '' || attendanceEmp.totalbreaks == 0 || attendanceEmp.totalbreaks == '0' ? '0 Min' : attendanceEmp.totalbreaks}', ColorConst.red)),
-                              SizedBox(width: 8),
-                              Expanded(child: _compactSummaryTile(context, size, 'Work Hours', attendanceEmp.totalWorkHour.isEmpty ? '0 Min' : attendanceEmp.totalWorkHour, ColorConst.greenColor)),
-                            ],
-                          ),
+                          padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
+                          child: Text(dateFormatddMMMyyyy(DateTime.parse(showdate.toString())),style: TextStyle(fontSize: size.height *0.022,fontWeight: FontWeight.bold),textAlign: TextAlign.end,),
+                        ),
+
+                        Consumer<AttendanceEmp>(
+                          builder: (context, attEmp, child) {
+                            String formattedTotalHours = attEmp.totalHour.isEmpty 
+                                ? '0 Hr' 
+                                : (attEmp.totalHour.contains('Hr') ? attEmp.totalHour : '${attEmp.totalHour} Hr');
+                            String formattedBreakHours = (attEmp.totalbreaks == null || attEmp.totalbreaks == '' || attEmp.totalbreaks == 0 || attEmp.totalbreaks == '0') 
+                                ? '0 Min' 
+                                : attEmp.totalbreaks.toString();
+                            String formattedWorkHours = attEmp.totalWorkHour.isEmpty 
+                                ? '0 Min' 
+                                : attEmp.totalWorkHour;
+
+                            return Padding(
+                              padding: EdgeInsets.symmetric(horizontal: size.width * 0.04, vertical: size.height * 0.01),
+                              child: Row(
+                                children: [
+                                  Expanded(child: _compactSummaryTile(context, size, 'Total Hours', formattedTotalHours, ColorConst.themeColor)),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: _compactSummaryTile(context, size, 'Break Hours', formattedBreakHours, ColorConst.red)),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: _compactSummaryTile(context, size, 'Working Hours', formattedWorkHours, ColorConst.greenColor)),
+                                ],
+                              ),
+                            );
+                          },
                         ),
 
                         curentUser['Role'] == 'Admin' ? Padding(
@@ -1134,7 +1168,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                   widthSpacer(size.width *0.02),
                                   SelectionView(absentString,adminAttenDanceServices.selectedPresent == false ? Colors.redAccent : ColorConst.white, adminAttenDanceServices.selectedPresent == false ? ColorConst.white: Colors.red,(){
                                     adminAttenDanceServices.setAbsentEmployes(
-                                      attendanceDate: currentDataLog.attendence!.attendenceDate,
+                                      attendanceDate: attendence?.attendenceDate,
                                       context: context,
                                       setEmpid: currentEmpData!.empId,
                                       setattendanceCguid: currentEmpData!.cguid,
@@ -1169,12 +1203,25 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                           ),
                         ) :
 
-                        currentDataLog.attendence!= null?
-                        currentDataLog.attendence!.present == true?   Padding(
+                        selectedDatTypes == 7 ?
+                        Padding(
+                          padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
+                          child: Wrap(
+                            spacing: size.width * 0.02,
+                            runSpacing: size.height * 0.01,
+                            children: [
+                              AttendancTypeContainer(size, weekOffString, Colors.grey.shade800),
+                              if (currentDataLog != null && ((attendence != null && (attendence.present == true || _parseBool(attendence.present))) || (attendenceLog != null && attendenceLog.isNotEmpty)))
+                                AttendancTypeContainer(size, 'Present', ColorConst.themeColor),
+                            ],
+                          ),
+                        ) :
+                        attendence != null ?
+                        attendence.present == true ?   Padding(
                           padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
                           child:  AttendancTypeContainer(size, 'Present', ColorConst.themeColor),
                         ):
-                        currentDataLog.attendence!.isOnLeave  == true ?
+                        attendence.isOnLeave  == true ?
                         Padding(
                           padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
                           child: Column(
@@ -1207,11 +1254,11 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                         ): Container(),
                         heightSpacer(size.height * 0.01),
 
-                        if (currentDataLog.attendenceLog != null && currentDataLog.attendenceLog!.isNotEmpty)
+                        if (attendenceLog != null && attendenceLog.isNotEmpty)
                           Expanded(
                             child: ListView.separated(
                               shrinkWrap: true,
-                              itemCount: currentDataLog.attendenceLog!.length,
+                              itemCount: attendenceLog.length,
                               padding: EdgeInsets.symmetric(horizontal: size.width * 0.03),
                               separatorBuilder: (context, index) {
                                 return heightSpacer(size.height * 0.015);
@@ -1236,8 +1283,8 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                     children: [
                                       GestureDetector(
                                         onTap: () {
-                                          if(currentDataLog.attendenceLog![index].fileURL != null) {
-                                            nextScreen(context, FullPageImage(currentDataLog.attendenceLog![index].fileURL ?? '', ''), onthenValue: (value) {});
+                                          if(attendenceLog[index].fileURL != null) {
+                                            nextScreen(context, FullPageImage(attendenceLog[index].fileURL ?? '', ''), onthenValue: (value) {});
                                           }
                                         },
                                         child: Container(
@@ -1250,7 +1297,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                           child: ClipRRect(
                                             borderRadius: BorderRadiusGeometry.circular(10),
                                             child: CachedNetworkImage(
-                                              imageUrl: currentDataLog.attendenceLog![index].fileURL ?? '',
+                                              imageUrl: attendenceLog[index].fileURL ?? '',
                                               placeholder: (context, url) =>  Center(child: CircularProgressIndicator(color: ColorConst.themeColor, strokeWidth: 2)),
                                               errorWidget: (context, url, error) => Icon(Icons.person, color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, size: 30),
                                               fit: BoxFit.cover,
@@ -1271,23 +1318,23 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                                 Container(
                                                   padding: EdgeInsets.symmetric(horizontal: size.width * 0.03, vertical: size.height * 0.005),
                                                   decoration: BoxDecoration(
-                                                    color: currentDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor.withOpacity(0.15) : ColorConst.red.withOpacity(0.15),
+                                                    color: attendenceLog[index].status == "IN" ? ColorConst.themeColor.withOpacity(0.15) : ColorConst.red.withOpacity(0.15),
                                                     borderRadius: BorderRadius.circular(20),
-                                                    border: Border.all(color: currentDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor.withOpacity(0.3) : ColorConst.red.withOpacity(0.3)),
+                                                    border: Border.all(color: attendenceLog[index].status == "IN" ? ColorConst.themeColor.withOpacity(0.3) : ColorConst.red.withOpacity(0.3)),
                                                   ),
                                                   child: Text(
-                                                    currentDataLog.attendenceLog![index].status == "IN" ? punchInString : punchOutString,
-                                                    style:  TextStyle(color: currentDataLog.attendenceLog![index].status == "IN" ? ColorConst.themeColor : ColorConst.red, fontSize: 12, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.bold),
+                                                    attendenceLog[index].status == "IN" ? punchInString : punchOutString,
+                                                    style:  TextStyle(color: attendenceLog[index].status == "IN" ? ColorConst.themeColor : ColorConst.red, fontSize: 12, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.bold),
                                                   ),
                                                 ),
                                                 widthSpacer(size.width * 0.02),
-                                                Text(currentDataLog.attendenceLog![index].time == null? '' : DateFormat.jm().format(DateTime.parse(currentDataLog.attendenceLog![index].time.toString())), style: TextStyle(fontFamily: fontInterBoldString, fontWeight: FontWeight.bold, fontSize: 14)),
+                                                Text(attendenceLog[index].time == null? '' : DateFormat.jm().format(DateTime.parse(attendenceLog[index].time.toString())), style: TextStyle(fontFamily: fontInterBoldString, fontWeight: FontWeight.bold, fontSize: 14)),
 
                                               if(curentUser['Role'] == 'Admin') ...{
                                                 Spacer(),
                                                 GestureDetector(
                                                   onTap: () async {
-                                                    showDialog(context: context, builder: (context) => CustomDialog(currentDataLog.attendenceLog![index], currentDataLog.attendence?.cguid ?? currentEmpData!.cguid ?? '', (currentDataLog.attendence?.attendenceID ?? currentEmpData!.attendenceID).toString(), 'Log Update', false)).then((value) {
+                                                    showDialog(context: context, builder: (context) => CustomDialog(attendenceLog[index], attendence?.cguid ?? currentEmpData!.cguid ?? '', (attendence?.attendenceID ?? currentEmpData!.attendenceID).toString(), 'Log Update', false)).then((value) {
                                                       String timestampString = DateTime.parse(showdate.toString()).toString();
                                                       String formattedTimestampString = timestampString.replaceAll('Z', '');
                                                       attendanceEmp.getDateBloges(formattedTimestampString, currentEmpData!.empId);
@@ -1308,7 +1355,7 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
                                                 GestureDetector(
                                                   onTap: () async {
                                                     showDeleteDialog(context, size, noOnTap: () => Navigator.pop(context), yesOntap: () {
-                                                      adminAttenDanceServices.deletePunchlog(attendanceId: currentDataLog.attendence?.attendenceID ?? currentEmpData!.attendenceID, setEmpid: currentDataLog.attendenceLog![index].empId, setLogId: currentDataLog.attendenceLog![index].logId, setStatus: currentDataLog.attendenceLog![index].status).then((value) {
+                                                      adminAttenDanceServices.deletePunchlog(attendanceId: attendence?.attendenceID ?? currentEmpData!.attendenceID, setEmpid: attendenceLog[index].empId, setLogId: attendenceLog[index].logId, setStatus: attendenceLog[index].status).then((value) {
                                                         String timestampString = DateTime.parse(showdate.toString()).toString();
                                                         String formattedTimestampString = timestampString.replaceAll('Z', '');
                                                         attendanceEmp.getDateBloges(formattedTimestampString, currentEmpData!.empId);
@@ -1336,13 +1383,13 @@ Widget _compactSummaryTile(BuildContext context, Size size, String title, String
 
                                           heightSpacer(size.height * 0.01),
 
-                                          currentDataLog.attendenceLog![index].location == '' || currentDataLog.attendenceLog![index].location == null ? Container() : Row(
+                                          attendenceLog[index].location == '' || attendenceLog[index].location == null ? Container() : Row(
                                             children: [
                                               Icon(Icons.location_on, size: 14, color: Colors.grey),
                                               SizedBox(width: 4),
                                               Expanded(
                                                 child: Text(
-                                                  currentDataLog.attendenceLog![index].location ?? "",
+                                                  attendenceLog[index].location ?? "",
                                                   style: TextStyle(fontSize: 12, color: Colors.grey, fontFamily: fontInterRegularString, fontWeight: FontWeight.w400),
                                                   overflow: TextOverflow.ellipsis,
                                                 ),

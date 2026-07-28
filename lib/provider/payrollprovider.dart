@@ -860,6 +860,7 @@ class PayRollProviders extends ChangeNotifier {
     final parsedEffectiveDate = DateTime.tryParse(salaryData.effectiveDate ?? '');
     effectiveDate = parsedEffectiveDate ?? DateTime.now();
     txtEffectiveDateController.text = salaryData.effectiveDate?.isNotEmpty == true ? salaryData.effectiveDate! : dateFormatdate(effectiveDate);
+    islodering = false;
 
     notifyListeners();
   }

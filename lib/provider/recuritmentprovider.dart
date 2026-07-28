@@ -1,4 +1,4 @@
-// ignore_for_file: strict_top_level_inference, unrelated_type_equality_checks
+// ignore_for_file: empty_catches, strict_top_level_inference, unrelated_type_equality_checks
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

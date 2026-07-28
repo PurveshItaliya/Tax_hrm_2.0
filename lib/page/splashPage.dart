@@ -19,12 +19,29 @@ class ShowSpleshPage extends StatefulWidget {
 class _ShowSpleshPageState extends State<ShowSpleshPage> {
   VideoPlayerController? _controller;
   bool _navigated = false;
+  bool _isVideoFinished = false;
 
-  void _triggerNavigation() {
+  Future<void> _triggerNavigation() async {
     if (!_navigated && mounted) {
       _navigated = true;
       _controller?.pause();
-      Provider.of<SplashProvider>(context, listen: false).onVideoFinished(context);
+
+      final internetProv = Provider.of<InternetConnectionProvider>(context, listen: false);
+      await internetProv.getConnectivityType();
+
+      if (!mounted) return;
+
+      setState(() {
+        _isVideoFinished = true;
+      });
+
+      if (internetProv.connectionType != 0) {
+        final splashProvider = Provider.of<SplashProvider>(context, listen: false);
+        splashProvider.onVideoFinished(context);
+        if (splashProvider.pendingNavigationPage == null) {
+          splashProvider.loadingData(context);
+        }
+      }
     }
   }
 
@@ -100,7 +117,7 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(
       context,
     );
-    return checkInterNetConnection.connectionType == 0
+    return (_isVideoFinished && checkInterNetConnection.connectionType == 0)
         ? const NoInternetViewPage()
         : Scaffold(
             backgroundColor: bgColor,

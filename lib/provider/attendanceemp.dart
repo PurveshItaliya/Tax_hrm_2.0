@@ -381,15 +381,17 @@ class AttendanceEmp extends ChangeNotifier {
 
       int totalop = 0;
       for (final element in getMonthAttenDance) {
-        if (element.absent == true && element.weekOff == null && element.leaveTypeCguid == null) {
+        String absStr = (element.absent ?? '').toString().toLowerCase().trim();
+        bool isAbs = element.absent == true || absStr == 'true' || absStr == '1';
+        if (isAbs && element.leaveTypeCguid == null && !isWeekOff(element)) {
           totalop++;
         }
       }
 
       if (setEmpAttendanc != null && setEmpAttendanc!.isNotEmpty) {
         setEmpAttendanc!.first.totalAbsent = totalop;
-        totalAbset = totalop;
       }
+      totalAbset = totalop;
 
       calcualetPaidLeave();
       calcualetUnPaidLeave();
@@ -399,6 +401,35 @@ class AttendanceEmp extends ChangeNotifier {
     } catch (e) { /* ignored */ } finally {
       if (handleLoading) setloading(false);
     }
+  }
+
+  bool isWeekOff(EmployeAttendance element) {
+    String weekOffStr = (element.weekOff ?? '').toString().toLowerCase().trim();
+    String dayTypeStr = (element.dayType ?? '').toString().toLowerCase().trim();
+    if (element.weekOff == true ||
+        weekOffStr == 'true' ||
+        weekOffStr == '1' ||
+        dayTypeStr == '7' ||
+        dayTypeStr == 'weekoff') {
+      return true;
+    }
+    if (element.attendenceDate != null) {
+      final date = DateTime.tryParse(element.attendenceDate.toString())?.toLocal();
+      if (date != null) {
+        if (getUserShift != null) {
+          if (date.weekday == DateTime.sunday && getUserShift!.sun == false) return true;
+          if (date.weekday == DateTime.monday && getUserShift!.mon == false) return true;
+          if (date.weekday == DateTime.tuesday && (getUserShift!.tue == false || getUserShift!.tue.toString() == '0')) return true;
+          if (date.weekday == DateTime.wednesday && getUserShift!.wed == false) return true;
+          if (date.weekday == DateTime.thursday && getUserShift!.thu == false) return true;
+          if (date.weekday == DateTime.friday && getUserShift!.fri == false) return true;
+          if (date.weekday == DateTime.saturday && getUserShift!.sat == false) return true;
+        } else {
+          if (date.weekday == DateTime.sunday) return true;
+        }
+      }
+    }
+    return false;
   }
 
   void calcualetPaidLeave() {

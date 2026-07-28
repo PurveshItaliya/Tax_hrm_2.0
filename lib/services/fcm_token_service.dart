@@ -538,7 +538,7 @@ class FcmTokenService {
 
       // 3. Personal user topic: USER_{userId}_{custId}_{companyId}
       if (userId.isNotEmpty) {
-        topics.add(_sanitize('USER_${userId}_${custId}_$companyId'));
+        topics.add(_sanitize('USER_$userId'));
       }
     }
 

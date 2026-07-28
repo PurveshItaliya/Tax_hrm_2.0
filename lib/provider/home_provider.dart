@@ -1,4 +1,4 @@
-// ignore_for_file: curly_braces_in_flow_control_structures, unnecessary_null_comparison, avoid_function_literals_in_foreach_calls, strict_top_level_inference, empty_catches
+// ignore_for_file: prefer_conditional_assignment, curly_braces_in_flow_control_structures, unnecessary_null_comparison, avoid_function_literals_in_foreach_calls, strict_top_level_inference, empty_catches
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:tax_hrm/controllers/main_bottom_bar_controller.dart';
