@@ -96,6 +96,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   firebase_crashlytics:
+  flutter_pdfview:
 
 dev_dependencies:
   flutter_test:

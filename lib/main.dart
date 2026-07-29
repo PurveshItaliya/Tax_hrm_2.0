@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tax_hrm/page/splashPage.dart';
+import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/utils/app_providers.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
