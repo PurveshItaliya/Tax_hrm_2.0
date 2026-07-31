@@ -57,6 +57,16 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 500), () async {
         if (!mounted) return;
+
+        // For admin users, trigger the notification permission flow right away
+        // since they don't go to the punch screen.
+        if (isAdmin && !PermissionFlowService.isFlowRunning) {
+          await PermissionFlowService.run(
+            context,
+            isFetchLocation: false,
+            notificationOnly: true,
+          );
+        }
         
         // Wait until no permission flow is actively running,
         // no dialogs are on top (isCurrent == true),

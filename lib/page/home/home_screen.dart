@@ -20,6 +20,8 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 
+import '../../services/permission_flow_service.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -60,6 +62,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Load admin attendance on init
     if (curentUser['Role'] == 'Admin') {
+      // Trigger notification permission flow for admin users
+      if (!PermissionFlowService.isFlowRunning) {
+        PermissionFlowService.run(
+          context,
+          isFetchLocation: false,
+          notificationOnly: true,
+        );
+      }
+      
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Provider.of<AdminAttenDanceServices>(context, listen: false)
             .toDayDateAttendance(DateTime.now());

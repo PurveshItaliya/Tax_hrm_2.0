@@ -50,13 +50,14 @@ class PermissionFlowService {
   static Future<PermissionFlowResult> run(
     BuildContext context, {
     required bool isFetchLocation,
+    bool notificationOnly = false,
   }) async {
     isFlowRunning = true;
     try {
       while (true) {
         if (!context.mounted) break;
         
-        final List<PermissionType> pending = await _buildPendingList(isFetchLocation);
+        final List<PermissionType> pending = await _buildPendingList(isFetchLocation, notificationOnly);
         if (pending.isEmpty) break; // All granted!
 
         // Check if any pending permission is permanently denied
@@ -130,12 +131,17 @@ class PermissionFlowService {
 
   // ─── Build pending list ─────────────────────────────────────────────────────
 
-  static Future<List<PermissionType>> _buildPendingList(bool isFetchLocation) async {
+  static Future<List<PermissionType>> _buildPendingList(bool isFetchLocation, bool notificationOnly) async {
     final List<PermissionType> pending = [];
 
     if (!(await Permission.notification.status).isGranted) {
       pending.add(PermissionType.notification);
     }
+    
+    if (notificationOnly) {
+      return pending;
+    }
+
     if (!(await Permission.camera.status).isGranted) {
       pending.add(PermissionType.camera);
     }
