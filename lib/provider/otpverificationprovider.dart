@@ -214,7 +214,6 @@ class Otpverificationprovider extends ChangeNotifier {
         if (value != '') {
           curentUser = jsonDecode(value);
           FcmTokenService.instance.handleTokenSync();
-          NotificationPermissionService.requestNotificationPermission(context);
 
           final navigator = Navigator.of(context);
           Future.microtask(() async {

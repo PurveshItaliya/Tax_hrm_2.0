@@ -9,6 +9,9 @@ class MainBottomBarController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    if (curentUser != null && curentUser['Role'] != 'Admin') {
+      fabSelected.value = true;
+    }
     // Start background tasks
     _initializeBackgroundTasks();
   }

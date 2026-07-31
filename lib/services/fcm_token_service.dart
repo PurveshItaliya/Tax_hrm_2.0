@@ -62,26 +62,11 @@ class FcmTokenService {
     // Reset badge count on startup
     resetBadgeCount();
 
-    // ── iOS: Request FCM-level notification permission ──────────────────────
-    // This is REQUIRED on iOS. Without it, the system will not deliver
-    // push notifications and getAPNSToken() will return null, causing all
-    // topic subscriptions to silently fail.
+    // ── iOS: Set foreground notification presentation options ─────────────────
+    // CRITICAL FOR IOS: This allows FCM notifications to show as heads-up
+    // alerts even when the app is currently in the foreground.
     if (Platform.isIOS) {
       try {
-        final NotificationSettings settings =
-            await FirebaseMessaging.instance.requestPermission(
-          alert: true,
-          announcement: false,
-          badge: true,
-          carPlay: false,
-          criticalAlert: false,
-          provisional: false,
-          sound: true,
-        );
-        log('[FCM] iOS permission status: ${settings.authorizationStatus}');
-        
-        // CRITICAL FOR IOS: This allows FCM notifications to show as heads-up
-        // alerts even when the app is currently in the foreground.
         await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
           alert: true,
           badge: true,
@@ -89,7 +74,7 @@ class FcmTokenService {
         );
         log('[FCM] iOS foreground presentation options set.');
       } catch (e) {
-        log('[FCM] Error requesting iOS FCM permission or setting foreground options: $e');
+        log('[FCM] Error setting foreground options: $e');
       }
     }
 

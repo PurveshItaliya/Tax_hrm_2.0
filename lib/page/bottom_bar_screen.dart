@@ -14,6 +14,7 @@ import 'package:tax_hrm/controllers/main_bottom_bar_controller.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/splash/common_splash_ad.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
+import 'package:tax_hrm/services/permission_flow_service.dart';
 import 'package:tax_hrm/page/attendance/showviewdata.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
 import 'package:tax_hrm/page/home/home_screen.dart';
@@ -54,15 +55,35 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      CommonSplashAd.show(
-        context,
-        baseUrl: apibaseurl,
-        appName: 'TAXHRM2',
-        custId: 'TAX541',
-        closeButtonDelay: const Duration(seconds: 3),
-        autoCloseOnVideoComplete: false,
-        isLogin: true,
-      );
+      Future.delayed(const Duration(milliseconds: 500), () async {
+        if (!mounted) return;
+        
+        // Wait until no permission flow is actively running,
+        // no dialogs are on top (isCurrent == true),
+        // and any route transition animation has fully completed.
+        while (PermissionFlowService.isFlowRunning ||
+            ModalRoute.of(context)?.isCurrent != true ||
+            ModalRoute.of(context)?.animation?.isCompleted != true) {
+          await Future.delayed(const Duration(milliseconds: 200));
+          if (!mounted) return;
+        }
+
+        // Extra buffer to ensure UI has settled (prevents navigation flicking)
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (!mounted) return;
+
+        if (mounted) {
+          CommonSplashAd.show(
+            context,
+            baseUrl: apibaseurl,
+            appName: 'TAXHRM2',
+            custId: 'TAX541',
+            closeButtonDelay: const Duration(seconds: 3),
+            autoCloseOnVideoComplete: false,
+            isLogin: true,
+          );
+        }
+      });
     });
   }
 
