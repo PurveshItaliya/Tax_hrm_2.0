@@ -1,6 +1,7 @@
 // ignore_for_file: strict_top_level_inference, unused_local_variable, unused_catch_clause, use_build_context_synchronously, non_constant_identifier_names, empty_catches, unused_field
 
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -27,8 +28,6 @@ import 'package:tax_hrm/page/attendance/punchBox.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
-import 'package:tax_hrm/provider/holidayprovider.dart';
-import 'package:tax_hrm/provider/payrollprovider.dart';
 import 'package:tax_hrm/provider/shiftprovider.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
@@ -688,6 +687,7 @@ class SelfiePunchProvider extends ChangeNotifier {
 
     setPunchLoader(true);
     try {
+      await shiftMasterDataGet(context);
       await takePicture();
       if (imageFile == null) {
         showtoastmessage('Camera image not captured, please try again');
@@ -710,7 +710,9 @@ class SelfiePunchProvider extends ChangeNotifier {
 
   Future<void> onTapPunchs(BuildContext context, String currentDay, String punchType) async {
     bool setTodayWeekOff = false;
+    log('Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift');
     if (getUserShift != null) {
+      log("getUserShift: $getUserShift");
       String dayAbbr = currentDay.toString().substring(0, 3).toLowerCase();
       if ((getUserShift!.mon != null && getUserShift!.sun == false && dayAbbr == 'sun') ||
           (getUserShift!.mon == false && dayAbbr == 'mon') ||
@@ -782,21 +784,6 @@ class SelfiePunchProvider extends ChangeNotifier {
   // ==================== SHIFT & OTHER FUNCTIONS ====================
   Future<void> shiftMasterDataGet(BuildContext context) async {
     try {
-      await Provider.of<AttendanceEmp>(context, listen: false).checkLastPunch(curentUser['Id']);
-      await callApi(context);
-      commanCheck(context);
-      await Provider.of<PayRollProviders>(context, listen: false).getMonthsBreaks(
-        setEmployeId: curentUser['Id'],
-        setMonth: newDateTime.month,
-        setYear: newDateTime.year,
-      );
-      await Provider.of<AttendanceEmp>(context, listen: false).getEmpAttendanceData(
-        curentUser['Id'],
-        newDateTime.month,
-        newDateTime.year,
-        context,
-      );
-      await Provider.of<HolidayeMastServices>(context, listen: false).getAllHoliday();
       List<GetShiftMasterData> getShiftSData = [];
       await Provider.of<ShiftMasterProvider>(context, listen: false).getShiftTimintgMasterData().then((value) {
         getShiftSData = value;

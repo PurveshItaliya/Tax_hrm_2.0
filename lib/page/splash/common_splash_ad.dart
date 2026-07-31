@@ -87,6 +87,8 @@
 //   └─ no ad / already shown today → silent no-op ✅
 // =============================================================================
 
+// ignore_for_file: unnecessary_underscores
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show File;
