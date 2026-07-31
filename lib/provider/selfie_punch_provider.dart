@@ -25,7 +25,7 @@ import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/shiftclass/shiftmaster/getshiftmasters.dart';
 import 'package:tax_hrm/page/attendance/punchBox.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
-import 'package:tax_hrm/page/splashPage.dart';
+import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/holidayprovider.dart';
 import 'package:tax_hrm/provider/payrollprovider.dart';

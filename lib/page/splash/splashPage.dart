@@ -5,9 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
+import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:video_player/video_player.dart';
+
+import 'common_splash_ad.dart';
 
 class ShowSpleshPage extends StatefulWidget {
   const ShowSpleshPage({super.key,});
@@ -21,7 +24,9 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
   bool _navigated = false;
   bool _isVideoFinished = false;
 
+  bool _bootstrapStarted = false;
   Future<void> _triggerNavigation() async {
+
     if (!_navigated && mounted) {
       _navigated = true;
       _controller?.pause();
@@ -45,11 +50,17 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
     }
   }
 
+  void _startBootstrap() {
+    if (_bootstrapStarted) return;
+    _bootstrapStarted = true;
+    _bootstrap();
+  }
+
   @override
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 6), () {
-      _triggerNavigation();
+      _startBootstrap();
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -58,9 +69,18 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
       splashProvider.isVideoFinished = false;
       splashProvider.pendingNavigationPage = null;
       splashProvider.loadingData(context);
+
+      CommonSplashAd.prefetch(
+        baseUrl: apibaseurl,
+        appName: 'TAXHRM2',
+        custId: 'TAX541',
+      );
     });
   }
-
+   Future<void> _bootstrap() async {
+      if (!mounted) return;
+      _triggerNavigation();
+    }
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -81,13 +101,13 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
                 final isPlaying = _controller!.value.isPlaying;
                 if (dur > Duration.zero &&
                     (pos >= dur || (!isPlaying && pos >= dur - const Duration(milliseconds: 600)))) {
-                  _triggerNavigation();
+                  _startBootstrap();
                 }
               }
             });
           }
         }).catchError((_) {
-          _triggerNavigation();
+          _startBootstrap();
         });
     }
   }

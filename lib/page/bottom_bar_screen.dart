@@ -12,6 +12,8 @@ import 'package:provider/provider.dart';
 
 import 'package:tax_hrm/controllers/main_bottom_bar_controller.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/page/splash/common_splash_ad.dart';
+import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/page/attendance/showviewdata.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
 import 'package:tax_hrm/page/home/home_screen.dart';
@@ -37,11 +39,32 @@ enum _BarState { idle, pressed, dragging, settling }
 // ─────────────────────────────────────────────────────────────────────────────
 // Top-level animated bottom bar — all GetX / routing logic UNCHANGED
 // ─────────────────────────────────────────────────────────────────────────────
-class AnimatedBottomBar extends StatelessWidget {
-  AnimatedBottomBar({super.key});
+class AnimatedBottomBar extends StatefulWidget {
+  const AnimatedBottomBar({super.key});
 
+  @override
+  State<AnimatedBottomBar> createState() => _AnimatedBottomBarState();
+}
+
+class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
   final MainBottomBarController controller =
       Get.put(MainBottomBarController());
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      CommonSplashAd.show(
+        context,
+        baseUrl: apibaseurl,
+        appName: 'TAXHRM2',
+        custId: 'TAX541',
+        closeButtonDelay: const Duration(seconds: 3),
+        autoCloseOnVideoComplete: false,
+        isLogin: true,
+      );
+    });
+  }
 
   bool get isAdmin => curentUser['Role'] == 'Admin';
 
