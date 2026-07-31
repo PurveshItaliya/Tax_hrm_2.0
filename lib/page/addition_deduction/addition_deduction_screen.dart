@@ -32,11 +32,11 @@ class _AdditionDeductionScreenState extends State<AdditionDeductionScreen> {
     _loadAllData();
   }
 
-  Future<void> _loadAllData() async {
-    Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-    Provider.of<AdditionProvider>(context,listen: false,).additionLoadingData().then((value) {
-      Provider.of<AppPaginationProvider>(context,listen: false).countPaginationPage(Provider.of<AdditionProvider>(context,listen: false).mainAdditionGroupList,0);
-    },);
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
+    Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
+    Provider.of<AdditionProvider>(context, listen: false,).additionLoadingData(forceRefresh: forceRefresh).then((value) {
+      Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(Provider.of<AdditionProvider>(context, listen: false).mainAdditionGroupList, 0);
+    });
   }
 
   @override
@@ -64,7 +64,7 @@ class _AdditionDeductionScreenState extends State<AdditionDeductionScreen> {
               ],),
               body: refreshIndicatorDesign(
                 onRefreshOntap: () {
-                  return _loadAllData();
+                  return _loadAllData(forceRefresh: true);
                 },
                 widgetDesign: Padding(
                   padding: EdgeInsets.all(size.height*0.02),

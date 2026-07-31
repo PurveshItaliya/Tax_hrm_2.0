@@ -59,7 +59,8 @@ class _ShowHolidayViewsState extends State<ShowHolidayViews> {
             ):SizedBox(),
             body: refreshIndicatorDesign(
               onRefreshOntap: () {
-                return _loadAllData();
+                return Provider.of<HolidayeMastServices>(context, listen: false)
+                    .loadingData(forceRefresh: true);
               },
               widgetDesign: Padding(
                 padding: EdgeInsets.only(top: size.height*0.03,bottom: size.height*0.03),

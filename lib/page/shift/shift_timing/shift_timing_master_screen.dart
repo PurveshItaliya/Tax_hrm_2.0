@@ -34,11 +34,11 @@ class _ShiftTimingMasterScreenState extends State<ShiftTimingMasterScreen> {
     _loadAllData();
   }
 
-  Future<void> _loadAllData() async {
-    Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-    Provider.of<ShiftMasterProvider>(context,listen: false,).shiftTimingLoadingData().then((value) {
-      Provider.of<AppPaginationProvider>(context,listen: false).countPaginationPage(Provider.of<ShiftMasterProvider>(context,listen: false).mainShiftMasterGroupList,0);
-    },);
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
+    Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
+    Provider.of<ShiftMasterProvider>(context, listen: false,).shiftTimingLoadingData(forceRefresh: forceRefresh).then((value) {
+      Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(Provider.of<ShiftMasterProvider>(context, listen: false).mainShiftMasterGroupList, 0);
+    });
   }
 
   @override
@@ -69,7 +69,7 @@ class _ShiftTimingMasterScreenState extends State<ShiftTimingMasterScreen> {
               ],),
               body: refreshIndicatorDesign(
                 onRefreshOntap: () {
-                  return _loadAllData();
+                  return _loadAllData(forceRefresh: true);
                 },
                 widgetDesign: Padding(
                   padding: EdgeInsets.all(size.height*0.02),

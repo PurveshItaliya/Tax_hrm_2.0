@@ -43,8 +43,9 @@ class HolidayeMastServices extends ChangeNotifier {
     const ttlMs = 24 * 60 * 60 * 1000; // 24 hours
 
     if (!forceRefresh && _hasLoadedHolidaysThisSession) {
-      islodering = false;
-      notifyListeners();
+      // Data is already in memory. Silently refresh in the background
+      // so web-created holidays are picked up without blocking the UI.
+      unawaited(_silentBackgroundRefresh(cacheKey));
       return;
     }
 
@@ -56,15 +57,15 @@ class HolidayeMastServices extends ChangeNotifier {
           try {
             final List<dynamic> jsonList = jsonDecode(cachedData);
             final cachedList = jsonList.map((e) => GetHolidayViews.fromJson(e)).toList();
-            
+
             _processHolidayList(cachedList);
-            
+
             _hasLoadedHolidaysThisSession = true;
             loadedFromCache = true;
             islodering = false;
             notifyListeners();
           } catch (e) {
-             // silent fallback
+            // silent fallback
           }
         }
       }
@@ -79,6 +80,20 @@ class HolidayeMastServices extends ChangeNotifier {
     } catch (e) {
       islodering = false;
       notifyListeners();
+    }
+  }
+
+  /// Silently fetches fresh holidays from API without showing a loader.
+  /// Called when session cache exists but we want to pick up web-created entries.
+  Future<void> _silentBackgroundRefresh(String cacheKey) async {
+    try {
+      final value = await HolidayAPIS().getHolidays();
+      _processHolidayList(value);
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+      notifyListeners();
+    } catch (e) {
+      // silent — do not show any error to the user
     }
   }
 
@@ -133,23 +148,25 @@ class HolidayeMastServices extends ChangeNotifier {
   //----------------------- Delete Holiday Data -----------------------\\
 
   // delete Funcation
-  Future deleteHolidayHandleSubmit(context,{setdid}) async {
+  Future deleteHolidayHandleSubmit(context, {setdid}) async {
     try {
       Navigator.pop(context);
       setloading(true);
       notifyListeners();
-      await  HolidayAPIS().deleteHoliday(setdid.holidayId).then((value) async {
+      await HolidayAPIS().deleteHoliday(setdid.holidayId).then((value) async {
         GetCompanyListModel deleteResponse = value as GetCompanyListModel;
         if (deleteResponse.success == true) {
-          if(deleteResponse.data == "Success"){
+          if (deleteResponse.data == "Success") {
             showtoastmessage('Delete Successfully');
-            await loadingData();
+            // Reset session flag so next load fetches fresh data from API.
+            _hasLoadedHolidaysThisSession = false;
+            await loadingData(forceRefresh: true);
           }
         }
         setloading(false);
       }).onError((error, stackTrace) {
         setloading(false);
-      },);
+      });
     } catch (e) {
       setloading(false);
     }
@@ -230,14 +247,16 @@ class HolidayeMastServices extends ChangeNotifier {
           holidaynames: txtTitle.text,
           holidayType: selectedHolidayType,masterCguid: addEditFlag == true ?"":setdid.masterCguid).then((value) async { 
           NewHolidayCreate newHolidayCreateResponse = value  as NewHolidayCreate;
-          if(newHolidayCreateResponse.success == true){
-            if(addEditFlag == true){
+          if (newHolidayCreateResponse.success == true) {
+            if (addEditFlag == true) {
               showtoastmessage('Add Successfully');
-            }else{
+            } else {
               showtoastmessage('Update Successfully');
             }
           }
-          await loadingData();
+          // Reset session flag so the list re-fetches fresh data after save.
+          _hasLoadedHolidaysThisSession = false;
+          await loadingData(forceRefresh: true);
           await clearHolidayData();
           setloading(false);
           Navigator.pop(context);  

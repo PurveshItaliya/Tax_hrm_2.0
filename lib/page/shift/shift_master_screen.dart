@@ -28,9 +28,9 @@ class _ShiftMasterScreenState extends State<ShiftMasterScreen> {
     _loadAllData();
   }
 
-  Future<void> _loadAllData() async {
-    Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-    Provider.of<ShiftMasterProvider>(context,listen: false).shiftGroupMasterLoadingData();
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
+    Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
+    Provider.of<ShiftMasterProvider>(context, listen: false).shiftGroupMasterLoadingData(forceRefresh: forceRefresh);
   }
 
   final userShiftGrounpFormKey = GlobalKey<FormState>();
@@ -58,7 +58,7 @@ class _ShiftMasterScreenState extends State<ShiftMasterScreen> {
               appBar: showCustomeAppBar(shiftGroupMasterString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
               body: refreshIndicatorDesign(
                 onRefreshOntap: () {
-                  return _loadAllData();
+                  return _loadAllData(forceRefresh: true);
                 },
                 widgetDesign: Padding(
                   padding: EdgeInsets.all(size.height*0.02),
