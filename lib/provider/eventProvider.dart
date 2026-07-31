@@ -397,7 +397,7 @@ class EventsMastServices extends ChangeNotifier {
   }
 
   Future addNewDocuments({List<FileUploadClass>? setlist, setCompanyId, setCguid}) async {
-    await CompanyMasterApi().uploadDocuments(companyid: setCompanyId, files: setlist, cguid: setCguid).then((value) {
+    await CompanyMasterApi(). uploadDocuments(companyid: setCompanyId, files: setlist, cguid: setCguid).then((value) {
       if (value == 200) {
         showtoastmessage('Document Uploaded Successfully');
       }
@@ -451,18 +451,32 @@ class EventsMastServices extends ChangeNotifier {
                   setCguid: addEditFlag == true ? setGuid : setdid.cguid,
                 );
               }
-              if (addEditFlag == true) {
-                showtoastmessage('Add Successfully');
-              } else {
-                showtoastmessage('Update Successfully');
-              }
+            }
+
+            if (addEditFlag == true) {
+              showtoastmessage('Add Successfully');
             } else {
-              if (addEditFlag == true) {
-                showtoastmessage('Add Successfully');
-              } else {
-                showtoastmessage('Update Successfully');
+              showtoastmessage('Update Successfully');
+            }
+
+            // Trigger Push Notification API
+            File? pushImage;
+            if (attachedFiles.isNotEmpty) {
+              for (var file in attachedFiles) {
+                if (file.path != null && (file.path!.toLowerCase().endsWith('.png') || 
+                                          file.path!.toLowerCase().endsWith('.jpg') || 
+                                          file.path!.toLowerCase().endsWith('.jpeg'))) {
+                  pushImage = File(file.path!);
+                  break;
+                }
               }
             }
+            
+            await EventsApiClass().sendPushNotification(
+              title: finalEventName,
+              description: txtEventRemarksController.text.toString(),
+              imageFile: pushImage,
+            );
           }
           setloading(false);
           Navigator.pop(context);

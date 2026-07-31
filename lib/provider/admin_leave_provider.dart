@@ -7,9 +7,13 @@ import 'dart:convert';
 import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/leaveapi.dart';
 import 'package:tax_hrm/api/leavesapi.dart';
+import 'package:tax_hrm/api/eventsapi.dart';
 import 'package:tax_hrm/models/leaveM/getleavemaster.dart';
 import 'package:tax_hrm/models/leavetype/getuserList.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
+import 'package:intl/intl.dart';
+
+import '../models/fixeddat.dart';
 
 class AdminLeaveProvider extends ChangeNotifier {
   bool islodering = false;
@@ -252,8 +256,40 @@ class AdminLeaveProvider extends ChangeNotifier {
         todate: leave.toDate,
         leaveStatus: status,
         dayTypes: leave.dayType,
-      );
-      await getUserLeaveLists();
+      ).then((value) async {
+        if (value.success == true) {
+          // Trigger push notification after successful update
+          String custIdBase = curentUser is Map ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '' : '';
+          String companyId = selectedcurentcompany?.companyId?.toString() ?? '';
+          String targetTopic = '${custIdBase}_${companyId}_${leave.empId}';
+          
+          String fName = leave.firstName ?? '';
+          String lName = leave.lastName ?? '';
+          String titleName = 'USER $fName $lName'.trim();
+          
+          String statusStr = status == 'A' ? 'Approved' : 'Rejected';
+          
+          String formatDateStr(String? d) {
+            if (d == null || d.isEmpty) return '';
+            try {
+              return DateFormat('dd/MM/yyyy').format(DateTime.parse(d));
+            } catch (_) {
+              return d;
+            }
+          }
+          String formattedFrom = formatDateStr(leave.fromDate);
+          String formattedTo = formatDateStr(leave.toDate);
+          
+          await EventsApiClass().sendPushNotification(
+            title: 'Leave $statusStr',
+            description: 'Your leave request from $formattedFrom to $formattedTo has been $statusStr.',
+            topicOverride: targetTopic,
+            custIdOverride: targetTopic,
+            topicTitleOverride: titleName,
+          );
+          await getUserLeaveLists();
+        }
+      });
     } catch (e) {
       showtoastmessage('Error updating leave');
     } finally {

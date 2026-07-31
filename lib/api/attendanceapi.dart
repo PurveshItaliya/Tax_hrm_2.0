@@ -130,6 +130,8 @@ class AttendanceApis{
       ]
     };
 
+    log("----------------------------$bodys");
+
     var url = Uri.parse("${apibaseurl}api/HRM/NewNewCreateAttendence");
     var response = await http.post(url, body: jsonEncode(bodys), headers: {'Authorization': 'bearer ${curentUser!['token']}','Content-Type': 'application/json',});
     try {

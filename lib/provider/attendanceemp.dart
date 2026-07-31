@@ -357,13 +357,44 @@ class AttendanceEmp extends ChangeNotifier {
       totakWeekOff = 0;
       for (int i = 0; i < lastDay.day; i++) {
         final day = firstDay.add(Duration(days: i));
-        if (day.weekday == DateTime.sunday) {
+        bool isDayWeekOff = false;
+        
+        if (getUserShift != null) {
+          if (day.weekday == DateTime.sunday && getUserShift!.sun == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.monday && getUserShift!.mon == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.tuesday && (getUserShift!.tue == false || getUserShift!.tue.toString() == '0')) isDayWeekOff = true;
+          if (day.weekday == DateTime.wednesday && getUserShift!.wed == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.thursday && getUserShift!.thu == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.friday && getUserShift!.fri == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.saturday && getUserShift!.sat == false) isDayWeekOff = true;
+        } else {
+          if (day.weekday == DateTime.sunday) isDayWeekOff = true;
+        }
+        
+        if (isDayWeekOff) {
           totakWeekOff++;
         }
       }
 
       // Use the result already fetched via Future.wait (no duplicate call)
       final freshAttendance = results[2] as List<EmployeAttendance>;
+      
+      // Reduce week-off count if employee worked on a scheduled week-off
+      int workedOnWeekOffCount = 0;
+      for (final element in freshAttendance) {
+        if (isWeekOff(element)) {
+           String presentStr = (element.present ?? '').toString().toLowerCase().trim();
+           bool isPresent = element.present == true || presentStr == 'true' || presentStr == '1';
+           bool hasInTime = element.inTime != null && element.inTime.toString().trim().isNotEmpty;
+           
+           if (isPresent || hasInTime) {
+             workedOnWeekOffCount++;
+           }
+        }
+      }
+      
+      totakWeekOff = (totakWeekOff - workedOnWeekOffCount).clamp(0, 31);
+      
       if (currentMonth.month != setMonth || currentMonth.year != setYear) return;
 
       // Only update UI if data changed

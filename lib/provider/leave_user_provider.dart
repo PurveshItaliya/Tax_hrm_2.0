@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/leaveapi.dart';
 import 'package:tax_hrm/api/leavesapi.dart';
+import 'package:tax_hrm/api/eventsapi.dart';
 import 'package:tax_hrm/models/createcguid.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
@@ -500,7 +501,48 @@ class LeaveUserProvider extends ChangeNotifier {
           todate: selectedToDate.toString(),
           leaveStatusSet: _selectedLeaveStatusKey,
           dayTypes: dayType,
-        ).then((value) {
+        ).then((value) async {
+          if (value.success == true) {
+            bool isAdmin = curentUser['Role'] == 'Admin';
+            String custIdBase = curentUser is Map ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '' : '';
+            String companyId = selectedcurentcompany?.companyId?.toString() ?? '';
+            
+            String targetTopic;
+            String titleName;
+            String userName;
+            if (isAdmin) {
+              targetTopic = '${custIdBase}_${companyId}_$_selectedSubmitEmployeeId';
+              String fName = selectedEmployee?.firstName ?? '';
+              String lName = selectedEmployee?.lastName ?? '';
+              userName = '$fName $lName'.trim();
+              titleName = 'USER $userName';
+            } else {
+              targetTopic = 'COMPANY_${custIdBase}_$companyId';
+              String fName = curentUser['FirstName']?.toString() ?? '';
+              String lName = curentUser['LastName']?.toString() ?? '';
+              userName = '$fName $lName'.trim();
+              titleName = 'USER $userName';
+            }
+
+            String formatDateStr(DateTime? d) {
+              if (d == null) return '';
+              try {
+                return DateFormat('dd/MM/yyyy').format(d);
+              } catch (_) {
+                return d.toString();
+              }
+            }
+            String formattedFrom = formatDateStr(selectedFromDate);
+            String formattedTo = formatDateStr(selectedToDate);
+            
+            await EventsApiClass().sendPushNotification(
+              title: '$userName Leave Applied',
+              description: '$userName leave request from $formattedFrom to $formattedTo has been submitted.',
+              topicOverride: targetTopic,
+              custIdOverride: targetTopic,
+              topicTitleOverride: titleName,
+            );
+          }
           showtoastmessage('Leave applied successfully');
           resetForm();
           nextScreen(context, AnimatedBottomBar(), onthenValue: (val) {});
@@ -558,7 +600,48 @@ class LeaveUserProvider extends ChangeNotifier {
           todate: selectedToDate.toString(),
           leaveStatus: _selectedLeaveStatusKey,
           dayTypes: dayType,
-        ).then((value) {
+        ).then((value) async {
+          if (value.success == true) {
+            bool isAdmin = curentUser['Role'] == 'Admin';
+            String custIdBase = curentUser is Map ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '' : '';
+            String companyId = selectedcurentcompany?.companyId?.toString() ?? '';
+            
+            String targetTopic;
+            String titleName;
+            String userName;
+            if (isAdmin) {
+              targetTopic = '${custIdBase}_${companyId}_$_selectedSubmitEmployeeId';
+              String fName = selectedEmployee?.firstName ?? '';
+              String lName = selectedEmployee?.lastName ?? '';
+              userName = '$fName $lName'.trim();
+              titleName = 'USER $userName';
+            } else {
+              targetTopic = 'COMPANY_${custIdBase}_$companyId';
+              String fName = curentUser['FirstName']?.toString() ?? '';
+              String lName = curentUser['LastName']?.toString() ?? '';
+              userName = '$fName $lName'.trim();
+              titleName = 'USER $userName';
+            }
+
+            String formatDateStr(DateTime? d) {
+              if (d == null) return '';
+              try {
+                return DateFormat('dd/MM/yyyy').format(d);
+              } catch (_) {
+                return d.toString();
+              }
+            }
+            String formattedFrom = formatDateStr(selectedFromDate);
+            String formattedTo = formatDateStr(selectedToDate);
+            
+            await EventsApiClass().sendPushNotification(
+              title: '$userName Leave Updated',
+              description: '$userName leave request from $formattedFrom to $formattedTo has been updated.',
+              topicOverride: targetTopic,
+              custIdOverride: targetTopic,
+              topicTitleOverride: titleName,
+            );
+          }
           showtoastmessage('Leave updated successfully');
           resetForm();
           nextScreen(context, AnimatedBottomBar(), onthenValue: (val) {});

@@ -516,8 +516,9 @@ class LeaveMastServices extends ChangeNotifier {
     _filterLeavesed();
   }
 
-  Future applyLeave({setEmpid, setFromDate, setLeaveTypeId, setLeaveYears, setLeavedes, setRemarks, setCguid, todate, setLeavestatuss, setDayTypes, setleaveTypeCguids, showToastmessages}) async {
+  Future<dynamic> applyLeave({setEmpid, setFromDate, setLeaveTypeId, setLeaveYears, setLeavedes, setRemarks, setCguid, todate, setLeavestatuss, setDayTypes, setleaveTypeCguids, showToastmessages}) async {
     setloading(true);
+    dynamic returnData;
     await LeaveApiService().applyLeave(
       setEmployeId: setEmpid,
       leaveTypeCguids: setleaveTypeCguids,
@@ -532,6 +533,7 @@ class LeaveMastServices extends ChangeNotifier {
       dayTypes: setDayTypes,
     ).then((value) {
       LeaveApply responseData = value as LeaveApply;
+      returnData = responseData;
       if (responseData.success == true) {
         if (showToastmessages == true) {
           showtoastmessage('Leave Apply successfully');
@@ -541,6 +543,7 @@ class LeaveMastServices extends ChangeNotifier {
       }
     });
     setloading(false);
+    return returnData;
   }
 
   StatusStyle _getStatusStyle(String? status) {

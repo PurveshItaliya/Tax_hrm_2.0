@@ -24,7 +24,7 @@ class CompanyMasterApi {
     var header = {
       'Content-Type': 'application/json',
       'Accept': '*/*',
-      'Authorization': 'bearer $token',
+      'Authorization': 'Bearer $token',
     };
 
     var req = http.MultipartRequest("POST", url);

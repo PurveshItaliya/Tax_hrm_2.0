@@ -10,7 +10,9 @@ import 'package:tax_hrm/models/attendance/allemployeattendance.dart';
 import 'package:tax_hrm/models/attendance/attendancelogdelet.dart';
 import 'package:tax_hrm/models/attendance/attendancelogupdate.dart';
 import 'package:tax_hrm/models/createcguid.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/leaveM/getleavemaster.dart';
+import 'package:tax_hrm/api/eventsapi.dart';
 import 'package:tax_hrm/provider/leaveProviders.dart';
 import 'package:tax_hrm/provider/leavemployeeprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -744,7 +746,36 @@ class AdminAttenDanceServices extends ChangeNotifier {
           setRemarks: '',
           showToastmessages: false,
           setLeavestatuss: 'A'
-        ).then((value) {
+        ).then((value) async {
+          if (value != null && value.success == true) {
+             String custIdBase = curentUser is Map ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '' : '';
+             String companyId = selectedcurentcompany?.companyId?.toString() ?? '';
+             String targetTopic = '${custIdBase}_${companyId}_${selectedEmp.empId}';
+             
+             String fName = selectedEmp.firstName ?? '';
+             String lName = selectedEmp.lastName ?? '';
+             String userName = '$fName $lName'.trim();
+             
+             String titleName = 'USER $userName'.trim();
+             
+             String formatDateStr(String? d) {
+               if (d == null || d.isEmpty) return '';
+               try {
+                 return DateFormat('dd/MM/yyyy').format(DateTime.parse(d));
+               } catch (_) {
+                 return d;
+               }
+             }
+             String formattedDate = formatDateStr(selectedEmp.attendenceDate?.toString());
+             
+             await EventsApiClass().sendPushNotification(
+               title: '$userName Leave Applied',
+               description: '$userName leave request for $formattedDate has been submitted.',
+               topicOverride: targetTopic,
+               custIdOverride: targetTopic,
+               topicTitleOverride: titleName,
+             );
+          }
           Navigator.pop(context);
           leaveEditTypeSet(context, selectedEmp);
           toDayDateAttendance(currentMonth);

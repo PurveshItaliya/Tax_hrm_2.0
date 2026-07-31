@@ -536,9 +536,9 @@ class FcmTokenService {
         topics.add(_sanitize('ALL_EMPLOYEE_${custId}_$companyId'));
       }
 
-      // 3. Personal user topic: USER_{userId}_{custId}_{companyId}
+      // 3. Personal user topic: {custId}_{companyId}{userId}
       if (userId.isNotEmpty) {
-        topics.add(_sanitize('USER_$userId'));
+        topics.add(_sanitize('${custId}_${companyId}_$userId'));
       }
     }
 
