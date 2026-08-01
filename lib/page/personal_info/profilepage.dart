@@ -189,7 +189,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
                                     ),
                                   ],
                                 ),
-                              ]else...[
+                              ]else if(curentUser['Role'] == 'Admin')...[
                                 CommonTextField(controller: userMasterService.regtypecontroller,hintText: enterYourRegistrationFirmTypString,fillColors: ColorConst.white,readOnly: true,showHeading: registrationFirmTypString,fontFamilys: fontInterMediumString,hintColor: ColorConst.hintextFormColors,),
                               ],
                             ],
