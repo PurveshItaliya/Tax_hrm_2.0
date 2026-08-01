@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/page/bottom_bar_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
 import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
@@ -352,6 +351,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                         ),
                       )
                     : Text(
+                        curentUser == null ? "" :
                         (curentUser['FirstName'] != null &&
                                 curentUser['FirstName'] != "")
                             ? ('${curentUser['FirstName']}'[0] +
@@ -505,7 +505,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
         list.add(
           _buildAdminToggleTile(
             size: size,
-            val: curentUser['Role'] == 'Admin',
+            val: curentUser?['Role'] == 'Admin',
             onChanged: (val) async {
               if (curentUser['OriginalRole'] == null) {
                 curentUser['OriginalRole'] = curentUser['Role'];
@@ -523,15 +523,17 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
               await FcmTokenService.instance.updateTopicSubscriptions();
 
               if (!context.mounted) return;
-              Provider.of<HomeProvider>(
-                context,
-                listen: false,
-              ).changeSelectBottomBar(0);
-              nextscreenRemove(
-                context,
-                AnimatedBottomBar(),
-                onthenValue: (value) {},
-              );
+              if (val) {
+                Provider.of<HomeProvider>(
+                  context,
+                  listen: false,
+                ).changeSelectBottomBar(0);
+              } else {
+                Provider.of<HomeProvider>(
+                  context,
+                  listen: false,
+                ).selectFloadButton();
+              }
             },
           ),
         );

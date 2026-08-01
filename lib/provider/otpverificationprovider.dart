@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,7 +26,6 @@ import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
-import 'package:tax_hrm/services/notifications/notification_permission_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
 
 
@@ -272,7 +270,7 @@ class Otpverificationprovider extends ChangeNotifier {
                 }
               });
             });
-            log('-------------------getUserShift------------------${jsonEncode(getUserShift)}');
+            /* log('-------------------getUserShift------------------${jsonEncode(getUserShift)}'); */
             if (getUserShift != null) {
               // DateTime setShiftTiumers = DateTime.parse(
               //   getUserShift!.endTime.toString(),

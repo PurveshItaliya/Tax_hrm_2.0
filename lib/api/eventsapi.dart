@@ -2,13 +2,14 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'package:tax_hrm/models/eventclass/getevents.dart';
 import 'package:tax_hrm/models/eventclass/newevents.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/notes/newnotes.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
+
+import 'package:tax_hrm/models/eventclass/event_by_id_model.dart';
 
 class EventsApiClass {
   // data get api
@@ -22,6 +23,28 @@ class EventsApiClass {
       headers: {'Authorization': "bearer ${curentUser['token']}"},
     );
     return getEventsFromJson(response.body);
+  }
+
+  // get event by id
+  Future<EventByIdModel?> getEventById({required String companyId, required String cguid}) async {
+    var uri = Uri.parse('${apibaseurl}api/HRM/NewEventById?CompanyID=$companyId&Cguid=$cguid');
+    var response = await http.get(
+      uri,
+      headers: {'Authorization': "bearer ${curentUser['token']}"},
+    );
+    if (response.statusCode == 200) {
+      try {
+        var jsonResponse = jsonDecode(response.body);
+        if (jsonResponse is List && jsonResponse.isNotEmpty) {
+          return EventByIdModel.fromJson(jsonResponse.first);
+        } else if (jsonResponse is Map<String, dynamic>) {
+          return EventByIdModel.fromJson(jsonResponse);
+        }
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   }
 
   // add and edit api
@@ -133,19 +156,19 @@ class EventsApiClass {
       var response = await req.send();
       final responseBody = await response.stream.bytesToString();
 
-      log('PushNotification Request URL: ${req.url}');
-      log('PushNotification Request Headers: ${req.headers}');
-      log('PushNotification Request Fields: ${req.fields}');
-      log('PushNotification Request Files: ${req.files.map((e) => e.filename).toList()}');
+      /* log('PushNotification Request URL: ${req.url}'); */
+      /* log('PushNotification Request Headers: ${req.headers}'); */
+      /* log('PushNotification Request Fields: ${req.fields}'); */
+      /* log('PushNotification Request Files: ${req.files.map((e) => e.filename).toList()}'); */
 
-      log('PushNotification Response Status Code: ${response.statusCode}');
-      log('PushNotification Response Headers: ${response.headers}');
-      log('PushNotification Response Body: $responseBody');
+      /* log('PushNotification Response Status Code: ${response.statusCode}'); */
+      /* log('PushNotification Response Headers: ${response.headers}'); */
+      /* log('PushNotification Response Body: $responseBody'); */
 
       if (response.statusCode == 200) {
         try {
-          final jsonResponse = jsonDecode(responseBody);
-          log('PushNotification JSON Response: $jsonResponse');
+          jsonDecode(responseBody);
+          /* log('PushNotification JSON Response: $jsonResponse'); */
         } catch (_) {
           // Ignore
         }
@@ -153,7 +176,7 @@ class EventsApiClass {
 
       return response.statusCode;
     } catch (e) {
-      log('PushNotification Error: $e');
+      /* log('PushNotification Error: $e'); */
       return null;
     }
   }

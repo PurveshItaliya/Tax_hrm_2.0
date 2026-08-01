@@ -514,14 +514,15 @@ class LeaveUserProvider extends ChangeNotifier {
               targetTopic = '${custIdBase}_${companyId}_$_selectedSubmitEmployeeId';
               String fName = selectedEmployee?.firstName ?? '';
               String lName = selectedEmployee?.lastName ?? '';
-              userName = '$fName $lName'.trim();
+              userName = '$fName $lName'.trim().toUpperCase();
               titleName = 'USER $userName';
             } else {
-              targetTopic = 'COMPANY_${custIdBase}_$companyId';
+              targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
               String fName = curentUser['FirstName']?.toString() ?? '';
               String lName = curentUser['LastName']?.toString() ?? '';
-              userName = '$fName $lName'.trim();
-              titleName = 'USER $userName';
+              userName = '$fName $lName'.trim().toUpperCase();
+              String fullCompanyName = selectedcurentcompany?.companyName?.toString() ?? 'COMPANY';
+              titleName = fullCompanyName.trim().split(' ').first;
             }
 
             String formatDateStr(DateTime? d) {
@@ -613,14 +614,15 @@ class LeaveUserProvider extends ChangeNotifier {
               targetTopic = '${custIdBase}_${companyId}_$_selectedSubmitEmployeeId';
               String fName = selectedEmployee?.firstName ?? '';
               String lName = selectedEmployee?.lastName ?? '';
-              userName = '$fName $lName'.trim();
+              userName = '$fName $lName'.trim().toUpperCase();
               titleName = 'USER $userName';
             } else {
-              targetTopic = 'COMPANY_${custIdBase}_$companyId';
+              targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
               String fName = curentUser['FirstName']?.toString() ?? '';
               String lName = curentUser['LastName']?.toString() ?? '';
-              userName = '$fName $lName'.trim();
-              titleName = 'USER $userName';
+              userName = '$fName $lName'.trim().toUpperCase();
+              String fullCompanyName = selectedcurentcompany?.companyName?.toString() ?? 'COMPANY';
+              titleName = fullCompanyName.trim().split(' ').first;
             }
 
             String formatDateStr(DateTime? d) {

@@ -76,7 +76,7 @@ class AdminLeaveProvider extends ChangeNotifier {
         setloading(true);
       }
 
-      unawaited(_fetchLeaveDataFromApi(cacheKeyTypes, cacheKeyList));
+      await _fetchLeaveDataFromApi(cacheKeyTypes, cacheKeyList);
 
     } catch (e) {
       setloading(false);
@@ -265,7 +265,7 @@ class AdminLeaveProvider extends ChangeNotifier {
           
           String fName = leave.firstName ?? '';
           String lName = leave.lastName ?? '';
-          String titleName = 'USER $fName $lName'.trim();
+          String titleName = 'USER $fName $lName'.trim().toUpperCase();
           
           String statusStr = status == 'A' ? 'Approved' : 'Rejected';
           

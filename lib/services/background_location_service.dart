@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print, empty_catches
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -509,29 +508,29 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  log('========== BACKGROUND ISOLATE LOGS ==========');
-  log('1. onStart() called in isolate');
+  /* log('========== BACKGROUND ISOLATE LOGS =========='); */
+  /* log('1. onStart() called in isolate'); */
   DartPluginRegistrant.ensureInitialized();
   WidgetsFlutterBinding.ensureInitialized();
 
   if (service is AndroidServiceInstance) {
-    log('2. Registering Android service listeners');
+    /* log('2. Registering Android service listeners'); */
     service.on('setAsForeground').listen((_) {
-      log('--> setAsForeground listener triggered');
+      /* log('--> setAsForeground listener triggered'); */
       service.setAsForegroundService();
     });
     service.on('setAsBackground').listen((_) {
-      log('--> setAsBackground listener triggered');
+      /* log('--> setAsBackground listener triggered'); */
       service.setAsBackgroundService();
     });
     
     // Force foreground mode so the persistent notification is shown
-    log('3. Calling setAsForegroundService() to show notification');
+    /* log('3. Calling setAsForegroundService() to show notification'); */
     service.setAsForegroundService();
   }
 
   service.on('stopService').listen((_) {
-    log('--> stopService listener triggered. Stopping self.');
+    /* log('--> stopService listener triggered. Stopping self.'); */
     service.stopSelf();
   });
 

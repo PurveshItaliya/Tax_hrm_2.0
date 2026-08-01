@@ -35,10 +35,12 @@ class LeaveMastServices extends ChangeNotifier {
     notifyListeners();
   }
 
-  leaveHandleSubmit(context,isEdit,{leaveData}) {
+  leaveHandleSubmit(context,isEdit,{leaveData, Function(dynamic)? onthenValue}) {
     try {
       setloading(true);
-      nextScreen(context, ApplyLeavePage(isEdit: isEdit, leaveData: leaveData),onthenValue: (val){},);
+      nextScreen(context, ApplyLeavePage(isEdit: isEdit, leaveData: leaveData),onthenValue: (val){
+        if (onthenValue != null) onthenValue(val);
+      });
       setloading(false);
     } catch (e) {
       setloading(false);

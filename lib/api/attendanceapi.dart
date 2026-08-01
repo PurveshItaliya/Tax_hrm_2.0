@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:tax_hrm/models/attendance/attendanceBlog.dart';
@@ -16,9 +15,7 @@ import 'package:tax_hrm/models/attendance/punchnow.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/top_hrm_model.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
-import 'package:tax_hrm/utils/device_info_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 class AttendanceApis{
   //------------------------  User Month Attendance Counting Api---------------------------\\
@@ -67,44 +64,6 @@ class AttendanceApis{
     } catch(e) { /* ignored */ }
     return   attendanceDayBlogFromJson(response.body);
   }
-
-  Future notificationTokens(token, setEmpid) async {
-    // Fetch the real hardware/OS device identifier:
-    //   Android → Settings.Secure.ANDROID_ID
-    //   iOS     → identifierForVendor (IDFV)
-    final String deviceId = await getDeviceId();
-
-    // Fetch the actual app version from pubspec.yaml at runtime.
-    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    final String appVersion =
-        '${packageInfo.version}+${packageInfo.buildNumber}';
-
-    var bodys = {
-      "Flag": "A",
-        "EmpId": '$setEmpid',
-        "CompanyId": '${selectedcurentcompany!.companyId}',
-        // DeviceId = native OS identifier (unique per device)
-        "DeviceId": deviceId.isNotEmpty ? deviceId : token,
-        // FirebaseToken = FCM push-notification token (can rotate)
-        "FirebaseToken": token,
-        "Platform": Platform.isAndroid ? "ANDROID" : "IOS",
-        "AppVersion": appVersion,
-    };
-
-    log("----------------------------$bodys");
-    
-    var url = Uri.parse('${apibaseurl}api/master/RegisterDevice');
-    var response = await http.post(
-      url,
-      body: jsonEncode(bodys),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'bearer ${curentUser['token']}',
-      },
-    );
-
-    log("------------------------------------${response.body}");
-  }
   
   //---------------------- Create Punch ---------------------------------------\\
   
@@ -130,7 +89,7 @@ class AttendanceApis{
       ]
     };
 
-    log("----------------------------$bodys");
+    /* log("----------------------------$bodys"); */
 
     var url = Uri.parse("${apibaseurl}api/HRM/NewNewCreateAttendence");
     var response = await http.post(url, body: jsonEncode(bodys), headers: {'Authorization': 'bearer ${curentUser!['token']}','Content-Type': 'application/json',});

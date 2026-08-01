@@ -29,8 +29,10 @@ class _ShiftMasterScreenState extends State<ShiftMasterScreen> {
   }
 
   Future<void> _loadAllData({bool forceRefresh = false}) async {
-    Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
-    Provider.of<ShiftMasterProvider>(context, listen: false).shiftGroupMasterLoadingData(forceRefresh: forceRefresh);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
+      Provider.of<ShiftMasterProvider>(context, listen: false).shiftGroupMasterLoadingData(forceRefresh: forceRefresh);
+    });
   }
 
   final userShiftGrounpFormKey = GlobalKey<FormState>();

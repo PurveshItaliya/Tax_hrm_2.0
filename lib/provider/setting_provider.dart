@@ -50,7 +50,7 @@ class SettingProvider extends ChangeNotifier {
   final settingFormKey = GlobalKey<FormState>();
 
   settingMenuGet(context,) {
-    settingGridOptionList = curentUser['Role'] == 'Admin' ? [
+    settingGridOptionList = curentUser?['Role'] == 'Admin' ? [
       HomeGridClass(image: personalImgString, title: personalInfoString,onTap: () {
         nextScreen(context, ProfileViewPage(isEdit: true),onthenValue: (value) {
           safeAreaBgAndTextColor(context,safeAreaBgColor: ColorConst.themeColor,safeAreaBrightness: Brightness.light);

@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'dart:async';
 import 'dart:io';
@@ -97,7 +97,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     });
   }
 
-  bool get isAdmin => curentUser['Role'] == 'Admin';
+  bool get isAdmin => curentUser?['Role'] == 'Admin';
 
   List<Widget> get pageList {
     if (isAdmin) {

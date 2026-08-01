@@ -1,7 +1,6 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: curly_braces_in_flow_control_structures, unused_local_variable, avoid_print
 
 import 'dart:async';
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -355,7 +354,7 @@ class FcmTopicService {
   void _log(String message) {
     final timestamp = DateTime.now().toIso8601String().split('.').first;
     final entry = '[$timestamp] [FCM_TOPIC] $message';
-    if (kDebugMode) log(entry);
+    if (kDebugMode) /* log(entry); */
     NotificationLoggerService.fcmTopic(message);
   }
 }

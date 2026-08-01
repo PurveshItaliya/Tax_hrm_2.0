@@ -754,9 +754,9 @@ class AdminAttenDanceServices extends ChangeNotifier {
              
              String fName = selectedEmp.firstName ?? '';
              String lName = selectedEmp.lastName ?? '';
-             String userName = '$fName $lName'.trim();
+             String userName = '$fName $lName'.trim().toUpperCase();
              
-             String titleName = 'USER $userName'.trim();
+             String titleName = 'USER $userName'.trim().toUpperCase();
              
              String formatDateStr(String? d) {
                if (d == null || d.isEmpty) return '';

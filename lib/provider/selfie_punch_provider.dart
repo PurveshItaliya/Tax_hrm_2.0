@@ -1,7 +1,6 @@
 // ignore_for_file: strict_top_level_inference, unused_local_variable, unused_catch_clause, use_build_context_synchronously, non_constant_identifier_names, empty_catches, unused_field
 
 import 'dart:async';
-import 'dart:developer';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -654,7 +653,7 @@ class SelfiePunchProvider extends ChangeNotifier {
 
         // Asynchronously update reminders
         Future.microtask(() async {
-          await ReminderNotificationService.updateHolidaysAndLeaves();
+          // await ReminderNotificationService.updateHolidaysAndLeaves();
           await ReminderNotificationService.scheduleReminders();
         });
 
@@ -710,9 +709,9 @@ class SelfiePunchProvider extends ChangeNotifier {
 
   Future<void> onTapPunchs(BuildContext context, String currentDay, String punchType) async {
     bool setTodayWeekOff = false;
-    log('Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift');
+    /* log('Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift'); */
     if (getUserShift != null) {
-      log("getUserShift: $getUserShift");
+      /* log("getUserShift: $getUserShift"); */
       String dayAbbr = currentDay.toString().substring(0, 3).toLowerCase();
       if ((getUserShift!.mon != null && getUserShift!.sun == false && dayAbbr == 'sun') ||
           (getUserShift!.mon == false && dayAbbr == 'mon') ||

@@ -30,6 +30,7 @@ class ShiftMasterProvider extends ChangeNotifier {
   
   setloading(bool value) {
     islodering = value;
+    notifyListeners();
   }
 
   List<ShiftGroup>  mainShiftGroupList = [];
@@ -475,6 +476,8 @@ class ShiftMasterProvider extends ChangeNotifier {
               } else {
                 showtoastmessage('ShiftMaster Update Successfully');
               }
+              _hasLoadedShiftTimingThisSession = false;
+              shiftTimingLoadingData(forceRefresh: true);
               clearData();
               setloading(false);
               Navigator.pop(context);
@@ -490,7 +493,6 @@ class ShiftMasterProvider extends ChangeNotifier {
     } catch (e) {
       setloading(false);
     }
-    notifyListeners();
   }
 
   clearData() {
@@ -513,8 +515,7 @@ class ShiftMasterProvider extends ChangeNotifier {
 
   Future editHandleSubmit(context,GetShiftMasterData getShiftMasterData) async {
     try {
-      islodering = true;
-      notifyListeners();
+      setloading(true);
       checkBoxValues[0] = getShiftMasterData.sun ?? false;
       checkBoxValues[1] = getShiftMasterData.mon ?? false;
       checkBoxValues[2] = getShiftMasterData.tue ?? false;
@@ -549,13 +550,11 @@ class ShiftMasterProvider extends ChangeNotifier {
       var break2Counter = DateTime.parse(getShiftMasterData.break2Duration.toString());
       pickedBreak2Time = TimeOfDay(hour: break2Counter.hour, minute: break2Counter.minute);
       pickbreak2Seconds = break2Counter.second.toString();
-      islodering = false;
-      notifyListeners();
+      setloading(false);
       await nextScreen(context,AddShiftTimingMasterScreen(getShiftMasterData: getShiftMasterData, addEditFlag: false,),onthenValue: (value) {});
     } catch (e) {
-      islodering = false;
+      setloading(false);
     }
-    notifyListeners();
   }
   
   //----------------------- shift Timing Data Add Page -----------------------\\

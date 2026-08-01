@@ -33,8 +33,10 @@ class _EventPageScreenState extends State<EventPageScreen> {
   }
 
   Future<void> _loadAllData({bool forceRefresh = false}) async {
-    Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-    Provider.of<EventsMastServices>(context,listen: false).eventLoadingData(forceRefresh: forceRefresh);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
+      Provider.of<EventsMastServices>(context,listen: false).eventLoadingData(forceRefresh: forceRefresh);
+    });
   }
 
   @override
@@ -77,7 +79,7 @@ class _EventPageScreenState extends State<EventPageScreen> {
                               padding: EdgeInsets.only(
                                 bottom: size.height * 0.10,
                               ),
-                              itemBuilder: (context, index) {
+                              itemBuilder: (itemContext, index) {
                                 return eventCard(
                                   size: size,
                                   titles: eventsMastServices.getEventList[index].eventName,place: eventsMastServices.getEventList[index].eventPlace,remark: eventsMastServices.getEventList[index].description,startDate: dateFormatdate(DateTime.parse(eventsMastServices.getEventList[index].startDate.toString())),endDate: dateFormatdate(DateTime.parse(eventsMastServices.getEventList[index].endDate.toString())),editOntap: () async {

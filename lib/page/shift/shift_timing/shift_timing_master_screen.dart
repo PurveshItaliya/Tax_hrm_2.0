@@ -35,9 +35,11 @@ class _ShiftTimingMasterScreenState extends State<ShiftTimingMasterScreen> {
   }
 
   Future<void> _loadAllData({bool forceRefresh = false}) async {
-    Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
-    Provider.of<ShiftMasterProvider>(context, listen: false,).shiftTimingLoadingData(forceRefresh: forceRefresh).then((value) {
-      Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(Provider.of<ShiftMasterProvider>(context, listen: false).mainShiftMasterGroupList, 0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
+      Provider.of<ShiftMasterProvider>(context, listen: false,).shiftTimingLoadingData(forceRefresh: forceRefresh).then((value) {
+        Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(Provider.of<ShiftMasterProvider>(context, listen: false).mainShiftMasterGroupList, 0);
+      });
     });
   }
 

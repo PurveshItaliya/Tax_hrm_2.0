@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print
 
-import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -22,54 +21,54 @@ class BackgroundLocationController extends ChangeNotifier {
   /// If [IsFetchLocation] is false, tracking is skipped and user proceeds to dashboard.
   Future<void> startLocationTracking({BuildContext? context}) async {
     try {
-      log('========== FOREGROUND NOTIF DEBUG (UI) ==========');
-      log('1. startLocationTracking() called');
+      /* log('========== FOREGROUND NOTIF DEBUG (UI) =========='); */
+      /* log('1. startLocationTracking() called'); */
       // 1. Check User Model flag
       final isFetchLocation = BackgroundLocationRepository.isFetchLocationEnabled();
       if (!isFetchLocation) {
-        log('2. FAILED: isFetchLocationEnabled is FALSE');
+        /* log('2. FAILED: isFetchLocationEnabled is FALSE'); */
         return;
       }
-      log('2. SUCCESS: isFetchLocationEnabled is TRUE');
+      /* log('2. SUCCESS: isFetchLocationEnabled is TRUE'); */
 
     // 2. Check hardware location service
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      log('3. FAILED: GPS hardware is disabled');
+      /* log('3. FAILED: GPS hardware is disabled'); */
       return;
     }
-    log('3. SUCCESS: GPS hardware is enabled');
+    /* log('3. SUCCESS: GPS hardware is enabled'); */
 
     // 3. Single-prompt compliant permission flow for background location tracking
     if (context != null && context.mounted) {
-      log('4. Running LocationPermissionService.executeAppleCompliantFlow...');
+      /* log('4. Running LocationPermissionService.executeAppleCompliantFlow...'); */
       final success = await LocationPermissionService.executeAppleCompliantFlow(context);
       if (!success) {
-        log('4. FAILED: Apple compliant permission flow denied');
+        /* log('4. FAILED: Apple compliant permission flow denied'); */
         return;
       }
-      log('4. SUCCESS: Apple compliant permission flow granted');
+      /* log('4. SUCCESS: Apple compliant permission flow granted'); */
     } else {
-      log('4. Checking raw permissions (no context)...');
+      /* log('4. Checking raw permissions (no context)...'); */
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         await Permission.locationAlways.request();
         perm = await Geolocator.checkPermission();
         if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
-          log('4. FAILED: Raw permission denied');
+          /* log('4. FAILED: Raw permission denied'); */
           return;
         }
       }
-      log('4. SUCCESS: Raw permission granted');
+      /* log('4. SUCCESS: Raw permission granted'); */
     }
 
     // 4. Initialize worker services
-    log('5. Clearing old coordinates from SharedPreferences...');
+    /* log('5. Clearing old coordinates from SharedPreferences...'); */
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('lastSentLat');
     await prefs.remove('lastSentLng');
 
-    log('6. Showing immediate persistent notification...');
+    /* log('6. Showing immediate persistent notification...'); */
     if (Platform.isAndroid) {
       try {
         final notifPlugin = FlutterLocalNotificationsPlugin();
@@ -89,30 +88,30 @@ class BackgroundLocationController extends ChangeNotifier {
           ),
         );
       } catch (e) {
-        log('Exception showing direct notification: $e');
+        /* log('Exception showing direct notification: $e'); */
       }
     }
 
-    log('7. Initializing FlutterBackgroundService...');
+    /* log('7. Initializing FlutterBackgroundService...'); */
     if (Platform.isAndroid) {
       await initializeBackgroundService();
       final service = FlutterBackgroundService();
       await service.startService();
-      log('8. flutter_background_service startService() completed');
+      /* log('8. flutter_background_service startService() completed'); */
     }
     
     await registerLocationWorkManager();
-    log('9. registerLocationWorkManager() completed');
+    /* log('9. registerLocationWorkManager() completed'); */
 
     await prefs.setBool('isTrackingActive', true);
-    log('10. isTrackingActive saved to SharedPreferences');
-    log('=================================================');
+    /* log('10. isTrackingActive saved to SharedPreferences'); */
+    /* log('================================================='); */
 
-    } catch (e, stacktrace) {
-      log('========== EXCEPTION IN startLocationTracking ==========');
-      log('Error: $e');
-      log('Stacktrace: $stacktrace');
-      log('========================================================');
+    } catch (e) {
+      /* log('========== EXCEPTION IN startLocationTracking =========='); */
+      /* log('Error: $e'); */
+      /* log('Stacktrace: $stacktrace'); */
+      /* log('========================================================'); */
     }
   }
 
