@@ -31,11 +31,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.2</string>
+	<string>1.0.3</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>6</string>
+	<string>7</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 
@@ -70,13 +70,24 @@
 	<!-- ═══════════════════════════════════════════════════════════════════
 	     Background Modes
 	     Only declare what the app actually uses.
-	     NOTE: 'location' and 'processing' removed — iOS bg location is inactive.
 	     ═══════════════════════════════════════════════════════════════════ -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
 		<string>processing</string>
 		<string>remote-notification</string>
+	</array>
+
+	<!-- ═══════════════════════════════════════════════════════════════════
+	     BGTaskSchedulerPermittedIdentifiers
+	     REQUIRED by App Store Review when UIBackgroundModes includes
+	     'processing'. Each identifier must match exactly what is passed to
+	     BGTaskScheduler.shared.register(forTaskWithIdentifier:) at runtime.
+	     flutter_background_service_ios registers this identifier internally.
+	     ═══════════════════════════════════════════════════════════════════ -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>dev.flutter.background_service</string>
 	</array>
 
 	<!-- ═══════════════════════════════════════════════════════════════════
