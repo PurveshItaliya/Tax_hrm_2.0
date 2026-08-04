@@ -11,13 +11,13 @@
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
-		AA1B2C3D4E5F6A7B8C9D0E1F /* NativeLiquidGlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F6A7B8C9D0E10 /* NativeLiquidGlassTabBar.swift */; };
 		7B2F6984300B86120028F4B9 /* TAX HRM 2.0.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7B2F697D300B86120028F4B9 /* TAX HRM 2.0.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		84A4C8E8431C2CBDD75FA83A /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90564287842B709FE4301866 /* Pods_Runner.framework */; };
 		869B9FE4B7203B2F51FF0552 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0DA51871B44963529EE3C66A /* Pods_RunnerTests.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		AA1B2C3D4E5F6A7B8C9D0E1F /* NativeLiquidGlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F6A7B8C9D0E10 /* NativeLiquidGlassTabBar.swift */; };
 		FB1C10A22A2C3D4E5F6A7B8C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB1C10A12A2C3D4E5F6A7B8C /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
@@ -73,7 +73,6 @@
 		50CA88100492338ABB3430FC /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		AA1B2C3D4E5F6A7B8C9D0E10 /* NativeLiquidGlassTabBar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeLiquidGlassTabBar.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		7B2F697D300B86120028F4B9 /* TAX HRM 2.0.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "TAX HRM 2.0.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		90564287842B709FE4301866 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -85,6 +84,7 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9ED5D82E4C403D8AB02DEA17 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
+		AA1B2C3D4E5F6A7B8C9D0E10 /* NativeLiquidGlassTabBar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeLiquidGlassTabBar.swift; sourceTree = "<group>"; };
 		CC8E26AE4A12E638BA84EFAB /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		CCDC33224558139171E39263 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		D0D2794F006FB8A5623DDCB1 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
@@ -610,11 +610,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = KRDJPQAT97;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 1.0.1;
-				FLUTTER_BUILD_NUMBER = 5;
+				FLUTTER_BUILD_NAME = 1.0.2;
+				FLUTTER_BUILD_NUMBER = 6;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "TAX HRM 2.0";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
@@ -622,7 +622,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hrmnewapp.taxhr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -706,7 +706,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.hrmnewapp.taxhr.TAX-HRM-2-0";
@@ -748,7 +748,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.hrmnewapp.taxhr.TAX-HRM-2-0";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -787,7 +787,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.hrmnewapp.taxhr.TAX-HRM-2-0";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -919,11 +919,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = KRDJPQAT97;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 1.0.1;
-				FLUTTER_BUILD_NUMBER = 5;
+				FLUTTER_BUILD_NAME = 1.0.2;
+				FLUTTER_BUILD_NUMBER = 6;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "TAX HRM 2.0";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
@@ -931,7 +931,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hrmnewapp.taxhr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -948,11 +948,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = KRDJPQAT97;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 1.0.1;
-				FLUTTER_BUILD_NUMBER = 5;
+				FLUTTER_BUILD_NAME = 1.0.2;
+				FLUTTER_BUILD_NUMBER = 6;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "TAX HRM 2.0";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
@@ -960,7 +960,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hrmnewapp.taxhr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";

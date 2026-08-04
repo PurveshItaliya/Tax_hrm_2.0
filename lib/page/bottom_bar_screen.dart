@@ -1,8 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -30,7 +28,6 @@ import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widigets/noInternetView.dart';
-import 'package:tax_hrm/widgets/native_liquid_glass_bar.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Interaction state enum
@@ -139,69 +136,9 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
                   ? SelfiePunchScreen()
                   : pageList[controller.selectedIndex.value];
 
-              // ── iOS: use the real native UITabBar (Liquid Glass on iOS 26+) ──
-              if (Platform.isIOS && !controller.fabSelected.value) {
-                return Scaffold(
-                  backgroundColor: ColorConst.scaffoldColor,
-                  extendBody: true,
-                  body: selectedPage,
-                  bottomNavigationBar: NativeLiquidGlassBar(
-                    key: ValueKey(
-                      context.watch<LanguageProvider>().currentLanguage,
-                    ),
-                    currentIndex: controller.selectedIndex.value,
-                    onTap: controller.changeTab,
-                    tintColor: ColorConst.themeColor,
-                    items: isAdmin
-                        ? [
-                            LiquidTabItem(
-                              label: homeString,
-                              symbol: 'house',
-                              selectedSymbol: 'house.fill',
-                            ),
-                            LiquidTabItem(
-                              label: attendanceString,
-                              symbol: 'calendar',
-                              selectedSymbol: 'calendar',
-                            ),
-                            LiquidTabItem(
-                              label: leaveString,
-                              symbol: 'doc.text',
-                              selectedSymbol: 'doc.text.fill',
-                            ),
-                            LiquidTabItem(
-                              label: settingString,
-                              symbol: 'gearshape',
-                              selectedSymbol: 'gearshape.fill',
-                            ),
-                          ]
-                        : [
-                            LiquidTabItem(
-                              label: homeString,
-                              symbol: 'house',
-                              selectedSymbol: 'house.fill',
-                            ),
-                            LiquidTabItem(
-                              label: attendanceString,
-                              symbol: 'calendar',
-                              selectedSymbol: 'calendar',
-                            ),
-                            LiquidTabItem(
-                              label: leaveString,
-                              symbol: 'doc.text',
-                              selectedSymbol: 'doc.text.fill',
-                            ),
-                            LiquidTabItem(
-                              label: settingString,
-                              symbol: 'gearshape',
-                              selectedSymbol: 'gearshape.fill',
-                            ),
-                          ],
-                  ),
-                );
-              }
-
-              // ── iOS FAB / other platforms: Flutter Liquid Glass bar ──
+              // ── All platforms: Flutter Liquid Glass bar ──
+              // Using the same Flutter-drawn _LiquidNavBar on iOS and Android
+              // for a consistent glass pill appearance on all iOS versions.
               return Scaffold(
                 backgroundColor: ColorConst.scaffoldColor,
                 extendBody: true,
@@ -992,7 +929,7 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedColor = isDark ? Colors.white : ColorConst.black;
+    final selectedColor = isDark ? Colors.white : ColorConst.themeColor;
     final unselectedColor =
         isDark ? Colors.white.withOpacity(0.48) : ColorConst.bottomIconColor;
 
