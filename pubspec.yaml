@@ -35,7 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   intl:
-  permission_handler:
+  permission_handler: ^11.3.0
   device_info_plus:
   geolocator:
   geocoding:
