@@ -26,7 +26,6 @@ import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
-import 'package:tax_hrm/services/notifications/notification_permission_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
 
 
@@ -213,7 +212,6 @@ class Otpverificationprovider extends ChangeNotifier {
         if (value != '') {
           curentUser = jsonDecode(value);
           FcmTokenService.instance.handleTokenSync();
-          NotificationPermissionService.requestNotificationPermission(context);
 
           final navigator = Navigator.of(context);
           Future.microtask(() async {
@@ -272,6 +270,7 @@ class Otpverificationprovider extends ChangeNotifier {
                 }
               });
             });
+            /* log('-------------------getUserShift------------------${jsonEncode(getUserShift)}'); */
             if (getUserShift != null) {
               // DateTime setShiftTiumers = DateTime.parse(
               //   getUserShift!.endTime.toString(),
@@ -292,7 +291,7 @@ class Otpverificationprovider extends ChangeNotifier {
                 .of<HomeProvider>(context, listen: false,)
                 .changeSelectBottomBar(0);
             nextScreen(
-                context, const AnimatedBottomBar(), onthenValue: (value) {});
+                context, AnimatedBottomBar(), onthenValue: (value) {});
           } else if (curentUser['Role'] == 'Sub-Admin') {
             await companySelect(context);
           } else {
@@ -303,7 +302,7 @@ class Otpverificationprovider extends ChangeNotifier {
                 .of<HomeProvider>(context, listen: false,)
                 .selectFloadButton();
             nextScreen(
-                context, const AnimatedBottomBar(), onthenValue: (value) {});
+                context, AnimatedBottomBar(), onthenValue: (value) {});
           }
         }
       });
@@ -407,8 +406,9 @@ class Otpverificationprovider extends ChangeNotifier {
           }
         });
       }
+      // Subscribe to role/company/user topics after successful login
       if (selectedcurentcompany != null) {
-        FcmTokenService.instance.subscribeToCompanyTopic();
+        FcmTokenService.instance.subscribeLoginTopics();
       }
     });
   }

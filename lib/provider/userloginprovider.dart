@@ -71,7 +71,7 @@ class Userloginprovider extends ChangeNotifier {
             showtoastmessage('Change Role !!!');  
           }
         } else {
-          if(setresponse.data!.role == "User" || setresponse.data!.role == "Sub-Admin"){
+          if(setresponse.data!.role != "Admin"){
             await empLogin(context);
           } else {
             showtoastmessage('Change Role !!!'); 

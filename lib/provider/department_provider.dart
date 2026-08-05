@@ -2,6 +2,9 @@
 
 
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:tax_hrm/services/local_cache_service.dart';
 import 'package:tax_hrm/api/departmentapi.dart';
 import 'package:tax_hrm/models/departmentclass/departemtmaster/createdepartment.dart';
 import 'package:tax_hrm/models/departmentclass/departemtmaster/deletedepartment.dart';
@@ -27,18 +30,86 @@ class DepartmentServices extends ChangeNotifier {
   AutovalidateMode autovalidateMode = AutovalidateMode.disabled;
 
   TextEditingController   departmentnamecontroller = TextEditingController();
+  TextEditingController   txtdepartmentSerchController = TextEditingController();
 
   //--------------------  Get All Department --------------------------\\
 
-  departmentLoadingData() async {
+  bool _hasLoadedDepartmentsThisSession = false;
+
+  departmentLoadingData({bool forceRefresh = false}) async {
+    final cacheKey = '${LocalCacheService.keyMasterData}_departments';
+    const ttlMs = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (!forceRefresh && _hasLoadedDepartmentsThisSession) {
+      islodering = false;
+      notifyListeners();
+      return;
+    }
+
     try {
-      setloading(true);
-      await getDepartmentMasterData();
-      setloading(false);
+      bool loadedFromCache = false;
+      txtdepartmentSerchController.clear();
+
+      if (!forceRefresh) {
+        final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
+        if (cachedData != null) {
+          try {
+            final List<dynamic> jsonList = jsonDecode(cachedData);
+            final cachedList = jsonList.map((e) => DepartMnetModel.fromJson(e)).toList();
+            
+            alldepartment = cachedList;
+            showedepartment = cachedList;
+            activepartment.clear();
+            for (var element in cachedList) {
+              if (element.isActive != false) {
+                activepartment.add(element);
+              }
+            }
+            
+            _hasLoadedDepartmentsThisSession = true;
+            loadedFromCache = true;
+            islodering = false;
+            notifyListeners();
+          } catch (e) {
+             // silent fallback
+          }
+        }
+      }
+
+      if (!loadedFromCache || forceRefresh) {
+        setloading(true);
+      }
+
+      unawaited(_fetchDepartmentFromApi(cacheKey));
+
     } catch (e) {
       setloading(false);
     }
-    notifyListeners();
+  }
+
+  Future<void> _fetchDepartmentFromApi(String cacheKey) async {
+    try {
+      final value = await DepartMentData().getdepartmentdata();
+      alldepartment = value;
+      showedepartment = value;
+      activepartment.clear();
+      for (var element in value) {
+        if (element.isActive != false) {
+          activepartment.add(element);
+        }
+      }
+      
+      _hasLoadedDepartmentsThisSession = true;
+      setloading(false);
+
+      // Save cache
+      final jsonList = value.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+
+      notifyListeners();
+    } catch (e) {
+      setloading(false);
+    }
   }
 
   // department get 

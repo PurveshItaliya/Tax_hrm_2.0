@@ -5,49 +5,48 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 class InternetConnectionProvider with ChangeNotifier {
-  // Variable to store the connectivity status
-
-  getAllConnectionData() {
-    getConnectivityType();
-  }
-
   var connectionType = 1;
   final Connectivity connectivity = Connectivity();
-  late StreamSubscription _streamSubscription;
-  @override
-  Future<void> getConnectivityType() async {
-    late List<ConnectivityResult> connectivityResult;
+  StreamSubscription<List<ConnectivityResult>>? _streamSubscription;
 
-    connectivityResult =
-        (await (connectivity.checkConnectivity())) as List<ConnectivityResult>;
-    _streamSubscription = connectivity.onConnectivityChanged.listen(
-      (event) => _updateState,
-    );
-    notifyListeners();
-
-
-    return _updateState(connectivityResult);
+  Future<void> getAllConnectionData() async {
+    await getConnectivityType();
   }
 
-  _updateState(List<ConnectivityResult> result) {
-    switch (result) {
-      case [ConnectivityResult.wifi]:
-        connectionType = 1;
-        break;
-      case [ConnectivityResult.mobile]:
-        connectionType = 2;
-        break;
-      case [ConnectivityResult.none]:
+  Future<void> getConnectivityType() async {
+    try {
+      List<ConnectivityResult> connectivityResult = await connectivity.checkConnectivity();
+      _updateState(connectivityResult);
+
+      _streamSubscription?.cancel();
+      _streamSubscription = connectivity.onConnectivityChanged.listen((event) {
+        _updateState(event);
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  void _updateState(List<ConnectivityResult> result) {
+    if (result.contains(ConnectivityResult.none) || result.isEmpty) {
+      if (!result.any((element) => element != ConnectivityResult.none)) {
         connectionType = 0;
-        break;
-      default:
-        break;
+      } else {
+        connectionType = 1;
+      }
+    } else if (result.contains(ConnectivityResult.wifi)) {
+      connectionType = 1;
+    } else if (result.contains(ConnectivityResult.mobile)) {
+      connectionType = 2;
+    } else {
+      connectionType = 1;
     }
     notifyListeners();
   }
 
   @override
-  void onClose() {
-    _streamSubscription.cancel();
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
   }
 }

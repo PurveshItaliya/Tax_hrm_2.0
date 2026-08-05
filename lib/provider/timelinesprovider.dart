@@ -152,9 +152,9 @@ class TimeLineServices with ChangeNotifier {
     return await Geolocator.getCurrentPosition();
   }
 
-  Future<void> getAddressFromLatLng(long, lat) async {
+  Future<void> getAddressFromLatLng(double long, double lat) async {
     try {
-      List<Placemark> placemark = await placemarkFromCoordinates(lat, long);
+      List<Placemark> placemark = await Geocoding().placemarkFromCoordinates(lat, long);
       Placemark place = placemark[0];
       postalCode = placemark[0].postalCode;
       currentLocation = '${place.subThoroughfare} ${place.thoroughfare}, '

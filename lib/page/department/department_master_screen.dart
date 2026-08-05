@@ -32,11 +32,11 @@ class _DepartmentScreenState extends State<DepartmentScreen> {
     _loadAllData();
   }
 
-  Future<void> _loadAllData() async {
-    Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-    Provider.of<DepartmentServices>(context,listen: false,).departmentLoadingData().then((value) {
-      Provider.of<AppPaginationProvider>(context,listen: false).countPaginationPage(Provider.of<DepartmentServices>(context,listen: false).showedepartment,0);
-    },);
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
+    Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
+    Provider.of<DepartmentServices>(context, listen: false,).departmentLoadingData(forceRefresh: forceRefresh).then((value) {
+      Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(Provider.of<DepartmentServices>(context, listen: false).showedepartment, 0);
+    });
   }
 
   final userDepartFormKey = GlobalKey<FormState>();
@@ -68,7 +68,7 @@ class _DepartmentScreenState extends State<DepartmentScreen> {
               ],),
               body: refreshIndicatorDesign(
                 onRefreshOntap: () {
-                  return _loadAllData();
+                  return _loadAllData(forceRefresh: true);
                 },
                 widgetDesign: Padding(
                   padding: EdgeInsets.all(size.height*0.02),

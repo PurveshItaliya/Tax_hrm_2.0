@@ -73,12 +73,16 @@ class LeaveApproveCard extends StatelessWidget {
               children: [
                 Icon(Icons.calendar_month_outlined, size: 16, color: ColorConst.textgrey),
                 const SizedBox(width: 6),
-                Text(
-                  date,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: ColorConst.textgrey,
+                Expanded(
+                  child: Text(
+                    date,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: ColorConst.textgrey,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 12),

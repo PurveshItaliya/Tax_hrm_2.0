@@ -45,9 +45,12 @@ class _EmployeeSummryScreenState extends State<EmployeeSummryScreen> {
         () async { await Provider.of<InternetConnectionProvider>(context, listen: false).getAllConnectionData(); }
       );
       
+      if (!mounted) return;
+
       final payRollProviders = Provider.of<PayRollProviders>(context, listen: false);
       if (widget.getPayrollData != null) {
         payRollProviders.setExistingEmployeeSalaryData(widget.getPayrollData!);
+        payRollProviders.setloading(false);
         AttendancePerformanceLogger.instance.printSummary();
         return;
       }
@@ -75,8 +78,11 @@ class _EmployeeSummryScreenState extends State<EmployeeSummryScreen> {
       );
       
       AttendancePerformanceLogger.instance.printSummary();
-      if (mounted) setState(() {});
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      if (mounted) {
+        Provider.of<PayRollProviders>(context, listen: false).setloading(false);
+      }
+    }
   }
 
   @override

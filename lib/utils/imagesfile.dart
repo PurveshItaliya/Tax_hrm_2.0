@@ -1,7 +1,8 @@
   // splash screen
   String appLogoString = "assets/images/taxhrmpage.svg";
   String loadingString = "assets/images/newloading.json";
-  String splashVideoString = "assets/images/hrm_animation.mp4";
+  String splashLightModeVideoString = "assets/videos/splash_dark_mode_logo.mp4";
+  String splashDarkModeVideoString = "assets/videos/splash_light_mode_logo.mp4";
 
   // internet and welcome screen
   String noInterNetString = "assets/images/NoInterNetView.svg";

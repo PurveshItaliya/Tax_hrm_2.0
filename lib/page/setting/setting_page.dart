@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/page/bottom_bar_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
 import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
@@ -218,11 +217,13 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                           // 4. Securely clear SharedPreferences (preserving isDarkMode theme)
                           try {
                             final prefs = await SharedPreferences.getInstance();
-                            final isDarkMode =
-                                prefs.getBool('isDarkMode') ?? false;
+                            final hasKey = prefs.containsKey('isDarkMode');
+                            final isDarkMode = prefs.getBool('isDarkMode');
                             await prefs.clear();
-                            // Restore dark mode
-                            await prefs.setBool('isDarkMode', isDarkMode);
+                            // Restore dark mode preference only if it was manually set
+                            if (hasKey && isDarkMode != null) {
+                              await prefs.setBool('isDarkMode', isDarkMode);
+                            }
                           } catch (e) {}
 
                           // 5. Reset all global session variables
@@ -293,7 +294,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -350,6 +351,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                         ),
                       )
                     : Text(
+                        curentUser == null ? "" :
                         (curentUser['FirstName'] != null &&
                                 curentUser['FirstName'] != "")
                             ? ('${curentUser['FirstName']}'[0] +
@@ -503,7 +505,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
         list.add(
           _buildAdminToggleTile(
             size: size,
-            val: curentUser['Role'] == 'Admin',
+            val: curentUser?['Role'] == 'Admin',
             onChanged: (val) async {
               if (curentUser['OriginalRole'] == null) {
                 curentUser['OriginalRole'] = curentUser['Role'];
@@ -517,17 +519,21 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
               }
               await SaveUser().saveAdminSwitch(switchValue);
               await SaveUser().saveUserData(jsonEncode(curentUser));
+              // Re-sync topics — role changed so old topics must be swapped
+              await FcmTokenService.instance.updateTopicSubscriptions();
 
               if (!context.mounted) return;
-              Provider.of<HomeProvider>(
-                context,
-                listen: false,
-              ).changeSelectBottomBar(0);
-              nextscreenRemove(
-                context,
-                const AnimatedBottomBar(),
-                onthenValue: (value) {},
-              );
+              if (val) {
+                Provider.of<HomeProvider>(
+                  context,
+                  listen: false,
+                ).changeSelectBottomBar(0);
+              } else {
+                Provider.of<HomeProvider>(
+                  context,
+                  listen: false,
+                ).selectFloadButton();
+              }
             },
           ),
         );

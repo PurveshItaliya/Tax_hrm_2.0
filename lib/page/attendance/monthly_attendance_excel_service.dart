@@ -1,6 +1,5 @@
 // ignore_for_file: unused_local_variable, use_build_context_synchronously
 
-import 'dart:developer';
 import 'dart:io';
 import 'package:excel/excel.dart' hide Border;
 import 'package:excel/excel.dart' as ex show Border, BorderStyle;
@@ -971,7 +970,7 @@ class MonthlyAttendanceExcelService {
       );
     } catch (e) {
       dismissLoadingDialog();
-      log("Failed to generate Excel report: $e");
+      /* log("Failed to generate Excel report: $e"); */
       showtoastmessage("Failed to generate Excel report: $e");
     }
   }

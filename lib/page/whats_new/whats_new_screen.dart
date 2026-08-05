@@ -34,7 +34,10 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version102 = Platform.isAndroid ? 'v1.0.2' : 'v1.0.0';
     String versionName102 = Platform.isAndroid ? 'Force Update & Enhancements' : 'Initial Release';
     
-    versions = Platform.isAndroid ? ['All', 'v1.0.2', 'v1.0.1', 'v1.0.0'] : ['All', 'v1.0.1','v1.0.0'];
+    String version103 = Platform.isAndroid ? 'v1.0.3' : 'v1.0.2';
+    String versionName103 = 'Major Updates & Enhancements';
+
+    versions = Platform.isAndroid ? ['All', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] : ['All', 'v1.0.2', 'v1.0.1','v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -298,6 +301,133 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Added Personal Information Edit for Admin users',
           'Added HRM introduction video on the Splash Screen',
           'General bug fixes and stability improvements',
+        ],
+      ),
+      // --- v1.0.3 (Android) / v1.0.2 (iOS) New Features Added ---
+      ReleaseNoteItem(
+        id: 16,
+        title: 'Admin Attendance Dashboard',
+        description: 'Redesigned the Admin Attendance Dashboard and Attendance screens with improved layouts, action buttons, smoother scrolling, and better data visibility.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Admin Panel',
+        icon: Icons.dashboard,
+        bgColor: const Color(0xFF009688),
+        features: [
+          'Redesigned layouts with smoother scrolling',
+          'Better data visibility and improved action buttons',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 17,
+        title: 'Excel Attendance Reports',
+        description: 'Added employee-wise and month-wise Excel attendance reports with present, absent, leave, punch timing, and designation-grouped data.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Admin Panel',
+        icon: Icons.table_chart,
+        bgColor: const Color(0xFF4CAF50),
+        features: [
+          'Employee-wise and month-wise Excel reports',
+          'Includes punch timing, leave, present, absent data',
+          'Designation-grouped data for better organization',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 18,
+        title: 'Quick Attendance Access',
+        description: 'Added quick access to view the current date’s employee attendance details directly from the attendance list.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Admin Panel',
+        icon: Icons.access_time,
+        bgColor: const Color(0xFF2196F3),
+        features: [
+          'View current date attendance details quickly',
+          'Access directly from the attendance list',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 19,
+        title: 'Leave Module Enhancements',
+        description: 'Improved the Admin Leave module with a full-screen UI, default date selection, and complete leave management functionality.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Admin Panel',
+        icon: Icons.beach_access,
+        bgColor: const Color(0xFFFF9800),
+        features: [
+          'Full-screen UI for Leave management',
+          'Default date selection support',
+          'Complete end-to-end leave management',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 20,
+        title: 'Employee Master Improvements',
+        description: 'Redesigned the Employee Master screen with designation-wise filtering, category-based company search, and inactive employee removal.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Admin Panel',
+        icon: Icons.people_alt,
+        bgColor: const Color(0xFF673AB7),
+        features: [
+          'Designation-wise filtering',
+          'Category-based company search',
+          'Inactive employee removal from the list',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 21,
+        title: 'Offline-First Caching',
+        description: 'Implemented offline-first caching, instant loading, and silent background refresh across major Admin and Employee modules.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Both',
+        icon: Icons.offline_bolt,
+        bgColor: const Color(0xFFE91E63),
+        features: [
+          'Offline-first caching mechanism',
+          'Instant loading capabilities',
+          'Silent background refresh for major modules',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 22,
+        title: 'Push Notifications',
+        description: 'Added Firebase topic-based push notifications for announcements, leave approvals, rejections, creation, updates, and calendar leave actions on Android and iOS.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Both',
+        icon: Icons.notifications_active,
+        bgColor: const Color(0xFFF44336),
+        features: [
+          'Firebase topic-based push notifications',
+          'Announcements, leave approvals, and updates',
+          'Cross-platform support for Android and iOS',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 23,
+        title: 'Optimizations & Bug Fixes',
+        description: 'Improved the Contact Us page, fixed untranslated Employee Create/Edit text, and optimized overall navigation, loading, and app performance.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Both',
+        icon: Icons.speed,
+        bgColor: const Color(0xFF9C27B0),
+        features: [
+          'Contact Us page improvements',
+          'Fixed untranslated texts',
+          'Optimized navigation and loading performance',
         ],
       ),
     ];

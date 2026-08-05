@@ -132,6 +132,7 @@ class AppSearchableDropdown<T> extends StatelessWidget {
         searchHintText: searchHintText,
         noResultFoundText: noResultFoundText,
         futureRequest: futureRequest!,
+        items: items,
         onChanged: (value) {
           FocusManager.instance.primaryFocus?.unfocus();
           onChanged(value);

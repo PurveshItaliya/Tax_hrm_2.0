@@ -247,7 +247,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
                     Positioned(
                       left: 20,
                       right: 20,
-                      bottom: 20,
+                      bottom: 90,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: BackdropFilter(

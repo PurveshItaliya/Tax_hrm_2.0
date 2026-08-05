@@ -33,9 +33,9 @@ class _RecruitmentPageScreenState extends State<RecruitmentPageScreen> {
     _loadAllData();
   }
 
-  Future<void> _loadAllData() async {
-    Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-    await Provider.of<RecuritmentProvider>(context,listen: false).recuritmentLoadingData();
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
+    Provider.of<InternetConnectionProvider>(context, listen: false,).getAllConnectionData();
+    await Provider.of<RecuritmentProvider>(context, listen: false).recuritmentLoadingData(forceRefresh: forceRefresh);
   }
 
   @override
@@ -61,7 +61,7 @@ class _RecruitmentPageScreenState extends State<RecruitmentPageScreen> {
               appBar: showCustomeAppBar(candidateString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
               body: refreshIndicatorDesign(
                 onRefreshOntap: () {
-                  return _loadAllData();
+                  return _loadAllData(forceRefresh: true);
                 },
                 widgetDesign: Padding(
                   padding: EdgeInsets.all(size.height*0.02),

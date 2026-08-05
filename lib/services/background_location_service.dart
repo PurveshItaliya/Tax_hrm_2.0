@@ -335,7 +335,7 @@ Future<void> _callApiFunction({
   String postalCode = '';
 
   try {
-    final List<Placemark> placemarks = await placemarkFromCoordinates(
+    final List<Placemark> placemarks = await Geocoding().placemarkFromCoordinates(
       position.latitude, position.longitude,
     );
     if (placemarks.isNotEmpty) {
@@ -508,29 +508,29 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  print('========== BACKGROUND ISOLATE LOGS ==========');
-  print('1. onStart() called in isolate');
+  /* log('========== BACKGROUND ISOLATE LOGS =========='); */
+  /* log('1. onStart() called in isolate'); */
   DartPluginRegistrant.ensureInitialized();
   WidgetsFlutterBinding.ensureInitialized();
 
   if (service is AndroidServiceInstance) {
-    print('2. Registering Android service listeners');
+    /* log('2. Registering Android service listeners'); */
     service.on('setAsForeground').listen((_) {
-      print('--> setAsForeground listener triggered');
+      /* log('--> setAsForeground listener triggered'); */
       service.setAsForegroundService();
     });
     service.on('setAsBackground').listen((_) {
-      print('--> setAsBackground listener triggered');
+      /* log('--> setAsBackground listener triggered'); */
       service.setAsBackgroundService();
     });
     
     // Force foreground mode so the persistent notification is shown
-    print('3. Calling setAsForegroundService() to show notification');
+    /* log('3. Calling setAsForegroundService() to show notification'); */
     service.setAsForegroundService();
   }
 
   service.on('stopService').listen((_) {
-    print('--> stopService listener triggered. Stopping self.');
+    /* log('--> stopService listener triggered. Stopping self.'); */
     service.stopSelf();
   });
 

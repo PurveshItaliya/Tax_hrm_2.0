@@ -24,7 +24,6 @@ import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
 
-
 class SplashProvider extends ChangeNotifier {
   bool isVideoFinished = false;
   Widget? pendingNavigationPage;
@@ -44,12 +43,14 @@ class SplashProvider extends ChangeNotifier {
       pendingNavigationPage = null;
     }
   }
-  
+
   loadingData(context) {
     try {
       SaveUser().loadAdminSwitch();
       getAllData(context);
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   // A function to request general permissions (one at a time).
@@ -99,14 +100,19 @@ class SplashProvider extends ChangeNotifier {
       while (retries < 10 && !success) {
         await settingProv.getUserEmployeeData(context);
         final positionName = settingProv.setEmpProfile?.positionName;
-        
+
         if (positionName != null) {
           if (!context.mounted) return;
-          await Provider.of<AttendanceEmp>(context, listen: false).fetchAndStoreBeginTime(context, positionName);
-          
+          await Provider.of<AttendanceEmp>(
+            context,
+            listen: false,
+          ).fetchAndStoreBeginTime(context, positionName);
+
           final prefs = await SharedPreferences.getInstance();
           final userId = curentUser?['Id'];
-          String? beginTimeStr = prefs.getString('user_begin_time_${userId}_$positionName');
+          String? beginTimeStr = prefs.getString(
+            'user_begin_time_${userId}_$positionName',
+          );
           if (beginTimeStr != null && beginTimeStr.isNotEmpty) {
             success = true;
             break;
@@ -121,12 +127,16 @@ class SplashProvider extends ChangeNotifier {
           userId: curentUser['Id'] ?? 0,
           companyId: selectedcurentcompany!.companyId ?? 0,
           role: curentUser['Role']?.toString() ?? 'Employee',
-          employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
+          employeeName:
+              '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'
+                  .trim(),
         );
-        await FcmTokenService.instance.subscribeToCompanyTopic();
+        await FcmTokenService.instance.subscribeLoginTopics();
       }
       await ReminderNotificationService.scheduleAllNotifications();
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   void _setupNotificationsAfterSplash() {
@@ -136,105 +146,131 @@ class SplashProvider extends ChangeNotifier {
           userId: curentUser['Id'] ?? 0,
           companyId: selectedcurentcompany!.companyId ?? 0,
           role: curentUser['Role']?.toString() ?? 'Employee',
-          employeeName: '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'.trim(),
+          employeeName:
+              '${curentUser['FirstName'] ?? ''} ${curentUser['LastName'] ?? ''}'
+                  .trim(),
         );
-        FcmTokenService.instance.subscribeToCompanyTopic();
+        FcmTokenService.instance.subscribeLoginTopics();
       }
       ReminderNotificationService.scheduleAllNotifications();
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   getAllData(context) {
-    SaveUser().getUserDatas().then((value)async {
-      if(value != '') {
+    SaveUser().getUserDatas().then((value) async {
+      if (value != '') {
         curentUser = jsonDecode(value);
         FcmTokenService.instance.initialize();
-        
+
         _updateAllDataForReminders(context);
-        
-        await  CompanyDataApis().getCompanyDataList().then((value)async{
-          if(value == 401){
-            if(curentUser['Role'] =='Admin'){
+
+        await CompanyDataApis().getCompanyDataList().then((value) async {
+          if (value == 401) {
+            if (curentUser['Role'] == 'Admin') {
               adminLogin(context);
-            }else{
+            } else {
               empLogin(context);
             }
-          } else{
-            if(curentUser['Role'] =='Admin'){
-              Provider.of<HomeProvider>(context,listen: false,).changeSelectBottomBar(0);
+          } else {
+            if (curentUser['Role'] == 'Admin') {
+              Provider.of<HomeProvider>(
+                context,
+                listen: false,
+              ).changeSelectBottomBar(0);
               _setupNotificationsAfterSplash();
               triggerNextScreen(context, AnimatedBottomBar());
-            } else if(curentUser['Role'] =='Sub-Admin') {
+            } else if (curentUser['Role'] == 'Sub-Admin') {
               SaveUser().loadAdminSwitch().then((value) async {
-                if(switchValue) {
-                  Provider.of<HomeProvider>(context,listen: false,).changeSelectBottomBar(0);
+                if (switchValue) {
+                  Provider.of<HomeProvider>(
+                    context,
+                    listen: false,
+                  ).changeSelectBottomBar(0);
                   _setupNotificationsAfterSplash();
                   triggerNextScreen(context, AnimatedBottomBar());
-                } else{
-                  await Provider.of<HomeProvider>(context, listen: false).companySelect();
-                  Provider.of<HomeProvider>(context,listen: false,).selectFloadButton();
+                } else {
+                  await Provider.of<HomeProvider>(
+                    context,
+                    listen: false,
+                  ).companySelect();
+                  Provider.of<HomeProvider>(
+                    context,
+                    listen: false,
+                  ).selectFloadButton();
                   _setupNotificationsAfterSplash();
                   triggerNextScreen(context, AnimatedBottomBar());
                 }
-              },);
-            } else{
-              await Provider.of<HomeProvider>(context, listen: false).companySelect();
-              Provider.of<HomeProvider>(context,listen: false,).selectFloadButton();
+              });
+            } else {
+              await Provider.of<HomeProvider>(
+                context,
+                listen: false,
+              ).companySelect();
+              Provider.of<HomeProvider>(
+                context,
+                listen: false,
+              ).selectFloadButton();
               _setupNotificationsAfterSplash();
               triggerNextScreen(context, AnimatedBottomBar());
             }
           }
         });
-      } else{
+      } else {
         await FcmTokenService.instance.handleLogout();
         triggerNextScreen(context, LoginScreen());
       }
     });
   }
 
-  adminLogin(context)async{
-    await AuthLoginService().calllogin(curentUser['Username'],curentUser['Password']).then((value) async{
-      UserLogin loginReponse =value as UserLogin;
-      if(loginReponse.id == 0 && loginReponse.role == null){
-        await FcmTokenService.instance.handleLogout();
-        SaveUser().saveUserData('');
-        SaveUser().saveselectedcopany('');
-        triggerNextScreen(context, LoginScreen());
-      } else {
-        if(loginReponse.hRM  != null){
-          var  holdData =   value;
-          String udata = jsonEncode(value);
-          SaveUser().saveUserData(udata);
-          FcmTokenService.instance.handleTokenSync();
-          _setupNotificationsAfterSplash();
-          triggerNextScreen(context, AnimatedBottomBar());
-        }
-      }
-    });
-  }
-
-  Future empLogin(context)async{
-    await AuthLoginService().callEmployeLogin(curentUser['UserName'],curentUser['Password']).then((value) async{
-      EmpUserLogin loginReponse =value as EmpUserLogin;
-      if(loginReponse.success == false || loginReponse.hRM  == false){
-        await FcmTokenService.instance.handleLogout();
-        SaveUser().saveUserData('');
-        SaveUser().saveselectedcopany('');
-        triggerNextScreen(context, LoginScreen());
-      } else {
-        if(loginReponse.hRM  == true){
-          String udata = jsonEncode(loginReponse);
-          await SaveUser().saveUserData(udata);
-          await SaveUser().getUserDatas().then((value)async {
-            if (value != '') {
-               curentUser = jsonDecode(value);
-               FcmTokenService.instance.handleTokenSync();
+  adminLogin(context) async {
+    await AuthLoginService()
+        .calllogin(curentUser['Username'], curentUser['Password'])
+        .then((value) async {
+          UserLogin loginReponse = value as UserLogin;
+          if (loginReponse.id == 0 && loginReponse.role == null) {
+            await FcmTokenService.instance.handleLogout();
+            SaveUser().saveUserData('');
+            SaveUser().saveselectedcopany('');
+            triggerNextScreen(context, LoginScreen());
+          } else {
+            if (loginReponse.hRM != null) {
+              var holdData = value;
+              String udata = jsonEncode(value);
+              SaveUser().saveUserData(udata);
+              FcmTokenService.instance.handleTokenSync();
+              _setupNotificationsAfterSplash();
+              triggerNextScreen(context, AnimatedBottomBar());
             }
-          });
-          _setupNotificationsAfterSplash();
-          triggerNextScreen(context, AnimatedBottomBar());
-        }
-      }
-    });
+          }
+        });
+  }
+
+  Future empLogin(context) async {
+    await AuthLoginService()
+        .callEmployeLogin(curentUser['UserName'], curentUser['Password'])
+        .then((value) async {
+          EmpUserLogin loginReponse = value as EmpUserLogin;
+          if (loginReponse.success == false || loginReponse.hRM == false) {
+            await FcmTokenService.instance.handleLogout();
+            SaveUser().saveUserData('');
+            SaveUser().saveselectedcopany('');
+            triggerNextScreen(context, LoginScreen());
+          } else {
+            if (loginReponse.hRM == true) {
+              String udata = jsonEncode(loginReponse);
+              await SaveUser().saveUserData(udata);
+              await SaveUser().getUserDatas().then((value) async {
+                if (value != '') {
+                  curentUser = jsonDecode(value);
+                  FcmTokenService.instance.handleTokenSync();
+                }
+              });
+              _setupNotificationsAfterSplash();
+              triggerNextScreen(context, AnimatedBottomBar());
+            }
+          }
+        });
   }
 }

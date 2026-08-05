@@ -7,6 +7,7 @@ enum NotificationLogCategory {
   duplicatePrevention,
   delivery,
   error,
+  fcmTopic,
 }
 
 class NotificationLoggerService {
@@ -24,16 +25,17 @@ class NotificationLoggerService {
     }
 
     if (kDebugMode) {
-      print(logMessage);
+     // /* log(logMessage); */
     }
   }
 
-  static void permission(String message) => log(NotificationLogCategory.permission, message);
-  static void apiFetch(String message) => log(NotificationLogCategory.apiFetch, message);
-  static void scheduling(String message) => log(NotificationLogCategory.scheduling, message);
-  static void duplicatePrevention(String message) => log(NotificationLogCategory.duplicatePrevention, message);
-  static void delivery(String message) => log(NotificationLogCategory.delivery, message);
-  static void error(String message) => log(NotificationLogCategory.error, message);
+  static void permission(String message) { /* log(NotificationLogCategory.permission, message); */ }
+  static void apiFetch(String message) { /* log(NotificationLogCategory.apiFetch, message); */ }
+  static void scheduling(String message) { /* log(NotificationLogCategory.scheduling, message); */ }
+  static void duplicatePrevention(String message) { /* log(NotificationLogCategory.duplicatePrevention, message); */ }
+  static void delivery(String message) { /* log(NotificationLogCategory.delivery, message); */ }
+  static void error(String message) { /* log(NotificationLogCategory.error, message); */ }
+  static void fcmTopic(String message) { /* log(NotificationLogCategory.fcmTopic, message); */ }
 
   static List<String> getHistory() => List.unmodifiable(_logHistory);
 

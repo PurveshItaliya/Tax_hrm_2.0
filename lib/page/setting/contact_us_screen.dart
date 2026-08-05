@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
-import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 
 class ContactUsScreen extends StatefulWidget {
@@ -429,7 +428,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
       ),
       child: Center(
         child: Image.asset(
-          contactUsImgString,
+          isDark ? 'assets/images/contact_us_dark.png' : 'assets/images/contact_us_light.png',
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) {
             return Icon(

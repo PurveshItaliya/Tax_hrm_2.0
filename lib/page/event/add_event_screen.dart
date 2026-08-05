@@ -9,7 +9,6 @@ import 'package:tax_hrm/provider/eventProvider.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
-import 'package:tax_hrm/utils/dateformat.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
@@ -108,22 +107,20 @@ class _AddEventScreenState extends State<AddEventScreen> {
                               children: [
                                 Expanded(child: CommonTextField(controller: eventsMastServices.txtEventStratDateController,readOnly: true,hintText: eventsMastServices.dynamicStartDateHint,suffixIcon: IgnorePointer(child: IconButton(onPressed: (){}, icon: Icon(Icons.calendar_today_outlined,color: ColorConst.passwordColor,),)),showHeading: eventsMastServices.dynamicStartDateHeading,onTap: () {
                                  eventsMastServices.selectDatePicker(context,size,dateController: datePickerProvider,selectDatePic: eventsMastServices.eventStartDate,).then((value) {
-                                    eventsMastServices.eventStartDate = value;
-                                    eventsMastServices.txtEventStratDateController.text = dateFormatdate(eventsMastServices.eventStartDate);
-                                    if(eventsMastServices.eventStartDate.isAfter(eventsMastServices.eventEndDate)) {
-                                      eventsMastServices.eventEndDate = eventsMastServices.eventStartDate;
-                                      eventsMastServices.txtEventEndDateController.text = dateFormatdate(eventsMastServices.eventEndDate);
+                                    if (value != null) {
+                                      eventsMastServices.updateEventStartDate(value);
+                                      if(eventsMastServices.eventStartDate.isAfter(eventsMastServices.eventEndDate)) {
+                                        eventsMastServices.updateEventEndDate(eventsMastServices.eventStartDate);
+                                      }
                                     }
                                  },);
                                 },)),
                                 widthSpacer(size.width*0.02),
                                 Expanded(child: CommonTextField(controller: eventsMastServices.txtEventEndDateController,readOnly: true,hintText: eventsMastServices.dynamicEndDateHint,suffixIcon: IgnorePointer(child: IconButton(onPressed: (){}, icon: Icon(Icons.calendar_today_outlined,color: ColorConst.passwordColor,),)),showHeading: eventsMastServices.dynamicEndDateHeading,onTap: () {
-                                  String apiDate = eventsMastServices.eventStartDate.toString();
-                                  eventsMastServices.eventStartDate = DateTime.parse(apiDate);
                                   eventsMastServices.selectDatePicker(context,size,dateController: datePickerProvider,selectDatePic: eventsMastServices.eventEndDate,pickerStartDate: eventsMastServices.eventStartDate).then((value) {
-                                    eventsMastServices.eventEndDate = value;
-
-                                    eventsMastServices.txtEventEndDateController.text = dateFormatdate(eventsMastServices.eventEndDate);
+                                    if (value != null) {
+                                      eventsMastServices.updateEventEndDate(value);
+                                    }
                                   },);
                                 },)),
                               ],

@@ -19,7 +19,11 @@ class  LeaveApiService{
           "bearer ${curentUser['token']}"
     });
 
-    return leaveListDataFromJson(response.body);
+    try {
+      return leaveListDataFromJson(response.body);
+    } catch (e) {
+      return [];
+    }
   }
 
    //---------------------------Apply for Leave-------------------------------\\
