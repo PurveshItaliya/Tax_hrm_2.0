@@ -1168,7 +1168,8 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
           height: 160,
           child: Center(
             child: SizedBox(
-              width: 32, height: 32,
+              width: 32,
+              height: 32,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             ),
           ),
