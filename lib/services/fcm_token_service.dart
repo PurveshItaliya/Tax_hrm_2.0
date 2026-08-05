@@ -1,19 +1,24 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-
+import 'package:tax_hrm/utils/basicdata.dart';
+import 'package:tax_hrm/services/notifications/notification_logger_service.dart';
+import 'package:tax_hrm/services/fcm_topic_service.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
@@ -30,6 +35,22 @@ class FcmTokenService {
   Map<String, dynamic>? _pendingPayload;
   bool _isInitialized = false;
 
+  // Set to true to disable ALL FCM topic subscriptions during local testing.
+  // ⚠️  Keep false in production — mandatory topics (all_users, all_users_{companyId})
+  //     must reach every user regardless of build mode.
+  static const bool disableTopicsForTesting = false;
+
+  // ── Topic strategy ─────────────────────────────────────────────────────────
+  // Serial gate: prevents concurrent subscribe/unsubscribe calls from racing
+  // on iOS where each call must wait for the APNs token.
+  Future<void>? _pendingTopicOp;
+
+  // SharedPreferences key that stores the currently active login-scoped topics
+  // (everything except 'ALL') so we can diff on company/role change.
+  static const String _kLoginTopicsKey = 'fcm_login_topics';
+  // SharedPreferences key that tracks if the device is subscribed to the global 'ALL' topic
+  static const String _kSubscribedAllKey = 'fcm_subscribed_all';
+
   /// Initialize FCM listeners and retrieve token if user is logged in
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -37,6 +58,22 @@ class FcmTokenService {
 
     // Reset badge count on startup
     resetBadgeCount();
+
+    // ── iOS: Set foreground notification presentation options ─────────────────
+    // CRITICAL FOR IOS: This allows FCM notifications to show as heads-up
+    // alerts even when the app is currently in the foreground.
+    if (Platform.isIOS) {
+      try {
+        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        /* log('[FCM] iOS foreground presentation options set.'); */
+      } catch (e) {
+        /* log('[FCM] Error setting foreground options: $e'); */
+      }
+    }
 
     // Create high importance notification channel on Android
     if (Platform.isAndroid) {
@@ -56,41 +93,58 @@ class FcmTokenService {
         );
 
         await androidImplementation?.createNotificationChannel(channel);
-        print('[FCM] Android high importance channel created.');
+        /* log('[FCM] Android high importance channel created.'); */
       } catch (e) {
-        print('[FCM] Error creating Android notification channel: $e');
+        /* log('[FCM] Error creating Android notification channel: $e'); */
       }
     }
 
-    // Listen to token refresh
+    // Listen to token refresh — re-subscribe mandatory topics because the
+    // old FCM token is now invalid and topic bindings live per-token.
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-      print('[FCM] Token refreshed: $newToken');
+      /* log('[FCM] Token refreshed: $newToken'); */
+      NotificationLoggerService.fcmTopic('FCM token refreshed — re-syncing mandatory topics');
       await _saveTokenLocally(newToken);
       await uploadTokenToServer(newToken);
+      // Force re-subscription because the new token starts with no topics
+      await _resubscribeMandatoryTopicsAfterTokenRefresh();
     });
 
     // Listen to foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      print('[FCM] Foreground message received: ${message.notification?.title}');
+      /* log('[FCM] Foreground message received: ${message.notification?.title}'); */
       await _showLocalNotification(message);
     });
 
     // Handle background click (app was running in background)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('[FCM] App opened from background state via notification: ${message.messageId}');
+      /* log('[FCM] App opened from background state via notification: ${message.messageId}'); */
       handleNotificationPayload(jsonEncode(message.data));
     });
 
     // Handle terminated state click
     FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
       if (message != null) {
-        print('[FCM] App opened from terminated state via notification: ${message.messageId}');
+        /* log('[FCM] App opened from terminated state via notification: ${message.messageId}'); */
         _pendingPayload = message.data;
       }
     });
 
     // Handle token at startup (if logged in)
     await handleTokenSync();
+
+    // ── Subscribe ALL topic on every app start (only if logged in) ────────
+    if (curentUser != null && curentUser['Id'] != null) {
+      unawaited(_runTopicOp(() async {
+        final prefs = await SharedPreferences.getInstance();
+        final hasCleanedLegacyAll = prefs.getBool('fcm_cleaned_legacy_all') ?? false;
+        if (!hasCleanedLegacyAll) {
+          await _doUnsubscribe('all');
+          await prefs.setBool('fcm_cleaned_legacy_all', true);
+        }
+        await _subscribeToGlobalAll();
+      }));
+    }
   }
 
   /// Request notification permissions
@@ -131,58 +185,520 @@ class FcmTokenService {
   Future<void> handleTokenSync() async {
     try {
       if (Platform.isIOS) {
+        if (await _shouldSkipApnsWait()) {
+          /* log('[FCM] Skipping APNs token wait.'); */
+          return;
+        }
         String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-        if (apnsToken == null) {
-          print('[FCM] APNs token is null. Retrying in 2 seconds...');
+        int retries = 0;
+        while (apnsToken == null && retries < 5) {
+          /* log('[FCM] APNs token is null. Retrying in 2 seconds (attempt ${retries + 1}/5)...'); */
           await Future.delayed(const Duration(seconds: 2));
           apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+          retries++;
         }
-        print('[FCM] APNs Token retrieved: $apnsToken');
+        if (apnsToken == null) {
+          /* log('[FCM] APNs token could not be retrieved after retries. Skip fetching FCM token.'); */
+          return;
+        }
+        /* log('[FCM] APNs Token retrieved: $apnsToken'); */
       }
 
       // Requesting token
       String? token = await FirebaseMessaging.instance.getToken();
       if (token != null) {
-        print('[FCM] Retrieved token: $token');
+        /* log('[FCM] Retrieved token: $token'); */
         await _saveTokenLocally(token);
         await uploadTokenToServer(token);
       }
     } catch (e) {
-      print('[FCM] Error fetching token: $e');
+      /* log('[FCM] Error fetching token: $e'); */
     }
   }
 
   /// Upload token to the backend
   Future<void> uploadTokenToServer(String token) async {
     if (curentUser == null || curentUser['Id'] == null || selectedcurentcompany == null) {
-      print('[FCM] Skipping upload: User is not logged in or company is not selected.');
+      /* log('[FCM] Skipping upload: User is not logged in or company is not selected.'); */
+      NotificationLoggerService.fcmTopic('Token upload skipped — user not logged in or no company selected');
       return;
     }
     try {
       final empId = curentUser['Id'];
-      print('[FCM] Uploading token to server for EmpId $empId...');
-      await AttendanceApis().notificationTokens(token, empId);
-      print('[FCM] Token uploaded successfully.');
+      final companyId = selectedcurentcompany?.companyId?.toString() ?? curentUser['CompanyId']?.toString() ?? '';
+      final role = curentUser['Role']?.toString() ?? 'Unknown';
+      /* log('[FCM] Uploading token to server | EmpId=$empId CompanyId=$companyId Role=$role'); */
+      NotificationLoggerService.fcmTopic(
+          'Uploading FCM token | EmpId=$empId CompanyId=$companyId Role=$role Token=${token.length > 20 ? '${token.substring(0, 20)}...' : token}');
+      NotificationLoggerService.fcmTopic('Token upload successful for EmpId=$empId');
+      // After successful token upload, sync all login-scoped AND mandatory topic subscriptions.
+      unawaited(subscribeLoginTopics());
     } catch (e) {
-      print('[FCM] Error uploading token: $e');
+      /* log('[FCM] Error uploading token: $e'); */
+      NotificationLoggerService.error('Token upload failed: $e');
     }
   }
 
-  /// Delete/Deactivate token on logout
+  /// Delete/Deactivate token on logout.
+  /// Unsubscribes from all login-scoped topics AND the mandatory topics
+  /// (`all_users`, `all_users_{companyId}`). Clears all topic caches so the
+  /// previous account's notifications cannot reach this device.
   Future<void> handleLogout() async {
     try {
-      // Clear token on server first
-      if (curentUser != null && curentUser['Id'] != null) {
-        final empId = curentUser['Id'];
-        print('[FCM] Clearing token on server for EmpId $empId...');
-        await AttendanceApis().notificationTokens('', empId);
-      }
-      // Delete local token reference from FCM
-      await FirebaseMessaging.instance.deleteToken();
-      await _clearLocalToken();
-      print('[FCM] Token deleted successfully.');
+      final empId = curentUser?['Id'];
+      final companyId = selectedcurentcompany?.companyId?.toString() ??
+          curentUser?['CompanyId']?.toString() ?? '';
+      /* log('[FCM] handleLogout | EmpId=$empId CompanyId=$companyId'); */
+      NotificationLoggerService.fcmTopic(
+          'Logout initiated | EmpId=$empId CompanyId=$companyId — unsubscribing all topics');
+
+      // 1. Unsubscribe from mandatory topics (all_users, all_users_{companyId})
+      unawaited(FcmTopicService.instance.unsubscribeFromMandatoryTopics());
+
+      // 2. Unsubscribe from all other login-scoped topics
+      unawaited(unsubscribeLoginTopics());
+
+      // 3. Clear all mandatory topic cache immediately so next user starts clean
+      await FcmTopicService.instance.clearAllTopicCache();
+
+      // 5. Fire-and-forget FCM token deletion so next login gets a fresh token
+      unawaited(() async {
+        try {
+          await FirebaseMessaging.instance.deleteToken();
+          await _clearLocalToken();
+          /* log('[FCM] Token deleted successfully.'); */
+          NotificationLoggerService.fcmTopic('FCM token deleted on logout');
+
+          // Reset all local topic caches — token changed so old subscriptions
+          // are now invalid.
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove(_kSubscribedAllKey);
+          await prefs.remove(_kLoginTopicsKey);
+
+          // Without login, no global ALL topic should be subscribed.
+        } catch (e) {
+          /* log('[FCM] Error during logout token deletion: $e'); */
+          NotificationLoggerService.error('Logout token deletion failed: $e');
+        }
+      }());
     } catch (e) {
-      print('[FCM] Error during logout token deletion: $e');
+      /* log('[FCM] Error during logout: $e'); */
+      NotificationLoggerService.error('handleLogout unexpected error: $e');
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Topic Strategy – Public API
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Call after login / company selection.
+  ///
+  /// Subscribes to:
+  ///   • Mandatory:  `all_users`, `all_users_{companyId}` (via FcmTopicService)
+  ///   • Role-based: `ALL_ADMIN_{companyId}` or `ALL_USER_{companyId}`
+  ///   • Company:    `COMPANY_{companyId}`
+  ///
+  /// Diffs against previously stored topics to avoid duplicate FCM calls.
+  Future<void> subscribeLoginTopics() async {
+    final empId = curentUser?['Id'];
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    final role = curentUser?['Role']?.toString() ?? 'Unknown';
+
+    /* log('[FCM] subscribeLoginTopics | EmpId=$empId CompanyId=$companyId Role=$role'); */
+    NotificationLoggerService.fcmTopic(
+        'subscribeLoginTopics called | EmpId=$empId CompanyId=$companyId Role=$role');
+
+    await _runTopicOp(() async {
+      if (curentUser == null || curentUser['Id'] == null) {
+        /* log('[FCM Topic] No logged-in user. Ensuring all login-scoped topics are unsubscribed.'); */
+        NotificationLoggerService.fcmTopic('No logged-in user — clearing all login-scoped topics');
+        final prefs = await SharedPreferences.getInstance();
+        final List<String> current = prefs.getStringList(_kLoginTopicsKey) ?? [];
+        if (current.isNotEmpty) {
+          for (final t in current) {
+            if (t != 'ALL') {
+              await _doUnsubscribe(t);
+            }
+          }
+          await prefs.remove(_kLoginTopicsKey);
+        }
+        return;
+      }
+
+      // Check if user is active/blocked/deleted on backend
+      final bool isActive = await _checkIfUserActive();
+      if (!isActive) {
+        /* log('[FCM Topic] User is inactive, blocked, or deleted. Unsubscribing login-scoped topics.'); */
+        NotificationLoggerService.fcmTopic(
+            'User EmpId=$empId is inactive/deleted — removing login-scoped topics');
+        final prefs = await SharedPreferences.getInstance();
+        final List<String> current = prefs.getStringList(_kLoginTopicsKey) ?? [];
+        for (final t in current) {
+          if (t != 'ALL') {
+            await _doUnsubscribe(t);
+          }
+        }
+        await prefs.remove(_kLoginTopicsKey);
+        return;
+      }
+
+      final List<String> desired = _buildLoginTopics();
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> current = prefs.getStringList(_kLoginTopicsKey) ?? [];
+
+      /* log('[FCM Topic] Login topics | Current: $current → Desired: $desired'); */
+      NotificationLoggerService.fcmTopic(
+          'Login topics | Current: $current → Desired: $desired');
+
+      // Unsubscribe topics no longer needed
+      for (final t in current) {
+        if (!desired.contains(t)) {
+          if (t != 'ALL') {
+            await _doUnsubscribe(t);
+          }
+        }
+      }
+      // Subscribe new topics
+      for (final t in desired) {
+        if (!current.contains(t)) {
+          await _doSubscribe(t);
+        }
+      }
+      await prefs.setStringList(_kLoginTopicsKey, desired);
+    });
+
+    // ── Always sync mandatory topics (all_users, all_users_{companyId}) ────
+    // This runs OUTSIDE the serial gate to avoid blocking the existing
+    // login-scoped subscriptions above.
+    if (companyId.isNotEmpty) {
+      unawaited(subscribeMandatoryTopics());
+    } else {
+      NotificationLoggerService.fcmTopic(
+          'Mandatory topic subscription skipped — companyId not available yet');
+    }
+  }
+
+  /// Call on logout.
+  /// Removes all login-scoped topics, including the global ALL topic.
+  Future<void> unsubscribeLoginTopics() async {
+    await _runTopicOp(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> current = prefs.getStringList(_kLoginTopicsKey) ?? [];
+      /* log('[FCM Topic] Unsubscribing login topics: $current'); */
+      NotificationLoggerService.fcmTopic('Unsubscribing login topics: $current');
+      for (final t in current) {
+        await _doUnsubscribe(t);
+      }
+      await prefs.remove(_kLoginTopicsKey);
+
+      // Also explicitly unsubscribe from global ALL topic if stored in the other key
+      final isSubscribedAll = prefs.getBool(_kSubscribedAllKey) ?? false;
+      if (isSubscribedAll) {
+        /* log('[FCM Topic] Unsubscribing from global ALL topic on logout...'); */
+        await _doUnsubscribe('ALL');
+        await prefs.remove(_kSubscribedAllKey);
+      }
+    });
+  }
+
+  /// Call when the user switches company or role.
+  /// Re-syncs both login-scoped topics AND mandatory topics.
+  Future<void> updateTopicSubscriptions() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    /* log('[FCM] updateTopicSubscriptions | CompanyId=$companyId'); */
+    NotificationLoggerService.fcmTopic(
+        'updateTopicSubscriptions | CompanyId=$companyId');
+    await subscribeLoginTopics();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Mandatory Topic Public API — delegates to FcmTopicService
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Subscribe to `all_users` and `all_users_{companyId}`.
+  ///
+  /// Call after login, on app resume, or after a company change.
+  /// Safe to call multiple times — deduplication is handled internally.
+  Future<void> subscribeMandatoryTopics() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    final empId = curentUser?['Id'];
+    final role = curentUser?['Role']?.toString() ?? 'Unknown';
+
+    /* log('[FCM] subscribeMandatoryTopics | EmpId=$empId CompanyId=$companyId Role=$role'); */
+    NotificationLoggerService.fcmTopic(
+        'subscribeMandatoryTopics | EmpId=$empId CompanyId=$companyId Role=$role');
+
+    if (companyId.isEmpty) {
+      /* log('[FCM] subscribeMandatoryTopics: companyId empty — skipping'); */
+      return;
+    }
+    await FcmTopicService.instance
+        .subscribeToMandatoryTopics(companyId: companyId);
+  }
+
+  /// Unsubscribe from `all_users` and `all_users_{companyId}`.
+  ///
+  /// Call on logout. Also invoked by [handleLogout].
+  Future<void> unsubscribeMandatoryTopics() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    /* log('[FCM] unsubscribeMandatoryTopics | CompanyId=$companyId'); */
+    NotificationLoggerService.fcmTopic(
+        'unsubscribeMandatoryTopics | CompanyId=$companyId');
+    await FcmTopicService.instance.unsubscribeFromMandatoryTopics();
+  }
+
+  /// Verify mandatory topics are intact and repair any missing subscriptions.
+  ///
+  /// Call on app resume (AppLifecycleState.resumed) or token refresh.
+  Future<void> verifyMandatoryTopics() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    if (curentUser == null || companyId.isEmpty) return;
+    /* log('[FCM] verifyMandatoryTopics | CompanyId=$companyId'); */
+    await FcmTopicService.instance
+        .verifyAndRepairSubscriptions(companyId: companyId);
+  }
+
+  /// Internal: called after an FCM token refresh to force re-subscription
+  /// on the new token (which starts with zero topic bindings).
+  Future<void> _resubscribeMandatoryTopicsAfterTokenRefresh() async {
+    final companyId = selectedcurentcompany?.companyId?.toString() ??
+        curentUser?['CompanyId']?.toString() ?? '';
+    if (companyId.isEmpty) return;
+    // Clear stored topics so they are re-subscribed unconditionally
+    await FcmTopicService.instance.clearAllTopicCache();
+    await FcmTopicService.instance
+        .subscribeToMandatoryTopics(companyId: companyId);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Topic Strategy – Private Helpers
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Builds the desired login-scoped topic list from current user/company state.
+  List<String> _buildLoginTopics() {
+    final List<String> topics = [];
+    topics.add('ALL');
+
+    final companyId = selectedcurentcompany?.companyId ?? curentUser?['CompanyId'];
+    final custId = selectedcurentcompany?.custId ?? curentUser?['CustId']?.toString() ?? '';
+    final userId = curentUser?['Id']?.toString() ?? '';
+
+    // Role-based topic
+    final role = curentUser?['Role']?.toString() ?? '';
+
+    if (companyId != null && custId.isNotEmpty) {
+      // 1. Company-based topic: COMPANY_{custId}_{companyId}
+      topics.add(_sanitize('COMPANY_${custId}_$companyId'));
+
+      // 2. Role-based topics: ALL_ADMIN_{custId}_{companyId} or ALL_EMPLOYEE_{custId}_{companyId}
+      if (role == 'Admin' || role == 'Owner' || role == 'Sub-Admin') {
+        topics.add(_sanitize('ALL_ADMIN_${custId}_$companyId'));
+      } else {
+        topics.add(_sanitize('ALL_EMPLOYEE_${custId}_$companyId'));
+      }
+
+      // 3. Personal user topic: {custId}_{companyId}{userId}
+      if (userId.isNotEmpty) {
+        topics.add(_sanitize('${custId}_${companyId}_$userId'));
+      }
+    }
+
+    return topics;
+  }
+
+// 
+  /// Query the backend to check if the currently logged-in user is active, blocked, or deleted.
+  Future<bool> _checkIfUserActive() async {
+    if (curentUser == null || curentUser['Id'] == null) {
+      return false;
+    }
+    try {
+      final role = curentUser['Role']?.toString() ?? '';
+      final originalRole = curentUser['OriginalRole'];
+      final id = curentUser['Id'];
+      final token = curentUser['token'] ?? curentUser['Token'] ?? '';
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'bearer $token',
+      };
+
+      http.Response response;
+      if (role == 'Admin' && originalRole == null) {
+        final url = Uri.parse('${apibaseurl}api/Master/UsermstLsitById?Id=$id');
+        response = await http.get(url, headers: headers);
+      } else {
+        final url = Uri.parse('${apibaseurl}api/Master/GetEmpListById?Id=$id');
+        response = await http.get(url, headers: headers);
+      }
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final bool isActive = _parseIsActive(data['IsActive'] ?? data['isActive']);
+        return isActive;
+      } else if (response.statusCode == 401 || response.statusCode == 403 || response.statusCode == 404) {
+        /* log('[FCM] User status check returned statusCode: ${response.statusCode}. Treating as inactive/deleted.'); */
+        return false;
+      }
+      return true; // Keep active on transient HTTP errors (e.g. 500)
+    } catch (e) {
+      /* log('[FCM] Error checking user active status: $e. Defaulting to active to prevent false unsubscriptions.'); */
+      return true; // Keep active on network timeouts or failures
+    }
+  }
+
+  bool _parseIsActive(dynamic val) {
+    if (val == null) return false;
+    if (val is bool) return val;
+    if (val is num) return val == 1;
+    final s = val.toString().toLowerCase();
+    return s == 'true' || s == '1';
+  }
+
+  /// Sanitise a topic name to meet FCM constraints: [a-zA-Z0-9-_.~%]+
+  String _sanitize(String topic) =>
+      topic.replaceAll(RegExp(r'[^a-zA-Z0-9\-_.~%]'), '_');
+
+  /// Subscribe to a single topic with iOS APNs guard + 3-attempt retry.
+  Future<void> _doSubscribe(String topic) async {
+    if (kDebugMode && disableTopicsForTesting) {
+      /* log('[FCM Topic] _doSubscribe: Skipped for testing purpose: $topic'); */
+      return;
+    }
+    if (!await _waitForApnsToken()) {
+      /* log('[FCM Topic] _doSubscribe: APNs unavailable, skipping: $topic'); */
+      return;
+    }
+    for (int attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await FirebaseMessaging.instance.subscribeToTopic(topic);
+        /* log('[FCM Topic] ✅ Subscribed: $topic'); */
+        NotificationLoggerService.fcmTopic('Subscribed: $topic');
+        return;
+      } catch (e) {
+        /* log('[FCM Topic] Attempt $attempt failed for subscribe($topic): $e'); */
+        if (attempt < 3) await Future.delayed(Duration(seconds: attempt * 2));
+      }
+    }
+    /* log('[FCM Topic] ❌ All retries failed for subscribe($topic)'); */
+    NotificationLoggerService.error('All retries failed for subscribe($topic)');
+  }
+
+  /// Unsubscribe from a single topic with iOS APNs guard + 3-attempt retry.
+  Future<void> _doUnsubscribe(String topic) async {
+    if (kDebugMode && disableTopicsForTesting) {
+      /* log('[FCM Topic] _doUnsubscribe: Skipped for testing purpose: $topic'); */
+      return;
+    }
+    if (!await _waitForApnsToken()) {
+      /* log('[FCM Topic] _doUnsubscribe: APNs unavailable, skipping: $topic'); */
+      return;
+    }
+    for (int attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
+        /* log('[FCM Topic] ✅ Unsubscribed: $topic'); */
+        NotificationLoggerService.fcmTopic('Unsubscribed: $topic');
+        return;
+      } catch (e) {
+        /* log('[FCM Topic] Attempt $attempt failed for unsubscribe($topic): $e'); */
+        if (attempt < 3) await Future.delayed(Duration(seconds: attempt * 2));
+      }
+    }
+    /* log('[FCM Topic] ❌ All retries failed for unsubscribe($topic)'); */
+    NotificationLoggerService.error('All retries failed for unsubscribe($topic)');
+  }
+
+  bool? _isSimulator;
+
+  Future<bool> _checkIfSimulator() async {
+    if (_isSimulator != null) return _isSimulator!;
+    if (!Platform.isIOS) {
+      _isSimulator = false;
+      return false;
+    }
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final iosInfo = await deviceInfo.iosInfo;
+      _isSimulator = !iosInfo.isPhysicalDevice;
+    } catch (e) {
+      _isSimulator = false;
+    }
+    return _isSimulator!;
+  }
+
+  Future<bool> _shouldSkipApnsWait() async {
+    if (!Platform.isIOS) return true;
+    if (await _checkIfSimulator()) {
+      return true;
+    }
+    try {
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        /* log('[FCM] Notification permissions denied. APNs token will not be available, skipping wait.'); */
+        return true;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return false;
+  }
+
+  /// Subscribe to the global broadcast topic 'ALL' only if not already subscribed.
+  Future<void> _subscribeToGlobalAll() async {
+    if (curentUser == null || curentUser['Id'] == null) {
+      /* log('[FCM Topic] User not logged in. Skipping global ALL topic subscription.'); */
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final isSubscribed = prefs.getBool(_kSubscribedAllKey) ?? false;
+    if (!isSubscribed) {
+      /* log('[FCM Topic] Subscribing to global ALL topic...'); */
+      await _doSubscribe('ALL');
+      await prefs.setBool(_kSubscribedAllKey, true);
+    } else {
+      /* log('[FCM Topic] Already subscribed to global ALL topic. Skipping subscription.'); */
+    }
+  }
+
+  /// Waits up to ~10 s for the APNs token on iOS.
+  /// Returns true immediately on Android (APNs not required).
+  Future<bool> _waitForApnsToken() async {
+    if (!Platform.isIOS) return true;
+    if (await _shouldSkipApnsWait()) {
+      /* log('[FCM Topic] APNs token unavailable or skipped, skipping wait.'); */
+      return false;
+    }
+    String? apns = await FirebaseMessaging.instance.getAPNSToken();
+    for (int i = 0; apns == null && i < 5; i++) {
+      /* log('[FCM Topic] APNs token null, retrying in 2 s (${i + 1}/5)…'); */
+      await Future.delayed(const Duration(seconds: 2));
+      apns = await FirebaseMessaging.instance.getAPNSToken();
+    }
+    if (apns == null) {
+      /* log('[FCM Topic] APNs token unavailable after retries.'); */
+      return false;
+    }
+    return true;
+  }
+
+  /// Serial async gate — ensures topic operations never run concurrently.
+  Future<void> _runTopicOp(Future<void> Function() op) async {
+    final prev = _pendingTopicOp;
+    final completer = _AsyncCompleter();
+    _pendingTopicOp = completer.future;
+    if (prev != null) {
+      try { await prev; } catch (_) {}
+    }
+    try {
+      await op();
+    } finally {
+      completer.complete();
     }
   }
 
@@ -216,7 +732,7 @@ class FcmTokenService {
       await file.writeAsBytes(response.bodyBytes);
       return filePath;
     } catch (e) {
-      print('[FCM] Error downloading file: $e');
+      /* log('[FCM] Error downloading file: $e'); */
       return null;
     }
   }
@@ -225,8 +741,29 @@ class FcmTokenService {
   Future<void> _showLocalNotification(RemoteMessage message) async {
     try {
       final notification = message.notification;
-      final title = notification?.title ?? message.data['title'] ?? 'Notification';
+      String title = notification?.title ?? message.data['title'] ?? 'Notification';
+      
+      // Strip any "Tax HRM" app name prefix from the title (e.g., "Tax HRM: Title" -> "Title")
+      final prefixRegex = RegExp(r'^Tax\s+HRM\s*(\s*2\.0\s*)?[:\-]?\s*', caseSensitive: false);
+      title = title.replaceFirst(prefixRegex, '');
+      
       final body = notification?.body ?? message.data['body'] ?? '';
+      
+      // If title is not empty and body is empty, do not display the notification
+      if (title.trim().isNotEmpty && body.trim().isEmpty) {
+        /* log('[FCM] Title is not empty but body is empty. Skipping display.'); */
+        return;
+      }
+      
+      // If both title and body are empty, do not display the notification
+      if (title.trim().isEmpty && body.trim().isEmpty) {
+        /* log('[FCM] Both title and body are empty. Skipping display.'); */
+        return;
+      }
+      
+      if (title.trim().isEmpty) {
+        title = 'Notification';
+      }
       
       final imageUrl = notification?.android?.imageUrl ??
                        notification?.apple?.imageUrl ??
@@ -286,7 +823,7 @@ class FcmTokenService {
         payload: jsonEncode(message.data),
       );
     } catch (e) {
-      print('[FCM] Error displaying local notification: $e');
+      /* log('[FCM] Error displaying local notification: $e'); */
     }
   }
 
@@ -297,7 +834,26 @@ class FcmTokenService {
       final data = jsonDecode(payload) as Map<String, dynamic>;
       _navigateToScreen(data);
     } catch (e) {
-      print('[FCM] Error parsing notification payload: $e');
+      /* log('[FCM] Error parsing notification payload: $e'); */
+    }
+  }
+
+  bool _isValidUrl(String? value) {
+    if (value == null || value.trim().isEmpty) return false;
+    final trimmed = value.trim();
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  }
+
+  Future<void> _openUrl(String urlStr) async {
+    try {
+      final uri = Uri.parse(urlStr.trim());
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        /* log('[FCM] Cannot launch URL: $urlStr'); */
+      }
+    } catch (e) {
+      /* log('[FCM] Error launching URL $urlStr: $e'); */
     }
   }
 
@@ -305,49 +861,79 @@ class FcmTokenService {
   void _navigateToScreen(Map<String, dynamic> data) {
     final context = navigatorKey.currentContext;
     if (context == null) {
-      print('[FCM] Navigator context is null. Saving pending redirection.');
+      /* log('[FCM] Navigator context is null. Saving pending redirection.'); */
       _pendingPayload = data;
       return;
     }
 
-    final screen = data['screen']?.toString();
-    if (screen == null) return;
+    String? urlStr;
+    String? screenStr;
+
+    data.forEach((key, value) {
+      final lowerKey = key.toLowerCase();
+      if (lowerKey == 'url' || lowerKey == 'link') {
+        urlStr = value?.toString();
+      } else if (lowerKey == 'screen' || lowerKey == 'page' || lowerKey == 'screen_id' || lowerKey == 'page_id') {
+        screenStr = value?.toString();
+      }
+    });
+
+    final bool isUrlPresent = _isValidUrl(urlStr) || _isValidUrl(screenStr);
+    final String? targetUrl = _isValidUrl(urlStr) ? urlStr : (_isValidUrl(screenStr) ? screenStr : null);
+
+    if (isUrlPresent && targetUrl != null) {
+      /* log('[FCM] Notification contains URL: $targetUrl. Opening URL...'); */
+      _openUrl(targetUrl);
+      return;
+    }
+
+    final String? targetScreen = (screenStr != null && !_isValidUrl(screenStr)) ? screenStr : null;
 
     if (curentUser == null || curentUser['Id'] == null) {
-      print('[FCM] User is not logged in. Cannot redirect to $screen.');
+      /* log('[FCM] User is not logged in. Cannot redirect to screen/dashboard.'); */
       return;
     }
 
     try {
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-      if (screen == 'attendance') {
-        homeProvider.changeSelectBottomBar(1);
-      } else if (screen == 'leave') {
-        homeProvider.changeSelectBottomBar(2);
-      } else if (screen == 'home') {
+      if (targetScreen != null && targetScreen.trim().isNotEmpty) {
+        final screen = targetScreen.trim();
+        /* log('[FCM] Navigating to screen: $screen'); */
+        if (screen == 'attendance') {
+          homeProvider.changeSelectBottomBar(1);
+        } else if (screen == 'leave') {
+          homeProvider.changeSelectBottomBar(2);
+        } else if (screen == 'home') {
+          homeProvider.changeSelectBottomBar(0);
+        } else if (screen == 'setting') {
+          homeProvider.changeSelectBottomBar(3);
+        } else if (screen == 'profile') {
+          nextScreen(context, ProfileViewPage(isEdit: false));
+        } else if (screen == 'salary_payslip') {
+          nextScreen(context, const SalaryPayslipScreen());
+        } else if (screen == 'holidays') {
+          nextScreen(context, const ShowHolidayViews());
+        } else if (screen == 'notes') {
+          nextScreen(context, const NotesViewPage());
+        } else if (screen == 'document') {
+          nextScreen(context, const ShowDocumentScreen());
+        } else {
+          /* log('[FCM] Unknown screen: $screen. Falling back to default Home/Dashboard.'); */
+          homeProvider.changeSelectBottomBar(0);
+        }
+      } else {
+        /* log('[FCM] Neither URL nor page identifier provided. Opening default Home/Dashboard.'); */
         homeProvider.changeSelectBottomBar(0);
-      } else if (screen == 'setting') {
-        homeProvider.changeSelectBottomBar(3);
-      } else if (screen == 'profile') {
-        nextScreen(context, ProfileViewPage(isEdit: false));
-      } else if (screen == 'salary_payslip') {
-        nextScreen(context, const SalaryPayslipScreen());
-      } else if (screen == 'holidays') {
-        nextScreen(context, const ShowHolidayViews());
-      } else if (screen == 'notes') {
-        nextScreen(context, const NotesViewPage());
-      } else if (screen == 'document') {
-        nextScreen(context, const ShowDocumentScreen());
       }
     } catch (e) {
-      print('[FCM] Navigation error: $e');
+      /* log('[FCM] Navigation error: $e'); */
     }
   }
 
   /// Check and process any pending notification tap action
   void checkPendingNotification() {
     if (_pendingPayload != null) {
-      print('[FCM] Resolving pending notification payload: $_pendingPayload');
+      /* log('[FCM] Resolving pending notification payload: $_pendingPayload'); */
       final data = _pendingPayload!;
       _pendingPayload = null;
       _navigateToScreen(data);
@@ -355,3 +941,17 @@ class FcmTokenService {
     resetBadgeCount();
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Minimal completer used by _runTopicOp to build a serial async gate without
+// exposing a raw Completer<void> in the public API.
+// ─────────────────────────────────────────────────────────────────────────────
+class _AsyncCompleter {
+  final _completer = Completer<void>();
+  Future<void> get future => _completer.future;
+  void complete() => _completer.complete();
+}
+
+// ignore: prefer_void_to_null
+/// Fire-and-forget helper — silences the unawaited-future lint.
+void unawaited(Future<void> future) {}

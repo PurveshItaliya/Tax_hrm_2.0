@@ -38,7 +38,7 @@ class PermissionDialogWidget extends StatelessWidget {
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: Colors.white,
+      backgroundColor: ColorConst.white,
       elevation: 10,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
@@ -61,10 +61,10 @@ class PermissionDialogWidget extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: ColorConst.black,
               ),
             ),
             const SizedBox(height: 12),
@@ -73,9 +73,9 @@ class PermissionDialogWidget extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Colors.black54,
+                color: ColorConst.isDark ? Colors.white60 : Colors.black54,
                 height: 1.55,
               ),
             ),
@@ -113,7 +113,10 @@ class PermissionDialogWidget extends StatelessWidget {
                   onPressed: onSecondaryPressed,
                   child: Text(
                     secondaryButtonText!,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 14, 
+                      color: ColorConst.isDark ? Colors.grey.shade400 : Colors.grey,
+                    ),
                   ),
                 ),
               ),
@@ -226,7 +229,7 @@ class PermissionDialogWidget extends StatelessWidget {
       barrierDismissible: false,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
+        backgroundColor: ColorConst.white,
         elevation: 10,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
@@ -238,18 +241,25 @@ class PermissionDialogWidget extends StatelessWidget {
                 children: [
                   Icon(Icons.security, color: ColorConst.themeColor, size: 28),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Permissions Required',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 18,
+                        color: ColorConst.black,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'The following permissions are required to use the selfie punch feature:',
-                style: TextStyle(fontSize: 14, color: Colors.black87),
+                style: TextStyle(
+                  fontSize: 14, 
+                  color: ColorConst.isDark ? Colors.white70 : Colors.black87,
+                ),
               ),
               const SizedBox(height: 16),
               ...displayTypes.map((type) {
@@ -329,9 +339,22 @@ class PermissionDialogWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              Text(
+                title, 
+                style: TextStyle(
+                  fontWeight: FontWeight.w600, 
+                  fontSize: 14,
+                  color: ColorConst.black,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(desc, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              Text(
+                desc, 
+                style: TextStyle(
+                  fontSize: 12, 
+                  color: ColorConst.isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
             ],
           ),
         ),

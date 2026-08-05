@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -6,14 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:tax_hrm/api/holidayapi.dart';
-import 'package:tax_hrm/api/leaveapi.dart';
 import 'package:tax_hrm/models/Holidays/getholiday.dart';
 import 'package:tax_hrm/models/leavetype/getuserList.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/api/employeapi.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
-import 'package:tax_hrm/services/notifications/notification_generator_service.dart';
 import 'package:tax_hrm/services/notifications/notification_logger_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
 
@@ -65,29 +62,29 @@ class ReminderNotificationService {
     }
   }
 
-  static Future<void> updateHolidaysAndLeaves() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = curentUser?['Id'];
-    if (userId == null) return;
+  // static Future<void> updateHolidaysAndLeaves() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final userId = curentUser?['Id'];
+  //   if (userId == null) return;
 
-    // Fetch holidays
-    try {
-      final holidays = await HolidayAPIS().getHolidays();
-      if (holidays is List && holidays.isNotEmpty) {
-        final jsonStr = jsonEncode(holidays.map((h) => h.toJson()).toList());
-        await prefs.setString('local_holidays_json_$userId', jsonStr);
-      }
-    } catch (e) { /* ignored */ }
+  //   // Fetch holidays
+  //   try {
+  //     final holidays = await HolidayAPIS().getHolidays();
+  //     if (holidays is List && holidays.isNotEmpty) {
+  //       final jsonStr = jsonEncode(holidays.map((h) => h.toJson()).toList());
+  //       await prefs.setString('local_holidays_json_$userId', jsonStr);
+  //     }
+  //   } catch (e) { /* ignored */ }
 
-    // Fetch leaves
-    try {
-      final leaves = await LeaveApiService().userLeaveList();
-      if (leaves is List && leaves.isNotEmpty) {
-        final jsonStr = jsonEncode(leaves.map((l) => l.toJson()).toList());
-        await prefs.setString('local_leaves_json_$userId', jsonStr);
-      }
-    } catch (e) { /* ignored */ }
-  }
+  //   // Fetch leaves
+  //   try {
+  //     final leaves = await LeaveApiService().userLeaveList();
+  //     if (leaves is List && leaves.isNotEmpty) {
+  //       final jsonStr = jsonEncode(leaves.map((l) => l.toJson()).toList());
+  //       await prefs.setString('local_leaves_json_$userId', jsonStr);
+  //     }
+  //   } catch (e) { /* ignored */ }
+  // }
 
   /// Overarching intelligent 7-day notification scheduler.
   /// Checks local cache; if expired, user changed, or company changed, fetches fresh API data and reschedules.
@@ -153,28 +150,28 @@ class ReminderNotificationService {
     }
 
     // Also update local storage for shift reminders
-    await updateHolidaysAndLeaves();
+    // await updateHolidaysAndLeaves();
 
     // 3. Generate and schedule notifications
-    final now = DateTime.now();
-    final items = NotificationGeneratorService.generateAll(
-      employees: employees,
-      holidays: holidays,
-      currentUserId: userId,
-      now: now,
-    );
+    // final now = DateTime.now();
+    // final items = NotificationGeneratorService.generateAll(
+    //   employees: employees,
+    //   holidays: holidays,
+    //   currentUserId: userId,
+    //   now: now,
+    // );
 
-    final scheduledIds = await NotificationGeneratorService.scheduleItems(items);
-    await NotificationStorageService.saveScheduleMetadata(
-      companyId: companyId,
-      userId: userId,
-      scheduledIds: scheduledIds,
-    );
+    // final scheduledIds = await NotificationGeneratorService.scheduleItems(items);
+    // await NotificationStorageService.saveScheduleMetadata(
+    //   companyId: companyId,
+    //   userId: userId,
+    //   scheduledIds: scheduledIds,
+    // );
 
     // 4. Run shift reminders
     await scheduleReminders();
 
-    NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS COMPLETE (Refreshed: ${scheduledIds.length} events scheduled) ---');
+    // NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS COMPLETE (Refreshed: ${scheduledIds.length} events scheduled) ---');
   }
 
   static Future<String> scheduleReminders() async {

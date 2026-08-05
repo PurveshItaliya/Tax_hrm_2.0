@@ -45,11 +45,13 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
   }
 
   Future<void> _loadAllData() async {
-    Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-    Provider.of<ShiftMasterProvider>(context,listen: false).islodering = true;
-    await Provider.of<DepartmentServices>(context,listen: false).getDepartmentMasterData();
-    await Provider.of<PositionMasterService>(context,listen: false,).designatiionLoadingData();
-    await Provider.of<ShiftMasterProvider>(context,listen: false).shiftGroupMasterLoadingData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
+      Provider.of<ShiftMasterProvider>(context,listen: false).islodering = true;
+      await Provider.of<DepartmentServices>(context,listen: false).getDepartmentMasterData();
+      await Provider.of<PositionMasterService>(context,listen: false,).designatiionLoadingData();
+      await Provider.of<ShiftMasterProvider>(context,listen: false).shiftGroupMasterLoadingData();
+    });
   }
 
   final userShiftTimingFormKey = GlobalKey<FormState>();

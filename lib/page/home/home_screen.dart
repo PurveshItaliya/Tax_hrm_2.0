@@ -13,13 +13,14 @@ import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
-import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
+
+import '../../services/permission_flow_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,6 +62,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Load admin attendance on init
     if (curentUser['Role'] == 'Admin') {
+      // Trigger notification permission flow for admin users
+      if (!PermissionFlowService.isFlowRunning) {
+        PermissionFlowService.run(
+          context,
+          isFetchLocation: false,
+          notificationOnly: true,
+        );
+      }
+      
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Provider.of<AdminAttenDanceServices>(context, listen: false)
             .toDayDateAttendance(DateTime.now());
@@ -114,36 +124,29 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: _buildAppBar(size, homeProvider),
         body: refreshIndicatorDesign(
           onRefreshOntap: () async {
-            _homeProvider.homeLoadDatas(context);
+            _homeProvider.homeLoadDatas(context, forceRefresh: true);
             if (curentUser['Role'] == 'Admin') {
               Provider.of<AdminAttenDanceServices>(context, listen: false).toDayDateAttendance(DateTime.now());
             }
           },
-          widgetDesign: Scrollbar(
+          widgetDesign: SingleChildScrollView(
             controller: _scrollController,
-            thickness: 6,
-            radius: const Radius.circular(10),
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  if(curentUser['Role'] != 'Admin') ...[
-                    buildDateHeader(size),
-                  ] else ...[
-                    buildAttendanceBoard(size, mounted,
-                      onAllPressed:(){
-                        lastBottomIndex = 1;
-                        selectedIndex = 1;
-                        fabSelected = false;
-                        homeProvider.notifyListeners();
-                      },
-                    )
-                  ],
-                  _buildGridMenu(size, homeProvider),
-                  const LeaderboardWidget(),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                if(curentUser['Role'] != 'Admin') ...[
+                  buildDateHeader(size),
+                ] else ...[
+                  buildAttendanceBoard(size, mounted,
+                    onAllPressed:(){
+                      homeProvider.changeSelectBottomBar(1);
+                    },
+                  )
                 ],
-              ),
+                _buildGridMenu(size, homeProvider),
+                const LeaderboardWidget(),
+                SizedBox(height: 80,)
+              ],
             ),
           ),
         ),
@@ -304,12 +307,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: itemColor.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
-              child: Image.asset(
-                menuItem.image,
-                color: itemColor,
-                height: size.width * 0.055,
-                width: size.width * 0.055,
-              ),
+              child: menuItem.image.isEmpty
+                  ? Icon(
+                      Icons.notifications_active_outlined,
+                      color: itemColor,
+                      size: size.width * 0.055,
+                    )
+                  : Image.asset(
+                      menuItem.image,
+                      color: itemColor,
+                      height: size.width * 0.055,
+                      width: size.width * 0.055,
+                    ),
             ),
             const SizedBox(height: 6),
             Flexible(

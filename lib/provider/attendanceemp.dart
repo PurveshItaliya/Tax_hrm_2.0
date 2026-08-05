@@ -87,9 +87,16 @@ class AttendanceEmp extends ChangeNotifier {
     notifyListeners();
   }
 
-  loadingData(AllEmployeAttendance? empData, context) async {
+  loadingData(AllEmployeAttendance? empData, context, {bool forceRefresh = false}) async {
     try {
-      setloading(true);
+      // Only show loader if we have NO data for the current month (SWR pattern)
+      bool hasCacheForCurrentMonth = getMonthAttenDance.isNotEmpty &&
+          loadedMonth.month == DateTime.now().month &&
+          loadedMonth.year == DateTime.now().year;
+          
+      if (!hasCacheForCurrentMonth || forceRefresh) {
+        setloading(true);
+      }
       // Always reset to current month when the screen opens so that
       // navigating away and back never leaves a stale month selected.
       currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
@@ -121,7 +128,7 @@ class AttendanceEmp extends ChangeNotifier {
           await fetchAndStoreBeginTime(context, userPositionName);
         }();
 
-        final futureAttendance = getEmpAttendanceData(curentUser['Id'], currentMonth.month, currentMonth.year, context, handleLoading: false);
+        final futureAttendance = getEmpAttendanceData(curentUser['Id'], currentMonth.month, currentMonth.year, context, handleLoading: false, forceRefresh: forceRefresh);
 
         await Future.wait([futureLeaves, futureShiftData, futureBeginTime, futureAttendance]);
       } else{
@@ -144,7 +151,7 @@ class AttendanceEmp extends ChangeNotifier {
               selectedEmploye = element;
               final futureShift = setShiftData(element.shiftCguid, element.positionId, context);
               final futureBeginTime = fetchAndStoreBeginTime(context, element.positionName);
-              final futureAttendance = getEmpAttendanceData(empData.empId, currentMonth.month, currentMonth.year, context, handleLoading: false);
+              final futureAttendance = getEmpAttendanceData(empData.empId, currentMonth.month, currentMonth.year, context, handleLoading: false, forceRefresh: forceRefresh);
               await Future.wait([futureShift, futureBeginTime, futureAttendance]);
               break;
             }
@@ -257,18 +264,50 @@ class AttendanceEmp extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> getEmpAttendanceData(setEmpid,setMonth,setYear, context, {bool handleLoading = true}) async {
-    if (handleLoading) setloading(true);
+  Future<void> getEmpAttendanceData(setEmpid, setMonth, setYear, context, {bool handleLoading = true, bool forceRefresh = false}) async {
+    final cacheKey = 'emp_attendance_${setEmpid}_${setYear}_$setMonth';
+    final bool isNewMonth = !(loadedMonth.month == setMonth && loadedMonth.year == setYear);
+
+    if (handleLoading) {
+      // Only show loader if we have no data for this month yet
+      if ((isNewMonth && getMonthAttenDance.isEmpty) || forceRefresh) setloading(true);
+    }
+
+    // ── Step 1: Show cached data immediately (no flicker) ──────────────────────
+    if (isNewMonth && !forceRefresh) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final localJson = prefs.getString(cacheKey);
+        if (localJson != null) {
+          final cachedAttendance = employeAttendanceFromJson(localJson);
+          if (cachedAttendance.isNotEmpty) {
+            getMonthAttenDance = cachedAttendance;
+            
+            final holidayJson = prefs.getString('holidays_${setYear}_$setMonth');
+            if (holidayJson != null) {
+              try {
+                curentMonthHoliday = getHolidayViewsFromJson(holidayJson);
+              } catch (_) {}
+            }
+            
+            setloading(false);
+            notifyListeners();
+          }
+        }
+      } catch (_) {}
+    }
+
+    // ── Step 2: Background API refresh (parallel) ───────────────────────────
     try {
-      loadedMonth = DateTime(0);
-      getMonthAttenDance.clear();
-      curentMonthHoliday.clear();
-      totalPresent = 0;
-      totalAbset = 0;
-      totalHalfday = 0;
-      totakWeekOff = 0;
-      totalPaidLeave = 0;
-      totalHoliday = 0;
+      if (isNewMonth) {
+        curentMonthHoliday.clear();
+        totalPresent = 0;
+        totalAbset = 0;
+        totalHalfday = 0;
+        totakWeekOff = 0;
+        totalPaidLeave = 0;
+        totalHoliday = 0;
+      }
 
       final futureCounting = AttendancePerformanceLogger.instance.track(
         'AttendanceApis.getEmpMonathCounting',
@@ -282,6 +321,7 @@ class AttendanceEmp extends ChangeNotifier {
         executionMode: 'parallel',
       );
 
+      // Single attendance fetch (removed duplicate call)
       final futureMonthAttendance = AttendancePerformanceLogger.instance.track(
         'AttendanceApis.getEmpMonathAttendace',
         () => AttendanceApis().getEmpMonathAttendace(setEmpid, setMonth, setYear),
@@ -317,39 +357,110 @@ class AttendanceEmp extends ChangeNotifier {
       totakWeekOff = 0;
       for (int i = 0; i < lastDay.day; i++) {
         final day = firstDay.add(Duration(days: i));
-        if (day.weekday == DateTime.sunday) {
+        bool isDayWeekOff = false;
+        
+        if (getUserShift != null) {
+          if (day.weekday == DateTime.sunday && getUserShift!.sun == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.monday && getUserShift!.mon == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.tuesday && (getUserShift!.tue == false || getUserShift!.tue.toString() == '0')) isDayWeekOff = true;
+          if (day.weekday == DateTime.wednesday && getUserShift!.wed == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.thursday && getUserShift!.thu == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.friday && getUserShift!.fri == false) isDayWeekOff = true;
+          if (day.weekday == DateTime.saturday && getUserShift!.sat == false) isDayWeekOff = true;
+        } else {
+          if (day.weekday == DateTime.sunday) isDayWeekOff = true;
+        }
+        
+        if (isDayWeekOff) {
           totakWeekOff++;
         }
       }
 
-
-      final tempMonthAttendance = await AttendanceApis().getEmpMonathAttendace(setEmpid,setMonth,setYear);
+      // Use the result already fetched via Future.wait (no duplicate call)
+      final freshAttendance = results[2] as List<EmployeAttendance>;
+      
+      // Reduce week-off count if employee worked on a scheduled week-off
+      int workedOnWeekOffCount = 0;
+      for (final element in freshAttendance) {
+        if (isWeekOff(element)) {
+           String presentStr = (element.present ?? '').toString().toLowerCase().trim();
+           bool isPresent = element.present == true || presentStr == 'true' || presentStr == '1';
+           bool hasInTime = element.inTime != null && element.inTime.toString().trim().isNotEmpty;
+           
+           if (isPresent || hasInTime) {
+             workedOnWeekOffCount++;
+           }
+        }
+      }
+      
+      totakWeekOff = (totakWeekOff - workedOnWeekOffCount).clamp(0, 31);
+      
       if (currentMonth.month != setMonth || currentMonth.year != setYear) return;
-      getMonthAttenDance = tempMonthAttendance;
 
+      // Only update UI if data changed
+      final isSame = getMonthAttenDance.length == freshAttendance.length;
+      getMonthAttenDance = freshAttendance;
+
+      // Persist to local cache for next app open
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(cacheKey, employeAttendanceToJson(freshAttendance));
+        if (curentMonthHoliday.isNotEmpty) {
+          await prefs.setString('holidays_${setYear}_$setMonth', getHolidayViewsToJson(curentMonthHoliday));
+        }
+      } catch (_) {}
 
       int totalop = 0;
       for (final element in getMonthAttenDance) {
-        if (element.absent == true && element.weekOff == null && element.leaveTypeCguid == null) {
+        String absStr = (element.absent ?? '').toString().toLowerCase().trim();
+        bool isAbs = element.absent == true || absStr == 'true' || absStr == '1';
+        if (isAbs && element.leaveTypeCguid == null && !isWeekOff(element)) {
           totalop++;
         }
       }
 
       if (setEmpAttendanc != null && setEmpAttendanc!.isNotEmpty) {
         setEmpAttendanc!.first.totalAbsent = totalop;
-        totalAbset = totalop;
       }
+      totalAbset = totalop;
 
       calcualetPaidLeave();
       calcualetUnPaidLeave();
       loadedMonth = DateTime(setYear, setMonth);
+      if (!isSame) notifyListeners();
       notifyListeners();
-      
-      // Removed the duplicate `await setShiftData('', '', context);` here to prevent
-      // re-fetching static master data when only the month changes.
     } catch (e) { /* ignored */ } finally {
       if (handleLoading) setloading(false);
     }
+  }
+
+  bool isWeekOff(EmployeAttendance element) {
+    String weekOffStr = (element.weekOff ?? '').toString().toLowerCase().trim();
+    String dayTypeStr = (element.dayType ?? '').toString().toLowerCase().trim();
+    if (element.weekOff == true ||
+        weekOffStr == 'true' ||
+        weekOffStr == '1' ||
+        dayTypeStr == '7' ||
+        dayTypeStr == 'weekoff') {
+      return true;
+    }
+    if (element.attendenceDate != null) {
+      final date = DateTime.tryParse(element.attendenceDate.toString())?.toLocal();
+      if (date != null) {
+        if (getUserShift != null) {
+          if (date.weekday == DateTime.sunday && getUserShift!.sun == false) return true;
+          if (date.weekday == DateTime.monday && getUserShift!.mon == false) return true;
+          if (date.weekday == DateTime.tuesday && (getUserShift!.tue == false || getUserShift!.tue.toString() == '0')) return true;
+          if (date.weekday == DateTime.wednesday && getUserShift!.wed == false) return true;
+          if (date.weekday == DateTime.thursday && getUserShift!.thu == false) return true;
+          if (date.weekday == DateTime.friday && getUserShift!.fri == false) return true;
+          if (date.weekday == DateTime.saturday && getUserShift!.sat == false) return true;
+        } else {
+          if (date.weekday == DateTime.sunday) return true;
+        }
+      }
+    }
+    return false;
   }
 
   void calcualetPaidLeave() {
@@ -492,15 +603,15 @@ class AttendanceEmp extends ChangeNotifier {
 
   AttendanceDayBlog? selectedDateLog;
 
-  Future getDateBloges(setDate, employeid) async {
-    setloading(true);
+  Future getDateBloges(setDate, employeid, {bool showLoading = true}) async {
+    if (showLoading) setloading(true);
     selectedDateLog = null;
     try {
       await AttendanceApis().getDateBlogEmp(setDate, employeid, selectedcurentcompany!.companyId).then((value){
         selectedDateLog = value;
       });
     } catch (e) { /* ignored */ } finally {
-      setloading(false);
+      if (showLoading) setloading(false);
       notifyListeners();
     }
   }
@@ -756,7 +867,6 @@ class AttendanceEmp extends ChangeNotifier {
     final fetchMonth = currentMonth.month;
     final fetchYear = currentMonth.year;
     
-    setloading(true);
     try {
       final payrollProvider = Provider.of<PayRollProviders>(context, listen: false);
       final holidayProvider = Provider.of<HolidayeMastServices>(context, listen: false);
@@ -764,7 +874,7 @@ class AttendanceEmp extends ChangeNotifier {
       final futureMonthsBreaks = AttendancePerformanceLogger.instance.track(
         'PayRollProviders.getMonthsBreaks',
         () => payrollProvider.getMonthsBreaks(
-          setEmployeId: curentUser['Role'] == 'Admin' ? empData!.empId : curentUser['Id'],
+          setEmployeId: empData != null ? empData.empId : curentUser['Id'],
           setMonth: fetchMonth,
           setYear: fetchYear,
         ),
@@ -774,7 +884,7 @@ class AttendanceEmp extends ChangeNotifier {
       final futurePayRollData = AttendancePerformanceLogger.instance.track(
         'PayRollProviders.getPayRollData',
         () => payrollProvider.getPayRollData(
-          setEmployeId: curentUser['Role'] == 'Admin' ? empData!.empId : curentUser['Id'],
+          setEmployeId: empData != null ? empData.empId : curentUser['Id'],
           setMonth: fetchMonth,
           setYear: fetchYear,
         ),
@@ -794,8 +904,6 @@ class AttendanceEmp extends ChangeNotifier {
       await calculateTime(context, empData, fetchMonth, fetchYear);
     } catch (e) {
       // ignore
-    } finally {
-      setloading(false);
     }
     notifyListeners();
   }

@@ -43,10 +43,10 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
     });
   }
 
-  Future<void> _loadAllData() async {
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
     final employeeProvider = Provider.of<EmployeeMasterProvider>(context, listen: false);
     employeeProvider.clearData();
-    await employeeProvider.loadAllEmployeeData(context);
+    await employeeProvider.loadAllEmployeeData(context, forceRefresh: forceRefresh);
     if (!mounted) return;
     await Provider.of<PositionMasterService>(context, listen: false).getpositionfiles();
     if (!mounted) return;
@@ -149,7 +149,7 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
               ),
               body: refreshIndicatorDesign(
                 onRefreshOntap: () {
-                  return _loadAllData();
+                  return _loadAllData(forceRefresh: true);
                 },
                 widgetDesign: Column(
                   children: [

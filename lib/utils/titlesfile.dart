@@ -583,4 +583,4 @@ String get esicNumberString => LanguageProvider.translate("esicNumberString", "E
 String get selectIfscCodeString => LanguageProvider.translate("selectIfscCodeString", "Select IFSC Code");
 String get selectIfscString => LanguageProvider.translate("selectIfscString", "Select IFSC");
 
-
+String get notificationString => LanguageProvider.translate("notificationString", "Notifications");

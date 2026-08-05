@@ -32,9 +32,11 @@ class _EventPageScreenState extends State<EventPageScreen> {
     _loadAllData();
   }
 
-  Future<void> _loadAllData() async {
-    Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
-    Provider.of<EventsMastServices>(context,listen: false).eventLoadingData();
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<InternetConnectionProvider>(context,listen: false,).getAllConnectionData();
+      Provider.of<EventsMastServices>(context,listen: false).eventLoadingData(forceRefresh: forceRefresh);
+    });
   }
 
   @override
@@ -54,14 +56,14 @@ class _EventPageScreenState extends State<EventPageScreen> {
                 child: iconWithTextBtnDesign(size,addEventString,isIcon: false,onTap: () {
                   eventsMastServices.clearData();
                   nextScreen(context, AddEventScreen(addEditFlag: true, getEventsData: null),onthenValue: (value) {
-                    _loadAllData();
+                    _loadAllData(forceRefresh: true);
                   });
                 },isgradient: true,isImage: false),
               ),
               appBar: showCustomeAppBar(eventString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
               body: refreshIndicatorDesign(
                 onRefreshOntap: () {
-                  return _loadAllData();
+                  return _loadAllData(forceRefresh: true);
                 },
                 widgetDesign: Padding(
                   padding: EdgeInsets.all(size.height*0.02),
@@ -77,7 +79,7 @@ class _EventPageScreenState extends State<EventPageScreen> {
                               padding: EdgeInsets.only(
                                 bottom: size.height * 0.10,
                               ),
-                              itemBuilder: (context, index) {
+                              itemBuilder: (itemContext, index) {
                                 return eventCard(
                                   size: size,
                                   titles: eventsMastServices.getEventList[index].eventName,place: eventsMastServices.getEventList[index].eventPlace,remark: eventsMastServices.getEventList[index].description,startDate: dateFormatdate(DateTime.parse(eventsMastServices.getEventList[index].startDate.toString())),endDate: dateFormatdate(DateTime.parse(eventsMastServices.getEventList[index].endDate.toString())),editOntap: () async {

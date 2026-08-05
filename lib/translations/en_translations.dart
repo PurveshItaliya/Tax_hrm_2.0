@@ -504,6 +504,7 @@ final Map<String, String> enTranslations = {
   'esicNumberString': 'ESIC Number',
   'selectIfscCodeString': 'Select IFSC Code',
   'selectIfscString': 'Select IFSC',
+  'notificationString': 'Notifications',
   'Create Event': 'Create Event',
   'Event Type': 'Event Type',
   'Event Name': 'Event Name',

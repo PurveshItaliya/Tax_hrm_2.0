@@ -146,7 +146,8 @@ Widget userProfileShimmer(size) {
 }
 
 // timeline View shimmer
-Widget timeLineViewShimmer(size) {
+Widget timeLineViewShimmer(BuildContext context, size) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   return ListView.builder(
     shrinkWrap: true,
     itemCount: 20,
@@ -155,7 +156,7 @@ Widget timeLineViewShimmer(size) {
         child: Container(
           width: size.width,
           decoration: BoxDecoration(
-            color: ColorConst.white,
+            color: isDark ? Theme.of(context).scaffoldBackgroundColor : ColorConst.white,
           ),
           child: Row(
             children: [
@@ -175,10 +176,10 @@ Widget timeLineViewShimmer(size) {
                       width: size.width * 0.06,
                       height: size.width * 0.06,
                       decoration: BoxDecoration(
-                        color: ColorConst.grey,
+                        color: isDark ? Colors.grey.shade700 : ColorConst.grey,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.check, size: 16, color: ColorConst.white),
+                      child: Icon(Icons.check, size: 16, color: isDark ? Theme.of(context).scaffoldBackgroundColor : ColorConst.white),
                     ),
                     Container(
                       width: 2,
@@ -194,7 +195,7 @@ Widget timeLineViewShimmer(size) {
                   padding: EdgeInsets.all(size.width * 0.03),
                   height: size.height *0.09,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
+                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade400,
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),

@@ -58,10 +58,15 @@ class _AdminLeavePageState extends State<AdminLeavePage>
           centerTitles: false,
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: leaveAdminProvider.islodering ? SizedBox() : iconWithTextBtnDesign(size,applyNewLeaveString,isIcon: false,onTap: () {
-          LeaveMastServices().resetLeaveForm();
-          LeaveMastServices().leaveHandleSubmit(context,false, leaveData: null);
-        },isgradient: true,isImage: false,),
+        floatingActionButton: leaveAdminProvider.islodering ? SizedBox() : Padding(
+          padding: EdgeInsets.only(bottom: size.height * 0.08),
+          child: iconWithTextBtnDesign(size,applyNewLeaveString,isIcon: false,onTap: () {
+            LeaveMastServices().resetLeaveForm();
+            LeaveMastServices().leaveHandleSubmit(context,false, leaveData: null, onthenValue: (val) async {
+              await leaveAdminProvider.initializeData(forceRefresh: true);
+            });
+          },isgradient: true,isImage: false,),
+        ),
         body: leaveAdminProvider.islodering ? buildShimmerContent(size) : Column(
             children: [
               /// TAB BAR
@@ -151,7 +156,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                   /// Pending Tab
                   RefreshIndicator(
                     color: ColorConst.themeColor,
-                    onRefresh: () => leaveAdminProvider.initializeData(),
+                    onRefresh: () => leaveAdminProvider.initializeData(forceRefresh: true),
                     child: leaveAdminProvider.pendingLeaves.isEmpty ? ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
@@ -162,7 +167,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                       ],
                     ) : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: 70),
+                    padding: EdgeInsets.only(bottom: size.height * 0.22),
                     itemCount: leaveAdminProvider.pendingLeaves.length,
                     itemBuilder: (context, index) {
                       return  Padding(
@@ -174,13 +179,15 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                           status: "Pending".toUpperCase(),
                           onEdit: () {
                             LeaveMastServices().resetLeaveForm();
-                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.pendingLeaves[index]);
+                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.pendingLeaves[index], onthenValue: (val) async {
+                              await leaveAdminProvider.initializeData(forceRefresh: true);
+                            });
                           },
                           onDelete: () {
                             showDeleteDialog(context,size,yesOntap: () {
                               Navigator.pop(context);
                               LeaveMastServices().deleteleave(leaveAdminProvider.pendingLeaves[index].cguid.toString(),context,).then((value) async {
-                                await leaveAdminProvider.initializeData();
+                                await leaveAdminProvider.initializeData(forceRefresh: true);
                               });
                             },noOnTap: (){Navigator.pop(context);});
                           },
@@ -205,7 +212,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                   /// Approve Tab
                   RefreshIndicator(
                     color: ColorConst.themeColor,
-                    onRefresh: () => leaveAdminProvider.initializeData(),
+                    onRefresh: () => leaveAdminProvider.initializeData(forceRefresh: true),
                     child: leaveAdminProvider.approvedLeaves.isEmpty ? ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
@@ -216,7 +223,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                       ],
                     ) : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: 70),
+                    padding: EdgeInsets.only(bottom: size.height * 0.22),
                     itemCount: leaveAdminProvider.approvedLeaves.length,
                     itemBuilder: (context, index) {
                       return Padding(
@@ -228,13 +235,15 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                           status: "Approved".toUpperCase(),
                           onEdit: () {
                             LeaveMastServices().resetLeaveForm();
-                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.approvedLeaves[index]);
+                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.approvedLeaves[index], onthenValue: (val) async {
+                              await leaveAdminProvider.initializeData(forceRefresh: true);
+                            });
                           },
                           onDelete: () {
                             showDeleteDialog(context,size,yesOntap: () {
                               Navigator.pop(context);
                               LeaveMastServices().deleteleave(leaveAdminProvider.approvedLeaves[index].cguid.toString(),context,).then((value) async {
-                                await leaveAdminProvider.initializeData();
+                                await leaveAdminProvider.initializeData(forceRefresh: true);
                               });
                             },noOnTap: (){Navigator.pop(context);});
                           }, leaveTypeColor: ColorConst.addNoteImageColors, duration: '', leaveType: leaveAdminProvider.approvedLeaves[index].leaveTypeFName.toString(),
@@ -247,7 +256,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                   /// Reject Tab
                   RefreshIndicator(
                     color: ColorConst.themeColor,
-                    onRefresh: () => leaveAdminProvider.initializeData(),
+                    onRefresh: () => leaveAdminProvider.initializeData(forceRefresh: true),
                     child: leaveAdminProvider.rejectedLeaves.isEmpty ? ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
@@ -258,7 +267,7 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                       ],
                     ) : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: 70),
+                    padding: EdgeInsets.only(bottom: size.height * 0.22),
                     itemCount: leaveAdminProvider.rejectedLeaves.length,
                     itemBuilder: (context, index) {
                       return Padding(
@@ -270,13 +279,15 @@ class _AdminLeavePageState extends State<AdminLeavePage>
                           status: "Rejected".toUpperCase(),
                           onEdit: () {
                             LeaveMastServices().resetLeaveForm();
-                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.rejectedLeaves[index]);
+                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.rejectedLeaves[index], onthenValue: (val) async {
+                              await leaveAdminProvider.initializeData(forceRefresh: true);
+                            });
                           },
                           onDelete: () {
                             showDeleteDialog(context,size,yesOntap: () {
                               Navigator.pop(context);
                               LeaveMastServices().deleteleave(leaveAdminProvider.rejectedLeaves[index].cguid.toString(),context,).then((value) async {
-                                await leaveAdminProvider.initializeData();
+                                await leaveAdminProvider.initializeData(forceRefresh: true);
                               });
                             },noOnTap: (){Navigator.pop(context);});
                           },

@@ -41,94 +41,107 @@ class PermissionFlowResult {
 ///   - If the user taps "Not Now", the flow moves to the next permission.
 ///   - All permissions are attempted regardless of individual denials.
 class PermissionFlowService {
+  /// Global flag to indicate if the permission flow is currently active.
+  static bool isFlowRunning = false;
+
   // ─── Public API ────────────────────────────────────────────────────────────
 
   /// Runs the full sequential permission flow and returns a [PermissionFlowResult].
   static Future<PermissionFlowResult> run(
     BuildContext context, {
     required bool isFetchLocation,
+    bool notificationOnly = false,
   }) async {
-    
-    while (true) {
-      if (!context.mounted) break;
-      
-      final List<PermissionType> pending = await _buildPendingList(isFetchLocation);
-      if (pending.isEmpty) break; // All granted!
+    isFlowRunning = true;
+    try {
+      while (true) {
+        if (!context.mounted) break;
+        
+        final List<PermissionType> pending = await _buildPendingList(isFetchLocation, notificationOnly);
+        if (pending.isEmpty) break; // All granted!
 
-      // Check if any pending permission is permanently denied
-      PermissionType? permanentlyDeniedType;
-      for (final type in pending) {
-        final status = await _getStatus(type);
-        if (status.isPermanentlyDenied) {
-          permanentlyDeniedType = type;
+        // Check if any pending permission is permanently denied
+        PermissionType? permanentlyDeniedType;
+        for (final type in pending) {
+          final status = await _getStatus(type);
+          if (status.isPermanentlyDenied) {
+            permanentlyDeniedType = type;
+            break;
+          }
+        }
+
+        // If permanently denied, show the settings redirect dialog.
+        if (permanentlyDeniedType != null) {
+          if (!context.mounted) break;
+          final openSettings = await PermissionDialogWidget.showPermanentlyDeniedDialog(
+              context, permanentlyDeniedType);
+          if (openSettings && context.mounted) {
+            await openAppSettings();
+            await LocationPermissionService.waitForAppResume();
+            // The user returned from Settings. Re-check permissions!
+            continue; 
+          }
+          break; // Stop the flow if they hit Cancel/Not Now.
+        }
+
+        // Show ONE combined dialog listing all pending permissions
+        if (!context.mounted) break;
+        final continuePressed = await PermissionDialogWidget.showCombinedExplanationDialog(
+            context, pending);
+            
+        if (!continuePressed) break; // Fallback in case of cancellation
+
+        // Sequentially request system dialogs for all pending permissions
+        bool anyDeniedThisRound = false;
+        for (final type in pending) {
+          if (!context.mounted) break;
+
+          // Background location requires foreground to be granted first
+          if (type == PermissionType.backgroundLocation) {
+            final fgStatus = await Permission.location.status;
+            if (!fgStatus.isGranted) {
+              anyDeniedThisRound = true;
+              continue;
+            }
+          }
+
+          await _requestSystemPermissionSilent(type);
+          
+          // Brief pause so the system dialog transitions smoothly
+          await Future.delayed(const Duration(milliseconds: 350));
+          
+          final newStatus = await _getStatus(type);
+          if (!newStatus.isGranted) {
+            anyDeniedThisRound = true;
+          }
+        }
+
+        // If none were denied, the next loop will find pending.isEmpty and break.
+        // If any were denied, it loops and re-shows the combined dialog for the remaining.
+        if (!anyDeniedThisRound) {
           break;
         }
       }
 
-      // If permanently denied, show the settings redirect dialog.
-      if (permanentlyDeniedType != null) {
-        if (!context.mounted) break;
-        final openSettings = await PermissionDialogWidget.showPermanentlyDeniedDialog(
-            context, permanentlyDeniedType);
-        if (openSettings && context.mounted) {
-          await openAppSettings();
-          await LocationPermissionService.waitForAppResume();
-          // The user returned from Settings. Re-check permissions!
-          continue; 
-        }
-        break; // Stop the flow if they hit Cancel/Not Now.
-      }
-
-      // Show ONE combined dialog listing all pending permissions
-      if (!context.mounted) break;
-      final continuePressed = await PermissionDialogWidget.showCombinedExplanationDialog(
-          context, pending);
-          
-      if (!continuePressed) break; // Fallback in case of cancellation
-
-      // Sequentially request system dialogs for all pending permissions
-      bool anyDeniedThisRound = false;
-      for (final type in pending) {
-        if (!context.mounted) break;
-
-        // Background location requires foreground to be granted first
-        if (type == PermissionType.backgroundLocation) {
-          final fgStatus = await Permission.location.status;
-          if (!fgStatus.isGranted) {
-            anyDeniedThisRound = true;
-            continue;
-          }
-        }
-
-        await _requestSystemPermissionSilent(type);
-        
-        // Brief pause so the system dialog transitions smoothly
-        await Future.delayed(const Duration(milliseconds: 350));
-        
-        final newStatus = await _getStatus(type);
-        if (!newStatus.isGranted) {
-          anyDeniedThisRound = true;
-        }
-      }
-
-      // If none were denied, the next loop will find pending.isEmpty and break.
-      // If any were denied, it loops and re-shows the combined dialog for the remaining.
-      if (!anyDeniedThisRound) {
-        break;
-      }
+      return _buildResult();
+    } finally {
+      isFlowRunning = false;
     }
-
-    return _buildResult();
   }
 
   // ─── Build pending list ─────────────────────────────────────────────────────
 
-  static Future<List<PermissionType>> _buildPendingList(bool isFetchLocation) async {
+  static Future<List<PermissionType>> _buildPendingList(bool isFetchLocation, bool notificationOnly) async {
     final List<PermissionType> pending = [];
 
     if (!(await Permission.notification.status).isGranted) {
       pending.add(PermissionType.notification);
     }
+    
+    if (notificationOnly) {
+      return pending;
+    }
+
     if (!(await Permission.camera.status).isGranted) {
       pending.add(PermissionType.camera);
     }

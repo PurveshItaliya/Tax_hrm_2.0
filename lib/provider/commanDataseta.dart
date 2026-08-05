@@ -83,6 +83,7 @@ Future<TimeOfDay?> openTimePicker(
     context: context,
     initialTime: initialTime,
     builder: (context, child) {
+      final isDark = Theme.of(context).brightness == Brightness.dark || ColorConst.isDark;
       return Theme(
         data: Theme.of(context).copyWith(
           timePickerTheme: TimePickerThemeData(
@@ -105,11 +106,17 @@ Future<TimeOfDay?> openTimePicker(
               foregroundColor: Colors.grey,
             ),
           ),
-          colorScheme: ColorScheme.light(
-            primary: ColorConst.themeColor,
-            onPrimary: ColorConst.white,
-            onSurface: Colors.black,
-          ),
+          colorScheme: isDark 
+            ? ColorScheme.dark(
+                primary: ColorConst.themeColor,
+                onPrimary: ColorConst.white,
+                onSurface: ColorConst.black,
+              )
+            : ColorScheme.light(
+                primary: ColorConst.themeColor,
+                onPrimary: ColorConst.white,
+                onSurface: ColorConst.black,
+              ),
         ),
         child: child!,
       );

@@ -7,7 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:tax_hrm/page/splashPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/utils/app_providers.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -32,13 +33,23 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   } catch (e) {
     // Already initialized or failed
   }
-  print("[FCM] Background message received: ${message.messageId}");
+  /* log("[FCM] Background message received: ${message.messageId}"); */
 }
 
 const taskName = "LocationTimeLines";
 
+late SharedPreferences globalPrefs;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    try {
+      await const MethodChannel('native_liquid_glass_bar/cleanup').invokeMethod('cleanup');
+    } catch (e) {
+      /* log('Platform views cleanup error: $e'); */
+    }
+  }
+  globalPrefs = await SharedPreferences.getInstance();
   await initializeDateFormatting();
   try {
     await Firebase.initializeApp(
@@ -47,7 +58,7 @@ Future<void> main() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     await FcmTokenService.instance.initialize();
   } catch (e) {
-    print('Firebase initialization error: $e');
+    /* log('Firebase initialization error: $e'); */
   }
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 
@@ -363,7 +374,29 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Verify mandatory topics are still intact every time the app comes to
+  /// the foreground. This self-heals any subscriptions that were lost while
+  /// the app was in the background (e.g. uninstall/reinstall, token rotation).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Fire-and-forget: never block the UI thread
+      FcmTokenService.instance.verifyMandatoryTopics();
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return MultiProvider(

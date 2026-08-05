@@ -244,7 +244,7 @@ class DonutChartPainter extends CustomPainter {
     required this.deduction,
   });
 
-  @override
+  @override 
   void paint(Canvas canvas, Size size) {
     final total = earning + deduction;
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
