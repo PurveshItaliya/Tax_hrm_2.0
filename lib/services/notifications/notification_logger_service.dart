@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 enum NotificationLogCategory {
   permission,
@@ -25,7 +24,6 @@ class NotificationLoggerService {
     }
 
     // if (kDebugMode) {
-      print(logMessage);
     // }
   }
 

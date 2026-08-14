@@ -80,6 +80,57 @@ class AdminPayrollslipProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadUserData(BuildContext context) async {
+    try {
+      setloading(true);
+      selectedAddEmployeeList = null;
+      resetData();
+      
+      final futureShifts = AttendancePerformanceLogger.instance.track(
+        'ShiftMasterProvider.getShiftTimintgMasterData',
+        () => Provider.of<ShiftMasterProvider>(context, listen: false).getShiftTimintgMasterData(),
+        executionMode: 'parallel',
+      );
+      
+      final futureEmps = AttendancePerformanceLogger.instance.track(
+        'EmployeMastServices.getAllEmployesData',
+        () => Provider.of<EmployeMastServices>(context, listen: false).getAllEmployesData(),
+        executionMode: 'parallel',
+      );
+      
+      await Future.wait([futureShifts, futureEmps]);
+      
+      final empService = Provider.of<EmployeMastServices>(context, listen: false);
+      final loggedInUserId = curentUser != null ? curentUser['Id'] : null;
+      if (loggedInUserId != null) {
+        final currentUserEmp = empService.emplists.firstWhere(
+          (e) => e.id.toString() == loggedInUserId.toString(),
+          orElse: () {
+            return Employeelists(
+              id: int.tryParse(loggedInUserId.toString()),
+              firstName: curentUser['FirstName']?.toString() ?? '',
+              lastName: curentUser['LastName']?.toString() ?? '',
+              companyId: int.tryParse(curentUser['CompanyId']?.toString() ?? ''),
+              custId: curentUser['CustId']?.toString(),
+              role: curentUser['Role']?.toString(),
+              positionId: int.tryParse(curentUser['PositionId']?.toString() ?? ''),
+              positionName: curentUser['PositionName']?.toString() ?? '',
+            );
+          },
+        );
+        selectedAddEmployeeList = currentUserEmp;
+      }
+      
+      Provider.of<PayRollProviders>(context, listen: false).getAllMonthsBreak.clear();
+      Provider.of<AttendanceEmp>(context, listen: false).getMonthAttenDance.clear();
+      
+      await setAndGetData(context);
+      setloading(false);
+    } catch (e) {
+      setloading(false);
+    }
+  }
+
   void iconAddOntap(BuildContext context) {
     selectedAddEmployeeList = null;
     resetData();

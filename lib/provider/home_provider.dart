@@ -29,6 +29,7 @@ import 'package:tax_hrm/page/holidays/show_holidays.dart';
 import 'package:tax_hrm/page/notes/notespage.dart';
 import 'package:tax_hrm/page/payroll_mater/payroll_mater_screen.dart';
 import 'package:tax_hrm/page/payroll_summary/payroll_summary_screen.dart';
+import 'package:tax_hrm/page/payroll_summary/user_payroll_summary_screen.dart';
 import 'package:tax_hrm/page/payslip_mater/payslip_mater_screen.dart';
 import 'package:tax_hrm/page/recruitment/recruitment_page_screen.dart';
 import 'package:tax_hrm/page/salaryslip/salary_payslip_screen.dart';
@@ -159,6 +160,9 @@ class HomeProvider extends ChangeNotifier {
       }),
       HomeGridClass(image: timelineviewString, title: timeLineViewString,onTap: () {
         nextScreen(context, EmployeTimelines(userId: curentUser['Id'].toString()),onthenValue: (value){});
+      },),
+      HomeGridClass(image: payrollSummeryImageString, title: payrollSummeryString, onTap: () {
+        nextScreen(context, const UserPayrollSummaryScreen(), onthenValue: (value) {});
       },),
     ];
   }

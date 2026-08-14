@@ -17,6 +17,7 @@ import 'package:tax_hrm/models/role/get_role_model.dart';
 import 'package:tax_hrm/provider/address_provider.dart';
 import 'package:tax_hrm/provider/commanDataseta.dart';
 import 'package:tax_hrm/provider/department_provider.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/employee_master_provider.dart';
 import 'package:tax_hrm/provider/position_provider.dart';
 import 'package:tax_hrm/provider/role_provider.dart';
@@ -429,6 +430,16 @@ Widget _accountTab(
       );
     }
     
+    final String custId = curentUser is Map
+        ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? ''
+        : '';
+    final bool isSpecialCust = custId == 'TAX541' || custId == 'TAY967';
+    final bool showWorkType = isSpecialCust ||
+        (selectedcurentcompany?.latitude != null &&
+            selectedcurentcompany?.longitude != null &&
+            selectedcurentcompany?.locationRadius != null);
+    final bool showOffice = isSpecialCust;
+
     return Column(
       children: [
         /// LOGIN CREDENTIALS
@@ -634,108 +645,113 @@ Widget _accountTab(
         const SizedBox(height: 24),
 
         /// OFFICE LOCATION & WORK TYPE
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildLabeledField(
-                label: officeString,
-                child: Container(
-                  height: 50.0,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      hint: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          selectOfficeString,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: ColorConst.hintextColor,
-                          ),
-                        ),
+        if (showOffice || showWorkType) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (showOffice) ...[
+                Expanded(
+                  child: _buildLabeledField(
+                    label: officeString,
+                    child: Container(
+                      height: 50.0,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: ColorConst.textBorder, width: 1.3),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      value: provider.selectOfficeLocation.isNotEmpty
-                          ? provider.selectOfficeLocation
-                          : null,
-                      items: provider.officeLocationList.map((item) {
-                        return DropdownMenuItem<String>(
-                          value: item.toString(),
-                          child: Padding(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          hint: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
-                              item.toString(),
-                              style: TextStyle(fontSize: 15, color: ColorConst.black),
+                              selectOfficeString,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: ColorConst.hintextColor,
+                              ),
                             ),
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        provider.updateOfficeLocation(newValue ?? '');
-                      },
-                      dropdownColor: ColorConst.white,
-                      borderRadius: BorderRadius.circular(8),
+                          value: provider.selectOfficeLocation.isNotEmpty
+                              ? provider.selectOfficeLocation
+                              : null,
+                          items: provider.officeLocationList.map((item) {
+                            return DropdownMenuItem<String>(
+                              value: item.toString(),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  item.toString(),
+                                  style: TextStyle(fontSize: 15, color: ColorConst.black),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            provider.updateOfficeLocation(newValue ?? '');
+                          },
+                          dropdownColor: ColorConst.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildLabeledField(
-                label: workTypeString,
-                child: Container(
-                  height: 50.0,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      hint: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          selectWorkTypeString,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: ColorConst.hintextColor,
-                          ),
-                        ),
+              ],
+              if (showOffice && showWorkType) const SizedBox(width: 12),
+              if (showWorkType) ...[
+                Expanded(
+                  child: _buildLabeledField(
+                    label: workTypeString,
+                    child: Container(
+                      height: 50.0,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: ColorConst.textBorder, width: 1.3),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      value: provider.selectWorkType.isNotEmpty
-                          ? provider.selectWorkType
-                          : null,
-                      items: provider.workTypeList.map((item) {
-                        return DropdownMenuItem<String>(
-                          value: item.toString(),
-                          child: Padding(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          hint: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
-                              item.toString(),
-                              style: TextStyle(fontSize: 15, color: ColorConst.black),
+                              selectWorkTypeString,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: ColorConst.hintextColor,
+                              ),
                             ),
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        provider.updateWorkType(newValue ?? '');
-                      },
-                      dropdownColor: ColorConst.white,
-                      borderRadius: BorderRadius.circular(8),
+                          value: provider.selectWorkType.isNotEmpty
+                              ? provider.selectWorkType
+                              : null,
+                          items: provider.workTypeList.map((item) {
+                            return DropdownMenuItem<String>(
+                              value: item.toString(),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  item.toString(),
+                                  style: TextStyle(fontSize: 15, color: ColorConst.black),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            provider.updateWorkType(newValue ?? '');
+                          },
+                          dropdownColor: ColorConst.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 18),
+              ],
+            ],
+          ),
+          const SizedBox(height: 18),
+        ],
       
         /// LOCATION SETTINGS
         Row(
