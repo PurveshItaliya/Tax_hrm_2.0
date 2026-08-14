@@ -21,15 +21,15 @@ subprojects {
             android.compileSdk = 36
             android.buildToolsVersion = "36.0.0"
             
-            android.compileOptions.sourceCompatibility = JavaVersion.VERSION_21
-            android.compileOptions.targetCompatibility = JavaVersion.VERSION_21
+            android.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+            android.compileOptions.targetCompatibility = JavaVersion.VERSION_17
             
             if (project.configurations.findByName("implementation") != null) {
                 project.dependencies.add("implementation", "androidx.concurrent:concurrent-futures:1.2.0")
             }
         }
         project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
-            compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+            compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
 }

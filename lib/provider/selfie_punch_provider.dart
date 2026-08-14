@@ -300,10 +300,28 @@ class SelfiePunchProvider extends ChangeNotifier {
   double distance = 0;
   double allowedRadius = 0;
 
-  final double allowedLat = 21.209324791829328;
-  final double allowedLng = 72.83361489980567;
-  final double allowedLat1 = 21.763838;
-  final double allowedLng1 = 72.146873;
+  // ── Static office coordinates (TAX541 = Surat, TAY967 = Bhavnagar) ──────────
+  // These two companies use hardcoded coords. All other companies use dynamic
+  // lat / lng / locationRadius returned from the CompanyList API.
+  static const double _staticSuratLat  = 21.209324791829328;
+  static const double _staticSuratLng  = 72.83361489980567;
+  static const double _staticBhavLat   = 21.763838;
+  static const double _staticBhavLng   = 72.146873;
+
+  /// True for companies that use hardcoded office coordinates.
+  bool get _isStaticCompany =>
+      curentUser?['CustId'] == 'TAX541' || curentUser?['CustId'] == 'TAY967';
+
+  // ── Dynamic helpers — read from the currently selected company object ────────
+  double? get _companyLat    => selectedcurentcompany?.latitude;
+  double? get _companyLng    => selectedcurentcompany?.longitude;
+  double? get _companyRadius => selectedcurentcompany?.locationRadius;
+
+  /// True when a non-static company has office coordinates set in the backend.
+  bool get _hasCompanyLocation =>
+      !_isStaticCompany &&
+      _companyLat != null && _companyLng != null &&
+      _companyRadius != null && _companyRadius! > 0;
 
   Future<void> getCurrentLocation({BuildContext? context}) async {
     setLocationLoader(true);
@@ -402,8 +420,8 @@ class SelfiePunchProvider extends ChangeNotifier {
           // or inside a deep indoor dead zone (kCLErrorDomain error 0), return office coordinates
           // so the user is never blocked from punching in or testing.
           return Position(
-            latitude: allowedLat,
-            longitude: allowedLng,
+            latitude: _isStaticCompany ? _staticSuratLat : (_companyLat ?? 0.0),
+            longitude: _isStaticCompany ? _staticSuratLng : (_companyLng ?? 0.0),
             timestamp: DateTime.now(),
             accuracy: 50.0,
             altitude: 0.0,
@@ -423,22 +441,39 @@ class SelfiePunchProvider extends ChangeNotifier {
       List<Placemark> placemark = await Geocoding().placemarkFromCoordinates(lat, long);
       if (placemark.isNotEmpty) {
         Placemark place = placemark[0];
-        
-        final officeLoc = curentUser?['OfficeLocation'];
-        if (officeLoc == null || officeLoc.toString().trim().isEmpty || officeLoc.toString().toLowerCase() == 'null') {
+
+        if (_isStaticCompany) {
+          // ── Static path: TAX541 (Surat) / TAY967 (Bhavnagar) ─────────────
+          final officeLoc = curentUser?['OfficeLocation'];
+          if (officeLoc == null || officeLoc.toString().trim().isEmpty || officeLoc.toString().toLowerCase() == 'null') {
+            allowedRadius = 0;
+            distance = 0;
+          } else {
+            final bool isSurat = officeLoc.toString().toLowerCase() == 'surat';
+            allowedRadius = isSurat ? 30 : (Platform.isAndroid ? 20 : 25);
+            distance = Geolocator.distanceBetween(
+              isSurat ? _staticSuratLat : _staticBhavLat,
+              isSurat ? _staticSuratLng : _staticBhavLng,
+              lat, long,
+            );
+          }
+          if (distance <= allowedRadius && allowedRadius > 0 &&
+              curentUser?['OfficeLocation'].toString().toLowerCase() == 'surat') {
+            currentLocation = '601-602, Shubh square, Laldarwaja Main Rd, Patel Vadi, Patel Nagar, Surat, Gujarat 395004';
+          } else {
+            postalCode = place.postalCode;
+            currentLocation = '${place.subThoroughfare ?? ''} ${place.thoroughfare ?? ''}, ${place.subLocality ?? ''}, ${place.locality ?? ''}, ${place.subAdministrativeArea ?? ''}, ${place.administrativeArea ?? ''} ${place.postalCode ?? ''}, ${place.country ?? ''}';
+          }
+        } else if (_hasCompanyLocation) {
+          // ── Dynamic path: company has coords from API ─────────────────────
+          allowedRadius = _companyRadius!;
+          distance = Geolocator.distanceBetween(_companyLat!, _companyLng!, lat, long);
+          postalCode = place.postalCode;
+          currentLocation = '${place.subThoroughfare ?? ''} ${place.thoroughfare ?? ''}, ${place.subLocality ?? ''}, ${place.locality ?? ''}, ${place.subAdministrativeArea ?? ''}, ${place.administrativeArea ?? ''} ${place.postalCode ?? ''}, ${place.country ?? ''}';
+        } else {
+          // ── No location config — no distance restriction ──────────────────
           allowedRadius = 0;
           distance = 0;
-        } else {
-          allowedRadius = officeLoc.toString().toLowerCase() == 'surat' ? 30 : (Platform.isAndroid ? 20 : 25);
-          double targetLat = officeLoc.toString().toLowerCase() == 'surat' ? allowedLat : allowedLat1;
-          double targetLng = officeLoc.toString().toLowerCase() == 'surat' ? allowedLng : allowedLng1;
-          
-          distance = Geolocator.distanceBetween(targetLat, targetLng, lat, long);
-        }
-
-        if (curentUser?['OfficeLocation'] != null && distance <= allowedRadius && allowedRadius > 0 && curentUser?['OfficeLocation'].toString().toLowerCase() == 'surat') {
-          currentLocation = '601-602, Shubh square, Laldarwaja Main Rd, Patel Vadi, Patel Nagar, Surat, Gujarat 395004';
-        } else {
           postalCode = place.postalCode;
           currentLocation = '${place.subThoroughfare ?? ''} ${place.thoroughfare ?? ''}, ${place.subLocality ?? ''}, ${place.locality ?? ''}, ${place.subAdministrativeArea ?? ''}, ${place.administrativeArea ?? ''} ${place.postalCode ?? ''}, ${place.country ?? ''}';
         }
@@ -456,19 +491,28 @@ class SelfiePunchProvider extends ChangeNotifier {
       return;
     }
 
-    final officeLoc = curentUser?['OfficeLocation'];
-    if (officeLoc == null || officeLoc.toString().trim().isEmpty || officeLoc.toString().toLowerCase() == 'null') {
+    if (_isStaticCompany) {
+      // ── Static path: TAX541 (Surat) / TAY967 (Bhavnagar) ─────────────────
+      final officeLoc = curentUser?['OfficeLocation'];
+      if (officeLoc == null || officeLoc.toString().trim().isEmpty || officeLoc.toString().toLowerCase() == 'null') {
+        allowedRadius = 0;
+        distance = 0;
+      } else {
+        final bool isSurat = officeLoc.toString().toLowerCase() == 'surat';
+        allowedRadius = isSurat ? 30 : (Platform.isAndroid ? 20 : 25);
+        distance = Geolocator.distanceBetween(
+          isSurat ? _staticSuratLat : _staticBhavLat,
+          isSurat ? _staticSuratLng : _staticBhavLng,
+          pos.latitude, pos.longitude,
+        );
+      }
+    } else if (_hasCompanyLocation) {
+      // ── Dynamic path: company has coords from API ─────────────────────────
+      allowedRadius = _companyRadius!;
+      distance = Geolocator.distanceBetween(_companyLat!, _companyLng!, pos.latitude, pos.longitude);
+    } else {
       allowedRadius = 0;
       distance = 0;
-    } else {
-      allowedRadius = officeLoc.toString().toLowerCase() == 'surat' ? 30 : (Platform.isAndroid ? 20 : 25);
-
-      distance = Geolocator.distanceBetween(
-        officeLoc.toString().toLowerCase() == 'surat' ? allowedLat : allowedLat1,
-        officeLoc.toString().toLowerCase() == 'surat' ? allowedLng : allowedLng1,
-        pos.latitude,
-        pos.longitude,
-      );
     }
     await getAddressFromLatLng(pos.longitude, pos.latitude);
   }
@@ -546,9 +590,15 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       punchProcessStatus.value = 'Checking Location Range...';
-      bool needOfficeRangeCheck = curentUser['WorkType'] != null &&
-          (curentUser['CustId'] == 'TAX541' || curentUser['CustId'] == 'TAY967') &&
-          curentUser['WorkType'].toString().toLowerCase() != 'home';
+      // Proximity check:
+      //  • Static companies (TAX541 / TAY967): enforce when WorkType is set and not 'home'.
+      //  • All other companies: enforce only if the backend has provided lat/lng/radius.
+      final bool workFromHome =
+          curentUser['WorkType'] != null &&
+          curentUser['WorkType'].toString().toLowerCase() == 'home';
+      final bool needOfficeRangeCheck = _isStaticCompany
+          ? (curentUser['WorkType'] != null && !workFromHome)
+          : (_hasCompanyLocation && !workFromHome);
 
       if (needOfficeRangeCheck) {
         await checkAndPunch(context);

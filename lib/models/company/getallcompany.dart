@@ -36,6 +36,9 @@ class GetCompanyData {
   String? stateName;
     String? cguid;
   dynamic code;
+  double? latitude;
+  double? longitude;
+  double? locationRadius;
 
   GetCompanyData(
       {this.companyId,
@@ -63,7 +66,10 @@ class GetCompanyData {
       this.cityName,
       this.stateName,
        this.cguid,
-      this.code});
+      this.code,
+      this.latitude,
+      this.longitude,
+      this.locationRadius});
 
   GetCompanyData.fromJson(Map<String, dynamic> json) {
     companyId = json['CompanyId'];
@@ -92,6 +98,9 @@ class GetCompanyData {
     stateName = json['StateName'];
       cguid = json['Cguid'];
     code = json['Code'];
+    latitude = json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null;
+    longitude = json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null;
+    locationRadius = json['LocationRadius'] != null ? double.tryParse(json['LocationRadius'].toString()) : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -122,6 +131,9 @@ class GetCompanyData {
     data['StateName'] = stateName;
      data['Cguid'] = cguid;
     data['Code'] = code;
+    data['latitude'] = latitude;
+    data['longitude'] = longitude;
+    data['LocationRadius'] = locationRadius;
     return data;
   }
 }
