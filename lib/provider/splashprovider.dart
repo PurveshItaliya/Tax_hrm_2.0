@@ -24,6 +24,8 @@ import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
 
+import '../models/company/getallcompany.dart';
+
 class SplashProvider extends ChangeNotifier {
   bool isVideoFinished = false;
   Widget? pendingNavigationPage;
@@ -166,7 +168,19 @@ class SplashProvider extends ChangeNotifier {
 
         _updateAllDataForReminders(context);
 
-        await CompanyDataApis().getCompanyDataList().then((value) async {
+        // 1. Instantly load local cache into memory (Level 1 + 2)
+        String savedCompany = await SaveUser().getselectedcompany();
+        if (savedCompany.isNotEmpty) {
+          try {
+            Map<String, dynamic> jsonMap = jsonDecode(savedCompany);
+            selectedcurentcompany = GetCompanyData.fromJson(jsonMap);
+          } catch (e) {
+            // ignore JSON errors
+          }
+        }
+
+        // 2. Start silent background API refresh (Level 3)
+        CompanyDataApis().getCompanyDataList().then((value) async {
           if (value == 401) {
             if (curentUser['Role'] == 'Admin') {
               adminLogin(context);
@@ -174,40 +188,29 @@ class SplashProvider extends ChangeNotifier {
               empLogin(context);
             }
           } else {
-            if (curentUser['Role'] == 'Admin') {
+            getAllCompany = value;
+            await Provider.of<HomeProvider>(context, listen: false).setcompanyselected();
+          }
+        });
+
+        // 3. Immediately go to the Dashboard without waiting for the API
+        if (curentUser['Role'] == 'Admin') {
+          Provider.of<HomeProvider>(
+            context,
+            listen: false,
+          ).changeSelectBottomBar(0);
+          _setupNotificationsAfterSplash();
+          triggerNextScreen(context, AnimatedBottomBar());
+        } else if (curentUser['Role'] == 'Sub-Admin') {
+          SaveUser().loadAdminSwitch().then((value) async {
+            if (switchValue) {
               Provider.of<HomeProvider>(
                 context,
                 listen: false,
               ).changeSelectBottomBar(0);
               _setupNotificationsAfterSplash();
               triggerNextScreen(context, AnimatedBottomBar());
-            } else if (curentUser['Role'] == 'Sub-Admin') {
-              SaveUser().loadAdminSwitch().then((value) async {
-                if (switchValue) {
-                  Provider.of<HomeProvider>(
-                    context,
-                    listen: false,
-                  ).changeSelectBottomBar(0);
-                  _setupNotificationsAfterSplash();
-                  triggerNextScreen(context, AnimatedBottomBar());
-                } else {
-                  await Provider.of<HomeProvider>(
-                    context,
-                    listen: false,
-                  ).companySelect();
-                  Provider.of<HomeProvider>(
-                    context,
-                    listen: false,
-                  ).selectFloadButton();
-                  _setupNotificationsAfterSplash();
-                  triggerNextScreen(context, AnimatedBottomBar());
-                }
-              });
             } else {
-              await Provider.of<HomeProvider>(
-                context,
-                listen: false,
-              ).companySelect();
               Provider.of<HomeProvider>(
                 context,
                 listen: false,
@@ -215,8 +218,15 @@ class SplashProvider extends ChangeNotifier {
               _setupNotificationsAfterSplash();
               triggerNextScreen(context, AnimatedBottomBar());
             }
-          }
-        });
+          });
+        } else {
+          Provider.of<HomeProvider>(
+            context,
+            listen: false,
+          ).selectFloadButton();
+          _setupNotificationsAfterSplash();
+          triggerNextScreen(context, AnimatedBottomBar());
+        }
       } else {
         await FcmTokenService.instance.handleLogout();
         triggerNextScreen(context, LoginScreen());

@@ -348,7 +348,17 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
 
     final bool inRange = provider.distance <= provider.allowedRadius;
     final color = inRange ? Colors.green : Colors.red;
-    final text = inRange ? 'In Range' : 'Out of Range (${provider.distance.toStringAsFixed(1)}m)';
+
+    String distanceText;
+    if (provider.distance >= 1000) {
+      int km = (provider.distance / 1000).floor();
+      int m = (provider.distance % 1000).round();
+      distanceText = m > 0 ? '${km}km ${m}m' : '${km}km';
+    } else {
+      distanceText = '${provider.distance.toStringAsFixed(1)}m';
+    }
+
+    final text = inRange ? 'In Range' : 'Out of Range ($distanceText)';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
