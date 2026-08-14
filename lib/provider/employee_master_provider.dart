@@ -186,16 +186,18 @@ class EmployeeMasterProvider extends ChangeNotifier {
 
   //-------------Delete employee list data--------------------//
   Future deleteEmployes(eid, context) async {
+    setloading(true);
+    notifyListeners();
     await Employeeclass().deleteEmploye(eid).then((value) async {
       DeleteDepartmentmodel deletedResponse = value as DeleteDepartmentmodel;
       if (deletedResponse.success == true) {
         showtoastmessage('Delet Successfully');
       }
-      await employeeListApi();
-      Provider.of<AppPaginationProvider>(
-        context,
-        listen: false,
-      ).countPaginationPage(emplists, 0);
+      await _refreshEmployeeList(context);
+      setloading(false);
+      notifyListeners();
+    }).catchError((e) {
+      setloading(false);
       notifyListeners();
     });
   }
@@ -540,7 +542,6 @@ String? get employeeImageUrl {
 
 
   Future getAllTypesFilterList() async {
-    setloading(true);
     getallMastersData.clear();
     bankAccountTypesList.clear();
     await MasterApis().getMasterData().then((value) async {
@@ -552,7 +553,6 @@ String? get employeeImageUrl {
           notifyListeners();
         }
       }
-      setloading(false);
       notifyListeners();
     });
   }
@@ -635,6 +635,13 @@ String? get employeeImageUrl {
 
   Future<void> _refreshEmployeeList(BuildContext context) async {
     await employeeListApi();
+    try {
+      final cacheKey = '${LocalCacheService.keyMasterData}_employees';
+      final jsonList = employeeList.map((e) => e.toJson()).toList();
+      await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
+    } catch (e) {
+      // silent fallback
+    }
     Provider.of<AppPaginationProvider>(context, listen: false)
         .countPaginationPage(emplists, 0);
   }
@@ -890,6 +897,9 @@ String? get employeeImageUrl {
 void populateEmployeeData(Employeelists? employee, BuildContext context) {
   if (employee == null) return;
   
+  // Clear any existing data first to prevent stale data when switching between employees
+  clearEmployeeForm();
+  
   selectedEmploye = employee;
   _profileImage = null;
   _removeProfileImage = false;
@@ -957,7 +967,7 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
     final trimmed = employee.workType!.trim();
     selectWorkType = workTypeList.firstWhere(
       (item) => item.toString().toLowerCase() == trimmed.toLowerCase(),
-      orElse: () => trimmed,
+      orElse: () => '',
     );
   } else {
     selectWorkType = '';
@@ -967,7 +977,7 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
     final trimmed = employee.officeLocation!.trim();
     selectOfficeLocation = officeLocationList.firstWhere(
       (item) => item.toString().toLowerCase() == trimmed.toLowerCase(),
-      orElse: () => trimmed,
+      orElse: () => '',
     );
   } else {
     selectOfficeLocation = '';
@@ -1158,10 +1168,11 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
       if (!loadedFromCache || forceRefresh) {
         islodering = true;
         notifyListeners();
+        await _fetchEmployeesFromApi(context, cacheKey);
+      } else {
+        // Start background fetch to silently update the cache
+        unawaited(_fetchEmployeesFromApi(context, cacheKey));
       }
-
-      // Start background fetch
-      unawaited(_fetchEmployeesFromApi(context, cacheKey));
 
     } catch (e) {
       islodering = false;

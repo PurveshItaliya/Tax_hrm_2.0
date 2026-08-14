@@ -13,6 +13,7 @@ import 'package:tax_hrm/models/Holidays/getholiday.dart';
 import 'package:tax_hrm/models/SalarryMaster/createStructuresalary.dart';
 import 'package:tax_hrm/models/attendance/monathattendace.dart';
 import 'package:tax_hrm/models/createcguid.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/models/payrool/createpayroll.dart';
 import 'package:tax_hrm/models/payrool/deletesalary.dart';
@@ -399,6 +400,16 @@ class PayRollProviders extends ChangeNotifier {
           'PayRollProviders.setandGetData',
           () => setandGetData(context)
         );
+      } else {
+        if (curentUser != null && curentUser['Role'] != 'Admin') {
+          try {
+            final myEmp = Provider.of<EmployeMastServices>(context, listen: false)
+                .emplists.firstWhere((emp) => emp.id.toString() == curentUser['Id'].toString());
+            Future.microtask(() {
+               employessAddontap(context, myEmp);
+            });
+          } catch (e) {}
+        }
       }
       setloading(false);
     } catch (e) {

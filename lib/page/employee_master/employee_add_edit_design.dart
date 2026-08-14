@@ -33,7 +33,7 @@ Widget buildProfileCard(Size size) {
       final employeeImageUrl = provider.employeeImageUrl;
       final hasImage =
           provider.profileImage != null || employeeImageUrl != null;
-      
+
       // Shimmer for profile card while loading
       if (provider.islodering) {
         return Container(
@@ -74,7 +74,7 @@ Widget buildProfileCard(Size size) {
           ),
         );
       }
-      
+
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
@@ -82,7 +82,7 @@ Widget buildProfileCard(Size size) {
         child: Column(
           children: [
             GestureDetector(
-              onTap: () => showImagePickerOptions(context,provider),
+              onTap: () => showImagePickerOptions(context, provider),
               child: Stack(
                 children: [
                   Container(
@@ -98,11 +98,11 @@ Widget buildProfileCard(Size size) {
                     child: CircleAvatar(
                       radius: 55,
                       backgroundColor: Colors.transparent,
-                      backgroundImage: provider.profileImage != null 
-                          ? FileImage(provider.profileImage!) 
+                      backgroundImage: provider.profileImage != null
+                          ? FileImage(provider.profileImage!)
                           : employeeImageUrl != null
-                              ? NetworkImage(employeeImageUrl)
-                              : null,
+                          ? NetworkImage(employeeImageUrl)
+                          : null,
                       child: !hasImage
                           ? Icon(
                               Icons.person_outline,
@@ -117,7 +117,10 @@ Widget buildProfileCard(Size size) {
                       top: 0,
                       right: 0,
                       child: GestureDetector(
-                        onTap: ()=> provider.deleteImages(provider.selectedEmploye!.id, context),
+                        onTap: () => provider.deleteImages(
+                          provider.selectedEmploye!.id,
+                          context,
+                        ),
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
@@ -147,7 +150,10 @@ Widget buildProfileCard(Size size) {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [ColorConst.themeColor, ColorConst.themeColor],
+                          colors: [
+                            ColorConst.themeColor,
+                            ColorConst.themeColor,
+                          ],
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -175,11 +181,13 @@ Widget buildProfileCard(Size size) {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                provider.firstNameController.text.isNotEmpty || provider.lastNameController.text.isNotEmpty
-                    ? "${provider.firstNameController.text} ${provider.lastNameController.text}".trim()
+                provider.firstNameController.text.isNotEmpty ||
+                        provider.lastNameController.text.isNotEmpty
+                    ? "${provider.firstNameController.text} ${provider.lastNameController.text}"
+                          .trim()
                     : employessNameString,
                 style: TextStyle(
-                  fontSize: 18, 
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: ColorConst.themeColor,
                 ),
@@ -189,7 +197,7 @@ Widget buildProfileCard(Size size) {
             Text(
               provider.selectedPostions?.positionName ?? positionString,
               style: TextStyle(
-                fontSize: 14, 
+                fontSize: 14,
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.w500,
               ),
@@ -206,112 +214,112 @@ Widget buildProfileCard(Size size) {
 // =========================================================
 
 Widget buildExpandableSections(
-    EmployeeMasterProvider provider,
-    Size size,
-    BuildContext context,
-  ) {
-    if (provider.islodering) {
-      return Column(
-        children: List.generate(5, (index) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            decoration: BoxDecoration(
-              color: ColorConst.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+  EmployeeMasterProvider provider,
+  Size size,
+  BuildContext context,
+) {
+  if (provider.islodering) {
+    return Column(
+      children: List.generate(5, (index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          decoration: BoxDecoration(
+            color: ColorConst.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Shimmer(
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Container(
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ],
             ),
-            child: Shimmer(
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Container(
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      );
-    }
-
-    return Form(
-      key: provider.formKey1,
-      child: Column(
-        children: [
-          _buildExpandableSection(
-            title: accountInformationString,
-            icon: Icons.account_circle_outlined,
-            child: _accountTab(provider, size, context),
-            isExpanded: provider.isAccountSectionExpanded,
-            onToggle: () => provider.toggleAccountSection(),
           ),
-          const SizedBox(height: 16),
-          _buildExpandableSection(
-            title: personalInformationString,
-            icon: Icons.person_outline,
-            child: _personalTab(provider, size, context),
-            isExpanded: provider.isPersonalSectionExpanded,
-            onToggle: () => provider.togglePersonalSection(),
-          ),
-          const SizedBox(height: 16),
-          _buildExpandableSection(
-            title: contactInformationString,
-            icon: Icons.contact_phone_outlined,
-            child: _contactTab(size, context, provider),
-            isExpanded: provider.isContactSectionExpanded,
-            onToggle: () => provider.toggleContactSection(),
-          ),
-          const SizedBox(height: 16),
-          _buildExpandableSection(
-            title: educationDetailsString,
-            icon: Icons.school_outlined,
-            child: _educationTab(size, provider),
-            isExpanded: provider.isEducationSectionExpanded,
-            onToggle: () => provider.toggleEducationSection(),
-          ),
-          const SizedBox(height: 16),
-          _buildExpandableSection(
-            title: bankDetailsString,
-            icon: Icons.account_balance_outlined,
-            child: _bankDetailsTab(size, provider),
-            isExpanded: provider.isBankSectionExpanded,
-            onToggle: () => provider.toggleBankSection(),
-          ),
-        ],
-      ),
+        );
+      }),
     );
+  }
+
+  return Form(
+    key: provider.formKey1,
+    child: Column(
+      children: [
+        _buildExpandableSection(
+          title: accountInformationString,
+          icon: Icons.account_circle_outlined,
+          child: _accountTab(provider, size, context),
+          isExpanded: provider.isAccountSectionExpanded,
+          onToggle: () => provider.toggleAccountSection(),
+        ),
+        const SizedBox(height: 16),
+        _buildExpandableSection(
+          title: personalInformationString,
+          icon: Icons.person_outline,
+          child: _personalTab(provider, size, context),
+          isExpanded: provider.isPersonalSectionExpanded,
+          onToggle: () => provider.togglePersonalSection(),
+        ),
+        const SizedBox(height: 16),
+        _buildExpandableSection(
+          title: contactInformationString,
+          icon: Icons.contact_phone_outlined,
+          child: _contactTab(size, context, provider),
+          isExpanded: provider.isContactSectionExpanded,
+          onToggle: () => provider.toggleContactSection(),
+        ),
+        const SizedBox(height: 16),
+        _buildExpandableSection(
+          title: educationDetailsString,
+          icon: Icons.school_outlined,
+          child: _educationTab(size, provider),
+          isExpanded: provider.isEducationSectionExpanded,
+          onToggle: () => provider.toggleEducationSection(),
+        ),
+        const SizedBox(height: 16),
+        _buildExpandableSection(
+          title: bankDetailsString,
+          icon: Icons.account_balance_outlined,
+          child: _bankDetailsTab(size, provider),
+          isExpanded: provider.isBankSectionExpanded,
+          onToggle: () => provider.toggleBankSection(),
+        ),
+      ],
+    ),
+  );
 }
 
 Widget _buildExpandableSection({
@@ -327,7 +335,9 @@ Widget _buildExpandableSection({
       color: ColorConst.white,
       borderRadius: BorderRadius.circular(16),
       border: Border.all(
-        color: isExpanded ? ColorConst.themeColor.withOpacity(0.4) : Colors.grey.shade200,
+        color: isExpanded
+            ? ColorConst.themeColor.withOpacity(0.4)
+            : Colors.grey.shade200,
         width: isExpanded ? 1.5 : 1,
       ),
       boxShadow: [
@@ -361,7 +371,9 @@ Widget _buildExpandableSection({
                   ),
                   child: Icon(
                     icon,
-                    color: isExpanded ? ColorConst.white : ColorConst.themeColor,
+                    color: isExpanded
+                        ? ColorConst.white
+                        : ColorConst.themeColor,
                     size: 22,
                   ),
                 ),
@@ -371,8 +383,12 @@ Widget _buildExpandableSection({
                     title,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: isExpanded ? FontWeight.w700 : FontWeight.w600,
-                      color: isExpanded ? ColorConst.themeColor : ColorConst.black,
+                      fontWeight: isExpanded
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                      color: isExpanded
+                          ? ColorConst.themeColor
+                          : ColorConst.black,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -382,7 +398,9 @@ Widget _buildExpandableSection({
                   duration: const Duration(milliseconds: 250),
                   child: Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: isExpanded ? ColorConst.themeColor : Colors.grey.shade600,
+                    color: isExpanded
+                        ? ColorConst.themeColor
+                        : Colors.grey.shade600,
                     size: 26,
                   ),
                 ),
@@ -392,8 +410,9 @@ Widget _buildExpandableSection({
         ),
         AnimatedCrossFade(
           duration: const Duration(milliseconds: 250),
-          crossFadeState:
-              isExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          crossFadeState: isExpanded
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
           firstChild: Column(
             children: [
               Divider(
@@ -402,7 +421,10 @@ Widget _buildExpandableSection({
                 color: ColorConst.themeColor.withOpacity(0.15),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
                 child: child,
               ),
             ],
@@ -418,406 +440,432 @@ Widget _buildExpandableSection({
 // ACCOUNT TAB (Renamed but functionality unchanged)
 // =========================================================
 
-Widget _accountTab(
-    EmployeeMasterProvider provider,
-    Size size,
-    context
-  ) {
-    // Shimmer for account tab while loading
-    if (provider.islodering) {
-      return Column(
-        children: List.generate(8, (index) => _buildShimmerField(size)),
-      );
-    }
-    
-    final String custId = curentUser is Map
-        ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? ''
-        : '';
-    final bool isSpecialCust = custId == 'TAX541' || custId == 'TAY967';
-    final bool showWorkType = isSpecialCust ||
-        (selectedcurentcompany?.latitude != null &&
-            selectedcurentcompany?.longitude != null &&
-            selectedcurentcompany?.locationRadius != null);
-    final bool showOffice = isSpecialCust;
-
+Widget _accountTab(EmployeeMasterProvider provider, Size size, context) {
+  // Shimmer for account tab while loading
+  if (provider.islodering) {
     return Column(
-      children: [
-        /// LOGIN CREDENTIALS
-        _buildSubSectionHeader(loginCredentialsString, Icons.lock_outline),
-        const SizedBox(height: 16),
-      
-        /// USERNAME & PASSWORD
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildLabeledField(
-                label: userNameString,
-                isRequired: true,
-                child: CommonTextField(
-                  controller: provider.usernameController,
-                  borderRadius: 8.0,
-                  validator:(value) {
-                    if(value == null || value.isEmpty) {
-                      return userNameRequiredString;
-                    }
-                    return null;
-                  },
-                ),
+      children: List.generate(8, (index) => _buildShimmerField(size)),
+    );
+  }
+
+  final String custId = curentUser is Map
+      ? curentUser['CustId']?.toString() ??
+            curentUser['custid']?.toString() ??
+            ''
+      : '';
+  final bool isSpecialCust = custId == 'TAX541' || custId == 'TAY967';
+  final bool showOffice = isSpecialCust;
+
+  return Column(
+    children: [
+      /// LOGIN CREDENTIALS
+      _buildSubSectionHeader(loginCredentialsString, Icons.lock_outline),
+      const SizedBox(height: 16),
+
+      /// USERNAME & PASSWORD
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildLabeledField(
+              label: userNameString,
+              isRequired: true,
+              child: CommonTextField(
+                controller: provider.usernameController,
+                borderRadius: 8.0,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return userNameRequiredString;
+                  }
+                  return null;
+                },
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildLabeledField(
-                label: passwordString,
-                isRequired: true,
-                child: CommonTextField(
-                  controller: provider.passwordController,
-                  borderRadius: 8.0,
-                  obscureText: !provider.isPasswordVisible, 
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      provider.isPasswordVisible
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildLabeledField(
+              label: passwordString,
+              isRequired: true,
+              child: CommonTextField(
+                controller: provider.passwordController,
+                borderRadius: 8.0,
+                obscureText: !provider.isPasswordVisible,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    provider.isPasswordVisible
                         ? Icons.visibility_off_outlined
                         : Icons.remove_red_eye_outlined,
-                      color: ColorConst.themeColor,
-                      size: 20,
-                    ),
-                    onPressed: provider.togglePasswordVisibility,
+                    color: ColorConst.themeColor,
+                    size: 20,
                   ),
-                  validator:(value) {
-                    if(value == null || value.isEmpty) {
-                      return passwordRequiredString;
-                    }
-                    return null;
-                  },
+                  onPressed: provider.togglePasswordVisibility,
                 ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return passwordRequiredString;
+                  }
+                  return null;
+                },
               ),
             ),
-          ],
-        ),
-      
-        const SizedBox(height: 24),
-      
-        /// ORGANIZATION DETAILS
-        _buildSubSectionHeader(organizationDetailsString, Icons.business_center),
-        const SizedBox(height: 16),
-      
-        /// DEPARTMENT & DESIGNATION
-        _buildLabeledField(
-          label: departmentString,
-          isRequired: true,
-          child: AppSearchableDropdown<DepartMnetModel>(
-            dropdownKey: ValueKey(provider.selectedDepartment),
-            initialItem: provider.selectedDepartment,
-            hintText: selectDepartmentNameString,
-            futureRequest: (value) => provider.getfilterDepartment(value, context),
-            items: Provider.of<DepartmentServices>(context, listen: false).alldepartment,
-            itemAsString: (item) => item.departmentName.toString(),
-            validator: (value) {
-              if (value == null) {
-                return selectDepartmentNameString;
-              }
-              return null;
-            },
-            headerBuilder: (context, selectedItem, enabled) {
-              return Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      provider.selectedDepartment == null
-                          ? selectDepartmentNameString
-                          : provider.selectedDepartment!.departmentName.toString(),
-                    ),
-                  ),
-                  const Spacer(),
-                  if (provider.selectedDepartment != null)
-                    GestureDetector(
-                      onTap: () {
-                        provider.clearDepartment();
-                        provider.clearPosition();
-                      },
-                      child: Icon(Icons.clear_rounded, size: size.height * 0.02, color: Colors.grey),
-                    ),
-                ],
-              );
-            },
-            onChanged: (vals) {
-              provider.selectedDepartment = vals;
-              provider.clearPosition();
-              provider.setFilterPostions(context);
-            },
           ),
-        ),
-      
-        const SizedBox(height: 18),
-      
-        _buildLabeledField(
-          label: positionString,
-          isRequired: true,
-          child: AppSearchableDropdown<PositionDataL>(
-            dropdownKey: ValueKey(provider.selectedPostions),
-            initialItem: provider.selectedPostions,
-            hintText: selectDesignationNameString,
-            futureRequest: (value) => provider.getfiltersPostions(value, context),
-            items: Provider.of<PositionMasterService>(context, listen: false).getFiltersPostionList,
-            itemAsString: (item) => item.positionName.toString(),
-            validator: (value) {
-              if (value == null) {
-                return selectDesignationNameString;
-              }
-              return null;
-            },
-            headerBuilder: (context, selectedItem, enabled) {
-              return Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      provider.selectedPostions == null
-                          ? selectDesignationNameString
-                          : provider.selectedPostions!.positionName.toString(),
-                    ),
-                  ),
-                  const Spacer(),
-                  if (provider.selectedPostions != null)
-                    GestureDetector(
-                      onTap: () {
-                        provider.clearPosition();
-                      },
-                      child: Icon(Icons.clear_rounded, size: size.height * 0.02, color: Colors.grey),
-                    ),
-                ],
-              );
-            },
-            onChanged: (vals) {
-              provider.selectedPostions = vals;
-            },
-          ),
-        ),
-      
-        const SizedBox(height: 24),
-      
-        /// ROLE
-        _buildLabeledField(
-          label: roleString,
-          child: AppSearchableDropdown<Getrolemodel>(
-            dropdownKey: ValueKey(provider.selectedRole),
-            initialItem: provider.selectedRole,
-            hintText: selectRoleString,
-            futureRequest: (value) => provider.getroleFilters(value, context),
-            items: Provider.of<RoleMstServices>(context, listen: false).getRoleList,
-            itemAsString: (item) => item.role.toString(),
-            headerBuilder: (context, selectedItem, enabled) {
-              return Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      provider.selectedRole == null
-                          ? selectRoleString
-                          : provider.selectedRole!.role.toString(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (provider.selectedRole != null) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        provider.selectedRole = null;
-                        provider.notifyListeners();
-                      },
-                      child: Icon(Icons.clear_rounded, size: size.height * 0.02, color: Colors.grey),
-                    ),
-                  ],
-                ],
-              );
-            },
-            onChanged: (vals) {
-              provider.selectedRole = vals;
-            },
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        /// OFFICE LOCATION & WORK TYPE
-        if (showOffice || showWorkType) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (showOffice) ...[
-                Expanded(
-                  child: _buildLabeledField(
-                    label: officeString,
-                    child: Container(
-                      height: 50.0,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              selectOfficeString,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: ColorConst.hintextColor,
-                              ),
-                            ),
-                          ),
-                          value: provider.selectOfficeLocation.isNotEmpty
-                              ? provider.selectOfficeLocation
-                              : null,
-                          items: provider.officeLocationList.map((item) {
-                            return DropdownMenuItem<String>(
-                              value: item.toString(),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text(
-                                  item.toString(),
-                                  style: TextStyle(fontSize: 15, color: ColorConst.black),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            provider.updateOfficeLocation(newValue ?? '');
-                          },
-                          dropdownColor: ColorConst.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              if (showOffice && showWorkType) const SizedBox(width: 12),
-              if (showWorkType) ...[
-                Expanded(
-                  child: _buildLabeledField(
-                    label: workTypeString,
-                    child: Container(
-                      height: 50.0,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              selectWorkTypeString,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: ColorConst.hintextColor,
-                              ),
-                            ),
-                          ),
-                          value: provider.selectWorkType.isNotEmpty
-                              ? provider.selectWorkType
-                              : null,
-                          items: provider.workTypeList.map((item) {
-                            return DropdownMenuItem<String>(
-                              value: item.toString(),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text(
-                                  item.toString(),
-                                  style: TextStyle(fontSize: 15, color: ColorConst.black),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            provider.updateWorkType(newValue ?? '');
-                          },
-                          dropdownColor: ColorConst.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 18),
         ],
-      
-        /// LOCATION SETTINGS
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      ),
+
+      const SizedBox(height: 24),
+
+      /// ORGANIZATION DETAILS
+      _buildSubSectionHeader(organizationDetailsString, Icons.business_center),
+      const SizedBox(height: 16),
+
+      /// DEPARTMENT & DESIGNATION
+      _buildLabeledField(
+        label: departmentString,
+        isRequired: true,
+        child: AppSearchableDropdown<DepartMnetModel>(
+          dropdownKey: ValueKey(provider.selectedDepartment),
+          initialItem: provider.selectedDepartment,
+          hintText: selectDepartmentNameString,
+          futureRequest: (value) =>
+              provider.getfilterDepartment(value, context),
+          items: Provider.of<DepartmentServices>(
+            context,
+            listen: false,
+          ).alldepartment,
+          itemAsString: (item) => item.departmentName.toString(),
+          validator: (value) {
+            if (value == null) {
+              return selectDepartmentNameString;
+            }
+            return null;
+          },
+          headerBuilder: (context, selectedItem, enabled) {
+            return Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    provider.selectedDepartment == null
+                        ? selectDepartmentNameString
+                        : provider.selectedDepartment!.departmentName
+                              .toString(),
+                  ),
+                ),
+                const Spacer(),
+                if (provider.selectedDepartment != null)
+                  GestureDetector(
+                    onTap: () {
+                      provider.clearDepartment();
+                      provider.clearPosition();
+                    },
+                    child: Icon(
+                      Icons.clear_rounded,
+                      size: size.height * 0.02,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
+            );
+          },
+          onChanged: (vals) {
+            provider.selectedDepartment = vals;
+            provider.clearPosition();
+            provider.setFilterPostions(context);
+          },
+        ),
+      ),
+
+      const SizedBox(height: 18),
+
+      _buildLabeledField(
+        label: positionString,
+        isRequired: true,
+        child: AppSearchableDropdown<PositionDataL>(
+          dropdownKey: ValueKey(provider.selectedPostions),
+          initialItem: provider.selectedPostions,
+          hintText: selectDesignationNameString,
+          futureRequest: (value) => provider.getfiltersPostions(value, context),
+          items: Provider.of<PositionMasterService>(
+            context,
+            listen: false,
+          ).getFiltersPostionList,
+          itemAsString: (item) => item.positionName.toString(),
+          validator: (value) {
+            if (value == null) {
+              return selectDesignationNameString;
+            }
+            return null;
+          },
+          headerBuilder: (context, selectedItem, enabled) {
+            return Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    provider.selectedPostions == null
+                        ? selectDesignationNameString
+                        : provider.selectedPostions!.positionName.toString(),
+                  ),
+                ),
+                const Spacer(),
+                if (provider.selectedPostions != null)
+                  GestureDetector(
+                    onTap: () {
+                      provider.clearPosition();
+                    },
+                    child: Icon(
+                      Icons.clear_rounded,
+                      size: size.height * 0.02,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
+            );
+          },
+          onChanged: (vals) {
+            provider.selectedPostions = vals;
+          },
+        ),
+      ),
+
+      const SizedBox(height: 24),
+
+      /// ROLE
+      _buildLabeledField(
+        label: roleString,
+        child: AppSearchableDropdown<Getrolemodel>(
+          dropdownKey: ValueKey(provider.selectedRole),
+          initialItem: provider.selectedRole,
+          hintText: selectRoleString,
+          futureRequest: (value) => provider.getroleFilters(value, context),
+          items: Provider.of<RoleMstServices>(
+            context,
+            listen: false,
+          ).getRoleList,
+          itemAsString: (item) => item.role.toString(),
+          headerBuilder: (context, selectedItem, enabled) {
+            return Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    provider.selectedRole == null
+                        ? selectRoleString
+                        : provider.selectedRole!.role.toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (provider.selectedRole != null) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      provider.selectedRole = null;
+                      provider.notifyListeners();
+                    },
+                    child: Icon(
+                      Icons.clear_rounded,
+                      size: size.height * 0.02,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
+          onChanged: (vals) {
+            provider.selectedRole = vals;
+          },
+        ),
+      ),
+
+      const SizedBox(height: 24),
+
+      /// OFFICE LOCATION & WORK TYPE
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showOffice) ...[
             Expanded(
               child: _buildLabeledField(
-                label: fetchLocationString,
+                label: officeString,
                 child: Container(
                   height: 50.0,
                   decoration: BoxDecoration(
-                    border: Border.all(color: ColorConst.textBorder, width: 1.3),
+                    border: Border.all(
+                      color: ColorConst.textBorder,
+                      width: 1.3,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12.0),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      hint: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          provider.isFetchLocation ? enabledString : disabledString,
-                          style: const TextStyle(fontSize: 15),
+                          selectOfficeString,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: ColorConst.hintextColor,
+                          ),
                         ),
                       ),
-                      Switch(
-                        value: provider.isFetchLocation,
-                        activeColor: ColorConst.themeColor,
-                        onChanged: (value) {
-                          provider.setFetchLocation(value);
-                        },
-                      ),
-                    ],
+                      value: (provider.selectOfficeLocation.isNotEmpty &&
+                              provider.officeLocationList.contains(provider.selectOfficeLocation))
+                          ? provider.selectOfficeLocation
+                          : null,
+                      items: provider.officeLocationList.map((item) {
+                        return DropdownMenuItem<String>(
+                          value: item.toString(),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              item.toString(),
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: ColorConst.black,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        provider.updateOfficeLocation(newValue ?? '');
+                      },
+                      dropdownColor: ColorConst.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildLabeledField(
-                label: locationRadiusString,
-                isRequired: true,
-                child: CommonTextField(
-                  controller: provider.locationRadiusController,
-                  borderRadius: 8.0,
-                  keyboardType: TextInputType.number,
-                  hintText: egRadiusHintString,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return radiusRequiredString;
-                    }
-                    if (int.tryParse(value) == null) {
-                      return enterValidNumberString;
-                    }
-                    return null;
-                  },
                 ),
               ),
             ),
           ],
-        ),
- 
-        const SizedBox(height: 15),
- 
-        _buildStatusSection(provider),
-      ],
-    );
+          if (showOffice) const SizedBox(width: 12),
+          Expanded(
+            child: _buildLabeledField(
+              label: workTypeString,
+              child: Container(
+                height: 50.0,
+                decoration: BoxDecoration(
+                  border: Border.all(color: ColorConst.textBorder, width: 1.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    hint: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        selectWorkTypeString,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: ColorConst.hintextColor,
+                        ),
+                      ),
+                    ),
+                    value: (provider.selectWorkType.isNotEmpty &&
+                            provider.workTypeList.contains(provider.selectWorkType))
+                        ? provider.selectWorkType
+                        : null,
+                    items: provider.workTypeList.map((item) {
+                      return DropdownMenuItem<String>(
+                        value: item.toString(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            item.toString(),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: ColorConst.black,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      provider.updateWorkType(newValue ?? '');
+                    },
+                    dropdownColor: ColorConst.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 18),
+
+      /// LOCATION SETTINGS
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildLabeledField(
+              label: fetchLocationString,
+              child: Container(
+                height: 50.0,
+                decoration: BoxDecoration(
+                  border: Border.all(color: ColorConst.textBorder, width: 1.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 12.0),
+                      child: Text(
+                        provider.isFetchLocation
+                            ? enabledString
+                            : disabledString,
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    ),
+                    Switch(
+                      value: provider.isFetchLocation,
+                      activeColor: ColorConst.themeColor,
+                      onChanged: (value) {
+                        provider.setFetchLocation(value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildLabeledField(
+              label: locationRadiusString,
+              isRequired: true,
+              child: CommonTextField(
+                controller: provider.locationRadiusController,
+                borderRadius: 8.0,
+                keyboardType: TextInputType.number,
+                hintText: egRadiusHintString,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return radiusRequiredString;
+                  }
+                  if (int.tryParse(value) == null) {
+                    return enterValidNumberString;
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 15),
+
+      _buildStatusSection(provider),
+    ],
+  );
 }
 
 // =========================================================
@@ -825,388 +873,403 @@ Widget _accountTab(
 // =========================================================
 
 Widget _personalTab(
-    EmployeeMasterProvider provider,
-    Size size,
-    BuildContext context,
-  ) {
-    // Shimmer for personal tab while loading
-    if (provider.islodering) {
-      return Column(
-        children: List.generate(10, (index) => _buildShimmerField(size)),
-      );
-    }
-    
+  EmployeeMasterProvider provider,
+  Size size,
+  BuildContext context,
+) {
+  // Shimmer for personal tab while loading
+  if (provider.islodering) {
     return Column(
-      children: [
-        /// PERSONAL INFORMATION
-        _buildSubSectionHeader(personalInformationString, Icons.person_outline),
-        const SizedBox(height: 16),
-      
-        /// FIRST NAME & LAST NAME
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildLabeledField(
-                label: firstNameString,
-                isRequired: true,
-                child: CommonTextField(
-                  controller: provider.firstNameController,
-                  borderRadius: 8.0,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return firstNameRequiredString;
-                    }
-                    return null;
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildLabeledField(
-                label: lastNameString,
-                isRequired: true,
-                child: CommonTextField(
-                  controller: provider.lastNameController,
-                  borderRadius: 8.0,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return lastNameRequiredString;
-                    }
-                    return null;
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      
-        const SizedBox(height: 18),
-      
-        /// DOB & JOINING DATE
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildLabeledField(
-                label: dateofBirthString,
-                child: CommonTextField(
-                  controller: provider.dobController,
-                  borderRadius: 8.0,
-                  readOnly: true,
-                  hintText: selectDOBString,
-                  suffixIcon: IgnorePointer(
-                    child: IconButton(
-                      onPressed: () {},
-                      icon: Icon(
-                        Icons.calendar_today_outlined,
-                        color: ColorConst.themeColor,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    Provider.of<CommandWidigetsProvider>(
-                      context,
-                      listen: false,
-                    ).pickDate(
-                      context,
-                      size,
-                      provider.selectedFromDate == null
-                          ? DateTime.now()
-                          : DateTime.parse(provider.selectedFromDate!),
-                      null,
-                      null,
-                      (vals) {
-                        provider.selectedFromDate = vals.toString();
-                        provider.dobController.text = DateFormat('dd/MM/yyyy').format(
-                          DateTime.parse(provider.selectedFromDate!),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildLabeledField(
-                label: dateOfJoiningString,
-                isRequired: true,
-                child: CommonTextField(
-                  controller: provider.joiningController,
-                  borderRadius: 8.0,
-                  readOnly: true,
-                  hintText: selectJoiningDateString,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return dojRequiredString;
-                    }
-                    return null;
-                  },
-                  suffixIcon: IgnorePointer(
-                    child: IconButton(
-                      onPressed: () {},
-                      icon: Icon(
-                        Icons.calendar_today_outlined,
-                        color: ColorConst.themeColor,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    Provider.of<CommandWidigetsProvider>(
-                      context,
-                      listen: false,
-                    ).pickDate(
-                      context,
-                      size,
-                      provider.selectedToDate == null
-                          ? DateTime.now()
-                          : DateTime.parse(provider.selectedToDate!),
-                      null,
-                      null,
-                      (vals) {
-                        provider.selectedToDate = vals.toString();
-                        provider.joiningController.text = DateFormat('dd/MM/yyyy').format(
-                          DateTime.parse(provider.selectedToDate!),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      
-        const SizedBox(height: 18),
-      
-        /// GENDER & MARITAL STATUS
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildLabeledField(
-                label: genderString,
-                child: Container(
-                  height: 50.0,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton2<TypedClass>(
-                      isExpanded: true,
-                      hint: FixText(
-                        dataName: provider.selectGender == null
-                            ? genderString
-                            : provider.selectGender!.values,
-                        textSize: 14,
-                        colors: ColorConst.hintextColor,
-                      ),
-                      items: gendersList.map((TypedClass item) {
-                        return DropdownItem<TypedClass>(
-                          value: item,
-                          child: Text(
-                            item.values,
-                            style: TextStyle(fontSize: 15, color: ColorConst.black),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (TypedClass? value) {
-                        if (value != null) {
-                          provider.setGender(value);
-                        }
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildLabeledField(
-                label: maritalStatusString,
-                child: Container(
-                  height: 50.0,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton2<String>(
-                      isExpanded: true,
-                      hint: FixText(
-                        dataName: provider.selectedmarital == null
-                            ? maritalStatusString
-                            : provider.selectedmarital.toString(),
-                        textSize: 14,
-                        colors: ColorConst.hintextColor,
-                      ),
-                      items: maritalitem.map((String item) {
-                        return DropdownItem<String>(
-                          value: item,
-                          child: Text(
-                            item,
-                            style: TextStyle(fontSize: 15, color: ColorConst.black),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (String? value) {
-                        provider.setMarital(value);
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      
-        const SizedBox(height: 24),
-      
-        /// EMPLOYMENT DETAILS
-        _buildSubSectionHeader(employmentDetailsString, Icons.work_outline),
-        const SizedBox(height: 16),
-      
-        /// SALARY TYPE & SALARY
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildLabeledField(
-                label: salaryTypeString,
-                child: Container(
-                  height: 50.0,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton2<TypedClass>(
-                      isExpanded: true,
-                      hint: FixText(
-                        dataName: provider.seselectedSalaryTypesle == null
-                            ? salaryTypeString
-                            : provider.seselectedSalaryTypesle!.values,
-                        textSize: 14,
-                        colors: ColorConst.hintextColor,
-                      ),
-                      items: salaryBaseList.map((TypedClass item) {
-                        return DropdownItem<TypedClass>(
-                          value: item,
-                          child: Text(
-                            item.values,
-                            style: TextStyle(fontSize: 15, color: ColorConst.black),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (TypedClass? value) {
-                        provider.setSalaryType(value!);
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildLabeledField(
-                label: salaryAmountString,
-                isRequired: true,
-                child: CommonTextField(
-                  controller: provider.salaryController,
-                  borderRadius: 8.0,
-                  keyboardType: const TextInputType.numberWithOptions(),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return salaryRequiredString;
-                    }
-                    return null;
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      
-        const SizedBox(height: 18),
-      
-        /// TOTAL HOURS & PAN NO
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildLabeledField(
-                label: totalHoursString,
-                isRequired: true,
-                child: CommonTextField(
-                  controller: provider.totalHoursController,
-                  borderRadius: 8.0,
-                  keyboardType: const TextInputType.numberWithOptions(),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return totalHoursRequiredString;
-                    }
-                    return null;
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildLabeledField(
-                label: panString,
-                child: CommonTextField(
-                  controller: provider.panNOController,
-                  borderRadius: 8.0,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return null;
-                    }
-                    // Only validate format if value is provided
-                    RegExp panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
-                    if (!panRegex.hasMatch(value.toUpperCase())) {
-                      return invalidPanFormatString;
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    provider.panNOController.text = value.toUpperCase();
-                    provider.panNOController.selection = TextSelection.fromPosition(
-                      TextPosition(offset: provider.panNOController.text.length),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+      children: List.generate(10, (index) => _buildShimmerField(size)),
     );
+  }
+
+  return Column(
+    children: [
+      /// PERSONAL INFORMATION
+      _buildSubSectionHeader(personalInformationString, Icons.person_outline),
+      const SizedBox(height: 16),
+
+      /// FIRST NAME & LAST NAME
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildLabeledField(
+              label: firstNameString,
+              isRequired: true,
+              child: CommonTextField(
+                controller: provider.firstNameController,
+                borderRadius: 8.0,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return firstNameRequiredString;
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildLabeledField(
+              label: lastNameString,
+              isRequired: true,
+              child: CommonTextField(
+                controller: provider.lastNameController,
+                borderRadius: 8.0,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return lastNameRequiredString;
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 18),
+
+      /// DOB & JOINING DATE
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildLabeledField(
+              label: dateofBirthString,
+              child: CommonTextField(
+                controller: provider.dobController,
+                borderRadius: 8.0,
+                readOnly: true,
+                hintText: selectDOBString,
+                suffixIcon: IgnorePointer(
+                  child: IconButton(
+                    onPressed: () {},
+                    icon: Icon(
+                      Icons.calendar_today_outlined,
+                      color: ColorConst.themeColor,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                onTap: () {
+                  Provider.of<CommandWidigetsProvider>(
+                    context,
+                    listen: false,
+                  ).pickDate(
+                    context,
+                    size,
+                    provider.selectedFromDate == null
+                        ? DateTime.now()
+                        : DateTime.parse(provider.selectedFromDate!),
+                    null,
+                    null,
+                    (vals) {
+                      provider.selectedFromDate = vals.toString();
+                      provider.dobController.text = DateFormat(
+                        'dd/MM/yyyy',
+                      ).format(DateTime.parse(provider.selectedFromDate!));
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildLabeledField(
+              label: dateOfJoiningString,
+              isRequired: true,
+              child: CommonTextField(
+                controller: provider.joiningController,
+                borderRadius: 8.0,
+                readOnly: true,
+                hintText: selectJoiningDateString,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return dojRequiredString;
+                  }
+                  return null;
+                },
+                suffixIcon: IgnorePointer(
+                  child: IconButton(
+                    onPressed: () {},
+                    icon: Icon(
+                      Icons.calendar_today_outlined,
+                      color: ColorConst.themeColor,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                onTap: () {
+                  Provider.of<CommandWidigetsProvider>(
+                    context,
+                    listen: false,
+                  ).pickDate(
+                    context,
+                    size,
+                    provider.selectedToDate == null
+                        ? DateTime.now()
+                        : DateTime.parse(provider.selectedToDate!),
+                    null,
+                    null,
+                    (vals) {
+                      provider.selectedToDate = vals.toString();
+                      provider.joiningController.text = DateFormat(
+                        'dd/MM/yyyy',
+                      ).format(DateTime.parse(provider.selectedToDate!));
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 18),
+
+      /// GENDER & MARITAL STATUS
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildLabeledField(
+              label: genderString,
+              child: Container(
+                height: 50.0,
+                decoration: BoxDecoration(
+                  border: Border.all(color: ColorConst.textBorder, width: 1.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton2<TypedClass>(
+                    isExpanded: true,
+                    hint: FixText(
+                      dataName: provider.selectGender == null
+                          ? genderString
+                          : provider.selectGender!.values,
+                      textSize: 14,
+                      colors: ColorConst.hintextColor,
+                    ),
+                    items: gendersList.map((TypedClass item) {
+                      return DropdownItem<TypedClass>(
+                        value: item,
+                        child: Text(
+                          item.values,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: ColorConst.black,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (TypedClass? value) {
+                      if (value != null) {
+                        provider.setGender(value);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildLabeledField(
+              label: maritalStatusString,
+              child: Container(
+                height: 50.0,
+                decoration: BoxDecoration(
+                  border: Border.all(color: ColorConst.textBorder, width: 1.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton2<String>(
+                    isExpanded: true,
+                    hint: FixText(
+                      dataName: provider.selectedmarital == null
+                          ? maritalStatusString
+                          : provider.selectedmarital.toString(),
+                      textSize: 14,
+                      colors: ColorConst.hintextColor,
+                    ),
+                    items: maritalitem.map((String item) {
+                      return DropdownItem<String>(
+                        value: item,
+                        child: Text(
+                          item,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: ColorConst.black,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? value) {
+                      provider.setMarital(value);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 24),
+
+      /// EMPLOYMENT DETAILS
+      _buildSubSectionHeader(employmentDetailsString, Icons.work_outline),
+      const SizedBox(height: 16),
+
+      /// SALARY TYPE & SALARY
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildLabeledField(
+              label: salaryTypeString,
+              child: Container(
+                height: 50.0,
+                decoration: BoxDecoration(
+                  border: Border.all(color: ColorConst.textBorder, width: 1.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton2<TypedClass>(
+                    isExpanded: true,
+                    hint: FixText(
+                      dataName: provider.seselectedSalaryTypesle == null
+                          ? salaryTypeString
+                          : provider.seselectedSalaryTypesle!.values,
+                      textSize: 14,
+                      colors: ColorConst.hintextColor,
+                    ),
+                    items: salaryBaseList.map((TypedClass item) {
+                      return DropdownItem<TypedClass>(
+                        value: item,
+                        child: Text(
+                          item.values,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: ColorConst.black,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (TypedClass? value) {
+                      provider.setSalaryType(value!);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildLabeledField(
+              label: salaryAmountString,
+              isRequired: true,
+              child: CommonTextField(
+                controller: provider.salaryController,
+                borderRadius: 8.0,
+                keyboardType: const TextInputType.numberWithOptions(),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return salaryRequiredString;
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 18),
+
+      /// TOTAL HOURS & PAN NO
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildLabeledField(
+              label: totalHoursString,
+              isRequired: true,
+              child: CommonTextField(
+                controller: provider.totalHoursController,
+                borderRadius: 8.0,
+                keyboardType: const TextInputType.numberWithOptions(),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return totalHoursRequiredString;
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildLabeledField(
+              label: panString,
+              child: CommonTextField(
+                controller: provider.panNOController,
+                borderRadius: 8.0,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return null;
+                  }
+                  // Only validate format if value is provided
+                  RegExp panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
+                  if (!panRegex.hasMatch(value.toUpperCase())) {
+                    return invalidPanFormatString;
+                  }
+                  return null;
+                },
+                onChanged: (value) {
+                  provider.panNOController.text = value.toUpperCase();
+                  provider
+                      .panNOController
+                      .selection = TextSelection.fromPosition(
+                    TextPosition(offset: provider.panNOController.text.length),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 // =========================================================
 // CONTACT TAB (Renamed but functionality unchanged)
 // =========================================================
 
-Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provider) {
+Widget _contactTab(
+  Size size,
+  BuildContext context,
+  EmployeeMasterProvider provider,
+) {
   // Shimmer for contact tab while loading
   if (provider.islodering) {
     return Column(
       children: List.generate(8, (index) => _buildShimmerField(size)),
     );
   }
-  
+
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       /// ADDRESS INFORMATION
       _buildSubSectionHeader(addressInformationString, Icons.location_on),
       const SizedBox(height: 16),
-      
+
       _buildLabeledField(
         label: address1String,
         child: CommonTextField(
@@ -1214,9 +1277,9 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           borderRadius: 8.0,
         ),
       ),
-      
+
       const SizedBox(height: 18),
-      
+
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1241,13 +1304,13 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           ),
         ],
       ),
-      
+
       const SizedBox(height: 24),
-      
+
       /// CONTACT DETAILS
       _buildSubSectionHeader(contactDetailsString, Icons.phone_outlined),
       const SizedBox(height: 16),
-      
+
       _buildLabeledField(
         label: mobile1String,
         isRequired: true,
@@ -1267,9 +1330,9 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           },
         ),
       ),
-      
+
       const SizedBox(height: 18),
-      
+
       _buildLabeledField(
         label: mobile2String,
         child: PhoneNumberTextFiled(
@@ -1282,9 +1345,9 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           },
         ),
       ),
-      
+
       const SizedBox(height: 18),
-      
+
       _buildLabeledField(
         label: emailUserString,
         child: CommonTextField(
@@ -1292,13 +1355,13 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           borderRadius: 8.0,
         ),
       ),
-      
+
       const SizedBox(height: 24),
-      
+
       /// LOCATION DETAILS
       _buildSubSectionHeader(locationDetailsString, Icons.map_outlined),
       const SizedBox(height: 16),
-      
+
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1309,15 +1372,26 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
                 dropdownKey: ValueKey(provider.selectedStates),
                 initialItem: provider.selectedStates,
                 hintText: stateString,
-                futureRequest: (value) => provider.getFilterState(value, context),
-                items: Provider.of<AddresProviders>(context, listen: false).mainStateList,
+                futureRequest: (value) =>
+                    provider.getFilterState(value, context),
+                items: Provider.of<AddresProviders>(
+                  context,
+                  listen: false,
+                ).mainStateList,
                 itemAsString: (item) => item.stateName.toString(),
                 headerBuilder: (context, selectedItem, enabled) {
-                  return Text(provider.selectedStates == null ? selectStateString : provider.selectedStates!.stateName.toString());
+                  return Text(
+                    provider.selectedStates == null
+                        ? selectStateString
+                        : provider.selectedStates!.stateName.toString(),
+                  );
                 },
                 onChanged: (vals) {
                   provider.selectedStates = vals;
-                  Provider.of<AddresProviders>(context, listen: false).filtersCity(provider.selectedStates!.stateID);
+                  Provider.of<AddresProviders>(
+                    context,
+                    listen: false,
+                  ).filtersCity(provider.selectedStates!.stateID);
                   provider.selectedCitys = null;
                 },
               ),
@@ -1331,24 +1405,35 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
                 dropdownKey: ValueKey(provider.selectedCitys),
                 initialItem: provider.selectedCitys,
                 hintText: cityString,
-                futureRequest: (value) => provider.getFilterCitys(value, context),
-                items: Provider.of<AddresProviders>(context, listen: false).filtersCityList,
+                futureRequest: (value) =>
+                    provider.getFilterCitys(value, context),
+                items: Provider.of<AddresProviders>(
+                  context,
+                  listen: false,
+                ).filtersCityList,
                 itemAsString: (item) => item.cityName.toString(),
                 headerBuilder: (context, selectedItem, enabled) {
-                  return Text(provider.selectedCitys == null ? selectCityString : provider.selectedCitys!.cityName.toString());
+                  return Text(
+                    provider.selectedCitys == null
+                        ? selectCityString
+                        : provider.selectedCitys!.cityName.toString(),
+                  );
                 },
                 onChanged: (vals) {
                   provider.selectedCitys = vals;
-                  Provider.of<AddresProviders>(context, listen: false).filterPincodes(provider.selectedCitys!.cityID);
+                  Provider.of<AddresProviders>(
+                    context,
+                    listen: false,
+                  ).filterPincodes(provider.selectedCitys!.cityID);
                 },
               ),
             ),
           ),
         ],
       ),
-      
+
       const SizedBox(height: 18),
-      
+
       _buildLabeledField(
         label: pincodeString,
         child: AppSearchableDropdown<pincodem>(
@@ -1356,10 +1441,17 @@ Widget _contactTab(Size size, BuildContext context, EmployeeMasterProvider provi
           initialItem: provider.selectedPincodes,
           hintText: pincodeString,
           futureRequest: (value) => provider.getFilterPincode(value, context),
-          items: Provider.of<AddresProviders>(context, listen: false).filtersPincodeList,
+          items: Provider.of<AddresProviders>(
+            context,
+            listen: false,
+          ).filtersPincodeList,
           itemAsString: (item) => item.code.toString(),
           headerBuilder: (context, selectedItem, enabled) {
-            return Text(provider.selectedPincodes == null ? selectPincodeString : provider.selectedPincodes!.code.toString());
+            return Text(
+              provider.selectedPincodes == null
+                  ? selectPincodeString
+                  : provider.selectedPincodes!.code.toString(),
+            );
           },
           onChanged: (vals) {
             provider.selectedPincodes = vals;
@@ -1381,7 +1473,7 @@ Widget _educationTab(Size size, EmployeeMasterProvider provider) {
       children: List.generate(4, (index) => _buildShimmerField(size)),
     );
   }
-  
+
   return Column(
     children: [
       responsiveRow(
@@ -1433,24 +1525,28 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
       children: List.generate(6, (index) => _buildShimmerField(size)),
     );
   }
-  
+
   return Column(
     children: [
       IfscCodeDropdown(
         provider.selectedIfsccode,
         (value) {
           provider.selectedIfsccode = value;
-          provider.bankNameController.text = provider.selectedIfsccode!.bankName.toString();
-          provider.branchNameController.text = provider.selectedIfsccode!.branchName.toString();
+          provider.bankNameController.text = provider.selectedIfsccode!.bankName
+              .toString();
+          provider.branchNameController.text = provider
+              .selectedIfsccode!
+              .branchName
+              .toString();
         },
         () {
           provider.bankNameController.clear();
           provider.branchNameController.clear();
         },
       ),
-      
+
       const SizedBox(height: 18),
-      
+
       responsiveRow(
         child1: _buildLabeledField(
           label: bankNameString,
@@ -1469,9 +1565,9 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
           ),
         ),
       ),
-      
+
       const SizedBox(height: 18),
-      
+
       _buildLabeledField(
         label: accountNoString,
         child: CommonTextField(
@@ -1481,9 +1577,9 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
           maxLength: 14,
         ),
       ),
-      
+
       const SizedBox(height: 18),
-      
+
       _buildLabeledField(
         label: accountTypeString,
         child: Container(
@@ -1496,26 +1592,35 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
             child: DropdownButton2<Mstclass>(
               isExpanded: true,
               hint: Text(
-                provider.selectedAccounttype == null ? accountTypeString : provider.selectedAccounttype!.description.toString(),
+                provider.selectedAccounttype == null
+                    ? accountTypeString
+                    : provider.selectedAccounttype!.description.toString(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   color: ColorConst.hintextColor,
                 ),
               ),
-              items: provider.bankAccountTypesList.map((item) => DropdownItem<Mstclass>(
-                value: item,
-                child: Text(
-                  item.description!,
-                  style: TextStyle(fontSize: 15, color: ColorConst.black),
-                ),
-              )).toList(),
+              items: provider.bankAccountTypesList
+                  .map(
+                    (item) => DropdownItem<Mstclass>(
+                      value: item,
+                      child: Text(
+                        item.description!,
+                        style: TextStyle(fontSize: 15, color: ColorConst.black),
+                      ),
+                    ),
+                  )
+                  .toList(),
               selectedItemBuilder: (context) {
                 return provider.bankAccountTypesList.map((item) {
                   return Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      provider.selectedAccounttype == null ? accountTypeString : provider.selectedAccounttype!.description.toString(),
+                      provider.selectedAccounttype == null
+                          ? accountTypeString
+                          : provider.selectedAccounttype!.description
+                                .toString(),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -1533,9 +1638,9 @@ Widget _bankDetailsTab(Size size, EmployeeMasterProvider provider) {
           ),
         ),
       ),
-      
+
       const SizedBox(height: 18),
-      
+
       responsiveRow(
         child1: _buildLabeledField(
           label: uanNumberString,
@@ -1588,7 +1693,10 @@ Widget _buildStatusSection(EmployeeMasterProvider provider) {
           onChanged: (v) => provider.changeStatus(v!),
         ),
         const SizedBox(width: 6),
-        Text(inActiveString, style: const TextStyle(fontWeight: FontWeight.w500)),
+        Text(
+          inActiveString,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
       ],
     ),
   );
@@ -1728,7 +1836,10 @@ BoxDecoration _cardDecoration() {
   );
 }
 
-Future<void> showImagePickerOptions(BuildContext context, EmployeeMasterProvider provider) async {
+Future<void> showImagePickerOptions(
+  BuildContext context,
+  EmployeeMasterProvider provider,
+) async {
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
@@ -1752,7 +1863,10 @@ Future<void> showImagePickerOptions(BuildContext context, EmployeeMasterProvider
             Material(
               color: Colors.transparent,
               child: ListTile(
-                leading: Icon(Icons.photo_library, color: ColorConst.themeColor),
+                leading: Icon(
+                  Icons.photo_library,
+                  color: ColorConst.themeColor,
+                ),
                 title: Text(chooseFromGalleryString),
                 onTap: () {
                   Navigator.pop(context);

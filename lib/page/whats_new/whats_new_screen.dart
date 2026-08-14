@@ -430,6 +430,35 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Optimized navigation and loading performance',
         ],
       ),
+      ReleaseNoteItem(
+        id: 24,
+        title: 'Punch In/Out Validation',
+        description: 'Improved Punch In/Out with dynamic company-wise location and radius validation.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Both',
+        icon: Icons.location_on,
+        bgColor: const Color(0xFF00BCD4),
+        features: [
+          'Dynamic company-wise location validation',
+          'Radius-based punch restriction',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 25,
+        title: 'User Payroll Master',
+        description: 'Added Payroll Master option on the user side.',
+        version: version103,
+        versionName: versionName103,
+        date: 'August 01, 2026',
+        category: 'Employee App',
+        icon: Icons.payments,
+        bgColor: const Color(0xFF795548),
+        features: [
+          'Added Payroll Master option on the user side',
+        ],
+      ),
     ];
 
     _animationController = AnimationController(

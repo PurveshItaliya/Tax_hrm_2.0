@@ -39,7 +39,7 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadAllData();
+      _loadAllData(forceRefresh: true);
     });
   }
 
@@ -140,7 +140,13 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
                     if (userLimit) {
                       showUserLimitDialog(context, size, employeeMProvider.getTotalUserList.first.permitUsers, employeeMProvider.getTotalUserList.first.totalUser);
                     } else {
-                      nextScreen(context, EmployeeMasterAddEditScreen(flag: 'A'), onthenValue: (value) {});
+                      nextScreen(
+                        context,
+                        EmployeeMasterAddEditScreen(flag: 'A'),
+                        onthenValue: (value) {
+                          _loadAllData(forceRefresh: true);
+                        },
+                      );
                     }
                   },
                   isgradient: true,
@@ -216,7 +222,9 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
                                     flag: 'U',
                                     selectedemp: empProvider,
                                   ),
-                                  onthenValue: (value) {}
+                                  onthenValue: (value) {
+                                    _loadAllData(forceRefresh: true);
+                                  },
                                 );
                               },
                               onDelete: () {

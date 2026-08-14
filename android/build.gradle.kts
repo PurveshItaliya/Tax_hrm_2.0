@@ -17,7 +17,7 @@ subprojects {
     afterEvaluate {
         // Safe check for the android block
         val android = extensions.findByName("android")
-        if (android is com.android.build.api.dsl.CommonExtension) {
+        if (android is com.android.build.api.dsl.CommonExtension<*, *, *, *, *, *>) {
             android.compileSdk = 36
             android.buildToolsVersion = "36.0.0"
             

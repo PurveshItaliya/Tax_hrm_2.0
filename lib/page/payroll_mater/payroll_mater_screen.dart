@@ -20,6 +20,7 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/utils/attendance_perf_logger.dart';
@@ -58,6 +59,16 @@ class _PayrollMaterScreenState extends State<PayrollMaterScreen> {
       'EmployeMastServices.getAllEmployesData',
       () => Provider.of<EmployeMastServices>(context,listen: false).getAllEmployesData()
     );
+
+    if (curentUser != null && curentUser['Role'] != 'Admin') {
+      try {
+        final myEmp = Provider.of<EmployeMastServices>(context, listen: false)
+            .emplists.firstWhere((emp) => emp.id.toString() == curentUser['Id'].toString());
+        Provider.of<PayRollProviders>(context, listen: false).employessontap(myEmp);
+      } catch (e) {
+        // Ignored
+      }
+    }
 
     AttendancePerformanceLogger.instance.printSummary();
   }
@@ -100,27 +111,31 @@ class _PayrollMaterScreenState extends State<PayrollMaterScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: AppSearchableDropdown<Employeelists>(
-                              dropdownKey: ValueKey(payRollProviders.selectedEmployeeList),
-                              initialItem: payRollProviders.selectedEmployeeList,
-                              hintText: selectEmployeeNameString,
-                              futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,
-                              items: Provider.of<EmployeMastServices>(context,listen: false).emplists,
-                              itemAsString: (item) => "${item.firstName.toString()} ${item.lastName.toString()}",
-                              headerBuilder: (context, selectedItem, enabled) {
-                                return payRollProviders.selectedEmployeeList == null?Text(selectEmployeeNameString):Row(
-                                  children: [
-                                    Expanded(child: Text("${payRollProviders.selectedEmployeeList!.firstName.toString()} ${payRollProviders.selectedEmployeeList!.lastName.toString()}")),
-                                    widthSpacer(size.width*0.02),
-                                    InkWell(onTap: (){
-                                      payRollProviders.iconOntap();
-                                    },child: Icon(Icons.close,size: 15,color: ColorConst.black,))
-                                  ],
-                                );
-                              },
-                              onChanged: (value) {
-                                payRollProviders.employessontap(value);
-                              },
+                            child: IgnorePointer(
+                              ignoring: curentUser != null && curentUser['Role'] != 'Admin',
+                              child: AppSearchableDropdown<Employeelists>(
+                                dropdownKey: ValueKey(payRollProviders.selectedEmployeeList),
+                                initialItem: payRollProviders.selectedEmployeeList,
+                                hintText: selectEmployeeNameString,
+                                futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,
+                                items: Provider.of<EmployeMastServices>(context,listen: false).emplists,
+                                itemAsString: (item) => "${item.firstName.toString()} ${item.lastName.toString()}",
+                                headerBuilder: (context, selectedItem, enabled) {
+                                  return payRollProviders.selectedEmployeeList == null?Text(selectEmployeeNameString):Row(
+                                    children: [
+                                      Expanded(child: Text("${payRollProviders.selectedEmployeeList!.firstName.toString()} ${payRollProviders.selectedEmployeeList!.lastName.toString()}")),
+                                      widthSpacer(size.width*0.02),
+                                      if (curentUser == null || curentUser['Role'] == 'Admin')
+                                        InkWell(onTap: (){
+                                          payRollProviders.iconOntap();
+                                        },child: Icon(Icons.close,size: 15,color: ColorConst.black,))
+                                    ],
+                                  );
+                                },
+                                onChanged: (value) {
+                                  payRollProviders.employessontap(value);
+                                },
+                              ),
                             ),
                           ),
                           widthSpacer(size.width*0.02),
