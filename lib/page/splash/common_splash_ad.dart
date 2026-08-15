@@ -461,7 +461,10 @@ class CommonSplashAd {
 
       if (mediaType == SplashMediaType.video && mediaUrl.isNotEmpty) {
         try {
-          videoController = VideoPlayerController.networkUrl(Uri.parse(mediaUrl));
+          videoController = VideoPlayerController.networkUrl(
+            Uri.parse(mediaUrl),
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
           await videoController.initialize();
           videoController.setLooping(true);
         } catch (_) {
@@ -778,6 +781,7 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     try {
       final ctrl = VideoPlayerController.networkUrl(
         Uri.parse(widget.mediaUrl),
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       );
       await ctrl.initialize();
       if (!mounted) { ctrl.dispose(); return; }

@@ -36,8 +36,13 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     
     String version103 = Platform.isAndroid ? 'v1.0.3' : 'v1.0.2';
     String versionName103 = 'Major Updates & Enhancements';
+    
+    String version104 = 'v1.0.4';
+    String versionName104 = 'Performance & Usability Enhancements';
 
-    versions = Platform.isAndroid ? ['All', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] : ['All', 'v1.0.2', 'v1.0.1','v1.0.0'];
+    versions = Platform.isAndroid 
+        ? ['All', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        : ['All', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -434,8 +439,8 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
         id: 24,
         title: 'Punch In/Out Validation',
         description: 'Improved Punch In/Out with dynamic company-wise location and radius validation.',
-        version: version103,
-        versionName: versionName103,
+        version: version104,
+        versionName: versionName104,
         date: 'August 01, 2026',
         category: 'Both',
         icon: Icons.location_on,
@@ -449,14 +454,31 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
         id: 25,
         title: 'User Payroll Master',
         description: 'Added Payroll Master option on the user side.',
-        version: version103,
-        versionName: versionName103,
+        version: version104,
+        versionName: versionName104,
         date: 'August 01, 2026',
         category: 'Employee App',
         icon: Icons.payments,
         bgColor: const Color(0xFF795548),
         features: [
           'Added Payroll Master option on the user side',
+        ],
+      ),
+      // --- v1.0.4 New Features Added ---
+      ReleaseNoteItem(
+        id: 26,
+        title: 'Leaderboard Auto-Refresh & Audio Fixes',
+        description: 'Added automatic refresh to the leaderboard when changing months, and fixed an issue where the app would pause background music (e.g. Spotify) on startup.',
+        version: version104,
+        versionName: versionName104,
+        date: 'August 15, 2026',
+        category: 'Both',
+        icon: Icons.autorenew,
+        bgColor: const Color(0xFF3F51B5),
+        features: [
+          'Leaderboard now auto-refreshes data when selecting a different month',
+          'Splash screen video no longer interrupts other apps playing audio',
+          'General performance optimizations',
         ],
       ),
     ];

@@ -902,10 +902,16 @@ Future<void> changeLeaderboardMonth(DateTime newMonth) async {
   }
   
   _leaderboardSelectedMonth = DateTime(newMonth.year, newMonth.month);
+  
+  // Clear the memory cache when changing month so it loads correct data for the new month
+  _hasLeaderboardLoadedThisSession = false;
+  _setHrmTopRecord = null;
+  
   notifyListeners();
   await getTopLeaderboard(
     month: _leaderboardSelectedMonth.month,
     year: _leaderboardSelectedMonth.year,
+    forceRefresh: true,
   );
 }
 

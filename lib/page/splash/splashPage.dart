@@ -87,7 +87,10 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
     if (_controller == null) {
       final isDarkMode = Theme.of(context).brightness == Brightness.dark;
       String videoToPlay = isDarkMode ? splashLightModeVideoString : splashDarkModeVideoString;
-      _controller = VideoPlayerController.asset(videoToPlay)
+      _controller = VideoPlayerController.asset(
+        videoToPlay,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      )
         ..initialize().then((_) {
           if (mounted) {
             setState(() {});
