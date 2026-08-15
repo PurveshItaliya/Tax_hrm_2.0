@@ -2,18 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- ══════════════════════════════════════════════════════════════════════
-	     iOS 26 Liquid Glass design language opt-in.
-	     Setting this to false allows UITabBar (and other system chrome) to
-	     render the genuine Liquid Glass material on iOS 26+. Remove or set
-	     to true to force the pre-iOS-26 flat appearance.
-	     ══════════════════════════════════════════════════════════════════════ -->
-	<key>UIDesignRequiresCompatibility</key>
-	<false/>
-
-	<!-- ═══════════════════════════════════════════════════════════════════
-	     App Identity
-	     ═══════════════════════════════════════════════════════════════════ -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>dev.flutter.background_service</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -31,68 +23,23 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.3</string>
+	<string>1.0.4</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>7</string>
+	<string>8</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-
-	<!-- ═══════════════════════════════════════════════════════════════════
-	     Privacy Usage Descriptions (NSUsageDescription)
-	     All keys used by the app must be declared — App Store Review checks these.
-	     ═══════════════════════════════════════════════════════════════════ -->
-
-	<!-- Camera: required for selfie punch-in/out -->
 	<key>NSCameraUsageDescription</key>
 	<string>TAX HRM uses your camera to capture a photo for attendance verification during punch-in and punch-out.</string>
-
-	<!-- Notifications: required for Punch In/Out reminders and work updates -->
-	<key>NSUserNotificationUsageDescription</key>
-	<string>TAX HRM uses notifications to send Punch In, Punch Out, attendance reminders, and important work updates.</string>
-
-
-	<!-- Location (When In Use): required for selfie punch location check -->
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>TAX HRM uses your location while the app is open to verify your work location during attendance punch-in and punch-out.</string>
-
-	<!-- Location (Always + When In Use): required by permission_handler when requesting Always.
-	     NOTE: iOS background location flow is currently inactive.
-	     This key is kept to avoid App Store binary validation errors from the plugin. -->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>TAX HRM uses your location in the background to automatically record attendance and track your work timeline during working hours.</string>
-
-	<!-- Photo Library: required for document upload feature -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TAX HRM uses your location while the app is open to verify your work location during attendance punch-in and punch-out.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>TAX HRM needs access to your photo library to upload documents and profile images.</string>
-
-	<!-- ═══════════════════════════════════════════════════════════════════
-	     Background Modes
-	     Only declare what the app actually uses.
-	     ═══════════════════════════════════════════════════════════════════ -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>processing</string>
-		<string>remote-notification</string>
-	</array>
-
-	<!-- ═══════════════════════════════════════════════════════════════════
-	     BGTaskSchedulerPermittedIdentifiers
-	     REQUIRED by App Store Review when UIBackgroundModes includes
-	     'processing'. Each identifier must match exactly what is passed to
-	     BGTaskScheduler.shared.register(forTaskWithIdentifier:) at runtime.
-	     flutter_background_service_ios registers this identifier internally.
-	     ═══════════════════════════════════════════════════════════════════ -->
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>dev.flutter.background_service</string>
-	</array>
-
-	<!-- ═══════════════════════════════════════════════════════════════════
-	     UI Configuration
-	     ═══════════════════════════════════════════════════════════════════ -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>TAX HRM uses notifications to send Punch In, Punch Out, attendance reminders, and important work updates.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -116,17 +63,22 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
+	<key>UIDesignRequiresCompatibility</key>
+	<false/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-
-	<!-- Portrait only for iPhone — matches SystemChrome.setPreferredOrientations in main.dart -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
-	<!-- iPad MUST include all 4 orientations for Apple multitasking compliance -->
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
