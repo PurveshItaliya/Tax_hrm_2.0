@@ -10,7 +10,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
 import 'package:tax_hrm/widigets/loadersshow.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -32,7 +31,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final forgotPasswordProvider = Provider.of<ForgotPasswordProvider>(context);
-    return checkInterNetConnection.connectionType == 0 ? const NoInternetViewPage() : Scaffold(
+    return Scaffold(
       backgroundColor: ColorConst.scaffoldColor,
       appBar: showCustomeAppBar(backString, size,iconsOntap: () {
         backScreen(context);

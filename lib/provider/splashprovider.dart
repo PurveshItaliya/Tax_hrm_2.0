@@ -30,11 +30,12 @@ class SplashProvider extends ChangeNotifier {
   bool isVideoFinished = false;
   Widget? pendingNavigationPage;
 
-  void triggerNextScreen(BuildContext context, Widget page) {
+  void triggerNextScreen(BuildContext context, Widget defaultPage) {
     if (isVideoFinished) {
-      nextScreen(context, page, onthenValue: (value) {});
+      nextScreen(context, pendingNavigationPage ?? defaultPage, onthenValue: (value) {});
+      pendingNavigationPage = null;
     } else {
-      pendingNavigationPage = page;
+      pendingNavigationPage ??= defaultPage;
     }
   }
 

@@ -12,7 +12,6 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 
 class ShiftMasterScreen extends StatefulWidget {
   const ShiftMasterScreen({super.key});
@@ -44,9 +43,7 @@ class _ShiftMasterScreenState extends State<ShiftMasterScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final shiftMasterProvider =  Provider.of<ShiftMasterProvider>(context);
     Provider.of<LanguageProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               floatingActionButton: shiftMasterProvider.islodering ? SizedBox() : Padding(

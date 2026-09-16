@@ -15,7 +15,6 @@ import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class SalaryPayslipScreen extends StatefulWidget {
@@ -41,7 +40,7 @@ class _SalaryPayslipScreenState extends State<SalaryPayslipScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final salaryStructureProvider = Provider.of<SalaryStructureProvider>(context);
     Provider.of<LanguageProvider>(context);
-    return checkInterNetConnection.connectionType == 0 ? const NoInternetViewPage() :  Scaffold(
+    return Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
         appBar: showCustomeAppBar(salarySlipString, size, titleColors: ColorConst.appbarTextColor, iconsOntap: () {
             backScreen(context);

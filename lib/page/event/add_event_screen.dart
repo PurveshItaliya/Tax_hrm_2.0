@@ -17,7 +17,6 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/customedropdownfiled.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class AddEventScreen extends StatefulWidget {
@@ -45,9 +44,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
     final eventsMastServices = Provider.of<EventsMastServices>(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor:ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(eventsMastServices.dynamicAppBarTitle(widget.addEditFlag), size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             body: eventsMastServices.islodering ? userProfileShimmer(size) : Padding(

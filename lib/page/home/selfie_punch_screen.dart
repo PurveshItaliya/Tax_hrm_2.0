@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
@@ -14,9 +15,11 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/loadersshow.dart';
+import 'package:tax_hrm/widigets/punch_sync_summary_dialog.dart';
 
 class SelfiePunchScreen extends StatefulWidget {
-  const SelfiePunchScreen({super.key});
+  final bool isFromWidget;
+  const SelfiePunchScreen({super.key, this.isFromWidget = false});
 
   @override
   State<SelfiePunchScreen> createState() => _SelfiePunchScreenState();
@@ -38,6 +41,8 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       if (mounted && !_isFlowRunning && !_permissionsChecked) {
         _initializePage();
       }
+      // Show punch sync summary dialog if there are unviewed results.
+      PunchSyncSummaryDialog.showIfNeeded(context);
     });
   }
 
@@ -52,6 +57,10 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     if (state == AppLifecycleState.resumed && mounted && _wentToSettings) {
       _wentToSettings = false;
       _checkPermissionsAfterSettings(selfiePunchProvider);
+    }
+    // Check for punch sync results every time the screen comes to foreground.
+    if (state == AppLifecycleState.resumed && mounted) {
+      PunchSyncSummaryDialog.showIfNeeded(context);
     }
   }
 
@@ -70,20 +79,100 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   // ── Permission flow entry points ───────────────────────────────────────────
 
   Future<void> _initializePage() async {
+    debugPrint("INITPAGE: 1. _initializePage called. _isFlowRunning=$_isFlowRunning");
     if (_isFlowRunning) return;
     _isFlowRunning = true;
     _permissionsChecked = true;
 
     final provider = Provider.of<SelfiePunchProvider>(context, listen: false);
+
     try {
+      debugPrint("INITPAGE: 2. FAST PATH started");
+      // FAST PATH: Check both camera and location upfront
+      bool camGranted = false;
+      bool locGranted = false;
+      
+      try {
+        camGranted = await Permission.camera.status.isGranted.timeout(const Duration(seconds: 2));
+        locGranted = await Permission.location.status.isGranted.timeout(const Duration(seconds: 2));
+        debugPrint("INITPAGE: 3. Fast path results: camGranted=$camGranted, locGranted=$locGranted");
+      } catch (e) {
+        debugPrint("INITPAGE: 4. Fast path permission check failed or timed out: $e");
+      }
+
+      bool cameraStarted = false;
+      if (mounted && camGranted) {
+        debugPrint("INITPAGE: 5. Fast path calling startCamera(0)");
+        provider.startCamera(0);
+        cameraStarted = true;
+      }
+
+      if (mounted && locGranted) {
+        debugPrint("INITPAGE: 6. Fast path locGranted is true, proceeding with API calls");
+        provider.startLiveTime();
+        Future.wait([
+          provider.getCurrentLocation(context: context),
+          provider.callApi(context),
+        ]);
+        
+        debugPrint("INITPAGE: 7. Calling PermissionFlowService.run in background");
+        PermissionFlowService.run(
+          context,
+          isFetchLocation: provider.isFetchLocation,
+        ).then((result) {
+          debugPrint("INITPAGE: 8. Background PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}");
+          if (mounted && result.cameraGranted && !cameraStarted) {
+            debugPrint("INITPAGE: 9. Calling startCamera(0) from background flow");
+            provider.startCamera(0);
+          } else if (mounted && !result.cameraGranted && !cameraStarted) {
+            debugPrint("INITPAGE: 10. Resetting loaders from background flow");
+            provider.cameraisLoading = false;
+            provider.readyCameraPreviewshow = false;
+            provider.setLoading(provider.isLoading);
+          }
+        }).catchError((e) {
+          debugPrint("INITPAGE: 11. Background PermissionFlowService.run caught error: $e");
+          if (mounted && !cameraStarted) {
+            debugPrint("INITPAGE: 12. Resetting loaders from background flow catchError");
+            provider.cameraisLoading = false;
+            provider.readyCameraPreviewshow = false;
+            provider.setLoading(provider.isLoading);
+          }
+          return const PermissionFlowResult(
+            notificationGranted: false,
+            cameraGranted: false,
+            locationGranted: false);
+        }).whenComplete(() {
+          debugPrint("INITPAGE: 13. Background PermissionFlowService.run whenComplete");
+          _isFlowRunning = false;
+        });
+        return; // Fast path successful!
+      }
+
+      debugPrint("INITPAGE: 14. SLOW PATH started (locGranted=false)");
+      // SLOW PATH: We don't have location yet, so we MUST wait for the flow.
       final result = await PermissionFlowService.run(
         context,
         isFetchLocation: provider.isFetchLocation,
       );
+      debugPrint("INITPAGE: 15. SLOW PATH PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}");
       if (mounted) {
-        await _onPermissionsResolved(provider, result);
+        await _onPermissionsResolved(provider, result, cameraStarted);
       }
-    } catch (e) { /* ignored */ } finally {
+    } catch (e) {
+      // If ANY permission check or flow crashes, DON'T leave the UI stuck!
+      debugPrint("INITPAGE: 16. _initializePage completely failed: $e");
+      if (mounted) {
+        provider.cameraisLoading = false;
+        provider.readyCameraPreviewshow = false;
+        provider.setLoading(provider.isLoading);
+
+        provider.startLiveTime();
+        await provider.getCurrentLocation(context: context);
+        await provider.callApi(context);
+      }
+    } finally {
+      debugPrint("INITPAGE: 17. _initializePage finally block");
       _isFlowRunning = false;
     }
   }
@@ -91,28 +180,33 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   Future<void> _checkPermissionsAfterSettings(SelfiePunchProvider provider) async {
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
+    _isFlowRunning = false; // Reset so it can run again
     await _initializePage();
   }
 
   // ── Post-flow initialisation ───────────────────────────────────────────────
 
   Future<void> _onPermissionsResolved(
-      SelfiePunchProvider provider, PermissionFlowResult result) async {
+      SelfiePunchProvider provider, PermissionFlowResult result, [bool cameraStarted = false]) async {
     if (!mounted) return;
 
-    if (result.cameraGranted) {
-      await provider.startCamera(0);
-      if (!mounted) return;
-    }
-
-    if (result.locationGranted) {
-      await provider.getCurrentLocation(context: context);
-      if (!mounted) return;
+    if (result.cameraGranted && !cameraStarted) {
+      // Start camera in background so it doesn't block location and API calls
+      provider.startCamera(0);
+    } else if (!result.cameraGranted && !cameraStarted) {
+      provider.cameraisLoading = false;
+      provider.readyCameraPreviewshow = false;
+      provider.setLoading(provider.isLoading);
     }
 
     provider.startLiveTime();
-    if (!mounted) return;
-    await provider.callApi(context);
+    
+    final List<Future<void>> futures = [
+      if (result.locationGranted) provider.getCurrentLocation(context: context),
+      provider.callApi(context),
+    ];
+    
+    await Future.wait(futures);
   }
 
   // ── Manual retry (punch buttons) ──────────────────────────────────────────
@@ -208,25 +302,30 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
               builder: (context, cameraController, child) {
                 if (cameraController != null) {
                   return Positioned.fill(
-                    child: ClipRect(
-                      child: OverflowBox(
-                        alignment: Alignment.center,
-                        child: FittedBox(
-                          fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: cameraController.value.previewSize!.height,
-                            height: cameraController.value.previewSize!.width,
-                            child: CameraPreview(cameraController),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRect(
+                          child: OverflowBox(
+                            alignment: Alignment.center,
+                            child: FittedBox(
+                              fit: BoxFit.cover,
+                              child: SizedBox(
+                                width: cameraController.value.previewSize!.height,
+                                height: cameraController.value.previewSize!.width,
+                                child: CameraPreview(cameraController),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        
+                      ],
                     ),
                   );
                 }
-                return Container(
-                  color: Colors.black87,
-                  child: const Center(
-                    child: Icon(Icons.videocam_off_rounded, color: Colors.white54, size: 64),
+                return Positioned.fill(
+                  child: Container(
+                    color: Colors.black,
                   ),
                 );
               },
@@ -235,11 +334,16 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
             // 2. UI overlays
             Consumer<SelfiePunchProvider>(
               builder: (context, provider, child) {
-                bool showLoading =
-                    (provider.isLoading || provider.readyCameraPreviewshow == true) &&
-                        _permissionsChecked;
+                // Only show full-screen loader during API/punch operations.
+                // Camera warmup (readyCameraPreviewshow) already shows the black
+                // placeholder from layer 1 — no extra overlay needed.
+                bool showLoading = provider.isLoading && _permissionsChecked;
 
                 if (showLoading) return scanloading();
+
+                // ── Offline state (read outside the inner Consumer to avoid extra rebuild) ──
+                final bool isOffline =
+                    context.watch<InternetConnectionProvider>().isOffline;
 
                 return Stack(
                   children: [
@@ -247,7 +351,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
                     Positioned(
                       left: 20,
                       right: 20,
-                      bottom: 90,
+                      bottom: widget.isFromWidget ? 20 : 90,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: BackdropFilter(
@@ -258,14 +362,44 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
                               color: Colors.black.withOpacity(0.4),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.15),
-                                width: 1,
+                                color: isOffline
+                                    ? Colors.red.withOpacity(0.6)
+                                    : Colors.white.withOpacity(0.15),
+                                width: isOffline ? 1.5 : 1,
                               ),
                             ),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Offline mode badge
+                                if (isOffline)
+                                  Container(
+                                    width: double.infinity,
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.18),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.red.withOpacity(0.4)),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.wifi_off_rounded, color: Colors.red, size: 14),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Offline Mode — Punch will sync when online',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
                                 // Row 1: Address Pin + Text (Wrapping allowed to fix cropping) + Refresh
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -295,14 +429,14 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
                                 const SizedBox(height: 10),
 
                                 // Row 2: Range Status (Compact Badge aligned left)
-                                _buildRangeStatusPill(provider),
+                                _buildRangeStatusPill(provider, isOffline),
                                 const SizedBox(height: 12),
 
                                 // Row 3: Full Width Punch Button (Eliminates right-side blank space)
                                 SizedBox(
                                   width: double.infinity,
                                   height: 44,
-                                  child: _buildPunchButton(size, provider, currentDay),
+                                  child: _buildPunchButton(size, provider, currentDay, isOffline),
                                 ),
                               ],
                             ),
@@ -320,7 +454,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   }
 
   // ── Range status pill (Compact text badge style) ───────────────────────────
-  Widget _buildRangeStatusPill(SelfiePunchProvider provider) {
+  Widget _buildRangeStatusPill(SelfiePunchProvider provider, [bool isOffline = false]) {
     if (provider.currentLocation == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -420,7 +554,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   // ── Punch button logic ─────────────────────────────────────────────────────
 
   Widget _buildPunchButton(
-      Size size, SelfiePunchProvider provider, String currentDay) {
+      Size size, SelfiePunchProvider provider, String currentDay, [bool isOffline = false]) {
     final bool hasCamera =
         _permissionsChecked &&
         provider.camerapermissionStatus == PermissionStatus.granted;
@@ -465,12 +599,40 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       );
     }
 
-    // Camera starting
-    if (provider.readyCameraPreviewshow) {
+    // Camera is warming up after permissions granted — show spinner
+    // This only triggers AFTER _permissionsChecked=true and camera is actively initializing
+    if (_permissionsChecked && (provider.readyCameraPreviewshow || provider.cameraisLoading)) {
+      return Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: ColorConst.themeColor.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const SizedBox(
+          height: 16,
+          width: 16,
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+        ),
+      );
+    }
+
+    // Permissions not yet checked — show disabled punch placeholder
+    if (!_permissionsChecked) {
       return _customButton(
-        label: 'Start Cam',
-        color: ColorConst.themeColor,
-        onTap: () => provider.startCamera(0),
+        label: 'Punch',
+        color: ColorConst.themeColor.withOpacity(0.5),
+        onTap: () {}, // disabled
+      );
+    }
+
+    // Camera failed to initialize despite having permissions
+    if (!provider.isCameraReady) {
+      return _customButton(
+        label: 'Retry Camera',
+        color: Colors.orange,
+        onTap: () {
+          provider.startCamera(0);
+        },
       );
     }
 
@@ -490,9 +652,12 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       );
     }
 
-    // Attendance status pending
-    if (provider.checkStatus == null ||
-        provider.checkStatus!.attendenceLog == null) {
+    // Attendance status pending — but ONLY block if online.
+    // When offline, checkStatus may legitimately be null on first open if prefs
+    // load hasn't completed. Treat null checkStatus as "not punched yet" (Punch IN).
+    if (!isOffline &&
+        (provider.checkStatus == null ||
+            provider.checkStatus!.attendenceLog == null)) {
       return _customButton(
         label: 'Wait...',
         color: ColorConst.themeColor.withOpacity(0.5),
@@ -512,7 +677,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       color: buttonColor,
       onTap: () async {
         if (_isFlowRunning) return;
-        await provider.puchInOutHandleSubmit(context, currentDay);
+        await provider.puchInOutHandleSubmit(context, currentDay, widget.isFromWidget);
       },
     );
   }

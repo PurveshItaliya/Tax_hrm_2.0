@@ -15,7 +15,6 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_popmenu.dart';
 import 'package:tax_hrm/widigets/commonpaginator.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 
 class DesignationScreen extends StatefulWidget {
   const DesignationScreen({super.key});
@@ -48,9 +47,7 @@ class _DesignationScreenState extends State<DesignationScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final desigNationMasterService =  Provider.of<PositionMasterService>(context);
     final appPaginationController = Provider.of<AppPaginationProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               floatingActionButton: desigNationMasterService.islodering ? SizedBox() : Padding(

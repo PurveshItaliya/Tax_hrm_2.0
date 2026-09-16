@@ -15,7 +15,6 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/validation.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class UserLoginPage extends StatefulWidget {
@@ -47,9 +46,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
       context,
     );
     Provider.of<LanguageProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               body: Padding(
                 padding: EdgeInsets.all(size.width * 0.03),

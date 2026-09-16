@@ -13,7 +13,6 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class ShowDocumentScreen extends StatefulWidget {
@@ -39,11 +38,9 @@ class _ShowDocumentScreenState extends State<ShowDocumentScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     var documentproviders = Provider.of<DocumentsProvider>(context);
     Provider.of<LanguageProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
-              floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               floatingActionButton: (documentproviders.islodering)?SizedBox():Padding(
                 padding: EdgeInsets.only(bottom: size.height * 0.03),
                 child: iconWithTextBtnDesign(size,addDocumentString,isIcon: false,isImage: false,onTap: () {

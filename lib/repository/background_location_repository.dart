@@ -16,7 +16,7 @@ class BackgroundLocationRepository {
         return false;
       }
 
-      final val = curentUser?['IsFetchLocation'];
+      final val = curentUser?['IsFetchLocation'] ?? curentUser?['isFetchLocation'];
       final name = '${curentUser?['FirstName'] ?? ''} ${curentUser?['LastName'] ?? ''}'.trim();
       final username = curentUser?['UserName'] ?? curentUser?['Username'] ?? '';
 

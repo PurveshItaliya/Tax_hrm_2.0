@@ -36,7 +36,7 @@ import 'package:tax_hrm/page/salaryslip/salary_payslip_screen.dart';
 import 'package:tax_hrm/page/shift/shift_master_screen.dart';
 import 'package:tax_hrm/page/shift/shift_timing/shift_timing_master_screen.dart';
 import 'package:tax_hrm/page/usertimelineview/timelinepop.dart';
-import 'package:tax_hrm/page/usertimelineview/usertimeline.dart';
+import 'package:tax_hrm/page/usertimelineview/smart_timeline_screen.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/holidayprovider.dart';
 import 'package:tax_hrm/provider/payrollprovider.dart';
@@ -174,7 +174,7 @@ class HomeProvider extends ChangeNotifier {
          showDialog(context: context,builder: (context) => LocationTimeLines(),);
       }),
       HomeGridClass(image: timelineviewString, title: timeLineViewString,onTap: () {
-        nextScreen(context, EmployeTimelines(userId: curentUser['Id'].toString()),onthenValue: (value){});
+        nextScreen(context, SmartTimelineScreen(userId: curentUser['Id'].toString()),onthenValue: (value){});
       },),
     ];
   }

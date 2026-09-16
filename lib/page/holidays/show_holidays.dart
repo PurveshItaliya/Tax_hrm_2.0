@@ -16,7 +16,6 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class ShowHolidayViews extends StatefulWidget {
@@ -44,9 +43,7 @@ class _ShowHolidayViewsState extends State<ShowHolidayViews> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final holidayeMastServices = Provider.of<HolidayeMastServices>(context);
     safeAreaBgAndTextColor(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor: ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(holidayString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

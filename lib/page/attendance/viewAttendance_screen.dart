@@ -610,13 +610,6 @@ cellBuilder: (date, events, isToday, isInMonth, hideDaysNotInMonth) {
                                   bool isonleaves = isOnLeave && leaveGroup == "paid";
                                   bool isonleavesUnPaid = isOnLeave && leaveGroup == "unpaid";
 
-                                  if(isonleaves){
-                                    showType = 4;
-                                  }
-                                  if(isonleavesUnPaid){
-                                    showType = 9;
-                                  }
-
                                   if(present){
                                     if(element.inTime != null){
                                        String? beginTimeStr = attendanceEmp.shiftBeginTime ?? (attendanceEmp.getUserShift?.beginTime?.toString());
@@ -637,11 +630,17 @@ cellBuilder: (date, events, isToday, isInMonth, hideDaysNotInMonth) {
                                     showType = 1;
                                   }
 
+                                  if(isonleaves){
+                                    showType = 4;
+                                  } else if(isonleavesUnPaid){
+                                    showType = 9;
+                                  }
+
                                   for (var holiday in attendanceEmp.curentMonthHoliday) { 
                                     if (holiday.holidayDate == null) continue;
                                     DateTime holidaydates = DateTime.parse(holiday.holidayDate.toString()).toLocal();
                                     if (setDate.year == holidaydates.year && setDate.month == holidaydates.month && setDate.day == holidaydates.day) {
-                                      showType = 5;
+                                      showType = 2;
                                     }
                                   }
                                 }
@@ -770,18 +769,18 @@ cellBuilder: (date, events, isToday, isInMonth, hideDaysNotInMonth) {
                                            }
                                            showDayDetails(context,size, null,date.toString(),(attendanceEmp.showDateType == 1 ? 1 : 7), attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons, fetchFuture: fetchTask);
                                       } else {
+                                        String timestampString = date.toString();
+                                        String formattedTimestampString = timestampString.replaceAll('Z', '');
+                                        Future<void> fetchTask = attendanceEmp.getDateBloges(formattedTimestampString,_currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}', showLoading: false).then((_) {
+                                            Provider.of<AttendanceEmp>(context, listen: false).attendanceCalculate(context);
+                                        });
+
                                         int findHoliday = attendanceEmp.curentMonthHoliday.indexWhere((element) => date.isAtSameMomentAs(DateTime.parse(element.holidayDate.toString())));
 
                                         if (findHoliday != -1) {
-                                          
                                           attendanceEmp.setShowDateType(2);
-                                            showDayDetails(context,size, attendanceEmp.selectedDateLog,date.toString(),2, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons);
+                                          showDayDetails(context,size, null,date.toString(),2, attendanceEmp, Provider.of<AdminAttenDanceServices>(context, listen: false), curentUser, _currentEmpData, leaveTypesShow: leaveTypesShow, leaveDurationTypesShow: leaveDurationTypesShow, leaveStatusShow: leaveStatusShow, leaveResons: leaveResons, fetchFuture: fetchTask);
                                         } else {
-                                          String timestampString = date.toString();
-                                          String formattedTimestampString = timestampString.replaceAll('Z', '');
-                                          Future<void> fetchTask = attendanceEmp.getDateBloges(formattedTimestampString,_currentEmpData != null ? _currentEmpData!.empId : '${curentUser['Id']}', showLoading: false).then((_) {
-                                              Provider.of<AttendanceEmp>(context, listen: false).attendanceCalculate(context);
-                                          });
                                           
                                           // Check for leaves
                                           int leaveIndex = attendanceEmp.getMonthAttenDance.indexWhere((element) {
@@ -978,6 +977,8 @@ bool _parseBool(dynamic value) {
             minChildSize: 0.25,
             maxChildSize: 0.95,
             builder: (context, scrollController) {
+                    bool hasPunches = currentDataLog != null && ((currentDataLog.attendenceLog != null && currentDataLog.attendenceLog!.isNotEmpty) || (currentDataLog.attendence != null && (currentDataLog.attendence!.present == true || _parseBool(currentDataLog.attendence!.present))));
+
                     return selectedDatTypes == 0 ? SizedBox(
                       height: size.height * 0.2,
                       width: size.width,
@@ -1000,7 +1001,7 @@ bool _parseBool(dynamic value) {
                       ),
                     ):
                     //--------------------------  WeekOff----------------------\\
-                    (selectedDatTypes == 7 && (currentDataLog == null || ((currentDataLog.attendenceLog == null || currentDataLog.attendenceLog!.isEmpty) && (currentDataLog.attendence == null || (currentDataLog.attendence!.present != true && !_parseBool(currentDataLog.attendence!.present)))))) ? SizedBox(
+                    (selectedDatTypes == 7 && !hasPunches) ? SizedBox(
                       height: size.height * 0.2,
                       width: size.width,
                       child: Column(
@@ -1021,7 +1022,7 @@ bool _parseBool(dynamic value) {
 
                         ],
                       ),
-                    ) : selectedDatTypes == 2 ? SizedBox(
+                    ) : (selectedDatTypes == 2 && !hasPunches) ? SizedBox(
                       height: size.height * 0.25,
                       width: size.width,
                       child: Column(
@@ -1049,7 +1050,7 @@ bool _parseBool(dynamic value) {
                           ),
                         ],
                       ),
-                    ): selectedDatTypes == 4 || selectedDatTypes == 9 ? SizedBox(
+                    ): ((selectedDatTypes == 4 || selectedDatTypes == 9) && !hasPunches) ? SizedBox(
                       height: size.height * 0.25,
                       width: size.width,
                       child: Column(
@@ -1115,6 +1116,35 @@ bool _parseBool(dynamic value) {
                           padding:  EdgeInsets.only(left: size.width * 0.05,top: size.height * 0.01),
                           child: Text(dateFormatddMMMyyyy(DateTime.parse(showdate.toString())),style: TextStyle(fontSize: size.height *0.022,fontWeight: FontWeight.bold),textAlign: TextAlign.end,),
                         ),
+
+                        if (selectedDatTypes == 2) ...[
+                          Padding(
+                            padding:  EdgeInsets.only(left: size.width * 0.03,top: size.height * 0.01),
+                            child:  AttendancTypeContainer(size, 'Holiday', ColorConst.holidayColor),
+                          ),
+                          Padding(
+                            padding:  EdgeInsets.only(left: size.width * 0.03,right: size.width * 0.02,top: size.height * 0.01),
+                            child: Text('Holiday Name :-  ${Provider.of<AttendanceEmp>(context,listen: false).curentMonthHoliday[setindexs].holidayName}',style: normalHeadingText(size),maxLines: 1,overflow: TextOverflow.ellipsis,),
+                          ),
+                        ],
+                        if (selectedDatTypes == 4 || selectedDatTypes == 9) ...[
+                          Padding(
+                            padding:  EdgeInsets.only(left: size.width * 0.03,top: size.height * 0.01),
+                            child: Wrap(
+                              spacing: size.width * 0.02,
+                              runSpacing: size.height * 0.01,
+                              children: [
+                                AttendancTypeContainer(size, 'On Leave', Colors.red.shade400),
+                                AttendancTypeContainer(size, (leaveTypesShow != null && leaveTypesShow != 'null' && leaveTypesShow!.isNotEmpty) ? '$leaveTypesShow' : (selectedDatTypes == 4 ? 'Paid Leave' : 'Unpaid Leave'), selectedDatTypes == 4 ? ColorConst.paidLeaveColor : ColorConst.blueColor),
+                                if (leaveDurationTypesShow != null && leaveDurationTypesShow.isNotEmpty)
+                                  AttendancTypeContainer(size, leaveDurationTypesShow, selectedDatTypes == 4 ? ColorConst.paidLeaveColor : ColorConst.blueColor),
+                                if (leaveStatusShow != null && leaveStatusShow.isNotEmpty)
+                                  AttendancTypeContainer(size, leaveStatusShow, leaveStatusShow == 'Approved' ? Colors.green : leaveStatusShow == 'Pending' ? Colors.orange : Colors.red),
+                              ],
+                            ),
+                          ),
+                        ],
+
 
                         Consumer<AttendanceEmp>(
                           builder: (context, attEmp, child) {
@@ -1298,7 +1328,7 @@ bool _parseBool(dynamic value) {
                                             borderRadius: BorderRadiusGeometry.circular(10),
                                             child: CachedNetworkImage(
                                               imageUrl: attendenceLog[index].fileURL ?? '',
-                                              placeholder: (context, url) =>  Center(child: CircularProgressIndicator(color: ColorConst.themeColor, strokeWidth: 2)),
+                                              placeholder: (context, url) => Center(child: CircularProgressIndicator(color: ColorConst.themeColor, strokeWidth: 2)),
                                               errorWidget: (context, url, error) => Icon(Icons.person, color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, size: 30),
                                               fit: BoxFit.cover,
                                             ),
@@ -1324,9 +1354,32 @@ bool _parseBool(dynamic value) {
                                                   ),
                                                   child: Text(
                                                     attendenceLog[index].status == "IN" ? punchInString : punchOutString,
-                                                    style:  TextStyle(color: attendenceLog[index].status == "IN" ? ColorConst.themeColor : ColorConst.red, fontSize: 12, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.bold),
+                                                    style: TextStyle(color: attendenceLog[index].status == "IN" ? ColorConst.themeColor : ColorConst.red, fontSize: 12, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.bold),
                                                   ),
                                                 ),
+                                                
+                                                if (attendenceLog[index].isOffline == true) ...[
+                                                  widthSpacer(size.width * 0.02),
+                                                  Container(
+                                                    padding: EdgeInsets.symmetric(horizontal: size.width * 0.02, vertical: size.height * 0.003),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.orange.withOpacity(0.15),
+                                                      borderRadius: BorderRadius.circular(20),
+                                                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                                                    ),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(Icons.wifi_off, size: 10, color: Colors.orange),
+                                                        SizedBox(width: 4),
+                                                        Text(
+                                                          'Offline',
+                                                          style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+
                                                 widthSpacer(size.width * 0.02),
                                                 Text(attendenceLog[index].time == null? '' : DateFormat.jm().format(DateTime.parse(attendenceLog[index].time.toString())), style: TextStyle(fontFamily: fontInterBoldString, fontWeight: FontWeight.bold, fontSize: 14)),
 
@@ -1644,3 +1697,51 @@ bool _parseBool(dynamic value) {
       ),
     );
   }
+
+
+class _TimelineBranchPainter extends CustomPainter {
+  final bool isIn;
+  final bool isFirst;
+  final bool isLast;
+  final bool isDark;
+
+  _TimelineBranchPainter({
+    required this.isIn,
+    required this.isFirst,
+    required this.isLast,
+    required this.isDark,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = isDark ? Colors.grey.shade700 : Colors.grey.shade400
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final double mainX = 12.0;
+    final double nodeY = isIn ? 18.0 : 16.0;
+
+    // Vertical trunk line
+    if (!isFirst) {
+      canvas.drawLine(Offset(mainX, 0), Offset(mainX, nodeY), linePaint);
+    }
+    if (!isLast) {
+      canvas.drawLine(Offset(mainX, nodeY), Offset(mainX, size.height), linePaint);
+    }
+
+    // Branch line |- if OUT (inner stop)
+    if (!isIn) {
+      final double branchEndX = 26.0;
+      canvas.drawLine(Offset(mainX, nodeY), Offset(branchEndX, nodeY), linePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TimelineBranchPainter oldDelegate) {
+    return oldDelegate.isIn != isIn ||
+        oldDelegate.isFirst != isFirst ||
+        oldDelegate.isLast != isLast ||
+        oldDelegate.isDark != isDark;
+  }
+}

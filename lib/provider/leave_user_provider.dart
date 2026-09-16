@@ -450,10 +450,12 @@ class LeaveUserProvider extends ChangeNotifier {
 
   // ==================== CALCULATE LEAVE DAYS ====================
   double _calculateDurationCounts() {
-    if (selectedFromDate == selectedToDate) {
+    if (_isSameDate(selectedFromDate, selectedToDate)) {
       return isFullDay ? 1 : 0.5;
     } else {
-      int totalDays = selectedToDate.difference(selectedFromDate).inDays + 1;
+      DateTime from = DateTime(selectedFromDate.year, selectedFromDate.month, selectedFromDate.day);
+      DateTime to = DateTime(selectedToDate.year, selectedToDate.month, selectedToDate.day);
+      int totalDays = to.difference(from).inDays + 1;
       return isFullDay ? totalDays.toDouble() : totalDays / 2;
     }
   }

@@ -6,7 +6,11 @@
 
 import 'dart:convert';
 
-List<Employeelists> employeelistsFromJson(String str) => List<Employeelists>.from(json.decode(str).map((x) => Employeelists.fromJson(x)));
+List<Employeelists> employeelistsFromJson(String str) {
+  var list = List<Employeelists>.from(json.decode(str).map((x) => Employeelists.fromJson(x)));
+  list.sort((a, b) => (a.firstName ?? '').toString().toLowerCase().compareTo((b.firstName ?? '').toString().toLowerCase()));
+  return list;
+}
 
 String employeelistsToJson(List<Employeelists> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
@@ -207,7 +211,7 @@ class Employeelists {
     workType = json['WorkType'];
     officeLocation = json['OfficeLocation'];
     locationRadius = json['LocationRadius'];
-    isFetchLocation = json['IsFetchLocation'];
+    isFetchLocation = json['IsFetchLocation'] ?? json['isFetchLocation'];
   }
 
   Map<String, dynamic> toJson() {

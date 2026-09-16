@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
 import 'package:tax_hrm/page/usertimelineview/usertimeline.dart';
+import 'package:tax_hrm/page/usertimelineview/smart_timeline_screen.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
@@ -1113,7 +1114,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       FocusManager.instance.primaryFocus?.unfocus();
                       nextScreen(
                         context,
-                        EmployeTimelines(userId: employee.empId.toString()),
+                        SmartTimelineScreen(userId: employee.empId.toString()),
                         onthenValue: (value) {},
                       );
                     },

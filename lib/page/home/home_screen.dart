@@ -157,7 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppBar(
       automaticallyImplyLeading: false,
       backgroundColor: ColorConst.white,
-      toolbarHeight: size.height * 0.08,
       title: GestureDetector(
         onTap: curentUser['Role'] == 'Admin' 
             ? () { homeProvider.companyHandleSubmit(context, size: size); } 

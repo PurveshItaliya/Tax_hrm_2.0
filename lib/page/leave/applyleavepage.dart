@@ -15,7 +15,6 @@ import 'package:tax_hrm/utils/validation.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class ApplyLeavePage extends StatefulWidget {
@@ -57,9 +56,7 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
     // Calculate leave days whenever dates or selection changes
     _calculateLeaveDays(leaveUserProvider);
     
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor: ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(
               applyLeaveString, 
@@ -168,14 +165,17 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
 
   // Calculate Leave Days
   void _calculateLeaveDays(LeaveUserProvider provider) {
-    if (provider.selectedFromDate == provider.selectedToDate) {
+    DateTime from = DateTime(provider.selectedFromDate.year, provider.selectedFromDate.month, provider.selectedFromDate.day);
+    DateTime to = DateTime(provider.selectedToDate.year, provider.selectedToDate.month, provider.selectedToDate.day);
+
+    if (from.year == to.year && from.month == to.month && from.day == to.day) {
       if (provider.isFullDay) {
         _leaveDays = '1';
       } else {
         _leaveDays = '0.5';
       }
     } else {
-      int days = provider.selectedToDate.difference(provider.selectedFromDate).inDays + 1;
+      int days = to.difference(from).inDays + 1;
       if (provider.isFullDay) {
         _leaveDays = days.toString();
       } else {

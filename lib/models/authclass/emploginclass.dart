@@ -213,7 +213,7 @@ class EmpUserLogin {
     officeLocation = json['OfficeLocation'] ?? "";
     fullName = json['FullName'] ?? "";
     isRecords = json['IsRecords'] ?? true;
-    isFetchLocation = json['IsFetchLocation'];
+    isFetchLocation = json['IsFetchLocation'] ?? json['isFetchLocation'];
   }
 
   Map<String, dynamic> toJson() {

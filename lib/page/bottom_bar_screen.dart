@@ -27,7 +27,7 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
+import 'package:tax_hrm/widigets/offline_banner_widget.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Interaction state enum
@@ -129,12 +129,12 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
         size: size,
         title: exitString,
       ),
-      child: internetProvider.connectionType == 0
-          ? const NoInternetViewPage()
-          : Obx(() {
-              final selectedPage = controller.fabSelected.value
+      child: Obx(() {
+              final selectedPageRaw = controller.fabSelected.value
                   ? SelfiePunchScreen()
                   : pageList[controller.selectedIndex.value];
+                  
+              final selectedPage = selectedPageRaw;
 
               // ── All platforms: Flutter Liquid Glass bar ──
               // Using the same Flutter-drawn _LiquidNavBar on iOS and Android

@@ -7,7 +7,6 @@ import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:video_player/video_player.dart';
 
 import 'common_splash_ad.dart';
@@ -40,12 +39,10 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
         _isVideoFinished = true;
       });
 
-      if (internetProv.connectionType != 0) {
-        final splashProvider = Provider.of<SplashProvider>(context, listen: false);
-        splashProvider.onVideoFinished(context);
-        if (splashProvider.pendingNavigationPage == null) {
-          splashProvider.loadingData(context);
-        }
+      final splashProvider = Provider.of<SplashProvider>(context, listen: false);
+      splashProvider.onVideoFinished(context);
+      if (splashProvider.pendingNavigationPage == null) {
+        splashProvider.loadingData(context);
       }
     }
   }
@@ -137,12 +134,7 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
         systemNavigationBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
       ),
     );
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(
-      context,
-    );
-    return (_isVideoFinished && checkInterNetConnection.connectionType == 0)
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor: bgColor,
             body: Container(
               color: bgColor,

@@ -4,6 +4,7 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
     id "com.google.gms.google-services"
     id "com.google.firebase.crashlytics"
+    id "org.jetbrains.kotlin.plugin.compose"
 }
 
 def keystoreProperties = new Properties()
@@ -55,6 +56,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    buildFeatures {
+        compose = true
+    }
 }
 
 flutter {
@@ -65,6 +70,10 @@ dependencies {
     implementation platform("com.google.firebase:firebase-bom:28.3.1")
     implementation "com.google.firebase:firebase-analytics"
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
+    
+    // Jetpack Glance for App Widget
+    implementation "androidx.glance:glance-appwidget:1.1.0"
+    implementation "androidx.glance:glance-material3:1.1.0"
 }
 
 kotlin {

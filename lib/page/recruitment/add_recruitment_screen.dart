@@ -25,7 +25,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class AddRecruitmentScreen extends StatefulWidget {
@@ -56,9 +55,7 @@ class _AddRecruitmentScreenState extends State<AddRecruitmentScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final positionMasterService = Provider.of<PositionMasterService>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor:ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(candidateDetailsString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             body: recuritmentProvider.islodering ? userProfileShimmer(size) : Padding(

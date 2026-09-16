@@ -19,7 +19,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class AddAdminLeaveMasterScreen extends StatefulWidget {
@@ -47,9 +46,7 @@ class _AddAdminLeaveMasterScreenState extends State<AddAdminLeaveMasterScreen> {
     final leaveEmployeeeMastServices = Provider.of<LeaveEmployeeeMastServices>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor:ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(addLeaveString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             body: leaveEmployeeeMastServices.islodering ? userProfileShimmer(size) : Padding(

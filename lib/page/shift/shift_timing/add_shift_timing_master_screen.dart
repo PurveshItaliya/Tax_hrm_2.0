@@ -25,7 +25,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class AddShiftTimingMasterScreen extends StatefulWidget {
@@ -64,9 +63,7 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
     final shiftTiminigMasterProvider =  Provider.of<ShiftMasterProvider>(context);
     final appPaginationController = Provider.of<AppPaginationProvider>(context);
     final positionMasterService = Provider.of<PositionMasterService>(context);
-    return checkInterNetConnection.connectionType == 0
-      ? const NoInternetViewPage()
-      : Scaffold(
+    return Scaffold(
             backgroundColor: ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(newShiftMasterString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);},),
             body: shiftTiminigMasterProvider.islodering ? userProfileShimmer(size) : Padding(

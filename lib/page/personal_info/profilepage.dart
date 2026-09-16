@@ -17,7 +17,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/page/employee_master/employee_add_edit_screen.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
@@ -50,9 +49,7 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
       context,
     );
     final userMasterService = Provider.of<UserMasterService>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               appBar: showCustomeAppBar(
                 personalInfoString,

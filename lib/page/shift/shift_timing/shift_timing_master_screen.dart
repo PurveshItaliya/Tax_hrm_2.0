@@ -18,7 +18,6 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_popmenu.dart';
 import 'package:tax_hrm/widigets/commonpaginator.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 
 class ShiftTimingMasterScreen extends StatefulWidget {
   const ShiftTimingMasterScreen({super.key});
@@ -50,9 +49,7 @@ class _ShiftTimingMasterScreenState extends State<ShiftTimingMasterScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final shiftTiminigMasterProvider =  Provider.of<ShiftMasterProvider>(context);
     final appPaginationController = Provider.of<AppPaginationProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               floatingActionButton: shiftTiminigMasterProvider.islodering ? SizedBox() : Padding(

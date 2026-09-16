@@ -8,7 +8,6 @@ import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 
 class ViewDocumentScreen extends StatefulWidget {
   final DocumentViews selectedData; 
@@ -30,9 +29,7 @@ class _ViewDocumentScreenState extends State<ViewDocumentScreen> {
     Size size = MediaQuery.of(context).size;
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     var documentproviders = Provider.of<DocumentsProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               appBar: showCustomeAppBar(widget.selectedData.filename.toString(), size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){
                 backScreen(context);

@@ -14,7 +14,6 @@ import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 
 class ViewPaySlipScreen extends StatefulWidget {
   final PaySlipView getPaySlipData;
@@ -38,9 +37,7 @@ class _ViewPaySlipScreenState extends State<ViewPaySlipScreen> {
     final paySlipProviders = Provider.of<PaySlipProviders>(context);
     Provider.of<LanguageProvider>(context);
     safeAreaBgAndTextColor(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor: ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(viewPaySlipString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             floatingActionButton:FloatingActionButton(

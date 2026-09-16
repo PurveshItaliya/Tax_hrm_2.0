@@ -21,7 +21,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/utils/attendance_perf_logger.dart';
 
@@ -81,9 +80,7 @@ class _PayrollMaterScreenState extends State<PayrollMaterScreen> {
     final payRollProviders = Provider.of<PayRollProviders>(context);
     Provider.of<LanguageProvider>(context);
     safeAreaBgAndTextColor(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor: ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(payrollMasterString.toString().split(" ").first.toString(), size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

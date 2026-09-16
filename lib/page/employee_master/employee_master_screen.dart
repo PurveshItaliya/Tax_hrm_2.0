@@ -22,7 +22,6 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/common_user_limit_dialog.dart';
 import 'package:tax_hrm/widigets/commonpaginator.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 
 class EmployeeMasterScreen extends StatefulWidget {
   const EmployeeMasterScreen({super.key});
@@ -85,9 +84,7 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
         : appPaginationController.endIndexShow;
     final employeePageItemCount = employeeEndIndex - employeeStartIndex;
     
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               appBar: showCustomAppbarWithPagination(
                 employeeMaster,

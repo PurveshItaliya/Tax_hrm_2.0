@@ -5,6 +5,8 @@ import workmanager_apple
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  private var widgetMethodChannel: FlutterMethodChannel?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -41,7 +43,23 @@ import workmanager_apple
       }
     }
 
+    if let controller = window?.rootViewController as? FlutterViewController {
+      widgetMethodChannel = FlutterMethodChannel(name: "punch_widget/open", binaryMessenger: controller.binaryMessenger)
+    }
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  override func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey : Any] = [:]
+  ) -> Bool {
+    if url.scheme == "taxhrm" && url.host == "punch" {
+      widgetMethodChannel?.invokeMethod("open_punch", arguments: nil)
+      return true
+    }
+    return super.application(app, open: url, options: options)
   }
 
   override func applicationDidBecomeActive(_ application: UIApplication) {

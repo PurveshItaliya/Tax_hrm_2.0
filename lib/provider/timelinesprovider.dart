@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, strict_top_level_inference, avoid_function_literals_in_foreach_calls, empty_catches, body_might_complete_normally_catch_error, library_prefixes, unused_local_variable
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,8 @@ import 'package:tax_hrm/api/setTimeline.dart';
 import 'package:tax_hrm/models/company/timelines.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
+import 'package:tax_hrm/services/location_batch_service.dart';
+import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 
 class TimeLineServices with ChangeNotifier {
@@ -48,6 +51,13 @@ class TimeLineServices with ChangeNotifier {
       String formattedDate = dateTimers.DateFormat('yyyy-MM-dd').format(setDates);
       await LocationTimeLineClass().getUserTimeLine(selectedDate: formattedDate, setUserId: setEmpId).then((value) {
         mainUserTimeLines = value;
+        
+        print("====== Timeline Data Loaded ======");
+        for (var item in mainUserTimeLines) {
+          print("Time: ${item.entryTime} | Lat: ${item.latitude} | Lng: ${item.logitude} | Device: ${item.deviceName} (${item.deviceType}) | Address: ${item.address}");
+        }
+        print("==================================");
+
         mainUserTimeLines.forEach((element) {
           if (element.latitude != null && element.logitude != null && element.latitude != 'null' && element.logitude != 'null') {
             if (showUserTimeLines.isEmpty) {
@@ -184,11 +194,25 @@ class TimeLineServices with ChangeNotifier {
     notifyListeners();
 
     deviceName = await getDeviceName();
-    await Provider.of<AttendanceEmp>(context, listen: false).checkLastPunch(curentUser['Id']).then((value) {
+    await Provider.of<AttendanceEmp>(context, listen: false).checkLastPunch(curentUser['Id']).then((value) async {
       if(Provider.of<AttendanceEmp>(context, listen: false).checkStatus!.attendenceLog!.isNotEmpty){
         if(Provider.of<AttendanceEmp>(context, listen: false).checkStatus!.attendenceLog!.last.status == 'IN'){
-          LocationTimeLineClass().setUserTimeLine(deviceName: 'Fore',deviceType: Platform.isAndroid ? 'Android $deviceName' :'Ios $deviceName', latitude: setlatitude, logitude: setlongitude, pincode: postalCode,  addres: currentLocation);
+          await LocationBatchStorage.appendLocation(
+            latitude: double.parse(setlatitude!),
+            longitude: double.parse(setlongitude!),
+            entryTime: DateTime.now(),
+          );
+          
+          final String userDataStr = await SaveUser().getUserDatas();
+          if (userDataStr.isNotEmpty) {
+            final dynamic userData = jsonDecode(userDataStr);
+            await LocationBatchStorage.uploadPendingBatch(userData: userData, isMapScreen: false, isAppForeground: true);
+          }
+        } else {
+          print("====== Timeline NOT Created: Last status is not 'IN' ======");
         }
+      } else {
+        print("====== Timeline NOT Created: AttendenceLog is empty ======");
       }
     },);
 

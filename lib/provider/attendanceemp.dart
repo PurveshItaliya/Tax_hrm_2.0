@@ -26,6 +26,7 @@ import 'package:tax_hrm/api/shiftapi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tax_hrm/utils/dateformat.dart';
 import 'package:tax_hrm/utils/attendance_perf_logger.dart';
+import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 
 class AttendanceEmp extends ChangeNotifier {
   bool islodering = false;
@@ -274,7 +275,7 @@ class AttendanceEmp extends ChangeNotifier {
     }
 
     // ── Step 1: Show cached data immediately (no flicker) ──────────────────────
-    if (isNewMonth && !forceRefresh) {
+    if ((isNewMonth || getMonthAttenDance.isEmpty) && !forceRefresh) {
       try {
         final prefs = await SharedPreferences.getInstance();
         final localJson = prefs.getString(cacheKey);
@@ -414,7 +415,11 @@ class AttendanceEmp extends ChangeNotifier {
       for (final element in getMonthAttenDance) {
         String absStr = (element.absent ?? '').toString().toLowerCase().trim();
         bool isAbs = element.absent == true || absStr == 'true' || absStr == '1';
-        if (isAbs && element.leaveTypeCguid == null && !isWeekOff(element)) {
+        
+        String holStr = (element.holiday ?? '').toString().toLowerCase().trim();
+        bool isHol = element.holiday == true || holStr == 'true' || holStr == '1';
+        
+        if (isAbs && element.leaveTypeCguid == null && !isWeekOff(element) && !isHol) {
           totalop++;
         }
       }
@@ -610,10 +615,43 @@ class AttendanceEmp extends ChangeNotifier {
       await AttendanceApis().getDateBlogEmp(setDate, employeid, selectedcurentcompany!.companyId).then((value){
         selectedDateLog = value;
       });
-    } catch (e) { /* ignored */ } finally {
-      if (showLoading) setloading(false);
-      notifyListeners();
-    }
+    } catch (e) { /* ignored */ } 
+
+    // ── Append pending offline punches ──────────────────────────────────────
+    try {
+      final DateTime dateParsed = (setDate is DateTime) ? setDate : DateTime.parse(setDate.toString());
+      final allPending = await OfflinePunchSyncService.instance.getAllRecords();
+      final dayPending = allPending.where((record) {
+        if (record.empId != employeid) return false;
+        final recordDate = DateTime.tryParse(record.attendenceDate);
+        return recordDate != null &&
+               recordDate.year == dateParsed.year &&
+               recordDate.month == dateParsed.month &&
+               recordDate.day == dateParsed.day;
+      }).toList();
+
+      if (dayPending.isNotEmpty) {
+        selectedDateLog ??= AttendanceDayBlog();
+        selectedDateLog!.attendenceLog ??= [];
+        for (var record in dayPending) {
+          selectedDateLog!.attendenceLog!.add(
+            AttendenceLog(
+              logId: -1,
+              empId: record.empId,
+              status: record.punchStatus,
+              time: record.punchTimestamp,
+              attendenceDate: record.attendenceDate,
+              cguid: record.localId,
+              isOffline: true,
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+    // ────────────────────────────────────────────────────────────────────────
+    
+    if (showLoading) setloading(false);
+    notifyListeners();
   }
 
   AttendanceDayBlog? checkStatus;

@@ -15,7 +15,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class AddHolidayScreen extends StatefulWidget {
@@ -45,9 +44,7 @@ class _AddHolidayScreenState extends State<AddHolidayScreen> {
     safeAreaBgAndTextColor(context);
      final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final holidayeMastServices = Provider.of<HolidayeMastServices>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor:ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(addNewHolidayString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             body: holidayeMastServices.islodering ? userProfileShimmer(size) : Padding(

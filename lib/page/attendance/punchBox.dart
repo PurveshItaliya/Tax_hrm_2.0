@@ -4,8 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import 'package:tax_hrm/api/setTimeline.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/services/location_batch_service.dart';
+import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
@@ -18,8 +21,9 @@ class PunchBoxConfirmation extends StatefulWidget {
   String typeBox;
   dynamic setUserWeekoff;
   String currentLocation,setlatitude,setlongitude,postcode;
+  bool isFromWidget;
 
-  PunchBoxConfirmation(this.userImage,this.typeBox,this.currentLocation,this.setlatitude,this.setlongitude,this.setUserWeekoff,this.postcode,{super.key});
+  PunchBoxConfirmation(this.userImage,this.typeBox,this.currentLocation,this.setlatitude,this.setlongitude,this.setUserWeekoff,this.postcode, {this.isFromWidget = false, super.key});
 
   @override
   _PunchBoxConfirmationState createState() => _PunchBoxConfirmationState();
@@ -30,8 +34,17 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> {
 
   Future<void> callPunchData() async {
     punchProvider.setPunchLoader(true);   
-    LocationTimeLineClass().setUserTimeLine(deviceName: 'Fore',deviceType:Platform.isAndroid ?'Android': 'IOS' , latitude: widget.setlatitude, logitude: widget.setlongitude, pincode: widget.postcode,  addres: widget.currentLocation);                      
-    await punchProvider.punchNowCall(context,curentUser['Id'],widget.userImage!,widget.currentLocation,widget.setlatitude,widget.setlongitude,punchProvider.punchBoxNotesController.text,widget.setUserWeekoff);
+    await LocationBatchStorage.appendLocation(
+      latitude: double.parse(widget.setlatitude),
+      longitude: double.parse(widget.setlongitude),
+      entryTime: DateTime.now(),
+    );
+    final String userDataStr = await SaveUser().getUserDatas();
+    if (userDataStr.isNotEmpty) {
+      final dynamic userData = jsonDecode(userDataStr);
+      await LocationBatchStorage.uploadPendingBatch(userData: userData, isMapScreen: false, isAppForeground: true);
+    }
+    await punchProvider.punchNowCall(context,curentUser['Id'],widget.userImage!,widget.currentLocation,widget.setlatitude,widget.setlongitude,punchProvider.punchBoxNotesController.text,widget.setUserWeekoff, widget.isFromWidget);
 }
 
   @override

@@ -15,7 +15,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class NotesViewPage extends StatefulWidget {
@@ -40,9 +39,7 @@ class _NotesViewPageState extends State<NotesViewPage> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final notesProvidersData =  Provider.of<NotesProviders>(context);
     Provider.of<LanguageProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               appBar: showCustomeAppBar(noteString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

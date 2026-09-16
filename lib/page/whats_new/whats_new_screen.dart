@@ -7,7 +7,8 @@ import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
+
+import '../../widigets/noInternetView.dart';
 
 class WhatsNewPage extends StatefulWidget {
   const WhatsNewPage({super.key});
@@ -40,9 +41,12 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version104 = 'v1.0.4';
     String versionName104 = 'Performance & Usability Enhancements';
 
+    String version105 = 'v1.0.5';
+    String versionName105 = 'Major Feature Enhancements';
+
     versions = Platform.isAndroid 
-        ? ['All', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
-        : ['All', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
+        ? ['All', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        : ['All', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -479,6 +483,53 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Leaderboard now auto-refreshes data when selecting a different month',
           'Splash screen video no longer interrupts other apps playing audio',
           'General performance optimizations',
+        ],
+      ),
+      // --- v1.0.5 New Features Added ---
+      ReleaseNoteItem(
+        id: 27,
+        title: 'Attendance & Leave Enhancements',
+        description: 'Improved accuracy and better tracking for Attendance, Leaves, and Holidays.',
+        version: version105,
+        versionName: versionName105,
+        date: 'September 15, 2026',
+        category: 'Both',
+        icon: Icons.event_available,
+        bgColor: const Color(0xFF4CAF50), // Green
+        features: [
+          'Improved Attendance: More accurate Present, Absent, Leave, and Holiday status and counts.',
+          'Better Leave & Holiday Tracking: Leave and Holiday records now display correctly, with improved leave count calculations.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 28,
+        title: 'Offline & Location Tracking',
+        description: 'Robust offline support and improved location tracking capabilities.',
+        version: version105,
+        versionName: versionName105,
+        date: 'September 15, 2026',
+        category: 'Employee App',
+        icon: Icons.location_on,
+        bgColor: const Color(0xFF2196F3), // Blue
+        features: [
+          'Offline Punch Support: Punch In/Out works even without internet, with automatic synchronization when connectivity is restored.',
+          'Smart Location Tracking: Improved background and offline location tracking with optimized data synchronization.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 29,
+        title: 'Smart Timeline & Map Experience',
+        description: 'New features to view travel summaries, detect stops, and enjoy a cleaner map view.',
+        version: version105,
+        versionName: versionName105,
+        date: 'September 15, 2026',
+        category: 'Both',
+        icon: Icons.map,
+        bgColor: const Color(0xFFFF9800), // Orange
+        features: [
+          'Travel & Location Summary: View punch-session-wise travel distance, working duration, and movement details.',
+          'Smart Stop Detection: Easily track important stops with stop count and stay duration.',
+          'Improved Map Experience: Cleaner map view with Punch In, Punch Out, travel routes, and important stops.',
         ],
       ),
     ];

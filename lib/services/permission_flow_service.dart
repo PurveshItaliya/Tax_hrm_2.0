@@ -134,7 +134,7 @@ class PermissionFlowService {
   static Future<List<PermissionType>> _buildPendingList(bool isFetchLocation, bool notificationOnly) async {
     final List<PermissionType> pending = [];
 
-    if (!(await Permission.notification.status).isGranted) {
+    if (!(await _getSafeStatus(PermissionType.notification)).isGranted) {
       pending.add(PermissionType.notification);
     }
     
@@ -142,14 +142,14 @@ class PermissionFlowService {
       return pending;
     }
 
-    if (!(await Permission.camera.status).isGranted) {
+    if (!(await _getSafeStatus(PermissionType.camera)).isGranted) {
       pending.add(PermissionType.camera);
     }
-    if (!(await Permission.location.status).isGranted) {
+    if (!(await _getSafeStatus(PermissionType.foregroundLocation)).isGranted) {
       pending.add(PermissionType.foregroundLocation);
     }
     if (Platform.isAndroid && isFetchLocation) {
-      if (!(await Permission.locationAlways.status).isGranted) {
+      if (!(await _getSafeStatus(PermissionType.backgroundLocation)).isGranted) {
         pending.add(PermissionType.backgroundLocation);
       }
     }
@@ -180,27 +180,36 @@ class PermissionFlowService {
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   static Future<PermissionStatus> _getStatus(PermissionType type) async {
-    switch (type) {
-      case PermissionType.notification:
-        return Permission.notification.status;
-      case PermissionType.camera:
-        return Permission.camera.status;
-      case PermissionType.foregroundLocation:
-        return Permission.location.status;
-      case PermissionType.backgroundLocation:
-        return Permission.locationAlways.status;
+    return await _getSafeStatus(type);
+  }
+
+  static Future<PermissionStatus> _getSafeStatus(PermissionType type) async {
+    try {
+      switch (type) {
+        case PermissionType.notification:
+          return await Permission.notification.status.timeout(const Duration(seconds: 2));
+        case PermissionType.camera:
+          return await Permission.camera.status.timeout(const Duration(seconds: 2));
+        case PermissionType.foregroundLocation:
+          return await Permission.location.status.timeout(const Duration(seconds: 2));
+        case PermissionType.backgroundLocation:
+          return await Permission.locationAlways.status.timeout(const Duration(seconds: 2));
+      }
+    } catch (e) {
+      debugPrint("Timeout or error getting status for $type: $e");
+      return PermissionStatus.denied;
     }
   }
 
   static Future<PermissionFlowResult> _buildResult() async {
-    final notifGranted = (await Permission.notification.status).isGranted;
+    final notifGranted = (await _getSafeStatus(PermissionType.notification)).isGranted;
     if (notifGranted) {
       FcmTokenService.instance.handleTokenSync();
     }
-    final camGranted = (await Permission.camera.status).isGranted;
-    final fgGranted = (await Permission.location.status).isGranted;
+    final camGranted = (await _getSafeStatus(PermissionType.camera)).isGranted;
+    final fgGranted = (await _getSafeStatus(PermissionType.foregroundLocation)).isGranted;
     final bgGranted =
-        Platform.isAndroid && (await Permission.locationAlways.status).isGranted;
+        Platform.isAndroid && (await _getSafeStatus(PermissionType.backgroundLocation)).isGranted;
     final locGranted = fgGranted || bgGranted;
 
     return PermissionFlowResult(

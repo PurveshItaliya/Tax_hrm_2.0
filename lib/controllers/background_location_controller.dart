@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -9,7 +10,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tax_hrm/repository/background_location_repository.dart';
 import 'package:tax_hrm/services/background_location_service.dart';
+import 'package:tax_hrm/services/location_batch_service.dart';
 import 'package:tax_hrm/services/location_permission_service.dart';
+import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 
 /// Controller orchestrating the background location lifecycle, Apple HIG
 /// permission flow, foreground worker, and WorkManager periodic execution.
@@ -105,6 +108,13 @@ class BackgroundLocationController extends ChangeNotifier {
 
     await prefs.setBool('isTrackingActive', true);
     /* log('10. isTrackingActive saved to SharedPreferences'); */
+
+    final String userDataStr = await SaveUser().getUserDatas();
+    if (userDataStr.isNotEmpty) {
+      final dynamic userData = jsonDecode(userDataStr);
+      await LocationBatchStorage.uploadPendingBatch(userData: userData);
+    }
+    
     /* log('================================================='); */
 
     } catch (e) {
@@ -117,6 +127,12 @@ class BackgroundLocationController extends ChangeNotifier {
 
   /// Stops tracking upon employee Punch Out.
   void stopLocationTracking() async {
+    final String userDataStr = await SaveUser().getUserDatas();
+    if (userDataStr.isNotEmpty) {
+      final dynamic userData = jsonDecode(userDataStr);
+      await LocationBatchStorage.uploadPendingBatch(userData: userData);
+    }
+    
     final service = FlutterBackgroundService();
     service.invoke('stopService');
     cancelLocationWorkManager();

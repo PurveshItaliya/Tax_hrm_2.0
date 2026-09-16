@@ -1,7 +1,9 @@
 // ignore_for_file: avoid_print, deprecated_member_use, empty_catches, strict_top_level_inference, unused_local_variable
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,9 +11,12 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';
+import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/app_providers.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/widigets/offline_banner_widget.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/theme_provider.dart';
@@ -22,6 +27,10 @@ import 'package:tax_hrm/firebase_options.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'dart:convert';
+import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/services/widget_link_service.dart';
+import 'package:tax_hrm/models/company/getallcompany.dart';
 
 // --- DUMMY FIREBASE HANDLER TO PREVENT CRASH FROM OLD CACHE ---
 @pragma('vm:entry-point')
@@ -50,6 +59,16 @@ Future<void> main() async {
     }
   }
   globalPrefs = await SharedPreferences.getInstance();
+  // Pre-load curentUser and company for fast startup (eliminates async wait later)
+  try {
+    final userStr = globalPrefs.getString('data') ?? '';
+    if (userStr.isNotEmpty) curentUser = jsonDecode(userStr);
+    
+    final companyStr = globalPrefs.getString('companysave') ?? '';
+    if (companyStr.isNotEmpty) {
+      selectedcurentcompany = GetCompanyData.fromJson(jsonDecode(companyStr));
+    }
+  } catch (_) {}
   await initializeDateFormatting();
   try {
     await Firebase.initializeApp(
@@ -367,6 +386,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetLinkService.instance.initialize();
   }
 
   @override
@@ -383,7 +403,54 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // Fire-and-forget: never block the UI thread
       FcmTokenService.instance.verifyMandatoryTopics();
+
+      // ── Offline punch sync on resume ─────────────────────────────────
+      // Process any pending offline punches that accumulated while the app
+      // was backgrounded or while the device had no internet.
+      _syncOfflinePunchesIfNeeded();
     }
+  }
+
+  /// Attempt to sync offline punches when the app resumes.
+  /// Only runs if (a) there are pending records and (b) internet is available.
+  void _syncOfflinePunchesIfNeeded() {
+    Future<void> syncRun() async {
+      final int pending = await OfflinePunchSyncService.instance.pendingCount();
+      if (pending == 0) return;
+
+      // Check connectivity via provider if mounted.
+      if (!mounted) return;
+      final bool isOnline =
+          Provider.of<InternetConnectionProvider>(context, listen: false)
+              .connectionType != 0;
+
+      if (!isOnline) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final String userStr = prefs.getString('data') ?? '';
+      if (userStr.isEmpty) return;
+
+      Map<String, dynamic>? userData;
+      Map<String, dynamic>? companyData;
+      try {
+        userData = jsonDecode(userStr) as Map<String, dynamic>;
+      } catch (_) {
+        return;
+      }
+      final String companyStr = prefs.getString('companysave') ?? '';
+      if (companyStr.isNotEmpty) {
+        try {
+          companyData = jsonDecode(companyStr) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+
+      await OfflinePunchSyncService.instance.syncAllPending(
+        userData: userData,
+        companyData: companyData,
+      );
+    }
+
+    syncRun().catchError((_) {});
   }
   @override
   Widget build(BuildContext context) {
@@ -448,10 +515,39 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 child: mChild,
               );
             },
-            home: const ShowSpleshPage(),
+            home: ui.PlatformDispatcher.instance.defaultRouteName == '/punch_widget'
+                ? const WidgetPunchStartupScreen()
+                : const ShowSpleshPage(),
           );
         },
       ),
+    );
+  }
+}
+
+class WidgetPunchStartupScreen extends StatefulWidget {
+  const WidgetPunchStartupScreen({super.key});
+
+  @override
+  State<WidgetPunchStartupScreen> createState() => _WidgetPunchStartupScreenState();
+}
+
+class _WidgetPunchStartupScreenState extends State<WidgetPunchStartupScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Wait for first frame so all providers are mounted, then navigate instantly
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetLinkService.instance.handlePunchWidgetOpen();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Fully transparent — user sees nothing during the single frame before navigation fires
+    return const Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SizedBox.shrink(),
     );
   }
 }

@@ -205,8 +205,10 @@ class LeaveMastServices extends ChangeNotifier {
   }
 
   int countWeekdays(DateTime startDate, DateTime endDate) {
+    DateTime from = DateTime(startDate.year, startDate.month, startDate.day);
+    DateTime to = DateTime(endDate.year, endDate.month, endDate.day);
     int totalDays = 0;
-    for (DateTime date = startDate; !date.isAfter(endDate); date = date.add(const Duration(days: 1))) {
+    for (DateTime date = from; !date.isAfter(to); date = date.add(const Duration(days: 1))) {
       if (date.weekday != DateTime.sunday) {
         totalDays++;
       }
@@ -300,11 +302,14 @@ class LeaveMastServices extends ChangeNotifier {
   }
 
   void setCountings(double total, DateTime startDate, DateTime endDate, {List<GetHolidayViews> holidays = const []}) {
-    if (_sameDate(startDate, endDate)) {
+    DateTime from = DateTime(startDate.year, startDate.month, startDate.day);
+    DateTime to = DateTime(endDate.year, endDate.month, endDate.day);
+
+    if (_sameDate(from, to)) {
       creaditDayscontrller.text = selectedOption == 'Half Day' ? '0.5' : '1';
       total = double.parse(creaditDayscontrller.text);
     } else {
-      final holdDays = countWeekdays(startDate, endDate);
+      final holdDays = countWeekdays(from, to);
       total = selectedOption == 'Half Day' ? holdDays / 2 : holdDays.toDouble();
       creaditDayscontrller.text = _formatLeaveNumber(total);
     }
@@ -314,7 +319,7 @@ class LeaveMastServices extends ChangeNotifier {
       for (var holiday in holidays) {
         final holidayDate = DateTime.tryParse(holiday.holidayDate ?? '');
         if (holidayDate == null) continue;
-        if (!holidayDate.isBefore(startDate) && !holidayDate.isAfter(endDate)) {
+        if (!holidayDate.isBefore(from) && !holidayDate.isAfter(to)) {
           holidayDates.add('${holidayDate.year}-${holidayDate.month}-${holidayDate.day}');
         }
       }
@@ -324,7 +329,7 @@ class LeaveMastServices extends ChangeNotifier {
 
     if (selectedLeaveType != null && selectedLeaveType!.considerWeeklyOff == true) {
       int sundaysCount = 0;
-      for (DateTime date = startDate; !date.isAfter(endDate); date = date.add(const Duration(days: 1))) {
+      for (DateTime date = from; !date.isAfter(to); date = date.add(const Duration(days: 1))) {
         if (date.weekday == DateTime.sunday) {
           sundaysCount++;
         }

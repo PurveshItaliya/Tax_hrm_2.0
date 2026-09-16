@@ -15,7 +15,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class EventPageScreen extends StatefulWidget {
@@ -46,9 +45,7 @@ class _EventPageScreenState extends State<EventPageScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final eventsMastServices =  Provider.of<EventsMastServices>(context);
     Provider.of<LanguageProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               floatingActionButton: eventsMastServices.islodering ? SizedBox() : Padding(

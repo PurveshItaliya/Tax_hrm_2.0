@@ -10,7 +10,6 @@ import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class DepartmentMenuScreen extends StatefulWidget {
@@ -32,9 +31,7 @@ class _DepartmentMenuScreenState extends State<DepartmentMenuScreen> {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               appBar: showCustomeAppBar(departmentString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
               body: Padding(

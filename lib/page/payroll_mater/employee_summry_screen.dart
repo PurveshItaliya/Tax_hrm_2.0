@@ -16,7 +16,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:tax_hrm/utils/attendance_perf_logger.dart';
@@ -94,9 +93,7 @@ class _EmployeeSummryScreenState extends State<EmployeeSummryScreen> {
     final payRollProviders = Provider.of<PayRollProviders>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor: ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(employeeSummryString, size, titleColors: ColorConst.appbarTextColor, iconsOntap: () { backScreen(context); }),
             body: payRollProviders.islodering 

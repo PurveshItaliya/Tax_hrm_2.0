@@ -14,7 +14,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
 import 'package:tax_hrm/widigets/loadersshow.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class RegistrationForm extends StatefulWidget {
@@ -45,7 +44,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final registrationProvider = Provider.of<RegistrationProvider>(context);
-    return checkInterNetConnection.connectionType == 0 ? const NoInternetViewPage() : Scaffold(
+    return Scaffold(
       backgroundColor: ColorConst.scaffoldColor,
       appBar: showCustomeAppBar(backString, size,iconsOntap: () {
         backScreen(context);
