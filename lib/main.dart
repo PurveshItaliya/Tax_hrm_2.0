@@ -14,6 +14,8 @@ import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/app_providers.dart';
+import 'package:tax_hrm/services/widget_link_service.dart';
+import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/widigets/offline_banner_widget.dart';
@@ -31,6 +33,7 @@ import 'dart:convert';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/services/widget_link_service.dart';
 import 'package:tax_hrm/models/company/getallcompany.dart';
+import 'package:tax_hrm/utils/background_logger.dart';
 
 // --- DUMMY FIREBASE HANDLER TO PREVENT CRASH FROM OLD CACHE ---
 @pragma('vm:entry-point')
@@ -49,6 +52,10 @@ const taskName = "LocationTimeLines";
 
 late SharedPreferences globalPrefs;
 
+/// Set to true on iOS when the app is cold-started by tapping the punch widget.
+/// Read from UserDefaults (via SharedPreferences) before runApp; cleared immediately.
+bool iosWidgetPunchLaunch = false;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (defaultTargetPlatform == TargetPlatform.iOS) {
@@ -59,6 +66,18 @@ Future<void> main() async {
     }
   }
   globalPrefs = await SharedPreferences.getInstance();
+  // iOS widget cold-start: check flag written by AppDelegate to UserDefaults.
+  // SharedPreferences uses UserDefaults with "flutter." prefix on iOS, so
+  // AppDelegate's "flutter.widgetPunchPending" is readable here as 'widgetPunchPending'.
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    debugPrint("🟠 [WidgetDebug] main() reading globalPrefs for 'widgetPunchPending'");
+    iosWidgetPunchLaunch = globalPrefs.getBool('widgetPunchPending') ?? false;
+    debugPrint("🟠 [WidgetDebug] main() iosWidgetPunchLaunch = $iosWidgetPunchLaunch");
+    if (iosWidgetPunchLaunch) {
+      debugPrint("🟠 [WidgetDebug] main() clearing 'widgetPunchPending' from globalPrefs");
+      await globalPrefs.remove('widgetPunchPending'); // clear so it doesn't fire again
+    }
+  }
   // Pre-load curentUser and company for fast startup (eliminates async wait later)
   try {
     final userStr = globalPrefs.getString('data') ?? '';
@@ -100,6 +119,8 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]).then((_) {
+    // Dump persistent background logs to the IDE console on startup
+    BackgroundLogger.dumpLogsToConsole();
     runApp(MyApp());
   });
 }
@@ -515,39 +536,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 child: mChild,
               );
             },
-            home: ui.PlatformDispatcher.instance.defaultRouteName == '/punch_widget'
-                ? const WidgetPunchStartupScreen()
-                : const ShowSpleshPage(),
+            home: Builder(builder: (context) {
+              final defaultRoute = ui.PlatformDispatcher.instance.defaultRouteName;
+              debugPrint("🟠 [WidgetDebug] MaterialApp home evaluation: defaultRouteName='$defaultRoute', iosWidgetPunchLaunch=$iosWidgetPunchLaunch");
+              
+              if (defaultRoute == '/punch_widget' || defaultRoute.contains('punch') || iosWidgetPunchLaunch) {
+                if (curentUser != null) {
+                  return const WidgetPunchWrapper();
+                } else {
+                  // Fallback if somehow they are logged out or data is missing
+                  // We still need to configure splash to redirect
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final splashProvider = Provider.of<SplashProvider>(context, listen: false);
+                    splashProvider.pendingNavigationPage = const WidgetPunchWrapper();
+                  });
+                }
+              }
+              return const ShowSpleshPage();
+            }),
           );
         },
       ),
-    );
-  }
-}
-
-class WidgetPunchStartupScreen extends StatefulWidget {
-  const WidgetPunchStartupScreen({super.key});
-
-  @override
-  State<WidgetPunchStartupScreen> createState() => _WidgetPunchStartupScreenState();
-}
-
-class _WidgetPunchStartupScreenState extends State<WidgetPunchStartupScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Wait for first frame so all providers are mounted, then navigate instantly
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      WidgetLinkService.instance.handlePunchWidgetOpen();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Fully transparent — user sees nothing during the single frame before navigation fires
-    return const Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SizedBox.shrink(),
     );
   }
 }

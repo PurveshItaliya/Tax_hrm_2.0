@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:tax_hrm/utils/background_logger.dart';
 
 class LocationBatchStorage {
   static const String _kPendingLocationsKey = 'pending_locations_batch';
@@ -50,17 +52,20 @@ class LocationBatchStorage {
         }
       }
 
-      print(
+      BackgroundLogger.log(
         '[LOCATION_RECEIVED] lat=$latitude lng=$longitude accuracy=${accuracy?.toStringAsFixed(1) ?? 'N/A'}m',
+        name: 'LocationBatchStorage'
       );
-      print(
-        '   -> \x1B[36m[API TIMING] Last=$lastApiTimeFormatted | Next=$nextApiTimeFormatted\x1B[0m',
+      BackgroundLogger.log(
+        '   -> [API TIMING] Last=$lastApiTimeFormatted | Next=$nextApiTimeFormatted',
+        name: 'LocationBatchStorage'
       );
 
       // 1. Validate Accuracy
       if (accuracy != null && accuracy > 100) {
-        print(
+        BackgroundLogger.log(
           '[LOCATION_REJECTED_ACCURACY] lat=$latitude lng=$longitude accuracy=${accuracy.toStringAsFixed(1)}m (Poor GPS)',
+          name: 'LocationBatchStorage'
         );
         return;
       }
@@ -81,21 +86,24 @@ class LocationBatchStorage {
         );
         // Default threshold 15 meters
         if (distance < 15.0) {
-          print(
-            '\x1B[32m[$timeStr] 📍 SAME_DIST (${distance.toStringAsFixed(1)}m) | Lat: ${latitude.toStringAsFixed(5)}, Lng: ${longitude.toStringAsFixed(5)}\x1B[0m',
+          BackgroundLogger.log(
+            '[$timeStr] 📍 SAME_DIST (${distance.toStringAsFixed(1)}m) | Lat: ${latitude.toStringAsFixed(5)}, Lng: ${longitude.toStringAsFixed(5)}',
+            name: 'LocationBatchStorage'
           );
           return;
         } else {
-          print(
-            '\x1B[33m[$timeStr] 📍 MOVED_FAR (${distance.toStringAsFixed(1)}m) | Lat: ${latitude.toStringAsFixed(5)}, Lng: ${longitude.toStringAsFixed(5)} >= 15m\x1B[0m',
+          BackgroundLogger.log(
+            '[$timeStr] 📍 MOVED_FAR (${distance.toStringAsFixed(1)}m) | Lat: ${latitude.toStringAsFixed(5)}, Lng: ${longitude.toStringAsFixed(5)} >= 15m',
+            name: 'LocationBatchStorage'
           );
-          print('\x1B[35m[$timeStr] 🚀 Queuing Location Locally...\x1B[0m');
+          BackgroundLogger.log('[$timeStr] 🚀 Queuing Location Locally...', name: 'LocationBatchStorage');
         }
       } else {
-        print(
-          '\x1B[36m[$timeStr] 📍 INITIAL_LOCATION_SUBMIT | Lat: ${latitude.toStringAsFixed(5)}, Lng: ${longitude.toStringAsFixed(5)}\x1B[0m',
+        BackgroundLogger.log(
+          '[$timeStr] 📍 INITIAL_LOCATION_SUBMIT | Lat: ${latitude.toStringAsFixed(5)}, Lng: ${longitude.toStringAsFixed(5)}',
+          name: 'LocationBatchStorage'
         );
-        print('\x1B[35m[$timeStr] 🚀 Queuing Initial Location Fix...\x1B[0m');
+        BackgroundLogger.log('[$timeStr] 🚀 Queuing Initial Location Fix...', name: 'LocationBatchStorage');
       }
 
       List<Map<String, dynamic>> pending = await getPendingLocations();
@@ -116,12 +124,16 @@ class LocationBatchStorage {
       await prefs.setDouble('lastAcceptedLat', latitude);
       await prefs.setDouble('lastAcceptedLng', longitude);
 
-      print(
-        '\x1B[34m[LOCATION_ADDED_LOCAL] lat=$latitude lng=$longitude distance=${distance.toStringAsFixed(1)}m entryTime=${newItem['EntryTime']} pendingCount=${pending.length}\x1B[0m',
+      BackgroundLogger.log(
+        '[LOCATION_ADDED_LOCAL] lat=$latitude lng=$longitude distance=${distance.toStringAsFixed(1)}m entryTime=${newItem['EntryTime']} pendingCount=${pending.length}',
+        name: 'LocationBatchStorage'
       );
     } catch (e, stacktrace) {
-      print(
-        '[LOCATION_BATCH_STORAGE] ERROR appending location: $e\n$stacktrace',
+      BackgroundLogger.log(
+        '[LOCATION_BATCH_STORAGE] ERROR appending location: $e',
+        name: 'LocationBatchStorage',
+        error: e,
+        stackTrace: stacktrace
       );
     }
   }
@@ -153,8 +165,10 @@ class LocationBatchStorage {
         return decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
     } catch (e) {
-      print(
-        '\x1B[31m[LocationBatchStorage] ERROR getting locations: $e\x1B[0m',
+      BackgroundLogger.log(
+        '[LocationBatchStorage] ERROR getting locations: $e',
+        name: 'LocationBatchStorage',
+        error: e
       );
     }
     return [];
@@ -176,8 +190,10 @@ class LocationBatchStorage {
 
       await prefs.setString(_kPendingLocationsKey, jsonEncode(pending));
     } catch (e) {
-      print(
-        '\x1B[31m[LocationBatchStorage] ERROR removing locations: $e\x1B[0m',
+      BackgroundLogger.log(
+        '[LocationBatchStorage] ERROR removing locations: $e',
+        name: 'LocationBatchStorage',
+        error: e
       );
     }
   }
@@ -221,14 +237,14 @@ class LocationBatchStorage {
       return;
     }
 
-    print('[PENDING_LOCATION_COUNT] count=${pending.length}');
+    BackgroundLogger.log('[PENDING_LOCATION_COUNT] count=${pending.length}', name: 'LocationBatchStorage');
 
     if (isMapScreen) {
-      print('[MAP_SCREEN_ACTIVE] mapActive=true triggering 5min sync logic');
+      BackgroundLogger.log('[MAP_SCREEN_ACTIVE] mapActive=true triggering 5min sync logic', name: 'LocationBatchStorage');
     } else if (isAppForeground) {
-      print('[APP_STATE_FOREGROUND] triggering 10min sync logic');
+      BackgroundLogger.log('[APP_STATE_FOREGROUND] triggering 10min sync logic', name: 'LocationBatchStorage');
     } else {
-      print('[APP_STATE_BACKGROUND] triggering 10min sync logic');
+      BackgroundLogger.log('[APP_STATE_BACKGROUND] triggering 10min sync logic', name: 'LocationBatchStorage');
     }
 
     try {
@@ -247,8 +263,9 @@ class LocationBatchStorage {
           ? 'MAP'
           : (isAppForeground ? 'FOREGROUND' : 'BACKGROUND');
 
-      print(
+      BackgroundLogger.log(
         '[TIMELINE_BATCH_PREPARED] count=${pending.length} oldest=$oldestTime newest=$newestTime state=$stateStr',
+        name: 'LocationBatchStorage'
       );
 
       // Strip 'id' from the list sent to API
@@ -274,16 +291,15 @@ class LocationBatchStorage {
       String prettyBody = encoder.convert(body);
       String userName = userData['FirstName'] ?? 'User';
 
-      print(
-        '\n\x1B[35m========================================================================\x1B[0m',
+      BackgroundLogger.log(
+        '[TIMELINE_API_STARTED] 🚀 Syncing Timeline for: $userName (EmpID: ${userData['Id']})',
+        name: 'LocationBatchStorage'
       );
-      print(
-        '\x1B[35m[TIMELINE_API_STARTED] 🚀 Syncing Timeline for: $userName (EmpID: ${userData['Id']})\x1B[0m',
+      BackgroundLogger.log(
+        'URL: ${_kApiBaseUrl}api/Transation/NewCreateTimeline',
+        name: 'LocationBatchStorage'
       );
-      print(
-        '\x1B[35mURL: ${_kApiBaseUrl}api/Transation/NewCreateTimeline\x1B[0m',
-      );
-      print('\x1B[36m[TIMELINE_API_REQUEST_PAYLOAD]\n$prettyBody\x1B[0m');
+      BackgroundLogger.log('[TIMELINE_API_REQUEST_PAYLOAD]\n$prettyBody', name: 'LocationBatchStorage');
 
       final String token = userData['token'] ?? '';
       final stopwatch = Stopwatch()..start();
@@ -308,32 +324,31 @@ class LocationBatchStorage {
           prettyResponse = encoder.convert(jsonDecode(response.body));
         } catch (_) {}
 
-        print(
-          '\x1B[32m[TIMELINE_API_SUCCESS] 200 OK | Time: ${stopwatch.elapsedMilliseconds}ms | Uploaded ${pending.length} locations.\x1B[0m',
+        BackgroundLogger.log(
+          '[TIMELINE_API_SUCCESS] 200 OK | Time: ${stopwatch.elapsedMilliseconds}ms | Uploaded ${pending.length} locations.',
+          name: 'LocationBatchStorage'
         );
-        print('\x1B[36m[TIMELINE_API_RESPONSE]\n$prettyResponse\x1B[0m');
-        print(
-          '\x1B[35m========================================================================\n\x1B[0m',
-        );
+        BackgroundLogger.log('[TIMELINE_API_RESPONSE]\n$prettyResponse', name: 'LocationBatchStorage');
 
         // Remove the exactly uploaded items by their IDs, avoiding removal of newly added points during upload
         List<String> uploadedIds = pending
             .map((e) => e['id'].toString())
             .toList();
         await removeUploadedLocations(uploadedIds);
-        print('[UPLOADED_RECORDS_REMOVED] count=${uploadedIds.length}');
+        BackgroundLogger.log('[UPLOADED_RECORDS_REMOVED] count=${uploadedIds.length}', name: 'LocationBatchStorage');
       } else {
-        print('[TIMELINE_API_FAILED] Status Code: ${response.statusCode}');
-        print(
+        BackgroundLogger.log('[TIMELINE_API_FAILED] Status Code: ${response.statusCode}', name: 'LocationBatchStorage');
+        BackgroundLogger.log(
           '[PENDING_DATA_RETAINED] Data kept locally for retry due to API failure.',
+          name: 'LocationBatchStorage'
         );
       }
     } on SocketException catch (_) {
-      print('[NO_INTERNET] Cannot reach API.');
-      print('[PENDING_DATA_RETAINED] Data kept locally for retry when online.');
+      developer.log('[NO_INTERNET] Cannot reach API.', name: 'LocationBatchStorage');
+      developer.log('[PENDING_DATA_RETAINED] Data kept locally for retry when online.', name: 'LocationBatchStorage');
     } catch (e, stacktrace) {
-      print('[TIMELINE_API_FAILED] Exception: $e');
-      print('[PENDING_DATA_RETAINED] Data kept locally for retry.');
+      developer.log('[TIMELINE_API_FAILED] Exception: $e', name: 'LocationBatchStorage', error: e, stackTrace: stacktrace);
+      developer.log('[PENDING_DATA_RETAINED] Data kept locally for retry.', name: 'LocationBatchStorage');
     } finally {
       // Release lock
       await prefs.setBool(_kUploadLockKey, false);

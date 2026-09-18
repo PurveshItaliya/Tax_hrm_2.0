@@ -64,7 +64,11 @@ class _ShowSpleshPageState extends State<ShowSpleshPage> {
       Provider.of<InternetConnectionProvider>(context, listen: false).getAllConnectionData();
       final splashProvider = Provider.of<SplashProvider>(context, listen: false);
       splashProvider.isVideoFinished = false;
-      splashProvider.pendingNavigationPage = null;
+      // Do NOT reset pendingNavigationPage here — it may have already been set
+      // by WidgetLinkService (widget tap slow path) before splash was pushed.
+      // Resetting it would cause splash to navigate to the home screen instead
+      // of the punch screen. Only reset after navigation has completed (handled
+      // inside SplashProvider.onVideoFinished / triggerNextScreen).
       splashProvider.loadingData(context);
 
       CommonSplashAd.prefetch(
