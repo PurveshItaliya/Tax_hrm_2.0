@@ -56,6 +56,11 @@ late SharedPreferences globalPrefs;
 /// Read from UserDefaults (via SharedPreferences) before runApp; cleared immediately.
 bool iosWidgetPunchLaunch = false;
 
+/// Set to true on Android when the app is warm/cold-started by tapping the punch widget
+/// and [MaterialApp.home] directly placed [WidgetPunchWrapper] as the root widget.
+/// Prevents [WidgetLinkService] from pushing a second [WidgetPunchWrapper] on top.
+bool androidWidgetLaunch = false;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (defaultTargetPlatform == TargetPlatform.iOS) {
@@ -542,6 +547,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               
               if (defaultRoute == '/punch_widget' || defaultRoute.contains('punch') || iosWidgetPunchLaunch) {
                 if (curentUser != null) {
+                  // Mark that we have ALREADY placed WidgetPunchWrapper as the root.
+                  // This stops WidgetLinkService.handlePunchWidgetOpen from pushing a
+                  // second copy on top (which was causing the camera session ID mismatch).
+                  androidWidgetLaunch = true;
                   return const WidgetPunchWrapper();
                 } else {
                   // Fallback if somehow they are logged out or data is missing

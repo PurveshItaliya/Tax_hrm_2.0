@@ -57,6 +57,7 @@
   String shareImgString = 'assets/images/share.png';
   String contactUsImgString = 'assets/images/whatsapp.png';
   String userTimelineImgString = 'assets/images/userTimeline.svg';
+  String punchWidgetImgString = 'assets/images/tap.png';
 
   // department screen
   String departmentimgString = 'assets/images/departmentimg.svg';

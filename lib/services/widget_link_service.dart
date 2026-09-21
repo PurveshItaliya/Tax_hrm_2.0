@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:tax_hrm/main.dart' show globalPrefs, iosWidgetPunchLaunch;
+import 'package:tax_hrm/main.dart' show globalPrefs, iosWidgetPunchLaunch, androidWidgetLaunch;
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/page/bottom_bar_screen.dart';
@@ -63,10 +63,14 @@ class WidgetLinkService {
       return;
     }
     
-    // If we cold-started and already placed WidgetPunchWrapper as the home screen,
+    // If we cold-started/warm-started and already placed WidgetPunchWrapper as the
+    // home screen (iOS via iosWidgetPunchLaunch, Android via androidWidgetLaunch),
     // we don't need to push it again via the MethodChannel!
-    if (iosWidgetPunchLaunch) {
-      debugPrint("🟠 [WidgetDebug] handlePunchWidgetOpen ignored because iosWidgetPunchLaunch is true (already on screen)");
+    if (iosWidgetPunchLaunch || androidWidgetLaunch) {
+      debugPrint("🟠 [WidgetDebug] handlePunchWidgetOpen ignored because widget already launched as home (iosWidgetPunchLaunch=$iosWidgetPunchLaunch, androidWidgetLaunch=$androidWidgetLaunch)");
+      // Reset the android flag so the NEXT widget tap (after user goes back
+      // to the home bar and taps the widget again) will navigate correctly.
+      androidWidgetLaunch = false;
       return;
     }
 

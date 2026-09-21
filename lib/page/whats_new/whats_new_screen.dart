@@ -44,8 +44,11 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version105 = 'v1.0.5';
     String versionName105 = 'Major Feature Enhancements';
 
+    String version106 = 'v1.0.6';
+    String versionName106 = 'Punch Widget & Enhancements';
+
     versions = Platform.isAndroid 
-        ? ['All', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        ? ['All', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
         : ['All', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
@@ -532,6 +535,23 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Improved Map Experience: Cleaner map view with Punch In, Punch Out, travel routes, and important stops.',
         ],
       ),
+      if (Platform.isAndroid)
+        ReleaseNoteItem(
+          id: 30,
+          title: 'New Punch Widget',
+          description: 'You can now add the TAX HRM Punch Widget directly to your phone\'s Home Screen! Enjoy instant, 1-tap access to the Punch screen for faster and hassle-free attendance tracking.',
+          version: version106,
+          versionName: versionName106,
+          date: 'September 19, 2026',
+          category: 'Employee App',
+          icon: Icons.widgets_rounded,
+          bgColor: const Color(0xFF673AB7), // Deep Purple
+          features: [
+            'Add Punch Widget to Home Screen',
+            'Instant 1-tap access to the Punch screen',
+            'Minor performance improvements and bug fixes',
+          ],
+        ),
     ];
 
     _animationController = AnimationController(

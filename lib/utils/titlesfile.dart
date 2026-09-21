@@ -584,3 +584,5 @@ String get selectIfscCodeString => LanguageProvider.translate("selectIfscCodeStr
 String get selectIfscString => LanguageProvider.translate("selectIfscString", "Select IFSC");
 
 String get notificationString => LanguageProvider.translate("notificationString", "Notifications");
+String get punchWidgetTitleString => LanguageProvider.translate("punchWidgetTitleString", "Punch Widget");
+
