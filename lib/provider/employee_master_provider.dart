@@ -23,6 +23,7 @@ import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/models/employes/gettotal_user.dart';
 import 'package:tax_hrm/models/ifsc/ifsc_model.dart';
 import 'package:tax_hrm/models/master_model.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/role/get_role_model.dart';
 import 'package:tax_hrm/provider/address_provider.dart';
 import 'package:tax_hrm/provider/department_provider.dart';
@@ -52,7 +53,7 @@ class EmployeeMasterProvider extends ChangeNotifier {
   List<GetTotalUserModal> getTotalUserList = [];
   List<Mstclass> getallMastersData = [];
   List<Mstclass> bankAccountTypesList = [];
-  bool showActiveOnly = false;
+  bool showActiveOnly = true;
   bool showInactiveOnly = false;
   bool islodering = false;
   bool _isPasswordVisible = false;
@@ -112,9 +113,18 @@ class EmployeeMasterProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-   // Form keys for validation
-  final GlobalKey<FormState> formKey1 = GlobalKey<FormState>();
-  final GlobalKey<FormState> formKey2 = GlobalKey<FormState>();
+   // Form keys and validation flags for sections
+  final GlobalKey<FormState> accountFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> personalFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> contactFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> educationFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> bankFormKey = GlobalKey<FormState>();
+
+  bool hasAccountError = false;
+  bool hasPersonalError = false;
+  bool hasContactError = false;
+  bool hasEducationError = false;
+  bool hasBankError = false;
 
   setloading(bool value) {
     islodering = value;
@@ -137,6 +147,8 @@ class EmployeeMasterProvider extends ChangeNotifier {
   String? selectedmarital = 'Single';
 
   // Add these methods to update values
+  String? faceRegisterId;
+
   void updateOfficeLocation(String value) {
     selectOfficeLocation = value;
     notifyListeners();
@@ -258,6 +270,18 @@ class EmployeeMasterProvider extends ChangeNotifier {
     } else {
       emplists = allemployes;
     }
+
+    if (searchController.text.isNotEmpty) {
+      final query = searchController.text.toLowerCase().trim();
+      emplists = employeeList.where((employee) {
+        final name = (employee.firstName ?? "").toString().toLowerCase();
+        final role = (employee.role ?? "").toString().toLowerCase();
+        final mobile = (employee.mobile1 ?? "").toString().toLowerCase();
+        final department = (employee.departmentName ?? "").toString().toLowerCase();
+        return name.contains(query) || role.contains(query) || mobile.contains(query) || department.contains(query);
+      }).toList();
+    }
+
     notifyListeners();
   }
 
@@ -291,7 +315,7 @@ class EmployeeMasterProvider extends ChangeNotifier {
   void clearData() {
     searchController.clear();
     showserch = false;
-    showActiveOnly = false;
+    showActiveOnly = true;
     showInactiveOnly = false;
     expandedIndex = -1;
   }
@@ -302,6 +326,13 @@ class EmployeeMasterProvider extends ChangeNotifier {
     isContactSectionExpanded = false;
     isEducationSectionExpanded = false;
     isBankSectionExpanded = false;
+    
+    hasAccountError = false;
+    hasPersonalError = false;
+    hasContactError = false;
+    hasEducationError = false;
+    hasBankError = false;
+
     selectedEmploye = null;
     selectedDepartment = null;
     selectedPostions = null;
@@ -316,6 +347,7 @@ class EmployeeMasterProvider extends ChangeNotifier {
     selectedFromDate = null;
     selectedToDate = null;
     isActive = true;
+    punchAllowed = true;
     selectWorkType = '';
     selectOfficeLocation = '';
     countryView = 'IN';
@@ -350,6 +382,7 @@ class EmployeeMasterProvider extends ChangeNotifier {
     esicController.clear();
     locationRadiusController.text = '50';
     isFetchLocation = false;
+    faceRegisterId = null;
   }
 
   // ================ Add/Edit ============= //
@@ -362,6 +395,7 @@ class EmployeeMasterProvider extends ChangeNotifier {
   ];
 
   bool isActive = true;
+  bool punchAllowed = true;
 
   void init(TickerProvider vsync) {
     tabController = TabController(length: tabs.length, vsync: vsync);
@@ -369,6 +403,11 @@ class EmployeeMasterProvider extends ChangeNotifier {
 
   void changeStatus(bool value) {
     isActive = value;
+    notifyListeners();
+  }
+
+  void changePunchAllowed(bool value) {
+    punchAllowed = value;
     notifyListeners();
   }
 
@@ -579,9 +618,29 @@ String? get employeeImageUrl {
 
 // Save function
   Future<void> saveEmployee(BuildContext context, String flag, {dynamic selectedEmployee}) async {
-    // Validate form
-    bool set1 = formKey1.currentState?.validate() ?? false;
-    if (set1 == true) {
+    // Validate forms
+    bool isAccountValid = accountFormKey.currentState?.validate() ?? true;
+    bool isPersonalValid = personalFormKey.currentState?.validate() ?? true;
+    bool isContactValid = contactFormKey.currentState?.validate() ?? true;
+    bool isEducationValid = educationFormKey.currentState?.validate() ?? true;
+    bool isBankValid = bankFormKey.currentState?.validate() ?? true;
+
+    hasAccountError = !isAccountValid;
+    hasPersonalError = !isPersonalValid;
+    hasContactError = !isContactValid;
+    hasEducationError = !isEducationValid;
+    hasBankError = !isBankValid;
+
+    // Expand invalid sections automatically
+    if (hasAccountError) isAccountSectionExpanded = true;
+    if (hasPersonalError) isPersonalSectionExpanded = true;
+    if (hasContactError) isContactSectionExpanded = true;
+    if (hasEducationError) isEducationSectionExpanded = true;
+    if (hasBankError) isBankSectionExpanded = true;
+
+    notifyListeners();
+
+    if (isAccountValid && isPersonalValid && isContactValid && isEducationValid && isBankValid) {
       if (flag == 'A') { // Create new employee
         await createNewEmp(context);
       } else if (flag == 'U') { // Update existing employee
@@ -642,8 +701,8 @@ String? get employeeImageUrl {
     } catch (e) {
       // silent fallback
     }
-    Provider.of<AppPaginationProvider>(context, listen: false)
-        .countPaginationPage(emplists, 0);
+    final appPaginationProvider = Provider.of<AppPaginationProvider>(context, listen: false);
+    appPaginationProvider.countPaginationPage(emplists, appPaginationProvider.setSelectedPaginationPage);
   }
 
   DateTime? _parseEmployeeDate(dynamic value) {
@@ -723,10 +782,12 @@ String? get employeeImageUrl {
       selectedifsc: selectedIfsccode?.iFSCID ?? '',
       selectedDepartment: selectedDepartment?.id.toString() ?? '',
       activemood: isActive,
+      punchAllowed: punchAllowed,
       workType: selectWorkType,
       officeLocation: selectOfficeLocation,
       locationRadius: locationRadiusController.text,
       isFetchLocation: isFetchLocation,
+      faceRegisterId: faceRegisterId,
       setCguids: cguid, 
       listenRes: (val) async {
         var response = val;
@@ -837,6 +898,18 @@ String? get employeeImageUrl {
   //   return;
   // }
       
+  final bool isEditingAdmin = selectedEmploye?.role == 'Admin';
+  final String custId = curentUser is Map ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '' : '';
+  final bool showOffice = custId == 'TAX541';
+
+  final String roleToSend = isEditingAdmin ? (selectedEmploye?.role ?? 'Admin') : (selectedRole?.role.toString() ?? (selectedEmploye?.role ?? ''));
+  final bool userStatusToSend = isEditingAdmin ? (selectedEmploye?.isActive ?? true) : isActive;
+  final bool punchAllowedToSend = isEditingAdmin ? (selectedEmploye?.punchAllowed ?? true) : punchAllowed;
+  final bool fetchLocationToSend = isEditingAdmin ? (selectedEmploye?.isFetchLocation ?? false) : isFetchLocation;
+  final String locationRadiusToSend = isEditingAdmin ? (selectedEmploye?.locationRadius?.toString() ?? '50') : (locationRadiusController.text.isNotEmpty ? locationRadiusController.text : (selectedEmploye?.locationRadius?.toString() ?? '50'));
+  final String workTypeToSend = !showOffice ? (selectedEmploye?.workType ?? '') : (selectWorkType.isNotEmpty ? selectWorkType : (selectedEmploye?.workType ?? ''));
+  final String officeLocationToSend = !showOffice ? (selectedEmploye?.officeLocation ?? '') : (selectOfficeLocation.isNotEmpty ? selectOfficeLocation : (selectedEmploye?.officeLocation ?? ''));
+
   await Employeeclass().updateEmployes(
   seteid: employeeId,
   FILES: _profileImage,
@@ -859,7 +932,7 @@ String? get employeeImageUrl {
   pan: panNOController.text,
   password: passwordController.text,
   pincode: selectedPincodes?.pinCodeID.toString() ?? '',
-  roletypes: selectedRole?.role.toString() ?? '',
+  roletypes: roleToSend,
   salary: seselectedSalaryTypesle?.keys.toString() ?? '',
   salaryamount: salaryController.text,
   totalhours: totalHoursController.text,
@@ -875,11 +948,13 @@ String? get employeeImageUrl {
   selectedposition: selectedPostions?.id.toString() ?? '',
   selectedifsc: selectedIfsccode?.iFSCID.toString() ?? '',
   selectedDepartment: selectedDepartment?.id.toString() ?? '',
-  userStatus: isActive, 
-  workType: selectWorkType,
-  officeLocation: selectOfficeLocation,
-  locationRadius: locationRadiusController.text,
-  isFetchLocation: isFetchLocation,
+  userStatus: userStatusToSend, 
+  punchAllowed: punchAllowedToSend,
+  workType: workTypeToSend,
+  officeLocation: officeLocationToSend,
+  locationRadius: locationRadiusToSend,
+  isFetchLocation: fetchLocationToSend,
+  faceRegisterId: faceRegisterId,
   setCguids: cguid,
   removeImage: _removeProfileImage,
   listenRes: handleUpdateResponse,
@@ -903,6 +978,7 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
   selectedEmploye = employee;
   _profileImage = null;
   _removeProfileImage = false;
+  faceRegisterId = employee.faceRegisterId?.toString() ?? '';
   
   // Set basic info (same as above)
   firstNameController.text = employee.firstName ?? '';
@@ -950,6 +1026,7 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
   
   // Set active status
   isActive = employee.isActive ?? true;
+  punchAllowed = employee.punchAllowed ?? true;
   
   // Set marital status
   if (employee.maritalStatus != null && employee.maritalStatus!.trim().isNotEmpty) {
@@ -1124,7 +1201,7 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
 
   bool _hasLoadedEmployeesThisSession = false;
 
-  Future<void> loadAllEmployeeData(BuildContext context, {bool forceRefresh = false}) async {
+  Future<void> loadAllEmployeeData(BuildContext context, {bool forceRefresh = false, bool preserveFilters = false}) async {
     final cacheKey = '${LocalCacheService.keyMasterData}_employees';
     const ttlMs = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -1136,7 +1213,9 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
 
     try {
       bool loadedFromCache = false;
-      searchController.clear();
+      if (!preserveFilters) {
+        searchController.clear();
+      }
       
       if (!forceRefresh) {
         final cachedData = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
@@ -1155,7 +1234,9 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
             loadedFromCache = true;
             
             if (context.mounted) {
-              Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(emplists, 0);
+              final appPaginationProvider = Provider.of<AppPaginationProvider>(context, listen: false);
+              final currentPage = preserveFilters ? appPaginationProvider.setSelectedPaginationPage : 0;
+              appPaginationProvider.countPaginationPage(emplists, currentPage);
             }
             islodering = false;
             notifyListeners();
@@ -1168,10 +1249,10 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
       if (!loadedFromCache || forceRefresh) {
         islodering = true;
         notifyListeners();
-        await _fetchEmployeesFromApi(context, cacheKey);
+        await _fetchEmployeesFromApi(context, cacheKey, preserveFilters: preserveFilters);
       } else {
         // Start background fetch to silently update the cache
-        unawaited(_fetchEmployeesFromApi(context, cacheKey));
+        unawaited(_fetchEmployeesFromApi(context, cacheKey, preserveFilters: preserveFilters));
       }
 
     } catch (e) {
@@ -1180,7 +1261,7 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
     }
   }
 
-  Future<void> _fetchEmployeesFromApi(BuildContext context, String cacheKey) async {
+  Future<void> _fetchEmployeesFromApi(BuildContext context, String cacheKey, {bool preserveFilters = false}) async {
     try {
       final value = await Employeeclass().emppppapi();
       
@@ -1198,7 +1279,9 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
       await LocalCacheService.instance.saveCache(cacheKey, jsonEncode(jsonList));
 
       if (context.mounted) {
-        Provider.of<AppPaginationProvider>(context, listen: false).countPaginationPage(emplists, 0);
+        final appPaginationProvider = Provider.of<AppPaginationProvider>(context, listen: false);
+        final currentPage = preserveFilters ? appPaginationProvider.setSelectedPaginationPage : 0;
+        appPaginationProvider.countPaginationPage(emplists, currentPage);
       }
       notifyListeners();
     } catch (e) {

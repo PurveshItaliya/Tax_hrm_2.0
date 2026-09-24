@@ -148,7 +148,6 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProviders = Provider.of<CommandWidigetsProvider>(context);
     final timeLineServices = Provider.of<TimeLineServices>(context);
 

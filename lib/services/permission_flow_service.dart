@@ -123,7 +123,7 @@ class PermissionFlowService {
         }
       }
 
-      return _buildResult();
+      return await _buildResult();
     } finally {
       isFlowRunning = false;
     }

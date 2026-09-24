@@ -59,7 +59,6 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final payRollProviders = Provider.of<PayRollProviders>(context);
     final employeMastServices = Provider.of<EmployeMastServices>(context);
 

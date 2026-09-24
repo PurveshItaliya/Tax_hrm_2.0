@@ -586,3 +586,114 @@ String get selectIfscString => LanguageProvider.translate("selectIfscString", "S
 String get notificationString => LanguageProvider.translate("notificationString", "Notifications");
 String get punchWidgetTitleString => LanguageProvider.translate("punchWidgetTitleString", "Punch Widget");
 
+// Face Verification Strings
+String get verificationFailedString => LanguageProvider.translate("verificationFailedString", "Verification Failed");
+String get verificationFailedDescString => LanguageProvider.translate("verificationFailedDescString", "Face could not be verified from the captured photo. Please make sure your face is clearly visible and try again.");
+String get okayString => LanguageProvider.translate("okayString", "Okay");
+String get punchFailedString => LanguageProvider.translate("punchFailedString", "Punch failed, please try again");
+String get unableToGetLocationString => LanguageProvider.translate("unableToGetLocationString", "Unable to get location. Please try again.");
+
+// Face Registration Screen Strings
+String get noFaceDetectedString => LanguageProvider.translate("noFaceDetectedString", "No face detected. Please position your face inside the frame.");
+String get multipleFacesDetectedString => LanguageProvider.translate("multipleFacesDetectedString", "Multiple faces detected. Please make sure only one person is visible.");
+String get moveCloserString => LanguageProvider.translate("moveCloserString", "Move closer to the camera.");
+String get moveBackString => LanguageProvider.translate("moveBackString", "Move back from the camera.");
+String get straightenFaceString => LanguageProvider.translate("straightenFaceString", "Straighten your face.");
+String get cameraPermissionDeniedString => LanguageProvider.translate("cameraPermissionDeniedString", "Camera permission denied.");
+String get cameraUnavailableString => LanguageProvider.translate("cameraUnavailableString", "Camera unavailable.");
+String get modelInitFailedString => LanguageProvider.translate("modelInitFailedString", "Failed to initialize AI model.");
+String get faceRegistrationString => LanguageProvider.translate("faceRegistrationString", "Face Registration");
+String get initializingCameraString => LanguageProvider.translate("initializingCameraString", "Initializing Camera...");
+String get registrationCompleteString => LanguageProvider.translate("registrationCompleteString", "Registration Complete");
+String get faceRegisteredString => LanguageProvider.translate("faceRegisteredString", "Your face has been securely registered.");
+String get lookingForFaceString => LanguageProvider.translate("lookingForFaceString", "Looking for your face...");
+String get step1FaceString => LanguageProvider.translate("step1FaceString", "Step 1 of 3\nPosition your face inside the circle");
+String get step2FaceString => LanguageProvider.translate("step2FaceString", "Step 2 of 3\nSlowly move your face as instructed");
+String get step3FaceString => LanguageProvider.translate("step3FaceString", "Step 3 of 3\nHold your face steady");
+String get positionFaceString => LanguageProvider.translate("positionFaceString", "Position your face inside the frame");
+
+String get faceRegistrationRequiredString => LanguageProvider.translate("faceRegistrationRequiredString", "Face Registration Required");
+String get faceRegistrationDescString => LanguageProvider.translate("faceRegistrationDescString", "To ensure secure attendance tracking, you need to register your face before you can punch in or out.");
+String get registerFaceNowString => LanguageProvider.translate("registerFaceNowString", "Register Face Now");
+String get punchAttendanceString => LanguageProvider.translate("punchAttendanceString", "Punch Attendance");
+String get offlineModeString => LanguageProvider.translate("offlineModeString", "Offline Mode — Punch will sync when online");
+String get noLocationDetailsString => LanguageProvider.translate("noLocationDetailsString", "No location details.");
+String get locationPendingString => LanguageProvider.translate("locationPendingString", "Location Pending");
+String get inRangeString => LanguageProvider.translate("inRangeString", "In Range");
+String get outOfRangeString => LanguageProvider.translate("outOfRangeString", "Out of Range"); 
+String get locationString => LanguageProvider.translate("locationString", "Location");
+String get retryCameraString => LanguageProvider.translate("retryCameraString", "Retry Camera");
+String get cameraString => LanguageProvider.translate("cameraString", "Camera");
+
+String get unableToGetLocationGpsString => LanguageProvider.translate("unableToGetLocationGpsString", "Unable to get location. Please check your GPS.");
+String get accountInactiveString => LanguageProvider.translate("accountInactiveString", "Your Account is InActive");
+String get passwordChangedString => LanguageProvider.translate("passwordChangedString", "Your password has been changed");
+String get checksFailedString => LanguageProvider.translate("checksFailedString", "Checks failed, please try again");
+String get punchSavedOfflineString => LanguageProvider.translate("punchSavedOfflineString", "Punch saved offline successfully");
+String get punchTryAgainString => LanguageProvider.translate("punchTryAgainString", "Punch try again");
+String get errorOccurredString => LanguageProvider.translate("errorOccurredString", "Error occurred, please try again");
+String get punchSavedOfflineWillSyncString => LanguageProvider.translate("punchSavedOfflineWillSyncString", "Punch saved offline. Will sync when internet returns.");
+String get failedToSaveOfflineString => LanguageProvider.translate("failedToSaveOfflineString", "Failed to save offline punch. Please try again.");
+String get cameraImageNotCapturedString => LanguageProvider.translate("cameraImageNotCapturedString", "Camera image not captured, please try again");
+String get successfullyString => LanguageProvider.translate("successfullyString", "Successfully");
+
+String get administratorString => LanguageProvider.translate("administratorString", "Administrator");
+String get reRegisterFaceString => LanguageProvider.translate("reRegisterFaceString", "Re-Register Face");
+String get faceIsRegisteredString => LanguageProvider.translate("faceIsRegisteredString", "Face is registered");
+String get selectLanguageString => LanguageProvider.translate("selectLanguageString", "Select Language");
+String get searchLanguageString => LanguageProvider.translate("searchLanguageString", "Search Language...");
+String get versionString => LanguageProvider.translate("versionString", "Version");
+
+// Phase 1 and 2 Refactor Strings
+String get areYouSureToTitleString => LanguageProvider.translate("areYouSureToTitleString", "Are you sure you want to ");
+String get yesString => LanguageProvider.translate("yesString", "Yes");
+String get pleaseWaitString => LanguageProvider.translate("pleaseWaitString", "Please Wait");
+String get whileCreatingProfileString => LanguageProvider.translate("whileCreatingProfileString", " while creating your Profile");
+String get punchDeniedString => LanguageProvider.translate("punchDeniedString", "Punch Denied");
+String get locationServicesDisabledString => LanguageProvider.translate("locationServicesDisabledString", "Location Services Disabled");
+String get gpsTurnedOffString => LanguageProvider.translate("gpsTurnedOffString", "Your GPS is currently turned off. Please enable location services to proceed.");
+String get backgroundLocationAccessString => LanguageProvider.translate("backgroundLocationAccessString", "Background Location Access");
+String get bgLocationDescString => LanguageProvider.translate("bgLocationDescString", "To accurately track your attendance and work location throughout your shift, this app needs to access your location even when running in the background.");
+String get bgLocationAlwaysAllowString => LanguageProvider.translate("bgLocationAlwaysAllowString", "On the next screen, please select \"Always Allow\" to enable background tracking.");
+String get continueString => LanguageProvider.translate("continueString", "Continue");
+String get notNowString => LanguageProvider.translate("notNowString", "Not Now");
+String get enableBgLocationString => LanguageProvider.translate("enableBgLocationString", "Enable Background Location");
+String get bgLocationNotGrantedString => LanguageProvider.translate("bgLocationNotGrantedString", "Background location access was not granted. To enable it:");
+String get openSettingsString => LanguageProvider.translate("openSettingsString", "Open Settings");
+String get tapAppLocationString => LanguageProvider.translate("tapAppLocationString", "Tap on this App → Location");
+String get selectAlwaysString => LanguageProvider.translate("selectAlwaysString", "Select \"Always\"");
+String get skipForNowString => LanguageProvider.translate("skipForNowString", "Skip for Now");
+
+String get allString => LanguageProvider.translate("allString", "All");
+
+String get pdfString => LanguageProvider.translate("pdfString", "PDF");
+String get printString => LanguageProvider.translate("printString", "Print");
+String get excelString => LanguageProvider.translate("excelString", "Excel");
+
+String get punchAddedSuccessfullyString => LanguageProvider.translate("punchAddedSuccessfullyString", "Punch Added Successfully");
+String get offlinePunchAddedRecordString => LanguageProvider.translate("offlinePunchAddedRecordString", "Your offline punch has been directly added to your attendance record.");
+String get offlinePunchAddedServerSuccessString => LanguageProvider.translate("offlinePunchAddedServerSuccessString", "Offline punch added to server successfully!");
+String get failedToAddPunchTryAgainString => LanguageProvider.translate("failedToAddPunchTryAgainString", "Failed to add punch. Please try again.");
+String get duplicateOfflinePunchDiscardedString => LanguageProvider.translate("duplicateOfflinePunchDiscardedString", "Duplicate offline punch discarded.");
+String get duplicatePunchWarningString => LanguageProvider.translate("duplicatePunchWarningString", "Duplicate Punch Warning");
+String get punchRecordedWithin5MinsString => LanguageProvider.translate("punchRecordedWithin5MinsString", "Punch recorded within 5 minutes or already in history");
+String get allDuplicatePunchesResolvedString => LanguageProvider.translate("allDuplicatePunchesResolvedString", "All duplicate punches resolved.");
+String get offlinePunchWithEmojiString => LanguageProvider.translate("offlinePunchWithEmojiString", "📱 Offline Punch");
+String get serverHistoryWithEmojiString => LanguageProvider.translate("serverHistoryWithEmojiString", "🌐 Server History");
+String get addOfflinePunchToHistoryString => LanguageProvider.translate("addOfflinePunchToHistoryString", "Add this offline punch to history?");
+String get discardString => LanguageProvider.translate("discardString", "Discard");
+
+String get deletePayslipString => LanguageProvider.translate("deletePayslipString", "Delete Payslip");
+String get areYouSureDeletePayslipString => LanguageProvider.translate("areYouSureDeletePayslipString", "Are you sure you want to delete this payslip?");
+String get payslipDeletedSuccessString => LanguageProvider.translate("payslipDeletedSuccessString", "Payslip deleted successfully");
+String get pdfDownloadSuccessString => LanguageProvider.translate("pdfDownloadSuccessString", "PDF Download Successfully!!!");
+String get pdfDownloadFailedString => LanguageProvider.translate("pdfDownloadFailedString", "PDF Download Failed!!!");
+
+String get locationServicesAreDisabledString => LanguageProvider.translate("locationServicesAreDisabledString", "Location services are disabled.");
+String get locationPermissionsAreDeniedString => LanguageProvider.translate("locationPermissionsAreDeniedString", "Location permissions are denied");
+
+String get cannotApplyMoreThanEligibleString => LanguageProvider.translate("cannotApplyMoreThanEligibleString", "You can not apply leave more than eligible leave");
+String get updateLeaveApiNotAvailableString => LanguageProvider.translate("updateLeaveApiNotAvailableString", "Update leave API not available");
+String get endDateCannotBeBeforeStartDateString => LanguageProvider.translate("endDateCannotBeBeforeStartDateString", "End date cannot be before start date");
+
+

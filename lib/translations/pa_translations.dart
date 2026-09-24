@@ -4,7 +4,8 @@ final Map<String, String> paTranslations = {
   'Leave': 'ਛੱਡੋ',
   'Setting': 'ਸੈਟਿੰਗ',
   'Logout': 'ਲਾਗਆਉਟ',
-  'Simpy Enter your Username & Password': 'ਸਿਮਪੀ ਆਪਣਾ ਯੂਜ਼ਰਨੇਮ ਅਤੇ ਪਾਸਵਰਡ ਦਰਜ ਕਰੋ',
+  'Simpy Enter your Username & Password':
+      'ਸਿਮਪੀ ਆਪਣਾ ਯੂਜ਼ਰਨੇਮ ਅਤੇ ਪਾਸਵਰਡ ਦਰਜ ਕਰੋ',
   'Username': 'ਯੂਜ਼ਰਨੇਮ',
   'Password': 'ਪਾਸਵਰਡ',
   'Filed is Required': 'ਦਾਇਰ ਕਰਨਾ ਜ਼ਰੂਰੀ ਹੈ',
@@ -15,8 +16,10 @@ final Map<String, String> paTranslations = {
   'Verify': 'ਪੁਸ਼ਟੀ ਕਰੋ',
   'Back': 'ਵਾਪਸ',
   'Verification Code': 'ਪੜਤਾਲ ਕੋਡ',
-  'Choose how you want to receive your 6-digit verification code.': 'ਚੁਣੋ ਕਿ ਤੁਸੀਂ ਆਪਣਾ 6-ਅੰਕੀ ਪੁਸ਼ਟੀਕਰਨ ਕੋਡ ਕਿਵੇਂ ਪ੍ਰਾਪਤ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ।',
-  'A verification code has been sent to your registered ': 'ਤੁਹਾਡੇ ਰਜਿਸਟਰਡ ਨੂੰ ਇੱਕ ਪੁਸ਼ਟੀਕਰਨ ਕੋਡ ਭੇਜਿਆ ਗਿਆ ਹੈ',
+  'Choose how you want to receive your 6-digit verification code.':
+      'ਚੁਣੋ ਕਿ ਤੁਸੀਂ ਆਪਣਾ 6-ਅੰਕੀ ਪੁਸ਼ਟੀਕਰਨ ਕੋਡ ਕਿਵੇਂ ਪ੍ਰਾਪਤ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ।',
+  'A verification code has been sent to your registered ':
+      'ਤੁਹਾਡੇ ਰਜਿਸਟਰਡ ਨੂੰ ਇੱਕ ਪੁਸ਼ਟੀਕਰਨ ਕੋਡ ਭੇਜਿਆ ਗਿਆ ਹੈ',
   'Mobile': 'ਮੋਬਾਈਲ',
   'E-mail': 'ਈ-ਮੇਲ',
   'Salary Slip': 'ਤਨਖਾਹ ਸਲਿੱਪ',
@@ -132,8 +135,10 @@ final Map<String, String> paTranslations = {
   'Select DOB': 'DOB ਚੁਣੋ',
   'Select DOJ': 'DOJ ਚੁਣੋ',
   'Please enter a valid email address': 'ਇੱਕ ਜਾਇਜ ਈਮੇਲ ਪਤਾ ਦਰਜ ਕਰੋ',
-  'Enter valid 10 digit mobile number': 'ਵੈਧ 10 ਅੰਕਾਂ ਵਾਲਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦਾਖਲ ਕਰੋ',
-  'Please enter a valid mobile number': 'ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ ਮੋਬਾਈਲ ਨੰਬਰ ਦਾਖਲ ਕਰੋ',
+  'Enter valid 10 digit mobile number':
+      'ਵੈਧ 10 ਅੰਕਾਂ ਵਾਲਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦਾਖਲ ਕਰੋ',
+  'Please enter a valid mobile number':
+      'ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ ਮੋਬਾਈਲ ਨੰਬਰ ਦਾਖਲ ਕਰੋ',
   'No TimeLine Added!': 'ਕੋਈ ਟਾਈਮਲਾਈਨ ਸ਼ਾਮਲ ਨਹੀਂ ਕੀਤੀ ਗਈ!',
   'Google Map': 'ਗੂਗਲ ਮੈਪ',
   'Add to Location TimeLine': 'ਟਿਕਾਣਾ ਟਾਈਮਲਾਈਨ ਵਿੱਚ ਸ਼ਾਮਲ ਕਰੋ',
@@ -189,7 +194,8 @@ final Map<String, String> paTranslations = {
   'Select Designation Name': 'ਅਹੁਦਾ ਨਾਮ ਚੁਣੋ',
   'Select Time': 'ਸਮਾਂ ਚੁਣੋ',
   'Ok': 'ਠੀਕ ਹੈ',
-  'Please select at least one working day': 'ਕਿਰਪਾ ਕਰਕੇ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕੰਮਕਾਜੀ ਦਿਨ ਚੁਣੋ',
+  'Please select at least one working day':
+      'ਕਿਰਪਾ ਕਰਕੇ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕੰਮਕਾਜੀ ਦਿਨ ਚੁਣੋ',
   'Position is already used !!!': 'ਸਥਿਤੀ ਪਹਿਲਾਂ ਹੀ ਵਰਤੀ ਜਾਂਦੀ ਹੈ !!!',
   'Add Event': 'ਇਵੈਂਟ ਸ਼ਾਮਲ ਕਰੋ',
   'Edit Event': 'ਇਵੈਂਟ ਦਾ ਸੰਪਾਦਨ ਕਰੋ',
@@ -315,7 +321,8 @@ final Map<String, String> paTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +337,10 @@ final Map<String, String> paTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +385,8 @@ final Map<String, String> paTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +409,8 @@ final Map<String, String> paTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +446,10 @@ final Map<String, String> paTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +459,8 @@ final Map<String, String> paTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -487,7 +501,8 @@ final Map<String, String> paTranslations = {
   'Please enter custom event type': 'ਕਿਰਪਾ ਕਰਕੇ ਕਸਟਮ ਇਵੈਂਟ ਕਿਸਮ ਦਰਜ ਕਰੋ',
   'Attachments': 'ਅਟੈਚਮੈਂਟਾਂ',
   'Click to upload attachments': 'ਅਟੈਚਮੈਂਟਾਂ ਅੱਪਲੋਡ ਕਰਨ ਲਈ ਕਲਿੱਕ ਕਰੋ',
-  'Supported: Images, PDF, Word, Excel files': 'ਸਮਰਥਿਤ: ਚਿੱਤਰ, PDF, Word, Excel ਫਾਈਲਾਂ',
+  'Supported: Images, PDF, Word, Excel files':
+      'ਸਮਰਥਿਤ: ਚਿੱਤਰ, PDF, Word, Excel ਫਾਈਲਾਂ',
   'Create Event': 'ਇਵੈਂਟ ਬਣਾਓ',
   'Event Type': 'ਇਵੈਂਟ ਦੀ ਕਿਸਮ',
   'Event Name': 'ਇਵੈਂਟ ਦਾ ਨਾਮ',

@@ -33,83 +33,199 @@ class _ShowHolidayViewsState extends State<ShowHolidayViews> {
   }
 
   _loadAllData() async {
-    Provider.of<InternetConnectionProvider>(context, listen: false).getAllConnectionData();
-    await Provider.of<HolidayeMastServices>(context, listen: false).loadingData();
+    Provider.of<InternetConnectionProvider>(
+      context,
+      listen: false,
+    ).getAllConnectionData();
+    await Provider.of<HolidayeMastServices>(
+      context,
+      listen: false,
+    ).loadingData();
   }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final holidayeMastServices = Provider.of<HolidayeMastServices>(context);
     safeAreaBgAndTextColor(context);
     return Scaffold(
-            backgroundColor: ColorConst.scaffoldColor,
-            appBar: showCustomeAppBar(holidayString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
-            floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-            floatingActionButton: holidayeMastServices.islodering ? SizedBox() : curentUser['Role'] == 'Admin' ? Padding(
+      backgroundColor: ColorConst.scaffoldColor,
+      appBar: showCustomeAppBar(
+        holidayString,
+        size,
+        titleColors: ColorConst.appbarTextColor,
+        iconsOntap: () {
+          backScreen(context);
+        },
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: holidayeMastServices.islodering
+          ? SizedBox()
+          : curentUser['Role'] == 'Admin'
+          ? Padding(
               padding: EdgeInsets.only(bottom: size.height * 0.03),
-              child: iconWithTextBtnDesign(size,addNewHolidayString,isIcon: false,onTap: () async {
-                await holidayeMastServices.clearHolidayData();
-                nextScreen(context, AddHolidayScreen(addEditFlag: true, getHolidayViewsData: null),onthenValue: (value) {});
-              },isgradient: true,isImage: false),
-            ):SizedBox(),
-            body: refreshIndicatorDesign(
-              onRefreshOntap: () {
-                return Provider.of<HolidayeMastServices>(context, listen: false)
-                    .loadingData(forceRefresh: true);
-              },
-              widgetDesign: Padding(
-                padding: EdgeInsets.only(top: size.height*0.03,bottom: size.height*0.03),
-                child: holidayeMastServices.islodering ? 
-                  holidaysShimmer(size): 
-                  holidayeMastServices.showHolidayList.isEmpty
-                    ? SizedBox(width: size.width,child: noDataFoundsDesign(size, noHolidaysAddedString,nodataFoundsImagString))
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: holidayeMastServices.showHolidayList.length,
-                        padding: EdgeInsets.only(top: size.height*0.01,bottom: curentUser['Role'] == 'Admin' ? size.height*0.12 : size.height*0.01),
-                        separatorBuilder: (context, index) {
-                          return heightSpacer(size.height * 0.02);
-                        },
-                        itemBuilder: (context, index) {
-                          return Container(
-                            padding: EdgeInsets.all(size.width*0.025),
-                            decoration: BoxDecoration(
-                              color: ColorConst.white,
-                              border: Border(bottom: BorderSide(color: ColorConst.containerBorderColor,width: 1),top: BorderSide(color: ColorConst.containerBorderColor,width: 1))
+              child: iconWithTextBtnDesign(
+                size,
+                addNewHolidayString,
+                isIcon: false,
+                onTap: () async {
+                  await holidayeMastServices.clearHolidayData();
+                  nextScreen(
+                    context,
+                    AddHolidayScreen(
+                      addEditFlag: true,
+                      getHolidayViewsData: null,
+                    ),
+                    onthenValue: (value) {},
+                  );
+                },
+                isgradient: true,
+                isImage: false,
+              ),
+            )
+          : SizedBox(),
+      body: refreshIndicatorDesign(
+        onRefreshOntap: () {
+          return Provider.of<HolidayeMastServices>(
+            context,
+            listen: false,
+          ).loadingData(forceRefresh: true);
+        },
+        widgetDesign: Padding(
+          padding: EdgeInsets.only(
+            top: size.height * 0.03,
+            bottom: size.height * 0.03,
+          ),
+          child: holidayeMastServices.islodering
+              ? holidaysShimmer(size)
+              : holidayeMastServices.showHolidayList.isEmpty
+              ? SizedBox(
+                  width: size.width,
+                  child: noDataFoundsDesign(
+                    size,
+                    noHolidaysAddedString,
+                    nodataFoundsImagString,
+                  ),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: holidayeMastServices.showHolidayList.length,
+                  padding: EdgeInsets.only(
+                    top: size.height * 0.01,
+                    bottom: curentUser['Role'] == 'Admin'
+                        ? size.height * 0.12
+                        : size.height * 0.01,
+                  ),
+                  separatorBuilder: (context, index) {
+                    return heightSpacer(size.height * 0.02);
+                  },
+                  itemBuilder: (context, index) {
+                    return Container(
+                      padding: EdgeInsets.all(size.width * 0.025),
+                      decoration: BoxDecoration(
+                        color: ColorConst.white,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: ColorConst.containerBorderColor,
+                            width: 1,
+                          ),
+                          top: BorderSide(
+                            color: ColorConst.containerBorderColor,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 25,
+                            backgroundColor: ColorConst.circleBgColors,
+                            child: Image.asset(
+                              calendarIconsString,
+                              height: size.width * 0.07,
+                              width: size.width * 0.07,
                             ),
-                            child: Row(
+                          ),
+                          widthSpacer(size.width * 0.03),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                CircleAvatar(radius: 25,backgroundColor: ColorConst.circleBgColors,child: Image.asset(calendarIconsString,height: size.width*0.07,width: size.width*0.07,)),
-                                widthSpacer(size.width*0.03,),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(holidayeMastServices.showHolidayList[index].holidayName.toString(),style: TextStyle(fontFamily: fontInterSemiBoldString,fontSize: 17,fontWeight: FontWeight.w700,color: ColorConst.holidayTitleColors),),
-                                      Text(dateFormatddMMMyyyy(DateTime.parse(holidayeMastServices.showHolidayList[index].holidayDate.toString())),style: TextStyle(fontFamily: fontInterMediumString,fontSize: 13,fontWeight: FontWeight.w500,color: ColorConst.holidaySubTitleColors),),
-                                    ],
+                                Text(
+                                  holidayeMastServices
+                                      .showHolidayList[index]
+                                      .holidayName
+                                      .toString(),
+                                  style: TextStyle(
+                                    fontFamily: fontInterSemiBoldString,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: ColorConst.holidayTitleColors,
                                   ),
                                 ),
-                                if(curentUser['Role'] == 'Admin')...[
-                                  widthSpacer(size.width*0.03,),
-                                  iconBtn(Icons.edit, ColorConst.themeColor,() async {
-                                    await holidayeMastServices.clearHolidayData();
-                                    nextScreen(context, AddHolidayScreen(addEditFlag: false, getHolidayViewsData: holidayeMastServices.showHolidayList[index]),onthenValue: (value) {});
-                                  },),
-                                  widthSpacer(size.width *0.02),
-                                  iconBtn(Icons.delete, ColorConst.redDarkColors,(){
-                                    showDeleteDialog(context,size,yesOntap: () {holidayeMastServices.deleteHolidayHandleSubmit(context,setdid: holidayeMastServices.showHolidayList[index]);},noOnTap: (){Navigator.pop(context);});
-                                  },),
-                                ],
+                                Text(
+                                  dateFormatddMMMyyyy(
+                                    DateTime.parse(
+                                      holidayeMastServices
+                                          .showHolidayList[index]
+                                          .holidayDate
+                                          .toString(),
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    fontFamily: fontInterMediumString,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: ColorConst.holidaySubTitleColors,
+                                  ),
+                                ),
                               ],
-                            )
-                          );
-                        },
-                      ), 
-              ),
-            ),
-          );
+                            ),
+                          ),
+                          if (curentUser['Role'] == 'Admin') ...[
+                            widthSpacer(size.width * 0.03),
+                            iconBtn(
+                              Icons.edit,
+                              ColorConst.themeColor,
+                              () async {
+                                await holidayeMastServices.clearHolidayData();
+                                nextScreen(
+                                  context,
+                                  AddHolidayScreen(
+                                    addEditFlag: false,
+                                    getHolidayViewsData: holidayeMastServices
+                                        .showHolidayList[index],
+                                  ),
+                                  onthenValue: (value) {},
+                                );
+                              },
+                            ),
+                            widthSpacer(size.width * 0.02),
+                            iconBtn(Icons.delete, ColorConst.redDarkColors, () {
+                              showDeleteDialog(
+                                context,
+                                size,
+                                yesOntap: () {
+                                  holidayeMastServices
+                                      .deleteHolidayHandleSubmit(
+                                        context,
+                                        setdid: holidayeMastServices
+                                            .showHolidayList[index],
+                                      );
+                                },
+                                noOnTap: () {
+                                  Navigator.pop(context);
+                                },
+                              );
+                            }),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
   }
 }

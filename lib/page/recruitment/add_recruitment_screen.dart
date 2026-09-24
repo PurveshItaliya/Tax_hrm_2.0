@@ -52,7 +52,6 @@ class _AddRecruitmentScreenState extends State<AddRecruitmentScreen> {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
     final recuritmentProvider = Provider.of<RecuritmentProvider>(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final positionMasterService = Provider.of<PositionMasterService>(context);
     return Scaffold(

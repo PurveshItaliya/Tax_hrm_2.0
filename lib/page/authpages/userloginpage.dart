@@ -39,9 +39,6 @@ class _UserLoginPageState extends State<UserLoginPage> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(
-      context,
-    );
     final userloginprovider = Provider.of<Userloginprovider>(
       context,
     );

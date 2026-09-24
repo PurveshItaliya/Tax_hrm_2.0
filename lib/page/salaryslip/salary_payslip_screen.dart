@@ -37,7 +37,6 @@ class _SalaryPayslipScreenState extends State<SalaryPayslipScreen> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final salaryStructureProvider = Provider.of<SalaryStructureProvider>(context);
     Provider.of<LanguageProvider>(context);
     return Scaffold(

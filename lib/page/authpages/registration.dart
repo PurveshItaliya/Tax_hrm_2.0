@@ -4,7 +4,6 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/regiostrationmodel/registration.dart';
-import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/registrationprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
@@ -42,7 +41,6 @@ class _RegistrationFormState extends State<RegistrationForm> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final registrationProvider = Provider.of<RegistrationProvider>(context);
     return Scaffold(
       backgroundColor: ColorConst.scaffoldColor,

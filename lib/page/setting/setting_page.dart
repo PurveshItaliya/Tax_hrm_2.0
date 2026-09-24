@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/page/face_registation/face_registration_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
 import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
@@ -29,6 +30,7 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/provider/location_tracking_provider.dart';
+import 'package:tax_hrm/provider/face_verification_provider.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -286,7 +288,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
 
                   // Version Text
                   Text(
-                    "Version: $_appVersion",
+                    "$versionString: $_appVersion",
                     style: TextStyle(
                       fontSize: size.width * 0.032,
                       color: ColorConst.textgrey,
@@ -351,9 +353,10 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                         ),
                       )
                     : Text(
-                        curentUser == null ? "" :
-                        (curentUser['FirstName'] != null &&
-                                curentUser['FirstName'] != "")
+                        curentUser == null
+                            ? ""
+                            : (curentUser['FirstName'] != null &&
+                                  curentUser['FirstName'] != "")
                             ? ('${curentUser['FirstName']}'[0] +
                                   (curentUser['LastName'] != null &&
                                           curentUser['LastName'] != ""
@@ -444,7 +447,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                       const SizedBox(height: 4),
                       Text(
                         curentUser['Role'] == 'Admin'
-                            ? 'Administrator'
+                            ? administratorString
                             : employeeRoleString,
                         style: TextStyle(
                           fontSize: 13,
@@ -484,14 +487,20 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
 
     // Language Selection Tile
     final languageProvider = Provider.of<LanguageProvider>(context);
-    list.add(
-      _buildLanguageTile(size, languageProvider),
-    );
+    list.add(_buildLanguageTile(size, languageProvider));
     list.add(Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)));
 
     // Background Location Permission tile (Android + IsFetchLocation=true only)
     if (_showBgLocationTile) {
       list.add(_buildBgLocationTile(size));
+      list.add(
+        Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
+      );
+    }
+
+    // Add Face Verification Section (Hidden for Admins)
+    if (curentUser?['Role'] != 'Admin') {
+      list.add(_buildFaceVerificationSection(size));
       list.add(
         Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
       );
@@ -594,9 +603,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
           ),
         ),
         subtitle: Text(
-          granted
-              ? alwaysAllowString
-              : requiredLocationTrackString,
+          granted ? alwaysAllowString : requiredLocationTrackString,
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -618,6 +625,65 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   /// Opens the app system settings page so the user can set "Always Allow".
   Future<void> _openBgLocationSettings() async {
     await openAppSettings();
+  }
+
+  // ── Face Verification Settings Section ─────────────────────────────────────
+  Widget _buildFaceVerificationSection(Size size) {   
+    return Consumer<FaceVerificationProvider>(
+      builder: (context, faceProvider, child) {
+        return Material(
+          color: Colors.transparent,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
+            leading: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: ColorConst.themeColor.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.face_retouching_natural,
+                color: ColorConst.themeColor,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              reRegisterFaceString,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: ColorConst.settingTextColors,
+              ),
+            ),
+            subtitle: Text(
+              faceIsRegisteredString,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.green.shade600,
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right_rounded,
+              color: ColorConst.settingIconsColors,
+              size: 24,
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FaceRegistrationScreen(),
+                ),
+              ).then((_) {});
+            },
+          ),
+        );
+      },
+    );
   }
 
   // ── Custom Settings Tile ───────────────────────────────────────────────────
@@ -757,14 +823,12 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
       // 'as': 'অসমীয়া',
     };
 
-    final langName =
-        languages[languageProvider.currentLanguage] ?? 'English';
+    final langName = languages[languageProvider.currentLanguage] ?? 'English';
 
     return Material(
       color: Colors.transparent,
       child: ListTile(
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
           height: 40,
           width: 40,
@@ -788,10 +852,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
         ),
         subtitle: Text(
           langName,
-          style: TextStyle(
-            fontSize: 12,
-            color: ColorConst.textgrey,
-          ),
+          style: TextStyle(fontSize: 12, color: ColorConst.textgrey),
         ),
         trailing: Icon(
           Icons.chevron_right_rounded,
@@ -803,9 +864,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
             isScrollControlled: true,
             backgroundColor: ColorConst.white,
             shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             builder: (_) => _LanguageSelectionBottomSheet(
               languages: languages,
@@ -828,16 +887,20 @@ class _LanguageSelectionBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<_LanguageSelectionBottomSheet> createState() => _LanguageSelectionBottomSheetState();
+  State<_LanguageSelectionBottomSheet> createState() =>
+      _LanguageSelectionBottomSheetState();
 }
 
-class _LanguageSelectionBottomSheetState extends State<_LanguageSelectionBottomSheet> {
+class _LanguageSelectionBottomSheetState
+    extends State<_LanguageSelectionBottomSheet> {
   String _searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
     final filteredLanguages = widget.languages.entries
-        .where((e) => e.value.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .where(
+          (e) => e.value.toLowerCase().contains(_searchQuery.toLowerCase()),
+        )
         .toList();
 
     return Padding(
@@ -864,7 +927,7 @@ class _LanguageSelectionBottomSheetState extends State<_LanguageSelectionBottomS
             ),
             const SizedBox(height: 16),
             Text(
-              LanguageProvider.translate('Select Language', 'Select Language'),
+              selectLanguageString,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -880,12 +943,18 @@ class _LanguageSelectionBottomSheetState extends State<_LanguageSelectionBottomS
               },
               style: TextStyle(color: ColorConst.settingTextColors),
               decoration: InputDecoration(
-                hintText: LanguageProvider.translate('Search Language', 'Search Language...'),
+                hintText: searchLanguageString,
                 hintStyle: TextStyle(color: ColorConst.hintextColor),
-                prefixIcon: Icon(Icons.search, color: ColorConst.settingIconsColors),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: ColorConst.settingIconsColors,
+                ),
                 filled: true,
                 fillColor: ColorConst.scaffoldColor,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 16,
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: ColorConst.textBorder),
@@ -912,19 +981,27 @@ class _LanguageSelectionBottomSheetState extends State<_LanguageSelectionBottomS
                   itemBuilder: (context, index) {
                     final code = filteredLanguages[index].key;
                     final label = filteredLanguages[index].value;
-                    final isSelected = widget.languageProvider.currentLanguage == code;
+                    final isSelected =
+                        widget.languageProvider.currentLanguage == code;
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(
                         label,
                         style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          color: isSelected ? ColorConst.themeColor : ColorConst.settingTextColors,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: isSelected
+                              ? ColorConst.themeColor
+                              : ColorConst.settingTextColors,
                         ),
                       ),
                       trailing: isSelected
-                          ? Icon(Icons.check_circle_rounded, color: ColorConst.themeColor)
+                          ? Icon(
+                              Icons.check_circle_rounded,
+                              color: ColorConst.themeColor,
+                            )
                           : null,
                       onTap: () {
                         widget.languageProvider.changeLanguage(code);
@@ -941,4 +1018,3 @@ class _LanguageSelectionBottomSheetState extends State<_LanguageSelectionBottomS
     );
   }
 }
-

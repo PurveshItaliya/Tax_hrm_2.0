@@ -6,9 +6,11 @@
 
 import 'dart:convert';
 
-EmployeByid employeByidFromJson(String str) => EmployeByid.fromJson(json.decode(str));
+EmployeByid employeByidFromJson(String str) =>
+    EmployeByid.fromJson(json.decode(str));
 
 String employeByidToJson(EmployeByid data) => json.encode(data.toJson());
+
 class EmployeByid {
   int? id;
   String? companyId;
@@ -55,53 +57,80 @@ class EmployeByid {
   dynamic departmentName;
   bool? success;
   dynamic token;
+  dynamic faceRegisterId;
+  String? workType;
+  String? officeLocation;
+  int? locationRadius;
+  bool? isFetchLocation;
+  bool? punchAllowed;
+  dynamic highestDegree;
+  dynamic degreeName;
+  dynamic universityName;
+  dynamic passingYear;
+  dynamic uANNo;
+  dynamic eSICNo;
+  dynamic shiftCguid;
 
-  EmployeByid(
-      {this.id,
-      this.companyId,
-      this.firstName,
-      this.lastName,
-      this.img,
-      this.mobile1,
-      this.mobile2,
-      this.add1,
-      this.add2,
-      this.add3,
-      this.pincodeId,
-      this.cityId,
-      this.stateId,
-      this.dOB,
-      this.dOJ,
-      this.email,
-      this.gender,
-      this.pAN,
-      this.maritalStatus,
-      this.departmentId,
-      this.positionId,
-      this.role,
-      this.iFSC,
-      this.bankName,
-      this.branchName,
-      this.accNo,
-      this.accType,
-      this.salaryType,
-      this.salaryAmount,
-      this.isActive,
-      this.custId,
-      this.cguid,
-      this.userName,
-      this.password,
-      this.iPAddress,
-      this.serverName,
-      this.entryTime,
-      this.flag,
-      this.areaName,
-      this.cityName,
-      this.stateName,
-      this.positionName,
-      this.departmentName,
-      this.success,
-      this.token});
+  EmployeByid({
+    this.id,
+    this.companyId,
+    this.firstName,
+    this.lastName,
+    this.img,
+    this.mobile1,
+    this.mobile2,
+    this.add1,
+    this.add2,
+    this.add3,
+    this.pincodeId,
+    this.cityId,
+    this.stateId,
+    this.dOB,
+    this.dOJ,
+    this.email,
+    this.gender,
+    this.pAN,
+    this.maritalStatus,
+    this.departmentId,
+    this.positionId,
+    this.role,
+    this.iFSC,
+    this.bankName,
+    this.branchName,
+    this.accNo,
+    this.accType,
+    this.salaryType,
+    this.salaryAmount,
+    this.isActive,
+    this.custId,
+    this.cguid,
+    this.userName,
+    this.password,
+    this.iPAddress,
+    this.serverName,
+    this.entryTime,
+    this.flag,
+    this.areaName,
+    this.cityName,
+    this.stateName,
+    this.positionName,
+    this.departmentName,
+    this.success,
+    this.token,
+    this.faceRegisterId,
+    this.workType,
+    this.officeLocation,
+    this.locationRadius,
+    this.isFetchLocation,
+    this.punchAllowed,
+    this.highestDegree,
+    this.degreeName,
+    this.universityName,
+    this.passingYear,
+    this.uANNo,
+    this.eSICNo,
+    this.shiftCguid,
+  });
 
   EmployeByid.fromJson(Map<String, dynamic> json) {
     id = json['Id'];
@@ -149,10 +178,23 @@ class EmployeByid {
     departmentName = json['DepartmentName'];
     success = json['success'];
     token = json['token'];
+    faceRegisterId = json['FaceRegisterId'];
+    workType = json['WorkType'];
+    officeLocation = json['OfficeLocation'];
+    locationRadius = json['LocationRadius'];
+    isFetchLocation = json['IsFetchLocation'] ?? json['isFetchLocation'];
+    punchAllowed = json['PunchAllowed'];
+    highestDegree = json['HighestDegree'];
+    degreeName = json['DegreeName'];
+    universityName = json['UniversityName'];
+    passingYear = json['PassingYear'];
+    uANNo = json['UANNo'];
+    eSICNo = json['ESICNo'];
+    shiftCguid = json['ShiftCguid'];
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data =  Map<String, dynamic>();
+    final Map<String, dynamic> data = Map<String, dynamic>();
     data['Id'] = id;
     data['CompanyId'] = companyId;
     data['FirstName'] = firstName;
@@ -198,6 +240,19 @@ class EmployeByid {
     data['DepartmentName'] = departmentName;
     data['success'] = success;
     data['token'] = token;
+    data['FaceRegisterId'] = faceRegisterId;
+    data['WorkType'] = workType;
+    data['OfficeLocation'] = officeLocation;
+    data['LocationRadius'] = locationRadius;
+    data['IsFetchLocation'] = isFetchLocation;
+    data['PunchAllowed'] = punchAllowed;
+    data['HighestDegree'] = highestDegree;
+    data['DegreeName'] = degreeName;
+    data['UniversityName'] = universityName;
+    data['PassingYear'] = passingYear;
+    data['UANNo'] = uANNo;
+    data['ESICNo'] = eSICNo;
+    data['ShiftCguid'] = shiftCguid;
     return data;
   }
 }

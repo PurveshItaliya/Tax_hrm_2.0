@@ -190,68 +190,6 @@ class _CompactWidgetPreviewSection extends StatelessWidget {
   }
 }
 
-// ── 2. Compact Feature Summary ───────────────────────────────────────────────
-
-
-class _FeatureChip extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _FeatureChip({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      decoration: BoxDecoration(
-        color: ColorConst.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: ColorConst.textBorder.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: ColorConst.themeColor,
-            size: 18,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: fontInterSemiBoldString,
-              fontSize: 11.5,
-              fontWeight: FontWeight.bold,
-              color: ColorConst.settingTextColors,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: fontInterRegularString,
-              fontSize: 9.5,
-              color: ColorConst.textgrey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-
 // ── 4. Platform-Specific Steps (ONLY selected platform shown) ────────────────
 class _PlatformStepsList extends StatelessWidget {
   final bool isIos;

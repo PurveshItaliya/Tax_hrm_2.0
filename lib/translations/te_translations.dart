@@ -4,7 +4,8 @@ final Map<String, String> teTranslations = {
   'Leave': 'వదిలేయండి',
   'Setting': 'సెట్టింగ్',
   'Logout': 'లాగ్అవుట్',
-  'Simpy Enter your Username & Password': 'మీ వినియోగదారు పేరు & పాస్‌వర్డ్‌ను నమోదు చేయండి',
+  'Simpy Enter your Username & Password':
+      'మీ వినియోగదారు పేరు & పాస్‌వర్డ్‌ను నమోదు చేయండి',
   'Username': 'వినియోగదారు పేరు',
   'Password': 'పాస్వర్డ్',
   'Filed is Required': 'దాఖలు చేయడం అవసరం',
@@ -15,8 +16,10 @@ final Map<String, String> teTranslations = {
   'Verify': 'ధృవీకరించండి',
   'Back': 'వెనుకకు',
   'Verification Code': 'ధృవీకరణ కోడ్',
-  'Choose how you want to receive your 6-digit verification code.': 'మీరు మీ 6-అంకెల ధృవీకరణ కోడ్‌ని ఎలా స్వీకరించాలనుకుంటున్నారో ఎంచుకోండి.',
-  'A verification code has been sent to your registered ': 'మీ రిజిస్టర్డ్‌కి ధృవీకరణ కోడ్ పంపబడింది',
+  'Choose how you want to receive your 6-digit verification code.':
+      'మీరు మీ 6-అంకెల ధృవీకరణ కోడ్‌ని ఎలా స్వీకరించాలనుకుంటున్నారో ఎంచుకోండి.',
+  'A verification code has been sent to your registered ':
+      'మీ రిజిస్టర్డ్‌కి ధృవీకరణ కోడ్ పంపబడింది',
   'Mobile': 'మొబైల్',
   'E-mail': 'ఇ-మెయిల్',
   'Salary Slip': 'జీతం స్లిప్',
@@ -131,9 +134,12 @@ final Map<String, String> teTranslations = {
   'Date Of Joining': 'చేరిన తేదీ',
   'Select DOB': 'DOBని ఎంచుకోండి',
   'Select DOJ': 'DOJని ఎంచుకోండి',
-  'Please enter a valid email address': 'దయచేసి చెల్లుబాటు అయ్యే ఇమెయిల్ చిరునామాను నమోదు చేయండి',
-  'Enter valid 10 digit mobile number': 'చెల్లుబాటు అయ్యే 10 అంకెల మొబైల్ నంబర్‌ను నమోదు చేయండి',
-  'Please enter a valid mobile number': 'దయచేసి చెల్లుబాటు అయ్యే మొబైల్ నంబర్‌ను నమోదు చేయండి',
+  'Please enter a valid email address':
+      'దయచేసి చెల్లుబాటు అయ్యే ఇమెయిల్ చిరునామాను నమోదు చేయండి',
+  'Enter valid 10 digit mobile number':
+      'చెల్లుబాటు అయ్యే 10 అంకెల మొబైల్ నంబర్‌ను నమోదు చేయండి',
+  'Please enter a valid mobile number':
+      'దయచేసి చెల్లుబాటు అయ్యే మొబైల్ నంబర్‌ను నమోదు చేయండి',
   'No TimeLine Added!': 'టైమ్‌లైన్ జోడించబడలేదు!',
   'Google Map': 'గూగుల్ మ్యాప్',
   'Add to Location TimeLine': 'లొకేషన్ టైమ్‌లైన్‌కి జోడించండి',
@@ -189,7 +195,8 @@ final Map<String, String> teTranslations = {
   'Select Designation Name': 'హోదా పేరును ఎంచుకోండి',
   'Select Time': 'సమయాన్ని ఎంచుకోండి',
   'Ok': 'సరే',
-  'Please select at least one working day': 'దయచేసి కనీసం ఒక పని దినాన్ని ఎంచుకోండి',
+  'Please select at least one working day':
+      'దయచేసి కనీసం ఒక పని దినాన్ని ఎంచుకోండి',
   'Position is already used !!!': 'స్థానం ఇప్పటికే ఉపయోగించబడింది !!!',
   'Add Event': 'ఈవెంట్‌ని జోడించండి',
   'Edit Event': 'ఈవెంట్‌ని సవరించండి',
@@ -315,7 +322,8 @@ final Map<String, String> teTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +338,10 @@ final Map<String, String> teTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +386,8 @@ final Map<String, String> teTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +410,8 @@ final Map<String, String> teTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +447,10 @@ final Map<String, String> teTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +460,8 @@ final Map<String, String> teTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -487,7 +502,8 @@ final Map<String, String> teTranslations = {
   'Please enter custom event type': 'దయచేసి కస్టమ్ ఈవెంట్ రకాన్ని నమోదు చేయండి',
   'Attachments': 'జోడింపులు',
   'Click to upload attachments': 'జోడింపులను అప్‌లోడ్ చేయడానికి క్లిక్ చేయండి',
-  'Supported: Images, PDF, Word, Excel files': 'మద్దతు ఉన్నవి: చిత్రాలు, PDF, వర్డ్, ఎక్సెల్ ఫైల్‌లు',
+  'Supported: Images, PDF, Word, Excel files':
+      'మద్దతు ఉన్నవి: చిత్రాలు, PDF, వర్డ్, ఎక్సెల్ ఫైల్‌లు',
   'Create Event': 'ఈవెంట్‌ను సృష్టించండి',
   'Event Type': 'ఈవెంట్ రకం',
   'Event Name': 'ఈవెంట్ పేరు',

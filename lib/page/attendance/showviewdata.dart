@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
-import 'package:tax_hrm/page/usertimelineview/usertimeline.dart';
 import 'package:tax_hrm/page/usertimelineview/smart_timeline_screen.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/provider/empprovider.dart';
@@ -31,22 +30,22 @@ class ShowAttenDanceEmployeData extends StatefulWidget {
   const ShowAttenDanceEmployeData({super.key});
 
   @override
-  State<ShowAttenDanceEmployeData> createState() => _ShowAttenDanceEmployeDataState();
+  State<ShowAttenDanceEmployeData> createState() =>
+      _ShowAttenDanceEmployeDataState();
 }
 
 class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
-  // Search Controller
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-  List<dynamic> _filteredEmployeeList = [];
-
   @override
   void initState() {
     super.initState();
-    final provider = Provider.of<AdminAttenDanceServices>(context, listen: false);
-    
+    final provider = Provider.of<AdminAttenDanceServices>(
+      context,
+      listen: false,
+    );
+
     // Check if data is already cached for today
-    bool hasDataForToday = provider.empAttendanceList.isNotEmpty &&
+    bool hasDataForToday =
+        provider.empAttendanceList.isNotEmpty &&
         provider.currentMonth.year == DateTime.now().year &&
         provider.currentMonth.month == DateTime.now().month &&
         provider.currentMonth.day == DateTime.now().day;
@@ -58,47 +57,6 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         provider.updateMonth(DateTime.now(), context);
       });
     }
-    
-    _searchController.addListener(_onSearchChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged() {
-    setState(() {
-      _searchQuery = _searchController.text.toLowerCase();
-      _filterEmployees();
-    });
-  }
-
-  void _filterEmployees() {
-    final attendanceProviders = Provider.of<AdminAttenDanceServices>(context, listen: false);
-    if (_searchQuery.isEmpty) {
-      _filteredEmployeeList = List.from(attendanceProviders.empAttendanceList);
-    } else {
-      _filteredEmployeeList = attendanceProviders.empAttendanceList.where((employee) {
-        final fullName = '${employee.firstName} ${employee.lastName}'.toLowerCase();
-        final firstName = employee.firstName?.toLowerCase() ?? '';
-        final lastName = employee.lastName?.toLowerCase() ?? '';
-        return fullName.contains(_searchQuery) || 
-               firstName.contains(_searchQuery) || 
-               lastName.contains(_searchQuery);
-      }).toList();
-    }
-  }
-
-  void _clearSearch() {
-    _searchController.clear();
-    setState(() {
-      _searchQuery = '';
-      _filteredEmployeeList = [];
-    });
-    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
@@ -106,42 +64,55 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     final attendanceProviders = Provider.of<AdminAttenDanceServices>(context);
     Provider.of<LanguageProvider>(context);
     Size size = MediaQuery.of(context).size;
-    String formattedDate = DateFormat('d MMMM, yyyy').format(attendanceProviders.currentMonth);
+    String formattedDate = DateFormat(
+      'd MMMM, yyyy',
+    ).format(attendanceProviders.currentMonth);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Update filtered list when data changes
-    if (_filteredEmployeeList.isEmpty && _searchQuery.isEmpty) {
-      _filteredEmployeeList = List.from(attendanceProviders.empAttendanceList);
+    if (attendanceProviders.filteredEmployeeList.isEmpty &&
+        attendanceProviders.searchQuery.isEmpty &&
+        attendanceProviders.selectedDepartment == 'ALL') {
+      attendanceProviders.filteredEmployeeList = List.from(
+        attendanceProviders.empAttendanceList,
+      );
     }
-    
+
     return RefreshIndicator(
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
       color: ColorConst.themeColor,
       onRefresh: () async {
         // Only refresh current selected data without changing month
         await attendanceProviders.refreshCurrentMonthData(context);
-        _clearSearch();
+        attendanceProviders.clearSearch();
+        FocusManager.instance.primaryFocus?.unfocus();
         return;
       },
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Scaffold(
-          backgroundColor: isDark ? const Color(0xFF121212) : ColorConst.scaffoldColor,
+          backgroundColor: isDark
+              ? const Color(0xFF121212)
+              : ColorConst.scaffoldColor,
           appBar: showBottomAppBar(attendanceString, size, centerTitles: false),
-        body: attendanceProviders.isloderings 
-            ? attendanceAllEmployeeShimmer(size) 
-            : SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.only(bottom: size.height * 0.12),
-                child: Column(
-                  children: [
-                    _buildHeaderSection(size, attendanceProviders, formattedDate),
-                    _buildStatsSection(size, attendanceProviders),
-                    _buildSearchSection(size),
-                    _buildEmployeeListSection(size, attendanceProviders),
-                  ],
+          body: attendanceProviders.isloderings
+              ? attendanceAllEmployeeShimmer(size)
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.only(bottom: size.height * 0.12),
+                  child: Column(
+                    children: [
+                      _buildHeaderSection(
+                        size,
+                        attendanceProviders,
+                        formattedDate,
+                      ),
+                      _buildStatsSection(size, attendanceProviders),
+                      _buildSearchSection(size),
+                      _buildEmployeeListSection(size, attendanceProviders),
+                    ],
+                  ),
                 ),
-              ),
         ),
       ),
     );
@@ -153,8 +124,14 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         if (value == 'daily') {
           _downloadExcel();
         } else if (value == 'monthly') {
-          final attendanceProviders = Provider.of<AdminAttenDanceServices>(context, listen: false);
-          MonthlyAttendanceExcelService.showMonthYearPickerAndGenerate(context, initialDate: attendanceProviders.currentMonth);
+          final attendanceProviders = Provider.of<AdminAttenDanceServices>(
+            context,
+            listen: false,
+          );
+          MonthlyAttendanceExcelService.showMonthYearPickerAndGenerate(
+            context,
+            initialDate: attendanceProviders.currentMonth,
+          );
         }
       },
       offset: const Offset(0, 45),
@@ -166,7 +143,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             children: [
               Icon(Icons.calendar_today_rounded, size: 18, color: Colors.blue),
               SizedBox(width: 10),
-              Text(todayAttendanceReportString, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              Text(
+                todayAttendanceReportString,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
             ],
           ),
         ),
@@ -176,7 +156,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             children: [
               Icon(Icons.date_range_rounded, size: 18, color: Colors.green),
               SizedBox(width: 10),
-              Text(monthlyExcelReportString, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              Text(
+                monthlyExcelReportString,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
             ],
           ),
         ),
@@ -210,14 +193,23 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 18),
+            const Icon(
+              Icons.arrow_drop_down_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
           ],
         ),
       ),
-    );  
+    );
   }
 
-  void _populateEmployeeSheet(Sheet sheet, List<dynamic> list, List<dynamic> allEmployees, CellStyle headerStyle) {
+  void _populateEmployeeSheet(
+    Sheet sheet,
+    List<dynamic> list,
+    List<dynamic> allEmployees,
+    CellStyle headerStyle,
+  ) {
     sheet.setColumnWidth(0, 10.0);
     sheet.setColumnWidth(1, 25.0);
     sheet.setColumnWidth(2, 30.0); // Designation
@@ -225,9 +217,18 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     sheet.setColumnWidth(4, 15.0); // In Time
     sheet.setColumnWidth(5, 15.0); // Out Time
 
-    List<String> headers = [idString, employessNameString, designationString, statusString, inTimeString, outTimeString];
+    List<String> headers = [
+      idString,
+      employessNameString,
+      designationString,
+      statusString,
+      inTimeString,
+      outTimeString,
+    ];
     for (int i = 0; i < headers.length; i++) {
-      var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      var cell = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0),
+      );
       cell.value = TextCellValue(headers[i]);
       cell.cellStyle = headerStyle;
     }
@@ -253,7 +254,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       final isPresent = employee.inTime != null && employee.absent == false;
       final isOnLeave = employee.isOnLeave == true;
       final isAbsent = employee.absent == true && !isOnLeave;
-      
+
       String status = 'Unknown';
       if (isOnLeave) {
         status = onLeaveString;
@@ -263,56 +264,78 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         status = absentString;
       }
 
-      String inTimeStr = employee.inTime == null 
-          ? '-' 
-          : DateFormat('hh:mm a').format(DateTime.parse(employee.inTime.toString()));
-      String outTimeStr = employee.outTime == null 
-          ? '-' 
-          : DateFormat('hh:mm a').format(DateTime.parse(employee.outTime.toString()));
+      String inTimeStr = employee.inTime == null
+          ? '-'
+          : DateFormat(
+              'hh:mm a',
+            ).format(DateTime.parse(employee.inTime.toString()));
+      String outTimeStr = employee.outTime == null
+          ? '-'
+          : DateFormat(
+              'hh:mm a',
+            ).format(DateTime.parse(employee.outTime.toString()));
 
       String designation = '-';
       for (var emp in allEmployees) {
         if (emp.id == employee.empId) {
           designation = emp.positionName ?? '';
           if (designation.trim().isEmpty) {
-             designation = emp.departmentName ?? '-';
+            designation = emp.departmentName ?? '-';
           }
           if (designation.trim().isEmpty) {
-             designation = '-';
+            designation = '-';
           }
           break;
         }
       }
 
-      var cell0 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1));
+      var cell0 = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1),
+      );
       cell0.value = TextCellValue(employee.empId.toString());
       cell0.cellStyle = cellStyle;
 
-      var cell1 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1));
+      var cell1 = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1),
+      );
       cell1.value = TextCellValue('${employee.firstName} ${employee.lastName}');
       cell1.cellStyle = leftAlignCellStyle;
 
-      var cell2 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1));
+      var cell2 = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1),
+      );
       cell2.value = TextCellValue(designation);
       cell2.cellStyle = leftAlignCellStyle;
 
-      var cell3 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1));
+      var cell3 = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1),
+      );
       cell3.value = TextCellValue(status);
       cell3.cellStyle = cellStyle;
 
-      var cell4 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1));
+      var cell4 = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1),
+      );
       cell4.value = TextCellValue(inTimeStr);
       cell4.cellStyle = cellStyle;
 
-      var cell5 = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1));
+      var cell5 = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1),
+      );
       cell5.value = TextCellValue(outTimeStr);
       cell5.cellStyle = cellStyle;
     }
   }
 
   Future<void> _downloadExcel() async {
-    final attendanceProviders = Provider.of<AdminAttenDanceServices>(context, listen: false);
-    final empMastProviders = Provider.of<EmployeMastServices>(context, listen: false);
+    final attendanceProviders = Provider.of<AdminAttenDanceServices>(
+      context,
+      listen: false,
+    );
+    final empMastProviders = Provider.of<EmployeMastServices>(
+      context,
+      listen: false,
+    );
     final displayList = attendanceProviders.empAttendanceList;
     List<dynamic> allEmpList = empMastProviders.mainEmployeList;
     if (allEmpList.isEmpty) allEmpList = empMastProviders.emplists;
@@ -321,9 +344,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     final formattedDate = DateFormat('dd-MMM-yyyy').format(currentDate);
 
     if (displayList.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(noDataAvailableToDownloadString)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(noDataAvailableToDownloadString)));
       return;
     }
 
@@ -338,7 +361,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       Sheet absentSheet = excel['Absent'];
       Sheet leaveSheet = excel['On Leave'];
       Sheet designationSheet = excel['Designation Wise'];
-      
+
       excel.setDefaultSheet('Dashboard');
 
       // Dashboard Sheet Formatting
@@ -378,47 +401,53 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         topBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
         bottomBorder: ex.Border(borderStyle: ex.BorderStyle.Thin),
       );
-      
+
       var cA1 = dashSheet.cell(CellIndex.indexByString("A1"));
       cA1.value = TextCellValue("Attendance Dashboard");
       cA1.cellStyle = titleStyle;
-      dashSheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("B1"), customValue: TextCellValue("Attendance Dashboard"));
-      
+      dashSheet.merge(
+        CellIndex.indexByString("A1"),
+        CellIndex.indexByString("B1"),
+        customValue: TextCellValue("Attendance Dashboard"),
+      );
+
       var cA3 = dashSheet.cell(CellIndex.indexByString("A3"));
       cA3.value = TextCellValue("Date:");
       cA3.cellStyle = leftAlignDataStyle;
       var cB3 = dashSheet.cell(CellIndex.indexByString("B3"));
       cB3.value = TextCellValue(formattedDate);
       cB3.cellStyle = dataStyle;
-      
+
       var cA5 = dashSheet.cell(CellIndex.indexByString("A5"));
       cA5.value = TextCellValue("Metric");
       cA5.cellStyle = headerStyle;
       var cB5 = dashSheet.cell(CellIndex.indexByString("B5"));
       cB5.value = TextCellValue("Count");
       cB5.cellStyle = headerStyle;
-      
+
       var cA6 = dashSheet.cell(CellIndex.indexByString("A6"));
       cA6.value = TextCellValue(totalEmployeesString);
       cA6.cellStyle = leftAlignDataStyle;
       var cB6 = dashSheet.cell(CellIndex.indexByString("B6"));
-      cB6.value = TextCellValue('${attendanceProviders.mainHoldEmpList.length}');
+      cB6.value = TextCellValue(
+        '${attendanceProviders.mainHoldEmpList.length}',
+      );
       cB6.cellStyle = dataStyle;
-      
+
       var cA7 = dashSheet.cell(CellIndex.indexByString("A7"));
       cA7.value = TextCellValue("Present");
       cA7.cellStyle = leftAlignDataStyle;
       var cB7 = dashSheet.cell(CellIndex.indexByString("B7"));
       cB7.value = TextCellValue('${attendanceProviders.totalPresents}');
       cB7.cellStyle = dataStyle;
-      
+
       var cA8 = dashSheet.cell(CellIndex.indexByString("A8"));
       cA8.value = TextCellValue("Absent");
       cA8.cellStyle = leftAlignDataStyle;
       var cB8 = dashSheet.cell(CellIndex.indexByString("B8"));
       cB8.value = TextCellValue('${attendanceProviders.totalAbsent}');
       cB8.cellStyle = dataStyle;
-      
+
       var cA9 = dashSheet.cell(CellIndex.indexByString("A9"));
       cA9.value = TextCellValue("On Leave");
       cA9.cellStyle = leftAlignDataStyle;
@@ -443,7 +472,12 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
       // Populate Sheets
       _populateEmployeeSheet(allSheet, displayList, allEmpList, headerStyle);
-      _populateEmployeeSheet(presentSheet, presentList, allEmpList, headerStyle);
+      _populateEmployeeSheet(
+        presentSheet,
+        presentList,
+        allEmpList,
+        headerStyle,
+      );
       _populateEmployeeSheet(absentSheet, absentList, allEmpList, headerStyle);
       _populateEmployeeSheet(leaveSheet, leaveList, allEmpList, headerStyle);
 
@@ -486,7 +520,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       int currentRow = 0;
       designationGroups.forEach((designation, list) {
         // Designation Title Header
-        var headerCell = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+        var headerCell = designationSheet.cell(
+          CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow),
+        );
         headerCell.value = TextCellValue("Designation: $designation");
         headerCell.cellStyle = designationHeaderStyle;
         designationSheet.merge(
@@ -497,9 +533,17 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
         currentRow++;
 
         // Table Column Headers
-        List<String> subHeaders = [idString, employessNameString, statusString, inTimeString, outTimeString];
+        List<String> subHeaders = [
+          idString,
+          employessNameString,
+          statusString,
+          inTimeString,
+          outTimeString,
+        ];
         for (int i = 0; i < subHeaders.length; i++) {
-          var cell = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
+          var cell = designationSheet.cell(
+            CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow),
+          );
           cell.value = TextCellValue(subHeaders[i]);
           cell.cellStyle = headerStyle;
         }
@@ -510,7 +554,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           final isPresent = employee.inTime != null && employee.absent == false;
           final isOnLeave = employee.isOnLeave == true;
           final isAbsent = employee.absent == true && !isOnLeave;
-          
+
           String status = 'Unknown';
           if (isOnLeave) {
             status = onLeaveString;
@@ -520,30 +564,46 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             status = absentString;
           }
 
-          String inTimeStr = employee.inTime == null 
-              ? '-' 
-              : DateFormat('hh:mm a').format(DateTime.parse(employee.inTime.toString()));
-          String outTimeStr = employee.outTime == null 
-              ? '-' 
-              : DateFormat('hh:mm a').format(DateTime.parse(employee.outTime.toString()));
+          String inTimeStr = employee.inTime == null
+              ? '-'
+              : DateFormat(
+                  'hh:mm a',
+                ).format(DateTime.parse(employee.inTime.toString()));
+          String outTimeStr = employee.outTime == null
+              ? '-'
+              : DateFormat(
+                  'hh:mm a',
+                ).format(DateTime.parse(employee.outTime.toString()));
 
-          var cell0 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+          var cell0 = designationSheet.cell(
+            CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow),
+          );
           cell0.value = TextCellValue(employee.empId.toString());
           cell0.cellStyle = dataStyle;
 
-          var cell1 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow));
-          cell1.value = TextCellValue('${employee.firstName} ${employee.lastName}');
+          var cell1 = designationSheet.cell(
+            CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow),
+          );
+          cell1.value = TextCellValue(
+            '${employee.firstName} ${employee.lastName}',
+          );
           cell1.cellStyle = leftAlignDataStyle;
 
-          var cell2 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow));
+          var cell2 = designationSheet.cell(
+            CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow),
+          );
           cell2.value = TextCellValue(status);
           cell2.cellStyle = dataStyle;
 
-          var cell3 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow));
+          var cell3 = designationSheet.cell(
+            CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow),
+          );
           cell3.value = TextCellValue(inTimeStr);
           cell3.cellStyle = dataStyle;
 
-          var cell4 = designationSheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow));
+          var cell4 = designationSheet.cell(
+            CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow),
+          );
           cell4.value = TextCellValue(outTimeStr);
           cell4.cellStyle = dataStyle;
 
@@ -573,11 +633,14 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             await externalDir.create(recursive: true);
           }
           final timestamp = DateTime.now().millisecondsSinceEpoch;
-          final filePath = '${externalDir.path}/Attendance_${formattedDate}_$timestamp.xlsx';
+          final filePath =
+              '${externalDir.path}/Attendance_${formattedDate}_$timestamp.xlsx';
           File(filePath)
             ..createSync(recursive: true)
             ..writeAsBytesSync(fileBytes);
-          showtoastmessage('Excel Downloaded Successfully! Saved in Download/TAX HRM 2.0');
+          showtoastmessage(
+            'Excel Downloaded Successfully! Saved in Download/TAX HRM 2.0',
+          );
         }
       }
     } catch (e) {
@@ -588,81 +651,199 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   // ==================== SEARCH SECTION ====================
   Widget _buildSearchSection(Size size) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final attendanceProviders = Provider.of<AdminAttenDanceServices>(
+      context,
+      listen: false,
+    );
+    final empMastProviders = Provider.of<EmployeMastServices>(
+      context,
+      listen: false,
+    );
+    List<dynamic> allEmpList = empMastProviders.mainEmployeList;
+    if (allEmpList.isEmpty) allEmpList = empMastProviders.emplists;
+    if (allEmpList.isEmpty) allEmpList = empMastProviders.allemployes;
+
+    List<String> departments = attendanceProviders.getUniqueDepartments(
+      allEmpList,
+    );
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark ? Colors.transparent : Colors.black.withOpacity(0.03),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: TextFormField(
-                controller: _searchController,
-                textAlignVertical: TextAlignVertical.center,
-                cursorColor: ColorConst.black,
-                style: TextStyle(
-                  color: ColorConst.black,
-                  fontFamily: fontInterRegularString,
-                  fontSize: 14,
-                ),
-                decoration: InputDecoration(
-                  hintText: searchEmployeeHintString,
-                  isDense: true,
-                  hintStyle: TextStyle(
-                    color: ColorConst.hintextColor,
-                    fontFamily: fontInterMediumString,
-                    fontSize: 13,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.only(left: 8, right: 6),
-                    child: Icon(Icons.search_rounded, size: 18, color: ColorConst.themeColor),
-                  ),
-                  prefixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: _clearSearch,
-                          icon: Icon(Icons.close_rounded, size: 16, color: Colors.grey.shade400),
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: departments.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 5),
+              itemBuilder: (context, index) {
+                final dept = departments[index];
+                final isSelected =
+                    dept ==
+                    (departments.contains(
+                          attendanceProviders.selectedDepartment,
                         )
-                      : null,
-                  suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
-                ),
-              ), 
+                        ? attendanceProviders.selectedDepartment
+                        : 'ALL');
+                return GestureDetector(
+                  onTap: () {
+                    attendanceProviders.selectedDepartment = dept;
+                    attendanceProviders.filterEmployees(allEmpList);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? ColorConst.themeColor
+                          : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? ColorConst.themeColor
+                            : (isDark
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade300),
+                        width: 0.8,
+                      ),
+                      boxShadow: [
+                        if (!isSelected)
+                          BoxShadow(
+                            color: isDark
+                                ? Colors.transparent
+                                : Colors.black.withOpacity(0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                      ],
+                    ),
+                    child: Text(
+                      dept,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : (isDark ? Colors.white : Colors.black87),
+                        fontFamily: isSelected
+                            ? fontInterSemiBoldString
+                            : fontInterMediumString,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-          const SizedBox(width: 8),
-          _buildExportButton(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.transparent
+                            : Colors.black.withOpacity(0.03),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: TextFormField(
+                    controller: attendanceProviders.searchController,
+                    onChanged: (val) {
+                      attendanceProviders.searchQuery = val.toLowerCase();
+                      attendanceProviders.filterEmployees(allEmpList);
+                    },
+                    textAlignVertical: TextAlignVertical.center,
+                    cursorColor: ColorConst.black,
+                    style: TextStyle(
+                      color: ColorConst.black,
+                      fontFamily: fontInterRegularString,
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: searchEmployeeHintString,
+                      isDense: true,
+                      hintStyle: TextStyle(
+                        color: ColorConst.hintextColor,
+                        fontFamily: fontInterMediumString,
+                        fontSize: 13,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 10,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: 8, right: 6),
+                        child: Icon(
+                          Icons.search_rounded,
+                          size: 18,
+                          color: ColorConst.themeColor,
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(
+                        minHeight: 0,
+                        minWidth: 0,
+                      ),
+                      suffixIcon: attendanceProviders.searchQuery.isNotEmpty
+                          ? IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                attendanceProviders.clearSearch();
+                                FocusManager.instance.primaryFocus?.unfocus();
+                              },
+                              icon: Icon(
+                                Icons.close_rounded,
+                                size: 16,
+                                color: Colors.grey.shade400,
+                              ),
+                            )
+                          : null,
+                      suffixIconConstraints: const BoxConstraints(
+                        minHeight: 0,
+                        minWidth: 0,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildExportButton(),
+            ],
+          ),
         ],
       ),
     );
   }
 
   // ==================== HEADER SECTION ====================
-  Widget _buildHeaderSection(Size size, AdminAttenDanceServices attendanceProviders, String formattedDate) {
+  Widget _buildHeaderSection(
+    Size size,
+    AdminAttenDanceServices attendanceProviders,
+    String formattedDate,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final currentMonth = attendanceProviders.currentMonth;
-    
+
     // Check if current selected month is current month (disable next button)
-    final isCurrentMonth = currentMonth.year == now.year && currentMonth.month == now.month && currentMonth.day == now.day;
+    final isCurrentMonth =
+        currentMonth.year == now.year &&
+        currentMonth.month == now.month &&
+        currentMonth.day == now.day;
     // Check if can go next (only disable if it's current month)
     final canGoNext = !isCurrentMonth;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -681,7 +862,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           // Previous Button
           GestureDetector(
             onTap: () {
-              _clearSearch(); // Clear search when changing month
+              attendanceProviders
+                  .clearSearch(); // Clear search when changing month
               attendanceProviders.changeDate(false);
             },
             child: Container(
@@ -690,10 +872,14 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                 shape: BoxShape.circle,
                 color: ColorConst.themeColor.withOpacity(0.1),
               ),
-              child: Icon(Icons.arrow_back_ios_new, size: 14, color: ColorConst.themeColor),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                size: 14,
+                color: ColorConst.themeColor,
+              ),
             ),
           ),
-          
+
           // Date Picker Button
           GestureDetector(
             onTap: () async {
@@ -719,7 +905,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                 },
               );
               if (pickedDate != null) {
-                _clearSearch(); // Clear search when changing date
+                attendanceProviders
+                    .clearSearch(); // Clear search when changing date
                 attendanceProviders.updateMonth(pickedDate, context);
               }
             },
@@ -728,12 +915,18 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               decoration: BoxDecoration(
                 color: ColorConst.themeColor.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: ColorConst.themeColor.withOpacity(0.12)),
+                border: Border.all(
+                  color: ColorConst.themeColor.withOpacity(0.12),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.calendar_today_rounded, size: 13, color: ColorConst.themeColor),
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: 13,
+                    color: ColorConst.themeColor,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     formattedDate,
@@ -748,25 +941,30 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               ),
             ),
           ),
-          
+
           // Next Button - Disabled for current month
           GestureDetector(
-            onTap: canGoNext ? () {
-              _clearSearch(); // Clear search when changing month
-              attendanceProviders.changeDate(true);
-            } : null,
+            onTap: canGoNext
+                ? () {
+                    attendanceProviders
+                        .clearSearch(); // Clear search when changing month
+                    attendanceProviders.changeDate(true);
+                  }
+                : null,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: canGoNext 
-                    ? ColorConst.themeColor.withOpacity(0.1) 
+                color: canGoNext
+                    ? ColorConst.themeColor.withOpacity(0.1)
                     : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
               ),
               child: Icon(
                 Icons.arrow_forward_ios_outlined,
                 size: 14,
-                color: canGoNext ? ColorConst.themeColor : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                color: canGoNext
+                    ? ColorConst.themeColor
+                    : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
               ),
             ),
           ),
@@ -776,7 +974,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   }
 
   // ==================== STATISTICS SECTION ====================
-  Widget _buildStatsSection(Size size, AdminAttenDanceServices attendanceProviders) {
+  Widget _buildStatsSection(
+    Size size,
+    AdminAttenDanceServices attendanceProviders,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: GridView.count(
@@ -795,8 +996,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             color: ColorConst.blueColor,
             icon: Icons.people_alt,
             onTap: () {
-              _clearSearch(); // Clear search when filtering
-              attendanceProviders.setEmpAttendanceList(attendanceProviders.mainHoldEmpList);
+              attendanceProviders.clearSearch(); // Clear search when filtering
+              attendanceProviders.setEmpAttendanceList(
+                attendanceProviders.mainHoldEmpList,
+              );
             },
           ),
           _buildStatCard(
@@ -806,7 +1009,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             color: ColorConst.greenColor,
             icon: Icons.check_circle,
             onTap: () {
-              _clearSearch(); // Clear search when filtering
+              attendanceProviders.clearSearch(); // Clear search when filtering
               attendanceProviders.filtersOntapData(true);
             },
           ),
@@ -817,7 +1020,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             color: ColorConst.red,
             icon: Icons.cancel,
             onTap: () {
-              _clearSearch(); // Clear search when filtering
+              attendanceProviders.clearSearch(); // Clear search when filtering
               attendanceProviders.filtersOntapData(false);
             },
           ),
@@ -828,7 +1031,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             color: ColorConst.paidLeaveColor,
             icon: Icons.beach_access,
             onTap: () {
-              _clearSearch(); // Clear search when filtering
+              attendanceProviders.clearSearch(); // Clear search when filtering
               attendanceProviders.filterIsONleave();
             },
           ),
@@ -860,7 +1063,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               offset: const Offset(0, 2),
             ),
           ],
-          border: Border.all(color: isDark ? Colors.grey.shade800 : color.withOpacity(0.15)),
+          border: Border.all(
+            color: isDark ? Colors.grey.shade800 : color.withOpacity(0.15),
+          ),
         ),
         child: Row(
           children: [
@@ -884,7 +1089,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
                       fontFamily: fontInterMediumString,
                     ),
                   ),
@@ -897,7 +1104,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       color: color,
                       fontFamily: fontInterBoldString,
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -908,17 +1115,30 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
   }
 
   // ==================== EMPLOYEE LIST SECTION ====================
-  Widget _buildEmployeeListSection(Size size, AdminAttenDanceServices attendanceProviders) {
-    // Use filtered list if search is active, otherwise use original list
-    final displayList = _searchQuery.isNotEmpty ? _filteredEmployeeList : attendanceProviders.empAttendanceList;
+  Widget _buildEmployeeListSection(
+    Size size,
+    AdminAttenDanceServices attendanceProviders,
+  ) {
+    // Use filtered list if search is active or department is selected, otherwise use original list
+    final bool isFiltered =
+        attendanceProviders.searchQuery.isNotEmpty ||
+        attendanceProviders.selectedDepartment != 'ALL';
+    final displayList = isFiltered
+        ? attendanceProviders.filteredEmployeeList
+        : attendanceProviders.empAttendanceList;
     return displayList.isEmpty
-        ? _searchQuery.isNotEmpty
-            ? _buildNoSearchResults()
-            : Container(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                alignment: Alignment.center,
-                child: noDataFoundsDesign(size, noDataFoundsString, nodataFoundsImagString, width: 140.0),
-              )
+        ? isFiltered
+              ? _buildNoSearchResults(attendanceProviders)
+              : Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  alignment: Alignment.center,
+                  child: noDataFoundsDesign(
+                    size,
+                    noDataFoundsString,
+                    nodataFoundsImagString,
+                    width: 140.0,
+                  ),
+                )
         : ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -927,17 +1147,26 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               String setPhone = '';
-              Provider.of<EmployeMastServices>(context, listen: false).allemployes.forEach((element) {
+              Provider.of<EmployeMastServices>(
+                context,
+                listen: false,
+              ).allemployes.forEach((element) {
                 if (element.id == displayList[index].empId) {
                   setPhone = '${element.mobile1}';
                 }
               });
-              return _buildEmployeeCard(size, attendanceProviders, index, setPhone, displayList);
+              return _buildEmployeeCard(
+                size,
+                attendanceProviders,
+                index,
+                setPhone,
+                displayList,
+              );
             },
           );
   }
 
-  Widget _buildNoSearchResults() {
+  Widget _buildNoSearchResults(AdminAttenDanceServices attendanceProviders) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
@@ -971,7 +1200,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           ),
           const SizedBox(height: 16),
           GestureDetector(
-            onTap: _clearSearch,
+            onTap: () {
+              attendanceProviders.clearSearch();
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -1001,25 +1233,51 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     );
   }
 
-  Widget _buildEmployeeCard(Size size, AdminAttenDanceServices attendanceProviders, int index, String setPhone, List displayList) {
+  Widget _buildEmployeeCard(
+    Size size,
+    AdminAttenDanceServices attendanceProviders,
+    int index,
+    String setPhone,
+    List displayList,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final employee = displayList[index];
     final isPresent = employee.inTime != null && employee.absent == false;
     final isOnLeave = employee.isOnLeave == true;
     final isAbsent = employee.absent == true && !isOnLeave;
-    
+
+    final empMastProviders = Provider.of<EmployeMastServices>(
+      context,
+      listen: false,
+    );
+    List<dynamic> allEmpList = empMastProviders.mainEmployeList;
+    if (allEmpList.isEmpty) allEmpList = empMastProviders.emplists;
+    if (allEmpList.isEmpty) allEmpList = empMastProviders.allemployes;
+
+    String deptName = '-';
+    for (var emp in allEmpList) {
+      if (emp.id == employee.empId) {
+        deptName = emp.departmentName ?? '-';
+        if (deptName.trim().isEmpty) deptName = '-';
+        break;
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200, width: 0.8),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+          width: 0.8,
+        ),
         boxShadow: [
           BoxShadow(
             color: isDark ? Colors.transparent : Colors.black.withOpacity(0.02),
             blurRadius: 4,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: InkWell(
@@ -1028,7 +1286,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           nextScreen(
             context,
             AttendanceScreen(empData: employee),
-            onthenValue: (value) => attendanceProviders.updateMonth(DateTime.now(), context),
+            onthenValue: (value) =>
+                attendanceProviders.refreshCurrentMonthData(context),
           );
         },
         borderRadius: BorderRadius.circular(12),
@@ -1043,7 +1302,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                 width: 32,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [ColorConst.themeColor.withOpacity(0.8), ColorConst.themeColor],
+                    colors: [
+                      ColorConst.themeColor.withOpacity(0.8),
+                      ColorConst.themeColor,
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1053,12 +1315,13 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       color: ColorConst.themeColor.withOpacity(0.2),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
-                    )
+                    ),
                   ],
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  '${employee.firstName?[0] ?? ''}${employee.lastName?[0] ?? ''}'.toUpperCase(),
+                  '${employee.firstName?[0] ?? ''}${employee.lastName?[0] ?? ''}'
+                      .toUpperCase(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -1068,7 +1331,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                 ),
               ),
               const SizedBox(width: 8),
-              
+
               // Details
               Expanded(
                 child: Column(
@@ -1090,7 +1353,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       'ID: ${employee.empId}',
                       style: TextStyle(
                         fontSize: 10,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
                         fontFamily: fontInterMediumString,
                       ),
                     ),
@@ -1101,10 +1366,37 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       isAbsent: isAbsent,
                       isDark: isDark,
                     ),
+                    if (employee.inTime != null || employee.outTime != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(
+                          children: [
+                            if (employee.inTime != null)
+                              _buildTimeIndicator(
+                                title: 'IN',
+                                time: employee.inTime.toString(),
+                                icon: Icons.login_rounded,
+                                color: ColorConst.greenColor,
+                                isDark: isDark,
+                              ),
+                            if (employee.inTime != null &&
+                                employee.outTime != null)
+                              const SizedBox(width: 6),
+                            if (employee.outTime != null)
+                              _buildTimeIndicator(
+                                title: 'OUT',
+                                time: employee.outTime.toString(),
+                                icon: Icons.logout_rounded,
+                                color: ColorConst.red,
+                                isDark: isDark,
+                              ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
-              
+
               // Actions
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1114,7 +1406,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       FocusManager.instance.primaryFocus?.unfocus();
                       nextScreen(
                         context,
-                        SmartTimelineScreen(userId: employee.empId.toString()),
+                        SmartTimelineScreen(
+                          userId: employee.empId.toString(),
+                          date: attendanceProviders.currentMonth,
+                        ),
                         onthenValue: (value) {},
                       );
                     },
@@ -1141,24 +1436,32 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     onTap: () async {
                       FocusManager.instance.primaryFocus?.unfocus();
                       await Future.delayed(const Duration(milliseconds: 150));
-                      final attendanceEmp = Provider.of<AttendanceEmp>(context, listen: false);
-                      String timestampString = attendanceProviders.currentMonth.toString();
-                      String formattedTimestampString = timestampString.replaceAll('Z', '');
-                      
-                      await attendanceEmp.getDateBloges(formattedTimestampString, employee.empId.toString());
-                      
+                      final attendanceEmp = Provider.of<AttendanceEmp>(
+                        context,
+                        listen: false,
+                      );
+                      String timestampString = attendanceProviders.currentMonth
+                          .toString();
+                      String formattedTimestampString = timestampString
+                          .replaceAll('Z', '');
+
+                      await attendanceEmp.getDateBloges(
+                        formattedTimestampString,
+                        employee.empId.toString(),
+                      );
+
                       if (context.mounted) {
-                         showDayDetails(
-                           context,
-                           size,
-                           attendanceEmp.selectedDateLog,
-                           timestampString,
-                           1,
-                           attendanceEmp,
-                           attendanceProviders,
-                           curentUser,
-                           employee,
-                         );
+                        showDayDetails(
+                          context,
+                          size,
+                          attendanceEmp.selectedDateLog,
+                          timestampString,
+                          1,
+                          attendanceEmp,
+                          attendanceProviders,
+                          curentUser,
+                          employee,
+                        );
                       }
                     },
                     isImage: true,
@@ -1251,7 +1554,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     String? tooltip,
     Color? imageColor,
   }) {
-    Color btnColor = color == Colors.white && isImage ? ColorConst.greenColor : color;
+    Color btnColor = color == Colors.white && isImage
+        ? ColorConst.greenColor
+        : color;
     Widget button = Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1261,7 +1566,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
             color: btnColor.withOpacity(isDark ? 0.2 : 0.1),
-            border: Border.all(color: btnColor.withOpacity(isDark ? 0.5 : 0.4), width: 0.8),
+            border: Border.all(
+              color: btnColor.withOpacity(isDark ? 0.5 : 0.4),
+              width: 0.8,
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
           child: (isImage || image != null) && image != null
@@ -1276,7 +1584,52 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     return button;
   }
 
+  String _extractTimeOnly(String fullTime) {
+    if (fullTime.isEmpty) return fullTime;
+    try {
+      DateTime dt = DateTime.parse(fullTime);
+      return DateFormat('h:mm a').format(dt);
+    } catch (e) {
+      List<String> parts = fullTime.split(' ');
+      if (parts.length > 1) {
+        if (parts[0].contains('-') || parts[0].contains('/')) {
+          parts.removeAt(0);
+          return parts.join(' ');
+        }
+      }
+      return fullTime;
+    }
+  }
 
-
-
+  Widget _buildTimeIndicator({
+    required String title,
+    required String time,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 3),
+          Text(
+            _extractTimeOnly(time),
+            style: TextStyle(
+              fontSize: 9,
+              color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+              fontFamily: fontInterMediumString,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

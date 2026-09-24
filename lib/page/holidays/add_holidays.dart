@@ -42,7 +42,6 @@ class _AddHolidayScreenState extends State<AddHolidayScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final holidayeMastServices = Provider.of<HolidayeMastServices>(context);
     return Scaffold(
             backgroundColor:ColorConst.scaffoldColor,

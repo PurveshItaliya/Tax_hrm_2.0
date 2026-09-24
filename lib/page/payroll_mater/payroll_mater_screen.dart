@@ -75,7 +75,6 @@ class _PayrollMaterScreenState extends State<PayrollMaterScreen> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final payRollProviders = Provider.of<PayRollProviders>(context);
     Provider.of<LanguageProvider>(context);

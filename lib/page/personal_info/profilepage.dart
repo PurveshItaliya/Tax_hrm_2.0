@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/usermasterprovider.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -45,9 +44,6 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(
-      context,
-    );
     final userMasterService = Provider.of<UserMasterService>(context);
     return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,

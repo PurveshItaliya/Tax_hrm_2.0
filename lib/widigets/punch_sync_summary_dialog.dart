@@ -7,6 +7,7 @@ import 'package:tax_hrm/models/attendance/attendanceBlog.dart' as blog;
 import 'package:tax_hrm/models/offline_punch_record.dart';
 import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 
 /// Handles offline punch confirmation and duplicate punch user validation.
 class PunchSyncSummaryDialog extends StatefulWidget {
@@ -56,8 +57,8 @@ class PunchSyncSummaryDialog extends StatefulWidget {
                   size: 48,
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Punch Added Successfully',
+                Text(
+                  punchAddedSuccessfullyString,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -65,7 +66,7 @@ class PunchSyncSummaryDialog extends StatefulWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Your offline punch has been directly added to your attendance record.',
+                  offlinePunchAddedRecordString,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
@@ -84,8 +85,8 @@ class PunchSyncSummaryDialog extends StatefulWidget {
                       ),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('OK',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(okString,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -164,17 +165,17 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Offline punch added to server successfully!'),
+            content: Text(offlinePunchAddedServerSuccessString),
             backgroundColor: ColorConst.themeColor,
             duration: const Duration(seconds: 2),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to add punch. Please try again.'),
+          SnackBar(
+            content: Text(failedToAddPunchTryAgainString),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -191,9 +192,9 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
         _records.removeWhere((r) => r.localId == record.localId);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Duplicate offline punch discarded.'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(duplicateOfflinePunchDiscardedString),
+          duration: const Duration(seconds: 2),
         ),
       );
       if (_records.isEmpty && mounted) {
@@ -253,8 +254,8 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Duplicate Punch Warning',
+                        Text(
+                          duplicatePunchWarningString,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -263,7 +264,7 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Punch recorded within 5 minutes or already in history',
+                          punchRecordedWithin5MinsString,
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.85),
                             fontSize: 11,
@@ -286,11 +287,11 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
             // ── Scrollable Punch List ────────────────────────────────
             Flexible(
               child: entries.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(28),
+                  ? Padding(
+                      padding: const EdgeInsets.all(28),
                       child: Text(
-                        'All duplicate punches resolved.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        allDuplicatePunchesResolvedString,
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                     )
                   : ListView.separated(
@@ -301,8 +302,6 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                       itemBuilder: (_, i) {
                         final entry = entries[i];
                         final isOffline = entry.source == _EntrySource.offline;
-                        final isDuplicate = entry.syncStatus ==
-                            OfflineSyncStatus.duplicateDetected;
                         final isLoading =
                             _loadingMap[entry.record?.localId] ?? false;
 
@@ -364,8 +363,8 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                                         color: ColorConst.themeColor,
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: const Text(
-                                        '📱 Offline Punch',
+                                      child: Text(
+                                        offlinePunchWithEmojiString,
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
@@ -381,8 +380,8 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                                         color: Colors.grey.shade200,
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: const Text(
-                                        '🌐 Server History',
+                                      child: Text(
+                                        serverHistoryWithEmojiString,
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
@@ -451,8 +450,8 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                                   entry.syncStatus ==
                                       OfflineSyncStatus.duplicateDetected) ...[
                                 const Divider(height: 16),
-                                const Text(
-                                  'Add this offline punch to history?',
+                                Text(
+                                  addOfflinePunchToHistoryString,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -486,7 +485,7 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                                               ),
                                               onPressed: () =>
                                                   _handleDiscard(entry.record!),
-                                              child: const Text('Discard',
+                                              child: Text(discardString,
                                                   style: TextStyle(
                                                       fontSize: 12,
                                                       fontWeight:
@@ -510,7 +509,7 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                                               ),
                                               onPressed: () =>
                                                   _handleForceAdd(entry.record!),
-                                              child: const Text('Add Punch',
+                                              child: Text(addPunchString,
                                                   style: TextStyle(
                                                       fontSize: 12,
                                                       fontWeight:
@@ -542,8 +541,8 @@ class _PunchSyncSummaryDialogState extends State<PunchSyncSummaryDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(
-                    'Done',
+                  child: Text(
+                    doneString,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,

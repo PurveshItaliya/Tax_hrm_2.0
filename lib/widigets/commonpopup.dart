@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 
 employeStatusPopBox(context,size,Function ontapAll, Function onTapActive, Function onTapInActive){
 
@@ -25,7 +26,7 @@ showMenu(
                 // sized box with width 10
                 width: 10,
               ),
-              Text("All", style: normalHeadingText(size),)
+              Text(allString, style: normalHeadingText(size),)
             ],
           ),
         ),
@@ -42,7 +43,7 @@ showMenu(
                 // sized box with width 10
                 width: 10,
               ),
-              Text("Active", style: normalHeadingText(size),)
+              Text(activeString, style: normalHeadingText(size),)
             ],
           ),
         ),
@@ -59,7 +60,7 @@ showMenu(
                 // sized box with width 10
                 width: 10,
               ),
-              Text("In Active", style: normalHeadingText(size),)
+              Text(inActiveString, style: normalHeadingText(size),)
             ],
           ),
         ),

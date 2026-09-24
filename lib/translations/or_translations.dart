@@ -4,7 +4,8 @@ final Map<String, String> orTranslations = {
   'Leave': 'ଛାଡ',
   'Setting': 'ସେଟିଂ',
   'Logout': 'ଲଗଆଉଟ୍ |',
-  'Simpy Enter your Username & Password': 'ସରଳ ଆପଣଙ୍କର ଉପଯୋଗକର୍ତ୍ତା ନାମ ଏବଂ ପାସୱାର୍ଡ ପ୍ରବେଶ କରନ୍ତୁ |',
+  'Simpy Enter your Username & Password':
+      'ସରଳ ଆପଣଙ୍କର ଉପଯୋଗକର୍ତ୍ତା ନାମ ଏବଂ ପାସୱାର୍ଡ ପ୍ରବେଶ କରନ୍ତୁ |',
   'Username': 'ଉପଯୋଗକର୍ତ୍ତା ନାମ',
   'Password': 'ପାସୱାର୍ଡ',
   'Filed is Required': 'ଫାଇଲ୍ ଆବଶ୍ୟକ |',
@@ -15,8 +16,10 @@ final Map<String, String> orTranslations = {
   'Verify': 'ଯାଞ୍ଚ କରନ୍ତୁ |',
   'Back': 'ପଛକୁ',
   'Verification Code': 'ଯାଞ୍ଚ କୋଡ୍ |',
-  'Choose how you want to receive your 6-digit verification code.': 'ଆପଣ କିପରି ଆପଣଙ୍କର 6-ଅଙ୍କ ଯାଞ୍ଚ କୋଡ୍ ଗ୍ରହଣ କରିବାକୁ ଚାହୁଁଛନ୍ତି ତାହା ବାଛନ୍ତୁ |',
-  'A verification code has been sent to your registered ': 'ଆପଣଙ୍କର ପଞ୍ଜିକୃତକୁ ଏକ ଯାଞ୍ଚ କୋଡ୍ ପଠାଯାଇଛି |',
+  'Choose how you want to receive your 6-digit verification code.':
+      'ଆପଣ କିପରି ଆପଣଙ୍କର 6-ଅଙ୍କ ଯାଞ୍ଚ କୋଡ୍ ଗ୍ରହଣ କରିବାକୁ ଚାହୁଁଛନ୍ତି ତାହା ବାଛନ୍ତୁ |',
+  'A verification code has been sent to your registered ':
+      'ଆପଣଙ୍କର ପଞ୍ଜିକୃତକୁ ଏକ ଯାଞ୍ଚ କୋଡ୍ ପଠାଯାଇଛି |',
   'Mobile': 'ମୋବାଇଲ୍ |',
   'E-mail': 'ଇ-ମେଲ୍ |',
   'Salary Slip': 'ଦରମା ସ୍ଲିପ୍',
@@ -74,7 +77,8 @@ final Map<String, String> orTranslations = {
   'Add Note': 'ଟିପ୍ପଣୀ ଯୋଡନ୍ତୁ |',
   'Add File': 'ଫାଇଲ୍ ଯୋଡନ୍ତୁ |',
   'Uplaod File': 'ଅପଲୋଡ୍ ଫାଇଲ୍ |',
-  'Drag and drop your file here': 'ଏଠାରେ ଆପଣଙ୍କର ଫାଇଲ୍ ଡ୍ରାଗ୍ ଏବଂ ଡ୍ରପ୍ କରନ୍ତୁ |',
+  'Drag and drop your file here':
+      'ଏଠାରେ ଆପଣଙ୍କର ଫାଇଲ୍ ଡ୍ରାଗ୍ ଏବଂ ଡ୍ରପ୍ କରନ୍ତୁ |',
   'OR': 'କିମ୍ବା',
   'Browse Files': 'ଫାଇଲଗୁଡିକ ବ୍ରାଉଜ୍ କରନ୍ତୁ |',
   'Earning': 'ରୋଜଗାର',
@@ -131,9 +135,12 @@ final Map<String, String> orTranslations = {
   'Date Of Joining': 'ଯୋଗଦାନର ତାରିଖ',
   'Select DOB': 'DOB ଚୟନ କରନ୍ତୁ |',
   'Select DOJ': 'DOJ ଚୟନ କରନ୍ତୁ |',
-  'Please enter a valid email address': 'ଦୟାକରି ଏକ ବ email ଧ ଇମେଲ୍ ଠିକଣା ପ୍ରବେଶ କରନ୍ତୁ |',
-  'Enter valid 10 digit mobile number': 'ବ valid ଧ 10 ଅଙ୍କ ବିଶିଷ୍ଟ ମୋବାଇଲ୍ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ |',
-  'Please enter a valid mobile number': 'ଦୟାକରି ଏକ ବ valid ଧ ମୋବାଇଲ୍ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ |',
+  'Please enter a valid email address':
+      'ଦୟାକରି ଏକ ବ email ଧ ଇମେଲ୍ ଠିକଣା ପ୍ରବେଶ କରନ୍ତୁ |',
+  'Enter valid 10 digit mobile number':
+      'ବ valid ଧ 10 ଅଙ୍କ ବିଶିଷ୍ଟ ମୋବାଇଲ୍ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ |',
+  'Please enter a valid mobile number':
+      'ଦୟାକରି ଏକ ବ valid ଧ ମୋବାଇଲ୍ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ |',
   'No TimeLine Added!': 'କ Time ଣସି ଟାଇମ୍ ଲାଇନ୍ ଯୋଡାଗଲା ନାହିଁ!',
   'Google Map': 'ଗୁଗୁଲ୍ ମାନଚିତ୍ର',
   'Add to Location TimeLine': 'ଲୋକେସନ ଟାଇମ୍ ଲାଇନ୍ ରେ ଯୋଡନ୍ତୁ |',
@@ -189,7 +196,8 @@ final Map<String, String> orTranslations = {
   'Select Designation Name': 'ନାମକରଣ ଚୟନ କରନ୍ତୁ |',
   'Select Time': 'ସମୟ ଚୟନ କରନ୍ତୁ |',
   'Ok': 'ଠିକ ଅଛି |',
-  'Please select at least one working day': 'ଦୟାକରି ଅତିକମରେ ଗୋଟିଏ କାର୍ଯ୍ୟ ଦିବସ ଚୟନ କରନ୍ତୁ |',
+  'Please select at least one working day':
+      'ଦୟାକରି ଅତିକମରେ ଗୋଟିଏ କାର୍ଯ୍ୟ ଦିବସ ଚୟନ କରନ୍ତୁ |',
   'Position is already used !!!': 'ଅବସ୍ଥାନ ପୂର୍ବରୁ ବ୍ୟବହୃତ ହୋଇଛି !!!',
   'Add Event': 'ଇଭେଣ୍ଟ ଯୋଡନ୍ତୁ |',
   'Edit Event': 'ଇଭେଣ୍ଟ ସଂପାଦନ କରନ୍ତୁ |',
@@ -315,7 +323,8 @@ final Map<String, String> orTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +339,10 @@ final Map<String, String> orTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +387,8 @@ final Map<String, String> orTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +411,8 @@ final Map<String, String> orTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +448,10 @@ final Map<String, String> orTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +461,8 @@ final Map<String, String> orTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -487,7 +503,8 @@ final Map<String, String> orTranslations = {
   'Please enter custom event type': 'ଦୟାକରି କଷ୍ଟମ୍ ଇଭେଣ୍ଟ ପ୍ରକାର ପ୍ରବେଶ କରନ୍ତୁ',
   'Attachments': 'ଆଟାଚମେଣ୍ଟ',
   'Click to upload attachments': 'ଆଟାଚମେଣ୍ଟ ଅପଲୋଡ୍ କରିବାକୁ କ୍ଲିକ୍ କରନ୍ତୁ',
-  'Supported: Images, PDF, Word, Excel files': 'ସମର୍ଥିତ: ଫଟୋ, PDF, ୱାର୍ଡ, ଏକ୍ସେଲ ଫାଇଲ୍',
+  'Supported: Images, PDF, Word, Excel files':
+      'ସମର୍ଥିତ: ଫଟୋ, PDF, ୱାର୍ଡ, ଏକ୍ସେଲ ଫାଇଲ୍',
   'Create Event': 'ଇଭେଣ୍ଟ ସୃଷ୍ଟି କରନ୍ତୁ',
   'Event Type': 'ଇଭେଣ୍ଟ ପ୍ରକାର',
   'Event Name': 'ଇଭେଣ୍ଟ ନାମ',

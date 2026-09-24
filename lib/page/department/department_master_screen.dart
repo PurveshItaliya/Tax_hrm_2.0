@@ -44,7 +44,6 @@ class _DepartmentScreenState extends State<DepartmentScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final departmentServices =  Provider.of<DepartmentServices>(context);
     final appPaginationController = Provider.of<AppPaginationProvider>(context);
     return Scaffold(
