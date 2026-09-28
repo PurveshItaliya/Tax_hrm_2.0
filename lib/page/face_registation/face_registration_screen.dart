@@ -160,6 +160,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
         return cameraUnavailableString;
       case FaceErrorReason.modelInitFailed:
         return modelInitFailedString;
+      case FaceErrorReason.spoofDetected:
+      case FaceErrorReason.livenessFailed:
+        return "Fake or non-live face detected";
       default:
         return "";
     }
@@ -487,7 +490,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
 class _HolePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black.withOpacity(0.75);
+    final paint = Paint()
+      ..color = Colors.black.withOpacity(0.75);
     canvas.drawPath(
       Path.combine(
         PathOperation.difference,
@@ -506,5 +510,7 @@ class _HolePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _HolePainter oldDelegate) {
+    return false;
+  }
 }

@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/face_registation/face_punch_state.dart';
 import 'package:tax_hrm/page/face_registation/face_recognition_service.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 
 class FaceVerificationProvider extends ChangeNotifier {
   final FaceRecognitionService _recognitionService = FaceRecognitionService();
@@ -54,6 +55,7 @@ class FaceVerificationProvider extends ChangeNotifier {
     debugPrint("[FaceVerificationProvider] $message");
     // Notify listeners if needed for UI, but usually not necessary unless debugging
   }
+
 
   Future<Map<String, String>> getAllEnrolledFaces() async {
     Map<String, String> allValues = {};
@@ -124,6 +126,13 @@ class FaceVerificationProvider extends ChangeNotifier {
       _log("Camera initialized. Starting image stream.");
       _stabilityStopwatch.reset();
 
+      // Maximize screen brightness for face detection
+      try {
+        await ScreenBrightness().setScreenBrightness(1.0);
+      } catch (e) {
+        _log("Could not set screen brightness: $e");
+      }
+
       bool firstFrame = true;
       cameraController!.startImageStream((image) {
         if (firstFrame) {
@@ -132,6 +141,7 @@ class FaceVerificationProvider extends ChangeNotifier {
           );
           firstFrame = false;
         }
+        
         if (!isProcessingFrame) {
           isProcessingFrame = true;
           if (forEnrollment) {
@@ -157,6 +167,13 @@ class FaceVerificationProvider extends ChangeNotifier {
     isProcessingFrame = false;
     _stabilityStopwatch.stop();
     _setState(FaceProcessState.idle);
+
+    // Restore original screen brightness
+    try {
+      await ScreenBrightness().resetScreenBrightness();
+    } catch (e) {
+      _log("Could not reset screen brightness: $e");
+    }
 
     if (controller != null) {
       if (controller.value.isStreamingImages) {
@@ -212,6 +229,23 @@ class FaceVerificationProvider extends ChangeNotifier {
       }
 
       final face = faces.first;
+      
+      _setState(FaceProcessState.checkingLiveness);
+      bool isLive = await _recognitionService.checkLiveness(
+        image,
+        face,
+        camera,
+      );
+      if (!isLive) {
+        _stabilityStopwatch.stop();
+        _setState(
+          FaceProcessState.detectingFace,
+          error: FaceErrorReason.spoofDetected,
+        );
+        isProcessingFrame = false;
+        return;
+      }
+
       _setState(FaceProcessState.faceDetected);
 
       if (!_stabilityStopwatch.isRunning) _stabilityStopwatch.start();

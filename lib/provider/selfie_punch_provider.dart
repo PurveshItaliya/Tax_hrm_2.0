@@ -43,6 +43,7 @@ import 'package:tax_hrm/services/location_batch_service.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 
 import '../services/fcm_token_service.dart';
 
@@ -91,6 +92,8 @@ class SelfiePunchProvider extends ChangeNotifier {
   bool cameraisLoading = true;
   bool readyCameraPreviewshow = true;
   bool isCameraReady = false;
+  bool isDarkEnvironment = false;
+  bool showFlashOverlay = false;
 
   // ==================== PERMISSION STATES ====================
   PermissionStatus? camerapermissionStatus;
@@ -258,6 +261,48 @@ class SelfiePunchProvider extends ChangeNotifier {
           const Duration(seconds: 5),
         );
         debugPrint("STARTCAMERA: 14. Initialized new controller successfully");
+
+        // Maximize screen brightness for punch screen
+        try {
+          await ScreenBrightness().setScreenBrightness(1.0);
+        } catch (e) {
+          debugPrint("Could not set screen brightness: $e");
+        }
+
+        // Check environment brightness safely using a short-lived image stream
+        int frameCount = 0;
+        bool streamStopped = false;
+        try {
+          cameraController!.startImageStream((image) {
+            if (streamStopped) return;
+            frameCount++;
+            if (frameCount < 5) return; 
+            streamStopped = true;
+            
+            if (image.planes.isNotEmpty) {
+              final bytes = image.planes[0].bytes;
+              int total = 0, count = 0;
+              for (int i = 0; i < bytes.length; i += 50) { total += bytes[i]; count++; }
+              if (count > 0 && (total / count) < 60) {
+                 isDarkEnvironment = true;
+                 debugPrint("Punch Screen: Dark environment detected.");
+              } else {
+                 isDarkEnvironment = false;
+              }
+              notifyListeners();
+            }
+          });
+          
+          // Stop stream safely outside the callback to avoid concurrent modification issues
+          Future.delayed(const Duration(milliseconds: 1000), () async {
+            if (cameraController != null && cameraController!.value.isStreamingImages) {
+              try { await cameraController!.stopImageStream(); } catch (_) {}
+            }
+          });
+        } catch (e) {
+          debugPrint("Failed to check brightness: $e");
+        }
+
       } catch (e) {
         debugPrint("STARTCAMERA: Camera initialize timeout or error: $e");
         readyCameraPreviewshow = false;
@@ -355,7 +400,17 @@ class SelfiePunchProvider extends ChangeNotifier {
     cameraController = null;
     isCameraReady = false;
     readyCameraPreviewshow = true;
+    showFlashOverlay = false;
+
+    // Restore screen brightness
+    try {
+      await ScreenBrightness().resetScreenBrightness();
+    } catch (_) {}
+
     if (oldController != null) {
+      if (oldController.value.isStreamingImages) {
+        try { await oldController.stopImageStream(); } catch (_) {}
+      }
       try {
         await oldController.dispose().timeout(const Duration(seconds: 2));
       } catch (e) {
@@ -1529,7 +1584,26 @@ class SelfiePunchProvider extends ChangeNotifier {
           ? 'IN'
           : (checkStatus!.attendenceLog!.last.status == 'IN' ? 'OUT' : 'IN');
 
+      // ── Flash overlay before capturing image if dark ──
+      if (isDarkEnvironment && isFrontCamera) {
+        showFlashOverlay = true;
+        notifyListeners();
+        
+        try {
+          await cameraController!.setFlashMode(FlashMode.torch);
+        } catch (_) {}
+        
+        // Wait for screen to brighten and camera to adjust
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
       await takePicture();
+      
+      if (showFlashOverlay) {
+        showFlashOverlay = false;
+        notifyListeners();
+      }
+
       if (imageFile == null) {
         showtoastmessage(cameraImageNotCapturedString);
         setPunchLoader(false);

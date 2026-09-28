@@ -493,7 +493,20 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
             },
           ),
 
-          // 2. UI overlays
+          // 2. White Flash Overlay (triggered before capturing selfie in dark environments)
+          Selector<SelfiePunchProvider, bool>(
+            selector: (context, provider) => provider.showFlashOverlay,
+            builder: (context, showFlash, child) {
+              if (showFlash) {
+                return Positioned.fill(
+                  child: Container(color: Colors.white.withOpacity(0.9)),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+
+          // 3. UI overlays
           Consumer<SelfiePunchProvider>(
             builder: (context, provider, child) {
               // Only show full-screen loader during API/punch operations.
