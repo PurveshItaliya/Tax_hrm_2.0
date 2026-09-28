@@ -284,7 +284,7 @@ class LeaveMastServices extends ChangeNotifier {
       if (picked.isAfter(selectedFromDate!) || _sameDate(picked, selectedFromDate!)) {
         selectedToDate = picked;
       } else {
-        showtoastmessage('End date cannot be before end StartDate');
+        showtoastmessage(endDateCannotBeBeforeStartDateString);
       }
     }
 
@@ -413,7 +413,7 @@ class LeaveMastServices extends ChangeNotifier {
 
   Future<void> submitSelectedLeave() async {
     if (selectedLeaveType == null) {
-      showtoastmessage('Select Leave Type');
+      showtoastmessage(selectLeaveTypeString);
       return;
     }
 
@@ -421,12 +421,12 @@ class LeaveMastServices extends ChangeNotifier {
     final allowLeave = double.tryParse(showEligibleCounting) ?? 0;
 
     if (allowLeave < durationCounts) {
-      showtoastmessage('You can not apply leave more than eligible leave');
+      showtoastmessage(cannotApplyMoreThanEligibleString);
       return;
     }
 
     if (editoptions) {
-      showtoastmessage('Update leave API not available');
+      showtoastmessage(updateLeaveApiNotAvailableString);
       return;
     }
 

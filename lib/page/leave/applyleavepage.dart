@@ -51,7 +51,6 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
     safeAreaBgAndTextColor(context);
     final leaveUserProvider = Provider.of<LeaveUserProvider>(context);
     final empProvider = Provider.of<EmployeMastServices>(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     
     // Calculate leave days whenever dates or selection changes
     _calculateLeaveDays(leaveUserProvider);

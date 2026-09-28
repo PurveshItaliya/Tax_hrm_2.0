@@ -4,7 +4,8 @@ final Map<String, String> mlTranslations = {
   'Leave': 'വിടുക',
   'Setting': 'ക്രമീകരണം',
   'Logout': 'പുറത്തുകടക്കുക',
-  'Simpy Enter your Username & Password': 'ലളിതമായി നിങ്ങളുടെ ഉപയോക്തൃനാമവും പാസ്‌വേഡും നൽകുക',
+  'Simpy Enter your Username & Password':
+      'ലളിതമായി നിങ്ങളുടെ ഉപയോക്തൃനാമവും പാസ്‌വേഡും നൽകുക',
   'Username': 'ഉപയോക്തൃനാമം',
   'Password': 'രഹസ്യവാക്ക്',
   'Filed is Required': 'ഫയൽ ചെയ്യേണ്ടത് ആവശ്യമാണ്',
@@ -15,8 +16,10 @@ final Map<String, String> mlTranslations = {
   'Verify': 'സ്ഥിരീകരിക്കുക',
   'Back': 'തിരികെ',
   'Verification Code': 'പരിശോധിച്ചുറപ്പിക്കൽ കോഡ്',
-  'Choose how you want to receive your 6-digit verification code.': 'നിങ്ങളുടെ 6 അക്ക സ്ഥിരീകരണ കോഡ് എങ്ങനെ സ്വീകരിക്കണമെന്ന് തിരഞ്ഞെടുക്കുക.',
-  'A verification code has been sent to your registered ': 'നിങ്ങൾ രജിസ്റ്റർ ചെയ്തതിലേക്ക് ഒരു സ്ഥിരീകരണ കോഡ് അയച്ചു',
+  'Choose how you want to receive your 6-digit verification code.':
+      'നിങ്ങളുടെ 6 അക്ക സ്ഥിരീകരണ കോഡ് എങ്ങനെ സ്വീകരിക്കണമെന്ന് തിരഞ്ഞെടുക്കുക.',
+  'A verification code has been sent to your registered ':
+      'നിങ്ങൾ രജിസ്റ്റർ ചെയ്തതിലേക്ക് ഒരു സ്ഥിരീകരണ കോഡ് അയച്ചു',
   'Mobile': 'മൊബൈൽ',
   'E-mail': 'ഇ-മെയിൽ',
   'Salary Slip': 'സാലറി സ്ലിപ്പ്',
@@ -189,7 +192,8 @@ final Map<String, String> mlTranslations = {
   'Select Designation Name': 'പദവി നാമം തിരഞ്ഞെടുക്കുക',
   'Select Time': 'സമയം തിരഞ്ഞെടുക്കുക',
   'Ok': 'ശരി',
-  'Please select at least one working day': 'കുറഞ്ഞത് ഒരു പ്രവൃത്തി ദിവസമെങ്കിലും തിരഞ്ഞെടുക്കുക',
+  'Please select at least one working day':
+      'കുറഞ്ഞത് ഒരു പ്രവൃത്തി ദിവസമെങ്കിലും തിരഞ്ഞെടുക്കുക',
   'Position is already used !!!': 'സ്ഥാനം ഇതിനകം ഉപയോഗിച്ചു !!!',
   'Add Event': 'ഇവൻ്റ് ചേർക്കുക',
   'Edit Event': 'ഇവൻ്റ് എഡിറ്റ് ചെയ്യുക',
@@ -301,8 +305,10 @@ final Map<String, String> mlTranslations = {
   'Please enter OTP within': 'ദയവായി ഉള്ളിൽ ഒടിപി നൽകുക',
   'seconds': 'സെക്കൻഡുകൾ',
   'No data available to download': 'ഡൗൺലോഡ് ചെയ്യാൻ ഡാറ്റ ലഭ്യമല്ല',
-  'Export Daily Attendance Report': 'പ്രതിദിന ഹാജർ റിപ്പോർട്ട് എക്‌സ്‌പോർട്ട് ചെയ്യുക',
-  'Export Monthly Attendance Report': 'പ്രതിമാസ ഹാജർ റിപ്പോർട്ട് എക്‌സ്‌പോർട്ട് ചെയ്യുക',
+  'Export Daily Attendance Report':
+      'പ്രതിദിന ഹാജർ റിപ്പോർട്ട് എക്‌സ്‌പോർട്ട് ചെയ്യുക',
+  'Export Monthly Attendance Report':
+      'പ്രതിമാസ ഹാജർ റിപ്പോർട്ട് എക്‌സ്‌പോർട്ട് ചെയ്യുക',
   'Loading attendance data...': 'ഹാജർ ഡാറ്റ ലോഡുചെയ്യുന്നു...',
   'Today\'s Attendance': 'Today\'s Attendance',
   'See All': 'എല്ലാം കാണുക',
@@ -315,7 +321,8 @@ final Map<String, String> mlTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +337,10 @@ final Map<String, String> mlTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +385,8 @@ final Map<String, String> mlTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +409,8 @@ final Map<String, String> mlTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +446,10 @@ final Map<String, String> mlTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +459,8 @@ final Map<String, String> mlTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -469,7 +483,8 @@ final Map<String, String> mlTranslations = {
   'Enter Announcement Place': 'അറിയിപ്പ് സ്ഥലം നൽകുക',
   'Announcement Details': 'അറിയിപ്പ് വിവരങ്ങൾ',
   'Enter Announcement Details': 'അറിയിപ്പ് വിവരങ്ങൾ നൽകുക',
-  'Announcement Published Successfully': 'അറിയിപ്പ് വിജയകരമായി പ്രസിദ്ധീകരിച്ചു',
+  'Announcement Published Successfully':
+      'അറിയിപ്പ് വിജയകരമായി പ്രസിദ്ധീകരിച്ചു',
   'Announcement Updated Successfully': 'അറിയിപ്പ് വിജയകരമായി അപ്ഡേറ്റ് ചെയ്തു',
   'Please enter Announcement Title': 'ദയവായി അറിയിപ്പ് തലക്കെട്ട് നൽകുക',
   'Please select Announcement Type': 'ദയവായി അറിയിപ്പ് തരം തിരഞ്ഞെടുക്കുക',
@@ -486,8 +501,10 @@ final Map<String, String> mlTranslations = {
   'Enter custom event type': 'കസ്റ്റം ഇവന്റ് തരം നൽകുക',
   'Please enter custom event type': 'ദയവായി കസ്റ്റം ഇവന്റ് തരം നൽകുക',
   'Attachments': 'അറ്റാച്ച്മെന്റുകൾ',
-  'Click to upload attachments': 'അറ്റാച്ച്മെന്റുകൾ അപ്‌ലോഡ് ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക',
-  'Supported: Images, PDF, Word, Excel files': 'പിന്തുണയ്ക്കുന്നത്: ചിത്രങ്ങൾ, PDF, വേഡ്, എക്സൽ ഫയലുകൾ',
+  'Click to upload attachments':
+      'അറ്റാച്ച്മെന്റുകൾ അപ്‌ലോഡ് ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക',
+  'Supported: Images, PDF, Word, Excel files':
+      'പിന്തുണയ്ക്കുന്നത്: ചിത്രങ്ങൾ, PDF, വേഡ്, എക്സൽ ഫയലുകൾ',
   'Create Event': 'ഇവന്റ് സൃഷ്ടിക്കുക',
   'Event Type': 'ഇവന്റ് തരം',
   'Event Name': 'ഇവന്റ് പേര്',

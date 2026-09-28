@@ -48,7 +48,6 @@ class _AddAdditionDeductionScreenState extends State<AddAdditionDeductionScreen>
     safeAreaBgAndTextColor(context);
     final additionProvider = Provider.of<AdditionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     return Scaffold(
             backgroundColor:ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(additionOrDeductionString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),

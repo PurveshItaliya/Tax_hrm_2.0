@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, avoid_print, unnecessary_underscores
+// ignore_for_file: unused_element, deprecated_member_use, avoid_print, unnecessary_underscores
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -17,7 +17,8 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 
 class SmartTimelineScreen extends StatefulWidget {
   final String userId;
-  const SmartTimelineScreen({super.key, required this.userId});
+  final DateTime? date;
+  const SmartTimelineScreen({super.key, required this.userId, this.date});
 
   @override
   State<SmartTimelineScreen> createState() => _SmartTimelineScreenState();
@@ -65,7 +66,7 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
       Provider.of<SmartTimelineProvider>(
         context,
         listen: false,
-      ).load(empId: widget.userId);
+      ).load(empId: widget.userId, date: widget.date);
     });
   }
 
@@ -852,16 +853,19 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              'Movement Timeline',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: ColorConst.black,
-                                fontFamily: fontInterSemiBoldString,
+                            Expanded(
+                              child: Text(
+                                'Movement Timeline',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: ColorConst.black,
+                                  fontFamily: fontInterSemiBoldString,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const Spacer(),
+                            const SizedBox(width: 8),
                             if (provider.isCurrentlyWorkedIn)
                               Container(
                                 padding: const EdgeInsets.symmetric(

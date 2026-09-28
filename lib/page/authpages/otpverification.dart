@@ -45,7 +45,6 @@ class _OtpVerificationOfLoginState extends State<OtpVerificationOfLogin> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final otpverificationprovider = Provider.of<Otpverificationprovider>(context);
     Provider.of<LanguageProvider>(context);
     return Scaffold(

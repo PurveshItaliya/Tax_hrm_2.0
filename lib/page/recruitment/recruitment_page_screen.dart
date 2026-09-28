@@ -41,7 +41,6 @@ class _RecruitmentPageScreenState extends State<RecruitmentPageScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final recuritmentProvider =  Provider.of<RecuritmentProvider>(context);
     return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,

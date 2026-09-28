@@ -17,7 +17,6 @@ import 'package:tax_hrm/models/role/get_role_model.dart';
 import 'package:tax_hrm/provider/address_provider.dart';
 import 'package:tax_hrm/provider/commanDataseta.dart';
 import 'package:tax_hrm/provider/department_provider.dart';
-import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/employee_master_provider.dart';
 import 'package:tax_hrm/provider/position_provider.dart';
 import 'package:tax_hrm/provider/role_provider.dart';
@@ -274,51 +273,68 @@ Widget buildExpandableSections(
     );
   }
 
-  return Form(
-    key: provider.formKey1,
-    child: Column(
-      children: [
-        _buildExpandableSection(
+  return Column(
+    children: [
+      Form(
+        key: provider.accountFormKey,
+        child: _buildExpandableSection(
           title: accountInformationString,
           icon: Icons.account_circle_outlined,
           child: _accountTab(provider, size, context),
           isExpanded: provider.isAccountSectionExpanded,
           onToggle: () => provider.toggleAccountSection(),
+          hasError: provider.hasAccountError,
         ),
-        const SizedBox(height: 16),
-        _buildExpandableSection(
+      ),
+      const SizedBox(height: 16),
+      Form(
+        key: provider.personalFormKey,
+        child: _buildExpandableSection(
           title: personalInformationString,
           icon: Icons.person_outline,
           child: _personalTab(provider, size, context),
           isExpanded: provider.isPersonalSectionExpanded,
           onToggle: () => provider.togglePersonalSection(),
+          hasError: provider.hasPersonalError,
         ),
-        const SizedBox(height: 16),
-        _buildExpandableSection(
+      ),
+      const SizedBox(height: 16),
+      Form(
+        key: provider.contactFormKey,
+        child: _buildExpandableSection(
           title: contactInformationString,
           icon: Icons.contact_phone_outlined,
           child: _contactTab(size, context, provider),
           isExpanded: provider.isContactSectionExpanded,
           onToggle: () => provider.toggleContactSection(),
+          hasError: provider.hasContactError,
         ),
-        const SizedBox(height: 16),
-        _buildExpandableSection(
+      ),
+      const SizedBox(height: 16),
+      Form(
+        key: provider.educationFormKey,
+        child: _buildExpandableSection(
           title: educationDetailsString,
           icon: Icons.school_outlined,
           child: _educationTab(size, provider),
           isExpanded: provider.isEducationSectionExpanded,
           onToggle: () => provider.toggleEducationSection(),
+          hasError: provider.hasEducationError,
         ),
-        const SizedBox(height: 16),
-        _buildExpandableSection(
+      ),
+      const SizedBox(height: 16),
+      Form(
+        key: provider.bankFormKey,
+        child: _buildExpandableSection(
           title: bankDetailsString,
           icon: Icons.account_balance_outlined,
           child: _bankDetailsTab(size, provider),
           isExpanded: provider.isBankSectionExpanded,
           onToggle: () => provider.toggleBankSection(),
+          hasError: provider.hasBankError,
         ),
-      ],
-    ),
+      ),
+    ],
   );
 }
 
@@ -328,6 +344,7 @@ Widget _buildExpandableSection({
   required Widget child,
   required bool isExpanded,
   required VoidCallback onToggle,
+  bool hasError = false,
 }) {
   return AnimatedContainer(
     duration: const Duration(milliseconds: 250),
@@ -335,10 +352,12 @@ Widget _buildExpandableSection({
       color: ColorConst.white,
       borderRadius: BorderRadius.circular(16),
       border: Border.all(
-        color: isExpanded
-            ? ColorConst.themeColor.withOpacity(0.4)
-            : Colors.grey.shade200,
-        width: isExpanded ? 1.5 : 1,
+        color: hasError
+            ? Colors.red
+            : (isExpanded
+                  ? ColorConst.themeColor.withOpacity(0.4)
+                  : Colors.grey.shade200),
+        width: hasError ? 1.5 : (isExpanded ? 1.5 : 1),
       ),
       boxShadow: [
         BoxShadow(
@@ -447,14 +466,7 @@ Widget _accountTab(EmployeeMasterProvider provider, Size size, context) {
       children: List.generate(8, (index) => _buildShimmerField(size)),
     );
   }
-
-  final String custId = curentUser is Map
-      ? curentUser['CustId']?.toString() ??
-            curentUser['custid']?.toString() ??
-            ''
-      : '';
-  final bool isSpecialCust = custId == 'TAX541' || custId == 'TAY967';
-  final bool showOffice = isSpecialCust;
+  final bool isEditingAdmin = provider.selectedEmploye?.role == 'Admin';
 
   return Column(
     children: [
@@ -631,63 +643,63 @@ Widget _accountTab(EmployeeMasterProvider provider, Size size, context) {
         ),
       ),
 
-      const SizedBox(height: 24),
+      if (!isEditingAdmin) ...[
+        const SizedBox(height: 24),
 
-      /// ROLE
-      _buildLabeledField(
-        label: roleString,
-        child: AppSearchableDropdown<Getrolemodel>(
-          dropdownKey: ValueKey(provider.selectedRole),
-          initialItem: provider.selectedRole,
-          hintText: selectRoleString,
-          futureRequest: (value) => provider.getroleFilters(value, context),
-          items: Provider.of<RoleMstServices>(
-            context,
-            listen: false,
-          ).getRoleList,
-          itemAsString: (item) => item.role.toString(),
-          headerBuilder: (context, selectedItem, enabled) {
-            return Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    provider.selectedRole == null
-                        ? selectRoleString
-                        : provider.selectedRole!.role.toString(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (provider.selectedRole != null) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      provider.selectedRole = null;
-                      provider.notifyListeners();
-                    },
-                    child: Icon(
-                      Icons.clear_rounded,
-                      size: size.height * 0.02,
-                      color: Colors.grey,
+        /// ROLE
+        _buildLabeledField(
+          label: roleString,
+          child: AppSearchableDropdown<Getrolemodel>(
+            dropdownKey: ValueKey(provider.selectedRole),
+            initialItem: provider.selectedRole,
+            hintText: selectRoleString,
+            futureRequest: (value) => provider.getroleFilters(value, context),
+            items: Provider.of<RoleMstServices>(
+              context,
+              listen: false,
+            ).getRoleList,
+            itemAsString: (item) => item.role.toString(),
+            headerBuilder: (context, selectedItem, enabled) {
+              return Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      provider.selectedRole == null
+                          ? selectRoleString
+                          : provider.selectedRole!.role.toString(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (provider.selectedRole != null) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        provider.selectedRole = null;
+                        provider.notifyListeners();
+                      },
+                      child: Icon(
+                        Icons.clear_rounded,
+                        size: size.height * 0.02,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            );
-          },
-          onChanged: (vals) {
-            provider.selectedRole = vals;
-          },
+              );
+            },
+            onChanged: (vals) {
+              provider.selectedRole = vals;
+            },
+          ),
         ),
-      ),
 
-      const SizedBox(height: 24),
+        const SizedBox(height: 24),
 
-      /// OFFICE LOCATION & WORK TYPE
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (showOffice) ...[
+        /// OFFICE LOCATION & WORK TYPE
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Expanded(
               child: _buildLabeledField(
                 label: officeString,
@@ -713,8 +725,11 @@ Widget _accountTab(EmployeeMasterProvider provider, Size size, context) {
                           ),
                         ),
                       ),
-                      value: (provider.selectOfficeLocation.isNotEmpty &&
-                              provider.officeLocationList.contains(provider.selectOfficeLocation))
+                      value:
+                          (provider.selectOfficeLocation.isNotEmpty &&
+                              provider.officeLocationList.contains(
+                                provider.selectOfficeLocation,
+                              ))
                           ? provider.selectOfficeLocation
                           : null,
                       items: provider.officeLocationList.map((item) {
@@ -742,128 +757,141 @@ Widget _accountTab(EmployeeMasterProvider provider, Size size, context) {
                 ),
               ),
             ),
-          ],
-          if (showOffice) const SizedBox(width: 12),
-          Expanded(
-            child: _buildLabeledField(
-              label: workTypeString,
-              child: Container(
-                height: 50.0,
-                decoration: BoxDecoration(
-                  border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    hint: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        selectWorkTypeString,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: ColorConst.hintextColor,
-                        ),
-                      ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildLabeledField(
+                label: workTypeString,
+                child: Container(
+                  height: 50.0,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: ColorConst.textBorder,
+                      width: 1.3,
                     ),
-                    value: (provider.selectWorkType.isNotEmpty &&
-                            provider.workTypeList.contains(provider.selectWorkType))
-                        ? provider.selectWorkType
-                        : null,
-                    items: provider.workTypeList.map((item) {
-                      return DropdownMenuItem<String>(
-                        value: item.toString(),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            item.toString(),
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: ColorConst.black,
-                            ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      hint: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          selectWorkTypeString,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: ColorConst.hintextColor,
                           ),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      provider.updateWorkType(newValue ?? '');
-                    },
-                    dropdownColor: ColorConst.white,
-                    borderRadius: BorderRadius.circular(8),
+                      ),
+                      value:
+                          (provider.selectWorkType.isNotEmpty &&
+                              provider.workTypeList.contains(
+                                provider.selectWorkType,
+                              ))
+                          ? provider.selectWorkType
+                          : null,
+                      items: provider.workTypeList.map((item) {
+                        return DropdownMenuItem<String>(
+                          value: item.toString(),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              item.toString(),
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: ColorConst.black,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        provider.updateWorkType(newValue ?? '');
+                      },
+                      dropdownColor: ColorConst.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 18),
+          ],
+        ),
+        const SizedBox(height: 18),
 
-      /// LOCATION SETTINGS
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _buildLabeledField(
-              label: fetchLocationString,
-              child: Container(
-                height: 50.0,
-                decoration: BoxDecoration(
-                  border: Border.all(color: ColorConst.textBorder, width: 1.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 12.0),
-                      child: Text(
-                        provider.isFetchLocation
-                            ? enabledString
-                            : disabledString,
-                        style: const TextStyle(fontSize: 15),
+        /// LOCATION SETTINGS
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildLabeledField(
+                label: fetchLocationString,
+                child: Container(
+                  height: 50.0,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: ColorConst.textBorder,
+                      width: 1.3,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12.0),
+                        child: Text(
+                          provider.isFetchLocation
+                              ? enabledString
+                              : disabledString,
+                          style: const TextStyle(fontSize: 15),
+                        ),
                       ),
-                    ),
-                    Switch(
-                      value: provider.isFetchLocation,
-                      activeColor: ColorConst.themeColor,
-                      onChanged: (value) {
-                        provider.setFetchLocation(value);
-                      },
-                    ),
-                  ],
+                      Switch(
+                        value: provider.isFetchLocation,
+                        activeColor: ColorConst.themeColor,
+                        onChanged: (value) {
+                          provider.setFetchLocation(value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildLabeledField(
-              label: locationRadiusString,
-              isRequired: true,
-              child: CommonTextField(
-                controller: provider.locationRadiusController,
-                borderRadius: 8.0,
-                keyboardType: TextInputType.number,
-                hintText: egRadiusHintString,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return radiusRequiredString;
-                  }
-                  if (int.tryParse(value) == null) {
-                    return enterValidNumberString;
-                  }
-                  return null;
-                },
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildLabeledField(
+                label: locationRadiusString,
+                isRequired: true,
+                child: CommonTextField(
+                  controller: provider.locationRadiusController,
+                  borderRadius: 8.0,
+                  keyboardType: TextInputType.number,
+                  hintText: egRadiusHintString,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return radiusRequiredString;
+                    }
+                    if (int.tryParse(value) == null) {
+                      return enterValidNumberString;
+                    }
+                    return null;
+                  },
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
 
-      const SizedBox(height: 15),
+        const SizedBox(height: 15),
 
-      _buildStatusSection(provider),
+        _buildStatusSection(provider),
+
+        const SizedBox(height: 15),
+
+        _buildPunchAllowedSection(provider),
+      ],
     ],
   );
 }
@@ -1697,6 +1725,48 @@ Widget _buildStatusSection(EmployeeMasterProvider provider) {
           inActiveString,
           style: const TextStyle(fontWeight: FontWeight.w500),
         ),
+      ],
+    ),
+  );
+}
+
+// =========================================================
+// PUNCH ALLOWED
+// =========================================================
+
+Widget _buildPunchAllowedSection(EmployeeMasterProvider provider) {
+  return Container(
+    decoration: BoxDecoration(
+      color: ColorConst.white,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      children: [
+        const Text(
+          "Punch Allowed: ",
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        Radio<bool>(
+          value: true,
+          activeColor: ColorConst.greenColor,
+          groupValue: provider.punchAllowed,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+          onChanged: (v) => provider.changePunchAllowed(v!),
+        ),
+        const SizedBox(width: 6),
+        const Text('Yes', style: TextStyle(fontWeight: FontWeight.w500)),
+        const SizedBox(width: 20),
+        Radio<bool>(
+          value: false,
+          activeColor: ColorConst.red,
+          groupValue: provider.punchAllowed,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+          onChanged: (v) => provider.changePunchAllowed(v!),
+        ),
+        const SizedBox(width: 6),
+        const Text('No', style: TextStyle(fontWeight: FontWeight.w500)),
       ],
     ),
   );

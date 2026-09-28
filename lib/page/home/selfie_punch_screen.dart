@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, strict_top_level_inference, use_build_context_synchronously
+// ignore_for_file: invalid_return_type_for_catch_error, deprecated_member_use, strict_top_level_inference, use_build_context_synchronously
 
 import 'dart:ui';
 import 'package:camera/camera.dart';
@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/page/face_registation/face_registration_screen.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
@@ -28,7 +29,7 @@ class SelfiePunchScreen extends StatefulWidget {
 class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     with WidgetsBindingObserver {
   // ── Guards ─────────────────────────────────────────────────────────────────
-  bool _isFlowRunning = false;   // true while PermissionFlowService is active
+  bool _isFlowRunning = false; // true while PermissionFlowService is active
   bool _permissionsChecked = false;
   bool _wentToSettings = false;
 
@@ -38,8 +39,10 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+
       if (mounted && !_isFlowRunning && !_permissionsChecked) {
         _initializePage();
+        _checkFaceRegistration();
       }
       // Show punch sync summary dialog if there are unviewed results.
       PunchSyncSummaryDialog.showIfNeeded(context);
@@ -79,7 +82,6 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   // ── Permission flow entry points ───────────────────────────────────────────
 
   Future<void> _initializePage() async {
-    debugPrint("INITPAGE: 1. _initializePage called. _isFlowRunning=$_isFlowRunning");
     if (_isFlowRunning) return;
     _isFlowRunning = true;
     _permissionsChecked = true;
@@ -91,13 +93,21 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       // FAST PATH: Check both camera and location upfront
       bool camGranted = false;
       bool locGranted = false;
-      
+
       try {
-        camGranted = await Permission.camera.status.isGranted.timeout(const Duration(seconds: 2));
-        locGranted = await Permission.location.status.isGranted.timeout(const Duration(seconds: 2));
-        debugPrint("INITPAGE: 3. Fast path results: camGranted=$camGranted, locGranted=$locGranted");
+        camGranted = await Permission.camera.status.isGranted.timeout(
+          const Duration(seconds: 2),
+        );
+        locGranted = await Permission.location.status.isGranted.timeout(
+          const Duration(seconds: 2),
+        );
+        debugPrint(
+          "INITPAGE: 3. Fast path results: camGranted=$camGranted, locGranted=$locGranted",
+        );
       } catch (e) {
-        debugPrint("INITPAGE: 4. Fast path permission check failed or timed out: $e");
+        debugPrint(
+          "INITPAGE: 4. Fast path permission check failed or timed out: $e",
+        );
       }
 
       bool cameraStarted = false;
@@ -108,44 +118,64 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       }
 
       if (mounted && locGranted) {
-        debugPrint("INITPAGE: 6. Fast path locGranted is true, proceeding with API calls");
+        debugPrint(
+          "INITPAGE: 6. Fast path locGranted is true, proceeding with API calls",
+        );
         provider.startLiveTime();
         Future.wait([
           provider.getCurrentLocation(context: context),
           provider.callApi(context),
         ]);
-        
-        debugPrint("INITPAGE: 7. Calling PermissionFlowService.run in background");
+
+        debugPrint(
+          "INITPAGE: 7. Calling PermissionFlowService.run in background",
+        );
         PermissionFlowService.run(
-          context,
-          isFetchLocation: provider.isFetchLocation,
-        ).then((result) {
-          debugPrint("INITPAGE: 8. Background PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}");
-          if (mounted && result.cameraGranted && !cameraStarted) {
-            debugPrint("INITPAGE: 9. Calling startCamera(0) from background flow");
-            provider.startCamera(0);
-          } else if (mounted && !result.cameraGranted && !cameraStarted) {
-            debugPrint("INITPAGE: 10. Resetting loaders from background flow");
-            provider.cameraisLoading = false;
-            provider.readyCameraPreviewshow = false;
-            provider.setLoading(provider.isLoading);
-          }
-        }).catchError((e) {
-          debugPrint("INITPAGE: 11. Background PermissionFlowService.run caught error: $e");
-          if (mounted && !cameraStarted) {
-            debugPrint("INITPAGE: 12. Resetting loaders from background flow catchError");
-            provider.cameraisLoading = false;
-            provider.readyCameraPreviewshow = false;
-            provider.setLoading(provider.isLoading);
-          }
-          return const PermissionFlowResult(
-            notificationGranted: false,
-            cameraGranted: false,
-            locationGranted: false);
-        }).whenComplete(() {
-          debugPrint("INITPAGE: 13. Background PermissionFlowService.run whenComplete");
-          _isFlowRunning = false;
-        });
+              context,
+              isFetchLocation: provider.isFetchLocation,
+            )
+            .then((result) {
+              debugPrint(
+                "INITPAGE: 8. Background PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}",
+              );
+              if (mounted && result.cameraGranted && !cameraStarted) {
+                debugPrint(
+                  "INITPAGE: 9. Calling startCamera(0) from background flow",
+                );
+                provider.startCamera(0);
+              } else if (mounted && !result.cameraGranted && !cameraStarted) {
+                debugPrint(
+                  "INITPAGE: 10. Resetting loaders from background flow",
+                );
+                provider.cameraisLoading = false;
+                provider.readyCameraPreviewshow = false;
+                provider.setLoading(provider.isLoading);
+              }
+            })
+            .catchError((e) {
+              debugPrint(
+                "INITPAGE: 11. Background PermissionFlowService.run caught error: $e",
+              );
+              if (mounted && !cameraStarted) {
+                debugPrint(
+                  "INITPAGE: 12. Resetting loaders from background flow catchError",
+                );
+                provider.cameraisLoading = false;
+                provider.readyCameraPreviewshow = false;
+                provider.setLoading(provider.isLoading);
+              }
+              return const PermissionFlowResult(
+                notificationGranted: false,
+                cameraGranted: false,
+                locationGranted: false,
+              );
+            })
+            .whenComplete(() {
+              debugPrint(
+                "INITPAGE: 13. Background PermissionFlowService.run whenComplete",
+              );
+              _isFlowRunning = false;
+            });
         return; // Fast path successful!
       }
 
@@ -155,7 +185,9 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
         context,
         isFetchLocation: provider.isFetchLocation,
       );
-      debugPrint("INITPAGE: 15. SLOW PATH PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}");
+      debugPrint(
+        "INITPAGE: 15. SLOW PATH PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}",
+      );
       if (mounted) {
         await _onPermissionsResolved(provider, result, cameraStarted);
       }
@@ -177,7 +209,136 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     }
   }
 
-  Future<void> _checkPermissionsAfterSettings(SelfiePunchProvider provider) async {
+  Future<void> _checkFaceRegistration() async {
+    if (curentUser?['Role'] == 'Admin') return;
+
+    final faceId = curentUser?["FaceRegisterId"];
+    if (faceId == null || faceId.toString().isEmpty) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return PopScope(
+            canPop: false,
+            child: Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: ColorConst.themeColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.face_retouching_natural_rounded,
+                        size: 48,
+                        color: ColorConst.themeColor,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      faceRegistrationRequiredString,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      faceRegistrationDescString,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ColorConst.themeColor,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final selfieProvider =
+                              Provider.of<SelfiePunchProvider>(
+                                context,
+                                listen: false,
+                              );
+                          selfieProvider.disposeCamera();
+
+                          final success = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const FaceRegistrationScreen(),
+                            ),
+                          );
+
+                          if (success != null && success != false) {
+                            if (success is String && curentUser != null) {
+                              curentUser["FaceRegisterId"] = success;
+                            }
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              selfieProvider.startCamera(0);
+                            }
+                          } else {
+                            if (context.mounted) {
+                              selfieProvider.startCamera(0);
+                            }
+                          }
+                        },
+                        child: Text(
+                          registerFaceNowString,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  Future<void> _checkPermissionsAfterSettings(
+    SelfiePunchProvider provider,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
     _isFlowRunning = false; // Reset so it can run again
@@ -187,7 +348,10 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   // ── Post-flow initialisation ───────────────────────────────────────────────
 
   Future<void> _onPermissionsResolved(
-      SelfiePunchProvider provider, PermissionFlowResult result, [bool cameraStarted = false]) async {
+    SelfiePunchProvider provider,
+    PermissionFlowResult result, [
+    bool cameraStarted = false,
+  ]) async {
     if (!mounted) return;
 
     if (result.cameraGranted && !cameraStarted) {
@@ -200,12 +364,12 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     }
 
     provider.startLiveTime();
-    
+
     final List<Future<void>> futures = [
       if (result.locationGranted) provider.getCurrentLocation(context: context),
       provider.callApi(context),
     ];
-    
+
     await Future.wait(futures);
   }
 
@@ -239,222 +403,251 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     Provider.of<LanguageProvider>(context);
 
     return Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false, // Removes back button
-          backgroundColor: ColorConst.white,
-          elevation: 0,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "${curentUser["FirstName"] ?? ''} ${curentUser["LastName"] ?? ''}",
-                style: TextStyle(
-                  color: ColorConst.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Punch Attendance',
-                style: TextStyle(
-                  color: ColorConst.textgrey,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            // Live clock time badge
-            Center(
-              child: ValueListenableBuilder<String>(
-                valueListenable: provider.currentTimeNotifier,
-                builder: (context, time, child) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: ColorConst.themeColor.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      time,
-                      style: TextStyle(
-                        color: ColorConst.themeColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  );
-                },
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Removes back button
+        backgroundColor: ColorConst.white,
+        elevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "${curentUser["FirstName"] ?? ''} ${curentUser["LastName"] ?? ''}",
+              style: TextStyle(
+                color: ColorConst.black,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(height: 2),
+            Text(
+              punchAttendanceString,
+              style: TextStyle(
+                color: ColorConst.textgrey,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
-        body: Stack(
-          children: [
-            // 1. Camera Preview
-            Selector<SelfiePunchProvider, CameraController?>(
-              selector: (context, provider) =>
-                  provider.isCameraReady ? provider.cameraController : null,
-              builder: (context, cameraController, child) {
-                if (cameraController != null) {
-                  return Positioned.fill(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        ClipRect(
-                          child: OverflowBox(
-                            alignment: Alignment.center,
-                            child: FittedBox(
-                              fit: BoxFit.cover,
-                              child: SizedBox(
-                                width: cameraController.value.previewSize!.height,
-                                height: cameraController.value.previewSize!.width,
-                                child: CameraPreview(cameraController),
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                      ],
+        actions: [
+          // Live clock time badge
+          Center(
+            child: ValueListenableBuilder<String>(
+              valueListenable: provider.currentTimeNotifier,
+              builder: (context, time, child) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ColorConst.themeColor.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    time,
+                    style: TextStyle(
+                      color: ColorConst.themeColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                }
-                return Positioned.fill(
-                  child: Container(
-                    color: Colors.black,
                   ),
                 );
               },
             ),
-
-            // 2. UI overlays
-            Consumer<SelfiePunchProvider>(
-              builder: (context, provider, child) {
-                // Only show full-screen loader during API/punch operations.
-                // Camera warmup (readyCameraPreviewshow) already shows the black
-                // placeholder from layer 1 — no extra overlay needed.
-                bool showLoading = provider.isLoading && _permissionsChecked;
-
-                if (showLoading) return scanloading();
-
-                // ── Offline state (read outside the inner Consumer to avoid extra rebuild) ──
-                final bool isOffline =
-                    context.watch<InternetConnectionProvider>().isOffline;
-
-                return Stack(
-                  children: [
-                    // Unified Control Center (Location + Range Status + Punch Button)
-                    Positioned(
-                      left: 20,
-                      right: 20,
-                      bottom: widget.isFromWidget ? 20 : 90,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.4),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isOffline
-                                    ? Colors.red.withOpacity(0.6)
-                                    : Colors.white.withOpacity(0.15),
-                                width: isOffline ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Offline mode badge
-                                if (isOffline)
-                                  Container(
-                                    width: double.infinity,
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withOpacity(0.18),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.red.withOpacity(0.4)),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.wifi_off_rounded, color: Colors.red, size: 14),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Offline Mode — Punch will sync when online',
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                // Row 1: Address Pin + Text (Wrapping allowed to fix cropping) + Refresh
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.location_on_rounded,
-                                      color: ColorConst.themeColor,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        provider.currentLocation != null
-                                            ? provider.currentLocation.toString()
-                                            : 'No location details.',
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _buildRefreshButton(provider),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-
-                                // Row 2: Range Status (Compact Badge aligned left)
-                                _buildRangeStatusPill(provider, isOffline),
-                                const SizedBox(height: 12),
-
-                                // Row 3: Full Width Punch Button (Eliminates right-side blank space)
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 44,
-                                  child: _buildPunchButton(size, provider, currentDay, isOffline),
-                                ),
-                              ],
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // 1. Camera Preview
+          Selector<SelfiePunchProvider, CameraController?>(
+            selector: (context, provider) =>
+                provider.isCameraReady ? provider.cameraController : null,
+            builder: (context, cameraController, child) {
+              if (cameraController != null) {
+                return Positioned.fill(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRect(
+                        child: OverflowBox(
+                          alignment: Alignment.center,
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: cameraController.value.previewSize!.height,
+                              height: cameraController.value.previewSize!.width,
+                              child: CameraPreview(cameraController),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 );
-              },
-            ),
-          ],
-        ),
-      );
+              }
+              return Positioned.fill(child: Container(color: Colors.black));
+            },
+          ),
+
+          // 2. White Flash Overlay (triggered before capturing selfie in dark environments)
+          Selector<SelfiePunchProvider, bool>(
+            selector: (context, provider) => provider.showFlashOverlay,
+            builder: (context, showFlash, child) {
+              if (showFlash) {
+                return Positioned.fill(
+                  child: Container(color: Colors.white.withOpacity(0.9)),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+
+          // 3. UI overlays
+          Consumer<SelfiePunchProvider>(
+            builder: (context, provider, child) {
+              // Only show full-screen loader during API/punch operations.
+              // Camera warmup (readyCameraPreviewshow) already shows the black
+              // placeholder from layer 1 — no extra overlay needed.
+              bool showLoading = provider.isLoading && _permissionsChecked;
+
+              if (showLoading) return scanloading();
+
+              // ── Offline state (read outside the inner Consumer to avoid extra rebuild) ──
+              final bool isOffline = context
+                  .watch<InternetConnectionProvider>()
+                  .isOffline;
+
+              return Stack(
+                children: [
+                  // Unified Control Center (Location + Range Status + Punch Button)
+                  Positioned(
+                    left: 20,
+                    right: 20,
+                    bottom: widget.isFromWidget ? 20 : 90,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isOffline
+                                  ? Colors.red.withOpacity(0.6)
+                                  : Colors.white.withOpacity(0.15),
+                              width: isOffline ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Offline mode badge
+                              if (isOffline)
+                                Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.18),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.red.withOpacity(0.4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.wifi_off_rounded,
+                                        color: Colors.red,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        offlineModeString,
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                              // Row 1: Address Pin + Text (Wrapping allowed to fix cropping) + Refresh
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.location_on_rounded,
+                                    color: ColorConst.themeColor,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      provider.currentLocation != null
+                                          ? provider.currentLocation.toString()
+                                          : noLocationDetailsString,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildRefreshButton(provider),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Row 2: Range Status (Compact Badge aligned left)
+                              _buildRangeStatusPill(provider, isOffline),
+                              const SizedBox(height: 12),
+
+                              // Row 3: Full Width Punch Button (Eliminates right-side blank space)
+                              SizedBox(
+                                width: double.infinity,
+                                height: 44,
+                                child: _buildPunchButton(
+                                  size,
+                                  provider,
+                                  currentDay,
+                                  isOffline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Range status pill (Compact text badge style) ───────────────────────────
-  Widget _buildRangeStatusPill(SelfiePunchProvider provider, [bool isOffline = false]) {
+  Widget _buildRangeStatusPill(
+    SelfiePunchProvider provider, [
+    bool isOffline = false,
+  ]) {
     if (provider.currentLocation == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -468,12 +661,19 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
             Container(
               width: 6,
               height: 6,
-              decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: 6),
-            const Text(
-              'Location Pending',
-              style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold),
+            Text(
+              locationPendingString,
+              style: const TextStyle(
+                color: Colors.orange,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -492,7 +692,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       distanceText = '${provider.distance.toStringAsFixed(1)}m';
     }
 
-    final text = inRange ? 'In Range' : 'Out of Range ($distanceText)';
+    final text = inRange ? inRangeString : '$outOfRangeString ($distanceText)';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -511,7 +711,11 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
           const SizedBox(width: 6),
           Text(
             text,
-            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -554,7 +758,11 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   // ── Punch button logic ─────────────────────────────────────────────────────
 
   Widget _buildPunchButton(
-      Size size, SelfiePunchProvider provider, String currentDay, [bool isOffline = false]) {
+    Size size,
+    SelfiePunchProvider provider,
+    String currentDay, [
+    bool isOffline = false,
+  ]) {
     final bool hasCamera =
         _permissionsChecked &&
         provider.camerapermissionStatus == PermissionStatus.granted;
@@ -562,7 +770,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     // Camera not yet allowed
     if (!hasCamera) {
       return _customButton(
-        label: 'Camera',
+        label: cameraString,
         color: ColorConst.themeColor,
         onTap: () async {
           if (_isFlowRunning) return;
@@ -582,7 +790,10 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
         child: const SizedBox(
           height: 16,
           width: 16,
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.5),
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 1.5,
+          ),
         ),
       );
     }
@@ -590,7 +801,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     // Location not obtained
     if (provider.currentLocation == null) {
       return _customButton(
-        label: 'Location',
+        label: locationString,
         color: ColorConst.themeColor,
         onTap: () async {
           if (_isFlowRunning) return;
@@ -601,7 +812,8 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
 
     // Camera is warming up after permissions granted — show spinner
     // This only triggers AFTER _permissionsChecked=true and camera is actively initializing
-    if (_permissionsChecked && (provider.readyCameraPreviewshow || provider.cameraisLoading)) {
+    if (_permissionsChecked &&
+        (provider.readyCameraPreviewshow || provider.cameraisLoading)) {
       return Container(
         alignment: Alignment.center,
         decoration: BoxDecoration(
@@ -619,7 +831,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     // Permissions not yet checked — show disabled punch placeholder
     if (!_permissionsChecked) {
       return _customButton(
-        label: 'Punch',
+        label: punchString,
         color: ColorConst.themeColor.withOpacity(0.5),
         onTap: () {}, // disabled
       );
@@ -628,7 +840,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     // Camera failed to initialize despite having permissions
     if (!provider.isCameraReady) {
       return _customButton(
-        label: 'Retry Camera',
+        label: retryCameraString,
         color: Colors.orange,
         onTap: () {
           provider.startCamera(0);
@@ -647,7 +859,10 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
         child: const SizedBox(
           height: 16,
           width: 16,
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.5),
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 1.5,
+          ),
         ),
       );
     }
@@ -659,25 +874,32 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
         (provider.checkStatus == null ||
             provider.checkStatus!.attendenceLog == null)) {
       return _customButton(
-        label: 'Wait...',
+        label: waitString,
         color: ColorConst.themeColor.withOpacity(0.5),
         onTap: () {},
       );
     }
 
     // Punch In / Punch Out
-    final bool isPunchIn = provider.checkStatus!.attendenceLog!.isEmpty ||
+    final bool isPunchIn =
+        provider.checkStatus!.attendenceLog!.isEmpty ||
         provider.checkStatus!.attendenceLog!.last.status != 'IN';
 
     final String buttonName = isPunchIn ? punchInString : punchOutString;
-    final Color buttonColor = isPunchIn ? ColorConst.themeColor : Colors.red.shade600;
+    final Color buttonColor = isPunchIn
+        ? ColorConst.themeColor
+        : Colors.red.shade600;
 
     return _customButton(
       label: buttonName,
       color: buttonColor,
       onTap: () async {
         if (_isFlowRunning) return;
-        await provider.puchInOutHandleSubmit(context, currentDay, widget.isFromWidget);
+        await provider.puchInOutHandleSubmit(
+          context,
+          currentDay,
+          widget.isFromWidget,
+        );
       },
     );
   }

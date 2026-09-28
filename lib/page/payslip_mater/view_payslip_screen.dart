@@ -33,7 +33,6 @@ class _ViewPaySlipScreenState extends State<ViewPaySlipScreen> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final paySlipProviders = Provider.of<PaySlipProviders>(context);
     Provider.of<LanguageProvider>(context);
     safeAreaBgAndTextColor(context);

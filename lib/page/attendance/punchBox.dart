@@ -1,11 +1,10 @@
-// ignore_for_file: unused_element, must_be_immutable, library_private_types_in_public_api, unused_local_variable, strict_top_level_inference
+// ignore_for_file: use_build_context_synchronously, unused_element, must_be_immutable, library_private_types_in_public_api, unused_local_variable, strict_top_level_inference
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
-import 'package:tax_hrm/api/setTimeline.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/services/location_batch_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';

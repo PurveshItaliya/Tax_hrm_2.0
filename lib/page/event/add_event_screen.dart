@@ -42,7 +42,6 @@ class _AddEventScreenState extends State<AddEventScreen> {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
     final eventsMastServices = Provider.of<EventsMastServices>(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     return Scaffold(
             backgroundColor:ColorConst.scaffoldColor,

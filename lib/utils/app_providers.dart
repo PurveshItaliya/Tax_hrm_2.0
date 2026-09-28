@@ -43,6 +43,7 @@ import 'package:tax_hrm/provider/usermasterprovider.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/theme_provider.dart';
 import 'package:tax_hrm/services/smart_timeline_provider.dart';
+import 'package:tax_hrm/provider/face_verification_provider.dart';
 
 class AppProviders {
   static List<SingleChildWidget> providers = [
@@ -89,5 +90,6 @@ class AppProviders {
     ChangeNotifierProvider(create: (_)=> AdminPayrollslipProvider()),
     ChangeNotifierProvider(create: (_)=> LeaderborderProvider()),
     ChangeNotifierProvider(create: (_) => SmartTimelineProvider()),
+    ChangeNotifierProvider(create: (_) => FaceVerificationProvider()),
   ];
 }

@@ -15,10 +15,10 @@ import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tax_hrm/provider/face_verification_provider.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/services/location_permission_service.dart';
 import 'package:tax_hrm/api/authapi.dart';
-import 'package:tax_hrm/api/setTimeline.dart';
 import 'package:tax_hrm/models/offline_punch_record.dart';
 import 'package:tax_hrm/provider/location_tracking_provider.dart';
 import 'package:tax_hrm/repository/background_location_repository.dart';
@@ -40,10 +40,10 @@ import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/services/background_location_service.dart';
 import 'package:tax_hrm/services/location_batch_service.dart';
-import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 
 import '../services/fcm_token_service.dart';
 
@@ -92,6 +92,8 @@ class SelfiePunchProvider extends ChangeNotifier {
   bool cameraisLoading = true;
   bool readyCameraPreviewshow = true;
   bool isCameraReady = false;
+  bool isDarkEnvironment = false;
+  bool showFlashOverlay = false;
 
   // ==================== PERMISSION STATES ====================
   PermissionStatus? camerapermissionStatus;
@@ -160,7 +162,9 @@ class SelfiePunchProvider extends ChangeNotifier {
   XFile? picture;
 
   Future<void> startCamera(int setDirection) async {
-    debugPrint("STARTCAMERA: 1. startCamera called with direction $setDirection");
+    debugPrint(
+      "STARTCAMERA: 1. startCamera called with direction $setDirection",
+    );
     final sessionId = ++_cameraSessionId;
     readyCameraPreviewshow = true;
     cameraisLoading = true;
@@ -170,18 +174,24 @@ class SelfiePunchProvider extends ChangeNotifier {
     try {
       debugPrint("STARTCAMERA: 2. Checking permission status");
       try {
-        camerapermissionStatus = await Permission.camera.status.timeout(const Duration(seconds: 2));
+        camerapermissionStatus = await Permission.camera.status.timeout(
+          const Duration(seconds: 2),
+        );
         debugPrint("STARTCAMERA: 3. Status is $camerapermissionStatus");
         if (camerapermissionStatus != PermissionStatus.granted) {
           debugPrint("STARTCAMERA: 4. Requesting permission");
-          camerapermissionStatus = await Permission.camera.request().timeout(const Duration(seconds: 3));
-          debugPrint("STARTCAMERA: 5. Request result is $camerapermissionStatus");
+          camerapermissionStatus = await Permission.camera.request().timeout(
+            const Duration(seconds: 3),
+          );
+          debugPrint(
+            "STARTCAMERA: 5. Request result is $camerapermissionStatus",
+          );
         }
       } catch (e) {
         debugPrint("STARTCAMERA: Permission check timed out or failed: $e");
         camerapermissionStatus = PermissionStatus.denied;
       }
-      
+
       if (camerapermissionStatus != PermissionStatus.granted) {
         debugPrint("STARTCAMERA: 6. Permission not granted, returning");
         readyCameraPreviewshow = false;
@@ -201,7 +211,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-      
+
       if (cameras == null || cameras!.isEmpty) {
         debugPrint("STARTCAMERA: 9. No cameras found, returning");
         readyCameraPreviewshow = false;
@@ -227,22 +237,72 @@ class SelfiePunchProvider extends ChangeNotifier {
           debugPrint("STARTCAMERA: oldController dispose error: $e");
         }
       }
-      
+
+      await oldController?.dispose();
+
       if (sessionId != _cameraSessionId) {
-        debugPrint("STARTCAMERA: 12. Session ID mismatch after dispose, returning");
+        debugPrint(
+          "STARTCAMERA: 12. Session ID mismatch after dispose, returning",
+        );
         return;
       }
 
       debugPrint("STARTCAMERA: 13. Initializing new controller");
       final newController = CameraController(
         selectedCamera,
-        ResolutionPreset.low,
+        ResolutionPreset.high,
         enableAudio: false,
       );
+      await newController.initialize();
+
       cameraController = newController;
       try {
-        await cameraController!.initialize().timeout(const Duration(seconds: 5));
+        await cameraController!.initialize().timeout(
+          const Duration(seconds: 5),
+        );
         debugPrint("STARTCAMERA: 14. Initialized new controller successfully");
+
+        // Maximize screen brightness for punch screen
+        try {
+          await ScreenBrightness().setScreenBrightness(1.0);
+        } catch (e) {
+          debugPrint("Could not set screen brightness: $e");
+        }
+
+        // Check environment brightness safely using a short-lived image stream
+        int frameCount = 0;
+        bool streamStopped = false;
+        try {
+          cameraController!.startImageStream((image) {
+            if (streamStopped) return;
+            frameCount++;
+            if (frameCount < 5) return; 
+            streamStopped = true;
+            
+            if (image.planes.isNotEmpty) {
+              final bytes = image.planes[0].bytes;
+              int total = 0, count = 0;
+              for (int i = 0; i < bytes.length; i += 50) { total += bytes[i]; count++; }
+              if (count > 0 && (total / count) < 60) {
+                 isDarkEnvironment = true;
+                 debugPrint("Punch Screen: Dark environment detected.");
+              } else {
+                 isDarkEnvironment = false;
+              }
+              notifyListeners();
+            }
+          });
+          
+          // Stop stream safely outside the callback to avoid concurrent modification issues
+          Future.delayed(const Duration(milliseconds: 1000), () async {
+            if (cameraController != null && cameraController!.value.isStreamingImages) {
+              try { await cameraController!.stopImageStream(); } catch (_) {}
+            }
+          });
+        } catch (e) {
+          debugPrint("Failed to check brightness: $e");
+        }
+
       } catch (e) {
         debugPrint("STARTCAMERA: Camera initialize timeout or error: $e");
         readyCameraPreviewshow = false;
@@ -250,9 +310,11 @@ class SelfiePunchProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-      
+
       if (sessionId != _cameraSessionId) {
-        debugPrint("STARTCAMERA: 15. Session ID mismatch after init, disposing and returning");
+        debugPrint(
+          "STARTCAMERA: 15. Session ID mismatch after init, disposing and returning",
+        );
         try {
           await newController.dispose().timeout(const Duration(seconds: 2));
         } catch (e) {}
@@ -306,7 +368,7 @@ class SelfiePunchProvider extends ChangeNotifier {
 
     final newController = CameraController(
       newCamera,
-      ResolutionPreset.medium,
+      ResolutionPreset.high,
       enableAudio: false,
     );
     cameraController = newController;
@@ -338,7 +400,17 @@ class SelfiePunchProvider extends ChangeNotifier {
     cameraController = null;
     isCameraReady = false;
     readyCameraPreviewshow = true;
+    showFlashOverlay = false;
+
+    // Restore screen brightness
+    try {
+      await ScreenBrightness().resetScreenBrightness();
+    } catch (_) {}
+
     if (oldController != null) {
+      if (oldController.value.isStreamingImages) {
+        try { await oldController.stopImageStream(); } catch (_) {}
+      }
       try {
         await oldController.dispose().timeout(const Duration(seconds: 2));
       } catch (e) {
@@ -457,14 +529,17 @@ class SelfiePunchProvider extends ChangeNotifier {
       if (currentPosition != null) {
         setlongitude = currentPosition!.longitude.toString();
         setlatitude = currentPosition!.latitude.toString();
-        
+
         // Calculate distance immediately so the "In Range" badge updates instantly
-        await _computeDistanceOnly(currentPosition!.longitude, currentPosition!.latitude);
-        
+        await _computeDistanceOnly(
+          currentPosition!.longitude,
+          currentPosition!.latitude,
+        );
+
         // Set temporary address so the punch button unblocks instantly
         currentLocation = 'Fetching Address...';
         notifyListeners();
-        
+
         // Do slow reverse geocoding in the background
         final bool offline = await _checkIsOffline();
         if (offline) {
@@ -477,7 +552,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      showtoastmessage('Unable to get location. Please check your GPS.');
+      showtoastmessage(unableToGetLocationGpsString);
     } finally {
       setLocationLoader(false);
       notifyListeners();
@@ -856,7 +931,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         if (!context.mounted) return;
 
         if (setresponse.success != true) {
-          showtoastmessage('Your Account is InActive');
+          showtoastmessage(accountInactiveString);
           await FcmTokenService.instance.handleLogout();
           SaveUser().saveUserData('');
           SaveUser().saveselectedcopany('');
@@ -866,7 +941,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         }
 
         if (setresponse.password != curentUser['Password']) {
-          showtoastmessage('Your password has been changed');
+          showtoastmessage(passwordChangedString);
           await FcmTokenService.instance.handleLogout();
           SaveUser().saveUserData('');
           SaveUser().saveselectedcopany('');
@@ -923,7 +998,7 @@ class SelfiePunchProvider extends ChangeNotifier {
           ? 'Ready to punch offline!'
           : 'Ready to Punch!';
     } catch (e) {
-      showtoastmessage('Checks failed, please try again');
+      showtoastmessage(checksFailedString);
       Navigator.pop(context); // Close dialog
     } finally {
       isPrePunchChecksLoading = false;
@@ -1145,9 +1220,9 @@ class SelfiePunchProvider extends ChangeNotifier {
     String usersetLatitude,
     String usersetLongitude,
     String setUserRemarks,
-    bool setweekoffStatus,
-    [bool isFromWidget = false]
-  ) async {
+    bool setweekoffStatus, [
+    bool isFromWidget = false,
+  ]) async {
     final bool offline = await _checkIsOffline();
 
     if (offline) {
@@ -1166,18 +1241,20 @@ class SelfiePunchProvider extends ChangeNotifier {
       setPunchBoxOnTapStart(false);
       setPunchLoader(false);
 
-      showtoastmessage('Punch saved offline successfully');
+      showtoastmessage(punchSavedOfflineString);
 
       if (!context.mounted) return;
       if (isFromWidget) {
         final navigator = Navigator.of(context);
         navigator.pop(); // Pop the dialog
-        
+
         // CRITICAL: Stop the camera before closing the app to prevent ImageReader Surface crashes
         await disposeCamera();
 
         try {
-          await const MethodChannel('punch_widget/open').invokeMethod('move_to_background');
+          await const MethodChannel(
+            'punch_widget/open',
+          ).invokeMethod('move_to_background');
         } catch (_) {}
         SystemNavigator.pop();
       } else {
@@ -1210,7 +1287,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       if (punchResponse.success == true) {
         final String punchStatus =
             punchResponse.attendenceLog!.last.status ?? '';
-        showtoastmessage('Punch $punchStatus Successfully');
+        showtoastmessage('$punchString $punchStatus $successfullyString');
 
         // ── Explicitly log punch location to timeline batch ────────
         try {
@@ -1266,7 +1343,9 @@ class SelfiePunchProvider extends ChangeNotifier {
           await disposeCamera();
 
           try {
-            await const MethodChannel('punch_widget/open').invokeMethod('move_to_background');
+            await const MethodChannel(
+              'punch_widget/open',
+            ).invokeMethod('move_to_background');
           } catch (_) {}
           SystemNavigator.pop();
         } else {
@@ -1278,10 +1357,10 @@ class SelfiePunchProvider extends ChangeNotifier {
           );
         }
       } else {
-        showtoastmessage('Punch try again');
+        showtoastmessage(punchTryAgainString);
       }
     } catch (e) {
-      showtoastmessage('Error occurred, please try again');
+      showtoastmessage(errorOccurredString);
     }
 
     await AttendanceApis().callWithImgPunch(
@@ -1385,7 +1464,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       );
       notifyListeners();
 
-      showtoastmessage('Punch saved offline. Will sync when internet returns.');
+      showtoastmessage(punchSavedOfflineWillSyncString);
 
       if (context.mounted) {
         Navigator.of(context).pop(); // Close PunchBox dialog
@@ -1396,7 +1475,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         );
       }
     } catch (e) {
-      showtoastmessage('Failed to save offline punch. Please try again.');
+      showtoastmessage(failedToSaveOfflineString);
     }
   }
 
@@ -1405,17 +1484,128 @@ class SelfiePunchProvider extends ChangeNotifier {
 
   Future<void> puchInOutHandleSubmit(
     BuildContext context,
-    String currentDay,
-    [bool isFromWidget = false]
-  ) async {
+    String currentDay, [
+    bool isFromWidget = false,
+  ]) async {
     if (PunchLoader == true) return;
+
+    if (distance > allowedRadius) {
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.location_off_rounded,
+                      size: 48,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Out of Range",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "You are ${distance.toStringAsFixed(1)}m away from the office. Please move within the allowed ${allowedRadius}m radius to punch.",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        "Okay",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
     setPunchLoader(true);
     try {
       await shiftMasterDataGet(context);
+
+      String punchTypeString =
+          (checkStatus == null ||
+              checkStatus!.attendenceLog == null ||
+              checkStatus!.attendenceLog!.isEmpty)
+          ? punchInString
+          : (checkStatus!.attendenceLog!.last.status == 'IN'
+                ? punchOutString
+                : punchInString);
+
+      String internalPunchType =
+          (checkStatus == null ||
+              checkStatus!.attendenceLog == null ||
+              checkStatus!.attendenceLog!.isEmpty)
+          ? 'IN'
+          : (checkStatus!.attendenceLog!.last.status == 'IN' ? 'OUT' : 'IN');
+
+      // ── Flash overlay before capturing image if dark ──
+      if (isDarkEnvironment && isFrontCamera) {
+        showFlashOverlay = true;
+        notifyListeners();
+        
+        try {
+          await cameraController!.setFlashMode(FlashMode.torch);
+        } catch (_) {}
+        
+        // Wait for screen to brighten and camera to adjust
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
       await takePicture();
+      
+      if (showFlashOverlay) {
+        showFlashOverlay = false;
+        notifyListeners();
+      }
+
       if (imageFile == null) {
-        showtoastmessage('Camera image not captured, please try again');
+        showtoastmessage(cameraImageNotCapturedString);
         setPunchLoader(false);
         return;
       }
@@ -1428,19 +1618,126 @@ class SelfiePunchProvider extends ChangeNotifier {
           await OfflinePunchSyncService.persistSelfieImage(sendImg.path);
       // ────────────────────────────────────────────────────────────────────────
 
-      String punchType =
-          (checkStatus == null ||
-              checkStatus!.attendenceLog == null ||
-              checkStatus!.attendenceLog!.isEmpty)
-          ? punchInString
-          : (checkStatus!.attendenceLog!.last.status == 'IN'
-                ? punchOutString
-                : punchInString);
+      // We DO NOT flip the image yet. ML Kit relies on the original EXIF orientation
+      // provided by the camera to detect the face correctly!
 
-      await onTapPunchs(context, currentDay, punchType, isFromWidget);
-      setPunchLoader(false); // Done loading for button, dialog is now open
+      // --- Face Verification Intercept (Silent, in-screen) ---
+      bool isVerified = true;
+      try {
+        final role = curentUser?['Role'];
+        final faceId = curentUser?["FaceRegisterId"];
+        if (role != 'Admin') {
+          if (faceId == null || faceId.toString().isEmpty) {
+            debugPrint("[SelfiePunchProvider] Face verification failed: No registered FaceId.");
+            isVerified = false; // Strictly enforce face registration
+          } else {
+            debugPrint("[SelfiePunchProvider] Starting face verification for FaceId: $faceId");
+            final faceProvider = Provider.of<FaceVerificationProvider>(
+              context,
+              listen: false,
+            );
+            isVerified = await faceProvider.verifyStaticFile(
+              imageFile!,
+              faceId.toString(),
+            );
+            debugPrint("[SelfiePunchProvider] Face verification result: $isVerified");
+          }
+        } else {
+          debugPrint("[SelfiePunchProvider] Admin bypasses face verification.");
+          isVerified = true;
+        }
+      } catch (e) {
+        debugPrint("[SelfiePunchProvider] Face verification error: $e");
+        isVerified = false;
+      }
+
+      if (!isVerified) {
+        setPunchLoader(false);
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.error_outline_rounded,
+                        size: 48,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      verificationFailedString,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      verificationFailedDescString,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          okayString,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        return; // Verification failed, abort punch
+      }
+      // -----------------------------------
+
+      // Now flip it before uploading to server
+      sendImg = await flipCapturedImage(imageFile!);
+
+      await onTapPunchs(context, currentDay, punchTypeString, isFromWidget);
+      setPunchLoader(false); // Hide the loading screen behind the dialog
     } catch (e) {
-      showtoastmessage('Punch failed, please try again');
+      showtoastmessage(punchFailedString);
       setPunchLoader(false);
     }
   }
@@ -1448,9 +1745,9 @@ class SelfiePunchProvider extends ChangeNotifier {
   Future<void> onTapPunchs(
     BuildContext context,
     String currentDay,
-    String punchType,
-    [bool isFromWidget = false]
-  ) async {
+    String punchType, [
+    bool isFromWidget = false,
+  ]) async {
     bool setTodayWeekOff = false;
     /* log('Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift'); */
     if (getUserShift != null) {
@@ -1497,7 +1794,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       if (currentLocation != null) {
         await onTapPunchs(context, currentDay, punchType, isFromWidget);
       } else {
-        showtoastmessage('Unable to get location. Please try again.');
+        showtoastmessage(unableToGetLocationString);
         setPunchLoader(false);
       }
     }

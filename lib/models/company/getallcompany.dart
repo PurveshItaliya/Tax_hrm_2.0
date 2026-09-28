@@ -6,9 +6,14 @@
 
 import 'dart:convert';
 
-List<GetCompanyData> getCompanyDataFromJson(String str) => List<GetCompanyData>.from(json.decode(str).map((x) => GetCompanyData.fromJson(x)));
+List<GetCompanyData> getCompanyDataFromJson(String str) =>
+    List<GetCompanyData>.from(
+      json.decode(str).map((x) => GetCompanyData.fromJson(x)),
+    );
 
-String getCompanyDataToJson(List<GetCompanyData> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+String getCompanyDataToJson(List<GetCompanyData> data) =>
+    json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+
 class GetCompanyData {
   int? companyId;
   int? userId;
@@ -34,42 +39,43 @@ class GetCompanyData {
   dynamic areaName;
   dynamic cityName;
   String? stateName;
-    String? cguid;
+  String? cguid;
   dynamic code;
   double? latitude;
   double? longitude;
   double? locationRadius;
 
-  GetCompanyData(
-      {this.companyId,
-      this.userId,
-      this.firmId,
-      this.companyName,
-      this.add1,
-      this.add2,
-      this.add3,
-      this.pincodeId,
-      this.cityId,
-      this.stateId,
-      this.phone1,
-      this.phone2,
-      this.mobile1,
-      this.mobile2,
-      this.email,
-      this.pAN,
-      this.gST,
-      this.guid,
-      this.syncDateTime,
-      this.isActive,
-      this.custId,
-      this.areaName,
-      this.cityName,
-      this.stateName,
-       this.cguid,
-      this.code,
-      this.latitude,
-      this.longitude,
-      this.locationRadius});
+  GetCompanyData({
+    this.companyId,
+    this.userId,
+    this.firmId,
+    this.companyName,
+    this.add1,
+    this.add2,
+    this.add3,
+    this.pincodeId,
+    this.cityId,
+    this.stateId,
+    this.phone1,
+    this.phone2,
+    this.mobile1,
+    this.mobile2,
+    this.email,
+    this.pAN,
+    this.gST,
+    this.guid,
+    this.syncDateTime,
+    this.isActive,
+    this.custId,
+    this.areaName,
+    this.cityName,
+    this.stateName,
+    this.cguid,
+    this.code,
+    this.latitude,
+    this.longitude,
+    this.locationRadius,
+  });
 
   GetCompanyData.fromJson(Map<String, dynamic> json) {
     companyId = json['CompanyId'];
@@ -96,11 +102,17 @@ class GetCompanyData {
     areaName = json['AreaName'];
     cityName = json['CityName'];
     stateName = json['StateName'];
-      cguid = json['Cguid'];
+    cguid = json['Cguid'];
     code = json['Code'];
-    latitude = json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null;
-    longitude = json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null;
-    locationRadius = json['LocationRadius'] != null ? double.tryParse(json['LocationRadius'].toString()) : null;
+    latitude = json['latitude'] != null
+        ? double.tryParse(json['latitude'].toString())
+        : null;
+    longitude = json['longitude'] != null
+        ? double.tryParse(json['longitude'].toString())
+        : null;
+    locationRadius = json['LocationRadius'] != null
+        ? double.tryParse(json['LocationRadius'].toString())
+        : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -129,7 +141,7 @@ class GetCompanyData {
     data['AreaName'] = areaName;
     data['CityName'] = cityName;
     data['StateName'] = stateName;
-     data['Cguid'] = cguid;
+    data['Cguid'] = cguid;
     data['Code'] = code;
     data['latitude'] = latitude;
     data['longitude'] = longitude;

@@ -20,6 +20,10 @@ android {
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 
+    aaptOptions {
+        noCompress 'tflite'
+    }
+
     compileOptions {
         coreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17

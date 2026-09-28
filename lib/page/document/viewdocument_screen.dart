@@ -27,7 +27,6 @@ class _ViewDocumentScreenState extends State<ViewDocumentScreen> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     var documentproviders = Provider.of<DocumentsProvider>(context);
     return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,

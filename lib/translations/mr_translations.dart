@@ -4,7 +4,8 @@ final Map<String, String> mrTranslations = {
   'Leave': 'सोडा',
   'Setting': 'सेटिंग',
   'Logout': 'लॉगआउट करा',
-  'Simpy Enter your Username & Password': 'सिम्पी तुमचे युजरनेम आणि पासवर्ड टाका',
+  'Simpy Enter your Username & Password':
+      'सिम्पी तुमचे युजरनेम आणि पासवर्ड टाका',
   'Username': 'वापरकर्तानाव',
   'Password': 'पासवर्ड',
   'Filed is Required': 'दाखल करणे आवश्यक आहे',
@@ -15,8 +16,10 @@ final Map<String, String> mrTranslations = {
   'Verify': 'सत्यापित करा',
   'Back': 'मागे',
   'Verification Code': 'सत्यापन कोड',
-  'Choose how you want to receive your 6-digit verification code.': 'तुम्हाला तुमचा 6-अंकी पडताळणी कोड कसा मिळवायचा आहे ते निवडा.',
-  'A verification code has been sent to your registered ': 'तुमच्या नोंदणीकृत व्यक्तीला एक पडताळणी कोड पाठवला गेला आहे',
+  'Choose how you want to receive your 6-digit verification code.':
+      'तुम्हाला तुमचा 6-अंकी पडताळणी कोड कसा मिळवायचा आहे ते निवडा.',
+  'A verification code has been sent to your registered ':
+      'तुमच्या नोंदणीकृत व्यक्तीला एक पडताळणी कोड पाठवला गेला आहे',
   'Mobile': 'मोबाईल',
   'E-mail': 'ई-मेल',
   'Salary Slip': 'पगार स्लिप',
@@ -300,7 +303,8 @@ final Map<String, String> mrTranslations = {
   'Your OTP Expire !!': 'तुमचा OTP कालबाह्य झाला आहे !!',
   'Please enter OTP within': 'कृपया आत OTP टाका',
   'seconds': 'सेकंद',
-  'No data available to download': 'डाउनलोड करण्यासाठी कोणताही डेटा उपलब्ध नाही',
+  'No data available to download':
+      'डाउनलोड करण्यासाठी कोणताही डेटा उपलब्ध नाही',
   'Export Daily Attendance Report': 'दैनिक हजेरी अहवाल निर्यात करा',
   'Export Monthly Attendance Report': 'मासिक हजेरी अहवाल निर्यात करा',
   'Loading attendance data...': 'हजेरी डेटा लोड होत आहे...',
@@ -315,7 +319,8 @@ final Map<String, String> mrTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +335,10 @@ final Map<String, String> mrTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +383,8 @@ final Map<String, String> mrTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +407,8 @@ final Map<String, String> mrTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +444,10 @@ final Map<String, String> mrTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +457,8 @@ final Map<String, String> mrTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -484,10 +496,12 @@ final Map<String, String> mrTranslations = {
   'Other': 'इतर',
   'Custom Event Type': 'सानुकूल कार्यक्रम प्रकार',
   'Enter custom event type': 'सानुकूल कार्यक्रम प्रकार प्रविष्ट करा',
-  'Please enter custom event type': 'कृपया सानुकूल कार्यक्रम प्रकार प्रविष्ट करा',
+  'Please enter custom event type':
+      'कृपया सानुकूल कार्यक्रम प्रकार प्रविष्ट करा',
   'Attachments': 'संलग्नके',
   'Click to upload attachments': 'संलग्नके अपलोड करण्यासाठी क्लिक करा',
-  'Supported: Images, PDF, Word, Excel files': 'समर्थित: प्रतिमा, पीडीएफ, वर्ड, एक्सेल फायली',
+  'Supported: Images, PDF, Word, Excel files':
+      'समर्थित: प्रतिमा, पीडीएफ, वर्ड, एक्सेल फायली',
   'Create Event': 'कार्यक्रम तयार करा',
   'Event Type': 'कार्यक्रमाचा प्रकार',
   'Event Name': 'कार्यक्रमाचे नाव',

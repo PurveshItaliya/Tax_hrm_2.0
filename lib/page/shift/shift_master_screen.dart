@@ -40,7 +40,6 @@ class _ShiftMasterScreenState extends State<ShiftMasterScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final shiftMasterProvider =  Provider.of<ShiftMasterProvider>(context);
     Provider.of<LanguageProvider>(context);
     return Scaffold(

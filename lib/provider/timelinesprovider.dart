@@ -15,6 +15,7 @@ import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/services/location_batch_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 
 class TimeLineServices with ChangeNotifier {
@@ -52,11 +53,8 @@ class TimeLineServices with ChangeNotifier {
       await LocationTimeLineClass().getUserTimeLine(selectedDate: formattedDate, setUserId: setEmpId).then((value) {
         mainUserTimeLines = value;
         
-        print("====== Timeline Data Loaded ======");
         for (var item in mainUserTimeLines) {
-          print("Time: ${item.entryTime} | Lat: ${item.latitude} | Lng: ${item.logitude} | Device: ${item.deviceName} (${item.deviceType}) | Address: ${item.address}");
         }
-        print("==================================");
 
         mainUserTimeLines.forEach((element) {
           if (element.latitude != null && element.logitude != null && element.latitude != 'null' && element.logitude != 'null') {
@@ -148,13 +146,13 @@ class TimeLineServices with ChangeNotifier {
       } else {
         await Geolocator.openLocationSettings();
       }
-      return Future.error('Location services are disabled.');
+      return Future.error(locationServicesAreDisabledString);
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied');
+        return Future.error(locationPermissionsAreDeniedString);
       } else {
         notifyListeners();
       }
@@ -209,10 +207,8 @@ class TimeLineServices with ChangeNotifier {
             await LocationBatchStorage.uploadPendingBatch(userData: userData, isMapScreen: false, isAppForeground: true);
           }
         } else {
-          print("====== Timeline NOT Created: Last status is not 'IN' ======");
         }
       } else {
-        print("====== Timeline NOT Created: AttendenceLog is empty ======");
       }
     },);
 

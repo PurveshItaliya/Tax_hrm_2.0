@@ -4,7 +4,8 @@ final Map<String, String> asTranslations = {
   'Leave': 'যোৱা',
   'Setting': 'ছেটিং',
   'Logout': 'লগআউট কৰক',
-  'Simpy Enter your Username & Password': 'আপোনাৰ ব্যৱহাৰকাৰীৰ নাম আৰু পাছৱৰ্ড দিয়ক',
+  'Simpy Enter your Username & Password':
+      'আপোনাৰ ব্যৱহাৰকাৰীৰ নাম আৰু পাছৱৰ্ড দিয়ক',
   'Username': 'ব্যৱহাৰকাৰীৰ নাম',
   'Password': 'পাছৱৰ্ড',
   'Filed is Required': 'ফাইল কৰাটো প্ৰয়োজনীয়',
@@ -15,8 +16,10 @@ final Map<String, String> asTranslations = {
   'Verify': 'সত্যাপন কৰা',
   'Back': 'পিছলৈ',
   'Verification Code': 'ভেৰিফিকেচন ক\'ড',
-  'Choose how you want to receive your 6-digit verification code.': 'আপুনি আপোনাৰ ৬-অংকৰ সত্যাপন ক\'ড কেনেকৈ লাভ কৰিব বিচাৰে বাছক।',
-  'A verification code has been sent to your registered ': 'আপোনাৰ পঞ্জীয়নভুক্তলৈ এটা সত্যাপন ক\'ড প্ৰেৰণ কৰা হৈছে',
+  'Choose how you want to receive your 6-digit verification code.':
+      'আপুনি আপোনাৰ ৬-অংকৰ সত্যাপন ক\'ড কেনেকৈ লাভ কৰিব বিচাৰে বাছক।',
+  'A verification code has been sent to your registered ':
+      'আপোনাৰ পঞ্জীয়নভুক্তলৈ এটা সত্যাপন ক\'ড প্ৰেৰণ কৰা হৈছে',
   'Mobile': 'ম’বাইল',
   'E-mail': 'ই-মেইল',
   'Salary Slip': 'দৰমহাৰ পিছল',
@@ -64,7 +67,8 @@ final Map<String, String> asTranslations = {
   'Enter Title': 'শিৰোনাম লিখক',
   'Paid Holiday': 'পেইড হলিডে',
   'UnPaid Holiday': 'আনপেইড ছুটী',
-  'Please select at least one date': 'অনুগ্ৰহ কৰি অন্ততঃ এটা তাৰিখ নিৰ্বাচন কৰক',
+  'Please select at least one date':
+      'অনুগ্ৰহ কৰি অন্ততঃ এটা তাৰিখ নিৰ্বাচন কৰক',
   'Add New Note': 'নতুন টোকা যোগ কৰক',
   'No Note Added!': 'কোনো টোকা যোগ কৰা হোৱা নাই!',
   'Search Notes': 'সন্ধান টোকাসমূহ',
@@ -189,7 +193,8 @@ final Map<String, String> asTranslations = {
   'Select Designation Name': 'ডিজাইনৰ নাম নিৰ্ব্বাচন কৰক',
   'Select Time': 'সময় নিৰ্ব্বাচন কৰক',
   'Ok': 'ঠিক আছে',
-  'Please select at least one working day': 'অনুগ্ৰহ কৰি অন্ততঃ এটা কৰ্মদিন নিৰ্বাচন কৰক',
+  'Please select at least one working day':
+      'অনুগ্ৰহ কৰি অন্ততঃ এটা কৰ্মদিন নিৰ্বাচন কৰক',
   'Position is already used !!!': 'পজিচন ইতিমধ্যে ব্যৱহাৰ কৰা হৈছে !!!',
   'Add Event': 'ইভেন্ট যোগ কৰক',
   'Edit Event': 'ইভেন্ট সম্পাদনা কৰক',
@@ -315,7 +320,8 @@ final Map<String, String> asTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +336,10 @@ final Map<String, String> asTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +384,8 @@ final Map<String, String> asTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +408,8 @@ final Map<String, String> asTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +445,10 @@ final Map<String, String> asTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +458,8 @@ final Map<String, String> asTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -487,7 +500,8 @@ final Map<String, String> asTranslations = {
   'Please enter custom event type': 'অনুগ্ৰহ কৰি কাষ্টম ইভেণ্টৰ প্ৰকাৰ লিখক',
   'Attachments': 'সংযুক্তি',
   'Click to upload attachments': 'সংযুক্তি আপল’ড কৰিবলৈ ক্লিক কৰক',
-  'Supported: Images, PDF, Word, Excel files': 'সমৰ্থিত: ছবি, PDF, ৱৰ্ড, এক্সেল ফাইল',
+  'Supported: Images, PDF, Word, Excel files':
+      'সমৰ্থিত: ছবি, PDF, ৱৰ্ড, এক্সেল ফাইল',
   'Create Event': 'ইভেণ্ট সৃষ্টি কৰক',
   'Event Type': 'ইভেণ্টৰ প্ৰকাৰ',
   'Event Name': 'ইভেণ্টৰ নাম',

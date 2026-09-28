@@ -89,7 +89,6 @@ class _EmployeeSummryScreenState extends State<EmployeeSummryScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final payRollProviders = Provider.of<PayRollProviders>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     

@@ -36,15 +36,111 @@ class AdminAttenDanceServices extends ChangeNotifier {
       setloading(true);
       currentMonth = newDate;
       await toDayDateAttendance(currentMonth);
-    } catch (e) { /* ignored */ } finally {
+    } catch (e) {
+      /* ignored */
+    } finally {
       setloading(false);
       notifyListeners();
     }
   }
 
+  // ==================== SEARCH & FILTER STATE ====================
+  final TextEditingController searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedDepartment = 'ALL';
+  List<dynamic> _filteredEmployeeList = [];
+
+  String get searchQuery => _searchQuery;
+  set searchQuery(String value) {
+    _searchQuery = value;
+    notifyListeners();
+  }
+
+  String get selectedDepartment => _selectedDepartment;
+  set selectedDepartment(String value) {
+    _selectedDepartment = value;
+    notifyListeners();
+  }
+
+  List<dynamic> get filteredEmployeeList => _filteredEmployeeList;
+  set filteredEmployeeList(List<dynamic> list) {
+    _filteredEmployeeList = list;
+    notifyListeners();
+  }
+
+  void filterEmployees(List<dynamic> allEmpList) {
+    if (_searchQuery.isEmpty && _selectedDepartment == 'ALL') {
+      _filteredEmployeeList = List.from(empAttendanceList);
+    } else {
+      _filteredEmployeeList = empAttendanceList.where((employee) {
+        // 1. Search Query
+        bool matchesSearch = true;
+        if (_searchQuery.isNotEmpty) {
+          final fullName = '${employee.firstName} ${employee.lastName}'.toLowerCase();
+          final firstName = employee.firstName?.toLowerCase() ?? '';
+          final lastName = employee.lastName?.toLowerCase() ?? '';
+          matchesSearch =
+              fullName.contains(_searchQuery) ||
+              firstName.contains(_searchQuery) ||
+              lastName.contains(_searchQuery);
+        }
+
+        // 2. Department Filter
+        bool matchesDepartment = true;
+        if (_selectedDepartment != 'ALL') {
+          String deptName = '-';
+          for (var emp in allEmpList) {
+            if (emp.id == employee.empId) {
+              deptName = emp.departmentName ?? '-';
+              if (deptName.trim().isEmpty) deptName = '-';
+              break;
+            }
+          }
+          matchesDepartment = deptName == _selectedDepartment;
+        }
+
+        return matchesSearch && matchesDepartment;
+      }).toList();
+    }
+    notifyListeners();
+  }
+
+  void clearSearch() {
+    searchController.clear();
+    _searchQuery = '';
+    _selectedDepartment = 'ALL';
+    _filteredEmployeeList = List.from(empAttendanceList);
+    notifyListeners();
+  }
+
+  List<String> getUniqueDepartments(List<dynamic> allEmpList) {
+    Set<String> departmentsSet = {};
+    for (var employee in empAttendanceList) {
+      String deptName = '-';
+      for (var emp in allEmpList) {
+        if (emp.id == employee.empId) {
+          deptName = emp.departmentName ?? '-';
+          if (deptName.trim().isEmpty) deptName = '-';
+          break;
+        }
+      }
+      if (deptName != '-') {
+        departmentsSet.add(deptName);
+      }
+    }
+    List<String> departments = departmentsSet.toList();
+    departments.sort();
+    departments.insert(0, 'ALL');
+    return departments;
+  }
+  // ===============================================================
+
   static final Map<String, List<AllEmployeAttendance>> _attendanceCache = {};
 
-  bool _areAttendanceListsEqual(List<AllEmployeAttendance> a, List<AllEmployeAttendance> b) {
+  bool _areAttendanceListsEqual(
+    List<AllEmployeAttendance> a,
+    List<AllEmployeAttendance> b,
+  ) {
     if (a.length != b.length) return false;
     for (int i = 0; i < a.length; i++) {
       if (a[i].empId != b[i].empId ||
@@ -82,10 +178,16 @@ class AdminAttenDanceServices extends ChangeNotifier {
           }
         }
       }
-      
-      DateTime dateOnly = DateTime(inputDatetime.year, inputDatetime.month, inputDatetime.day);
-      String formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss.SSS').format(dateOnly);
-      
+
+      DateTime dateOnly = DateTime(
+        inputDatetime.year,
+        inputDatetime.month,
+        inputDatetime.day,
+      );
+      String formattedDate = DateFormat(
+        'yyyy-MM-dd HH:mm:ss.SSS',
+      ).format(dateOnly);
+
       bool loadedFromCache = false;
       // 1. Try in-memory cache first
       if (!isBackground && _attendanceCache.containsKey(formattedDate)) {
@@ -96,7 +198,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
         setCounters(notify: false);
         setloading(false);
         notifyListeners();
-      } 
+      }
       // 2. Try SharedPreferences cache
       else if (!isBackground && mainHoldEmpList.isEmpty) {
         try {
@@ -119,18 +221,23 @@ class AdminAttenDanceServices extends ChangeNotifier {
           // ignore cache read error
         }
       }
-      
+
       final bool showLoader = !isBackground && !loadedFromCache;
       if (showLoader) {
         setloading(true);
       }
-      
-      final response = await AdminAttenDanceApis().getDateAttendance(formattedDate);
-      
+
+      final response = await AdminAttenDanceApis().getDateAttendance(
+        formattedDate,
+      );
+
       if (response != null) {
-        final bool isChanged = !_areAttendanceListsEqual(mainHoldEmpList, response);
+        final bool isChanged = !_areAttendanceListsEqual(
+          mainHoldEmpList,
+          response,
+        );
         _attendanceCache[formattedDate] = response;
-        
+
         // Save to SharedPreferences
         try {
           final prefs = await SharedPreferences.getInstance();
@@ -167,7 +274,6 @@ class AdminAttenDanceServices extends ChangeNotifier {
     }
   }
 
-
   int totalPresents = 0;
   int totalAbsent = 0;
   int totalIsOnLeave = 0;
@@ -176,20 +282,20 @@ class AdminAttenDanceServices extends ChangeNotifier {
     totalPresents = 0;
     totalAbsent = 0;
     totalIsOnLeave = 0;
-    
+
     for (var element in mainHoldEmpList) {
       // Count Present
       if (element.present == true) {
         totalPresents++;
       }
-      
+
       // Count On Leave
       if (element.isOnLeave == true && element.leaveCguid != null) {
         totalIsOnLeave++;
       }
-      
+
       // Count Absent (not present and not on leave)
-      if ((element.present == false || element.present == null) && 
+      if ((element.present == false || element.present == null) &&
           (element.isOnLeave == false || element.isOnLeave == null)) {
         totalAbsent++;
       }
@@ -202,19 +308,28 @@ class AdminAttenDanceServices extends ChangeNotifier {
   Future<void> changeDate(bool isNext) async {
     try {
       setloading(true);
-      
+
       if (isNext) {
         // Move to next month
-        currentMonth = DateTime(currentMonth.year, currentMonth.month, currentMonth.day + 1);
+        currentMonth = DateTime(
+          currentMonth.year,
+          currentMonth.month,
+          currentMonth.day + 1,
+        );
       } else {
         // Move to previous month
-        currentMonth = DateTime(currentMonth.year, currentMonth.month, currentMonth.day - 1);
+        currentMonth = DateTime(
+          currentMonth.year,
+          currentMonth.month,
+          currentMonth.day - 1,
+        );
       }
-      
+
       // Fetch data for the new month
       await toDayDateAttendance(currentMonth);
-      
-    } catch (e) { /* ignored */ } finally {
+    } catch (e) {
+      /* ignored */
+    } finally {
       setloading(false);
       notifyListeners();
     }
@@ -232,13 +347,15 @@ class AdminAttenDanceServices extends ChangeNotifier {
     setloading(true);
     try {
       filtersList.clear();
-      for (var element in mainHoldEmpList) { 
-        if(element.isOnLeave == true){
+      for (var element in mainHoldEmpList) {
+        if (element.isOnLeave == true) {
           filtersList.add(element);
         }
       }
       empAttendanceList = filtersList;
-    } catch (e) { /* ignored */ } finally {
+    } catch (e) {
+      /* ignored */
+    } finally {
       setloading(false);
       notifyListeners();
     }
@@ -249,22 +366,25 @@ class AdminAttenDanceServices extends ChangeNotifier {
     try {
       filtersList.clear();
 
-      if(presentmood == true) {
-        for (var element in mainHoldEmpList) { 
-          if(element.present == true){
+      if (presentmood == true) {
+        for (var element in mainHoldEmpList) {
+          if (element.present == true) {
             filtersList.add(element);
           }
         }
         empAttendanceList = filtersList;
       } else {
-        for (var element in mainHoldEmpList) { 
-          if(element.absent == null || element.absent == true && element.isOnLeave != true){
+        for (var element in mainHoldEmpList) {
+          if (element.absent == null ||
+              element.absent == true && element.isOnLeave != true) {
             filtersList.add(element);
           }
         }
         empAttendanceList = filtersList;
       }
-    } catch (e) { /* ignored */ } finally {
+    } catch (e) {
+      /* ignored */
+    } finally {
       setloading(false);
       notifyListeners();
     }
@@ -309,7 +429,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
   }) async {
     TimeOfDay? selectedTime = TimeOfDay.now();
     TextEditingController remarkController = TextEditingController();
-    
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -317,7 +437,9 @@ class AdminAttenDanceServices extends ChangeNotifier {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               elevation: 0,
               backgroundColor: Colors.transparent,
               child: Container(
@@ -340,7 +462,10 @@ class AdminAttenDanceServices extends ChangeNotifier {
                       padding: EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [ColorConst.themeColor, ColorConst.themeColor.withOpacity(0.8)],
+                          colors: [
+                            ColorConst.themeColor,
+                            ColorConst.themeColor.withOpacity(0.8),
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -392,7 +517,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
                         ],
                       ),
                     ),
-                    
+
                     // Content
                     Padding(
                       padding: EdgeInsets.all(20),
@@ -410,9 +535,12 @@ class AdminAttenDanceServices extends ChangeNotifier {
                                     data: Theme.of(context).copyWith(
                                       timePickerTheme: TimePickerThemeData(
                                         backgroundColor: ColorConst.white,
-                                        hourMinuteTextColor: ColorConst.themeColor,
+                                        hourMinuteTextColor:
+                                            ColorConst.themeColor,
                                         dialHandColor: ColorConst.themeColor,
-                                        dialBackgroundColor: ColorConst.themeColor.withOpacity(0.1),
+                                        dialBackgroundColor: ColorConst
+                                            .themeColor
+                                            .withOpacity(0.1),
                                       ),
                                     ),
                                     child: child!,
@@ -429,7 +557,10 @@ class AdminAttenDanceServices extends ChangeNotifier {
                               padding: EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [ColorConst.themeColor.withOpacity(0.05), Colors.white],
+                                  colors: [
+                                    ColorConst.themeColor.withOpacity(0.05),
+                                    Colors.white,
+                                  ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -440,15 +571,19 @@ class AdminAttenDanceServices extends ChangeNotifier {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
                                       Container(
                                         padding: EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: ColorConst.themeColor.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: ColorConst.themeColor
+                                              .withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         child: Icon(
                                           Icons.schedule,
@@ -458,11 +593,15 @@ class AdminAttenDanceServices extends ChangeNotifier {
                                       ),
                                       const SizedBox(width: 15),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           const Text(
                                             'Select Time',
-                                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
@@ -480,7 +619,9 @@ class AdminAttenDanceServices extends ChangeNotifier {
                                   Container(
                                     padding: EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: ColorConst.themeColor.withOpacity(0.1),
+                                      color: ColorConst.themeColor.withOpacity(
+                                        0.1,
+                                      ),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
@@ -493,13 +634,16 @@ class AdminAttenDanceServices extends ChangeNotifier {
                               ),
                             ),
                           ),
-                          
+
                           const SizedBox(height: 20),
-                          
+
                           // Remark Field
                           Container(
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300, width: 1),
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: TextField(
@@ -507,17 +651,22 @@ class AdminAttenDanceServices extends ChangeNotifier {
                               maxLines: 3,
                               decoration: InputDecoration(
                                 hintText: 'Add a remark...',
-                                hintStyle: TextStyle(color: Colors.grey.shade400),
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade400,
+                                ),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.all(16),
-                                prefixIcon: Icon(Icons.comment_outlined, color: Colors.grey.shade500),
+                                prefixIcon: Icon(
+                                  Icons.comment_outlined,
+                                  color: Colors.grey.shade500,
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    
+
                     // Action Buttons
                     Container(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -538,7 +687,9 @@ class AdminAttenDanceServices extends ChangeNotifier {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                               ),
                               child: Text(
                                 'Cancel',
@@ -554,20 +705,34 @@ class AdminAttenDanceServices extends ChangeNotifier {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
-                                final formattedTime = _formatTimeWithAmPm(selectedTime!, context);
+                                final formattedTime = _formatTimeWithAmPm(
+                                  selectedTime!,
+                                  context,
+                                );
                                 if (isPunchIn) {
-                                  attendanceProviders.punchInTimeController.text = formattedTime;
+                                  attendanceProviders
+                                          .punchInTimeController
+                                          .text =
+                                      formattedTime;
                                   attendanceProviders.addEmpattendance(
-                                    weekoff: currentMonth.weekday == DateTime.sunday,
+                                    weekoff:
+                                        currentMonth.weekday == DateTime.sunday,
                                     setEmployeId: empId,
                                     attendanceDateEmp: currentMonth.toString(),
                                     attendanceTime: formattedTime,
                                     usedRemarks: remarkController.text,
                                   );
                                 } else {
-                                  attendanceProviders.punchOutTimeController.text = formattedTime;
+                                  attendanceProviders
+                                          .punchOutTimeController
+                                          .text =
+                                      formattedTime;
                                   attendanceProviders.updatePunchOut(
-                                    attendanceDate: DateTime(currentMonth.year, currentMonth.month, currentMonth.day).toString(),
+                                    attendanceDate: DateTime(
+                                      currentMonth.year,
+                                      currentMonth.month,
+                                      currentMonth.day,
+                                    ).toString(),
                                     setEmpid: empId,
                                     setattendanceid: attendanceId,
                                     setOutTime: formattedTime,
@@ -580,11 +745,17 @@ class AdminAttenDanceServices extends ChangeNotifier {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                               ),
                               child: const Text(
                                 'Save',
-                                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -599,14 +770,20 @@ class AdminAttenDanceServices extends ChangeNotifier {
         );
       },
     );
-    
+
     return result ?? false;
   }
 
   // Helper method to format time
   String _formatTimeWithAmPm(TimeOfDay time, BuildContext context) {
     final now = DateTime.now();
-    final dateTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    final dateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
     return DateFormat('h:mm a').format(dateTime);
   }
 
@@ -615,79 +792,119 @@ class AdminAttenDanceServices extends ChangeNotifier {
     await updateMonth(currentMonth, context);
   }
 
-  Future addEmpattendance({attendanceDateEmp, attendanceTime, setEmployeId, usedRemarks, weekoff}) async {
+  Future addEmpattendance({
+    attendanceDateEmp,
+    attendanceTime,
+    setEmployeId,
+    usedRemarks,
+    weekoff,
+  }) async {
     String setGuid = generateCustomUuid();
     try {
-      await AttendanceApis().attendanceAddAdmin(
-        setweekoff: weekoff,
-        setRemarks: usedRemarks,
-        attendanceDate: attendanceDateEmp,
-        setInTime: attendanceTime,
-        setEmpid: setEmployeId,
-        setCguid: setGuid
-      ).then((value) {
-        toDayDateAttendance(attendanceDateEmp);
-      });
-    } catch (e) { /* ignored */ }
+      await AttendanceApis()
+          .attendanceAddAdmin(
+            setweekoff: weekoff,
+            setRemarks: usedRemarks,
+            attendanceDate: attendanceDateEmp,
+            setInTime: attendanceTime,
+            setEmpid: setEmployeId,
+            setCguid: setGuid,
+          )
+          .then((value) {
+            toDayDateAttendance(attendanceDateEmp);
+          });
+    } catch (e) {
+      /* ignored */
+    }
   }
 
-  updatePunchOut({setattendanceid, setInTime, setOutTime, setEmpid, attendanceDate, updateInMood}) async {
+  updatePunchOut({
+    setattendanceid,
+    setInTime,
+    setOutTime,
+    setEmpid,
+    attendanceDate,
+    updateInMood,
+  }) async {
     String setGuidsss = generateCustomUuid();
     try {
-      await AttendanceApis().attenDanceUpdate(
-        attendanceid: setattendanceid,
-        setOutTime: setOutTime,
-        setEmpid: setEmpid,
-        attendanceDate: attendanceDate,
-        updateInMood: updateInMood,
-        setCguid: setGuidsss
-      ).then((value) {
-        toDayDateAttendance(attendanceDate);
-      });
-    } catch (e) { /* ignored */ }
+      await AttendanceApis()
+          .attenDanceUpdate(
+            attendanceid: setattendanceid,
+            setOutTime: setOutTime,
+            setEmpid: setEmpid,
+            attendanceDate: attendanceDate,
+            updateInMood: updateInMood,
+            setCguid: setGuidsss,
+          )
+          .then((value) {
+            toDayDateAttendance(attendanceDate);
+          });
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   //-----------------------   Update Log --------------------------- \\
-  Future updateLogsData({setattendanceGuid, setattendanceid, setattendanceTime, setattendancedate, setempids, setlogCjuid, setlogStatus, setlogid, setremarks, context}) async {
+  Future updateLogsData({
+    setattendanceGuid,
+    setattendanceid,
+    setattendanceTime,
+    setattendancedate,
+    setempids,
+    setlogCjuid,
+    setlogStatus,
+    setlogid,
+    setremarks,
+    context,
+  }) async {
     try {
-      await AttendanceApis().updatelogs(
-        attendanceGuid: setattendanceGuid,
-        attendanceid: setattendanceid,
-        attendanceTime: setattendanceTime,
-        attendancedate: setattendancedate,
-        empids: setempids,
-        logCjuid: setlogCjuid,
-        logStatus: setlogStatus,
-        logid: setlogid,
-        remarks: setremarks
-      ).then((value) {
-        AttendanceLogUpdate setresponse = value as AttendanceLogUpdate;
+      await AttendanceApis()
+          .updatelogs(
+            attendanceGuid: setattendanceGuid,
+            attendanceid: setattendanceid,
+            attendanceTime: setattendanceTime,
+            attendancedate: setattendancedate,
+            empids: setempids,
+            logCjuid: setlogCjuid,
+            logStatus: setlogStatus,
+            logid: setlogid,
+            remarks: setremarks,
+          )
+          .then((value) {
+            AttendanceLogUpdate setresponse = value as AttendanceLogUpdate;
 
-        if(setresponse.success == true) {
-          toDayDateAttendance(setattendancedate);
-          Navigator.pop(context);
-          Navigator.pop(context);
-        }
-      });
-    } catch (e) { /* ignored */ }
+            if (setresponse.success == true) {
+              toDayDateAttendance(setattendancedate);
+              Navigator.pop(context);
+              Navigator.pop(context);
+            }
+          });
+    } catch (e) {
+      /* ignored */
+    }
     notifyListeners();
   }
 
   //========================  Delete Log ===============================\\
   Future deletePunchlog({attendanceId, setEmpid, setLogId, setStatus}) async {
     try {
-      await AttendanceApis().deleteAttendanceLog(
-        attendanceId: attendanceId,
-        setEmpid: setEmpid,
-        setLogId: setLogId,
-        setStatus: setStatus
-      ).then((value) {
-        AttendanceLogDelete setResponse = value as AttendanceLogDelete;
-        if(setResponse.success == true) {
-          // Success, no action needed
-        }
-      });
-    } catch (e) { /* ignored */ }
+      await AttendanceApis()
+          .deleteAttendanceLog(
+            attendanceId: attendanceId,
+            setEmpid: setEmpid,
+            setLogId: setLogId,
+            setStatus: setStatus,
+          )
+          .then((value) {
+            AttendanceLogDelete setResponse = value as AttendanceLogDelete;
+            if (setResponse.success == true) {
+              // Success, no action needed
+            }
+          });
+    } catch (e) {
+      /* ignored */
+    }
     notifyListeners();
   }
 
@@ -713,89 +930,123 @@ class AdminAttenDanceServices extends ChangeNotifier {
   }
 
   Future leaveEditTypeSet(context, AllEmployeAttendance selectedEmp) async {
-    selectedPresent = selectedEmp.present != null ? selectedEmp.present! : false;
+    selectedPresent = selectedEmp.present != null
+        ? selectedEmp.present!
+        : false;
     selectedLeaveTypes = null;
     try {
-      await Provider.of<LeaveEmployeeeMastServices>(context, listen: false).getAdminLeaveData().then((value) {
-        if(selectedEmp.leaveCguid != null) {
-          Provider.of<LeaveEmployeeeMastServices>(context, listen: false).getAllleaveTypesList.forEach((element) {
-            if(selectedEmp.leaveTypeCguid == element.cguid) {
+      await Provider.of<LeaveEmployeeeMastServices>(
+        context,
+        listen: false,
+      ).getAdminLeaveData().then((value) {
+        if (selectedEmp.leaveCguid != null) {
+          Provider.of<LeaveEmployeeeMastServices>(
+            context,
+            listen: false,
+          ).getAllleaveTypesList.forEach((element) {
+            if (selectedEmp.leaveTypeCguid == element.cguid) {
               selectedLeaveTypes = element;
             }
           });
         }
       });
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
     notifyListeners();
   }
 
   Future applyLeaveData(context, AllEmployeAttendance selectedEmp) async {
-    if(selectedLeaveTypes != null) {
+    if (selectedLeaveTypes != null) {
       String setGuid = generateCustomUuid();
       try {
-        await Provider.of<LeaveMastServices>(context, listen: false).applyLeave(
-          setleaveTypeCguids: selectedLeaveTypes!.cguid,
-          setEmpid: selectedEmp.empId,
-          setDayTypes: 'Full Day',
-          setCguid: setGuid,
-          setFromDate: selectedEmp.attendenceDate.toString(),
-          setLeaveTypeId: selectedLeaveTypes!.leaveTypeId,
-          setLeaveYears: DateTime.now().year,
-          todate: selectedEmp.attendenceDate.toString(),
-          setLeavedes: 1,
-          setRemarks: '',
-          showToastmessages: false,
-          setLeavestatuss: 'A'
-        ).then((value) async {
-          if (value != null && value.success == true) {
-             String custIdBase = curentUser is Map ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '' : '';
-             String companyId = selectedcurentcompany?.companyId?.toString() ?? '';
-             String targetTopic = '${custIdBase}_${companyId}_${selectedEmp.empId}';
-             
-             String fName = selectedEmp.firstName ?? '';
-             String lName = selectedEmp.lastName ?? '';
-             String userName = '$fName $lName'.trim().toUpperCase();
-             
-             String titleName = 'USER $userName'.trim().toUpperCase();
-             
-             String formatDateStr(String? d) {
-               if (d == null || d.isEmpty) return '';
-               try {
-                 return DateFormat('dd/MM/yyyy').format(DateTime.parse(d));
-               } catch (_) {
-                 return d;
-               }
-             }
-             String formattedDate = formatDateStr(selectedEmp.attendenceDate?.toString());
-             
-             await EventsApiClass().sendPushNotification(
-               title: '$userName Leave Applied',
-               description: '$userName leave request for $formattedDate has been submitted.',
-               topicOverride: targetTopic,
-               custIdOverride: targetTopic,
-               topicTitleOverride: titleName,
-             );
-          }
-          Navigator.pop(context);
-          leaveEditTypeSet(context, selectedEmp);
-          toDayDateAttendance(currentMonth);
-        });
-      } catch (e) { /* ignored */ }
+        await Provider.of<LeaveMastServices>(context, listen: false)
+            .applyLeave(
+              setleaveTypeCguids: selectedLeaveTypes!.cguid,
+              setEmpid: selectedEmp.empId,
+              setDayTypes: 'Full Day',
+              setCguid: setGuid,
+              setFromDate: selectedEmp.attendenceDate.toString(),
+              setLeaveTypeId: selectedLeaveTypes!.leaveTypeId,
+              setLeaveYears: DateTime.now().year,
+              todate: selectedEmp.attendenceDate.toString(),
+              setLeavedes: 1,
+              setRemarks: '',
+              showToastmessages: false,
+              setLeavestatuss: 'A',
+            )
+            .then((value) async {
+              if (value != null && value.success == true) {
+                String custIdBase = curentUser is Map
+                    ? curentUser['CustId']?.toString() ??
+                          curentUser['custid']?.toString() ??
+                          ''
+                    : '';
+                String companyId =
+                    selectedcurentcompany?.companyId?.toString() ?? '';
+                String targetTopic =
+                    '${custIdBase}_${companyId}_${selectedEmp.empId}';
+
+                String fName = selectedEmp.firstName ?? '';
+                String lName = selectedEmp.lastName ?? '';
+                String userName = '$fName $lName'.trim().toUpperCase();
+
+                String titleName = 'USER $userName'.trim().toUpperCase();
+
+                String formatDateStr(String? d) {
+                  if (d == null || d.isEmpty) return '';
+                  try {
+                    return DateFormat('dd/MM/yyyy').format(DateTime.parse(d));
+                  } catch (_) {
+                    return d;
+                  }
+                }
+
+                String formattedDate = formatDateStr(
+                  selectedEmp.attendenceDate?.toString(),
+                );
+
+                await EventsApiClass().sendPushNotification(
+                  title: '$userName Leave Applied',
+                  description:
+                      '$userName leave request for $formattedDate has been submitted.',
+                  topicOverride: targetTopic,
+                  custIdOverride: targetTopic,
+                  topicTitleOverride: titleName,
+                );
+              }
+              Navigator.pop(context);
+              leaveEditTypeSet(context, selectedEmp);
+              toDayDateAttendance(currentMonth);
+            });
+      } catch (e) {
+        /* ignored */
+      }
       notifyListeners();
     }
   }
 
-  Future setAbsentEmployes({attendanceDate, attedanceid, setEmpid, context, setattendanceCguid}) async {
+  Future setAbsentEmployes({
+    attendanceDate,
+    attedanceid,
+    setEmpid,
+    context,
+    setattendanceCguid,
+  }) async {
     try {
-      await AttendanceApis().absentEmploye(
-        attendanceDate: attendanceDate,
-        setEmpid: setEmpid,
-        attendanceCguid: setattendanceCguid
-      ).then((value) {
-        Navigator.pop(context);
-        setCounters();
-        toDayDateAttendance(attendanceDate);
-      });
-    } catch (e) { /* ignored */ }
+      await AttendanceApis()
+          .absentEmploye(
+            attendanceDate: attendanceDate,
+            setEmpid: setEmpid,
+            attendanceCguid: setattendanceCguid,
+          )
+          .then((value) {
+            Navigator.pop(context);
+            setCounters();
+            toDayDateAttendance(attendanceDate);
+          });
+    } catch (e) {
+      /* ignored */
+    }
   }
 }

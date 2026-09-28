@@ -42,7 +42,6 @@ class _EventPageScreenState extends State<EventPageScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final eventsMastServices =  Provider.of<EventsMastServices>(context);
     Provider.of<LanguageProvider>(context);
     return Scaffold(

@@ -1,18 +1,12 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:tax_hrm/main.dart' show globalPrefs, iosWidgetPunchLaunch, androidWidgetLaunch;
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/page/bottom_bar_screen.dart';
 import 'package:tax_hrm/page/home/selfie_punch_screen.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/utils/navigation.dart';
-import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
-import 'package:tax_hrm/api/companiapi.dart';
-import 'package:tax_hrm/models/company/getallcompany.dart';
-import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';

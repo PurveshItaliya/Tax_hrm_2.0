@@ -4,7 +4,8 @@ final Map<String, String> bnTranslations = {
   'Leave': 'ছেড়ে দিন',
   'Setting': 'সেটিং',
   'Logout': 'লগআউট',
-  'Simpy Enter your Username & Password': 'সহজভাবে আপনার ব্যবহারকারীর নাম এবং পাসওয়ার্ড লিখুন',
+  'Simpy Enter your Username & Password':
+      'সহজভাবে আপনার ব্যবহারকারীর নাম এবং পাসওয়ার্ড লিখুন',
   'Username': 'ব্যবহারকারীর নাম',
   'Password': 'পাসওয়ার্ড',
   'Filed is Required': 'ফাইল করা আবশ্যক',
@@ -15,8 +16,10 @@ final Map<String, String> bnTranslations = {
   'Verify': 'যাচাই করুন',
   'Back': 'ফিরে',
   'Verification Code': 'যাচাইকরণ কোড',
-  'Choose how you want to receive your 6-digit verification code.': 'আপনি কীভাবে আপনার 6-সংখ্যার যাচাইকরণ কোড পেতে চান তা চয়ন করুন৷',
-  'A verification code has been sent to your registered ': 'আপনার নিবন্ধিত একটি যাচাইকরণ কোড পাঠানো হয়েছে',
+  'Choose how you want to receive your 6-digit verification code.':
+      'আপনি কীভাবে আপনার 6-সংখ্যার যাচাইকরণ কোড পেতে চান তা চয়ন করুন৷',
+  'A verification code has been sent to your registered ':
+      'আপনার নিবন্ধিত একটি যাচাইকরণ কোড পাঠানো হয়েছে',
   'Mobile': 'মোবাইল',
   'E-mail': 'ই-মেইল',
   'Salary Slip': 'বেতন স্লিপ',
@@ -315,7 +318,8 @@ final Map<String, String> bnTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +334,10 @@ final Map<String, String> bnTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +382,8 @@ final Map<String, String> bnTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +406,8 @@ final Map<String, String> bnTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +443,10 @@ final Map<String, String> bnTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +456,8 @@ final Map<String, String> bnTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -487,7 +498,8 @@ final Map<String, String> bnTranslations = {
   'Please enter custom event type': 'অনুগ্রহ করে কাস্টম ইভেন্টের ধরন লিখুন',
   'Attachments': 'সংযুক্তি',
   'Click to upload attachments': 'সংযুক্তি আপলোড করতে ক্লিক করুন',
-  'Supported: Images, PDF, Word, Excel files': 'সমর্থিত: ছবি, পিডিএফ, ওয়ার্ড, এক্সেল ফাইল',
+  'Supported: Images, PDF, Word, Excel files':
+      'সমর্থিত: ছবি, পিডিএফ, ওয়ার্ড, এক্সেল ফাইল',
   'Create Event': 'ইভেন্ট তৈরি করুন',
   'Event Type': 'ইভেন্টের ধরন',
   'Event Name': 'ইভেন্টের নাম',

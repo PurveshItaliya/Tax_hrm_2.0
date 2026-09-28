@@ -46,7 +46,6 @@ class _PaySlipMaterScreenState extends State<PaySlipMaterScreen> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final paySlipProviders = Provider.of<PaySlipProviders>(context);
     Provider.of<LanguageProvider>(context);
