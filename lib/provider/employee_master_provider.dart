@@ -113,6 +113,13 @@ class EmployeeMasterProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool isVisit = false;
+
+  void setVisit(bool value) {
+    isVisit = value;
+    notifyListeners();
+  }
+
    // Form keys and validation flags for sections
   final GlobalKey<FormState> accountFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> personalFormKey = GlobalKey<FormState>();
@@ -382,6 +389,7 @@ class EmployeeMasterProvider extends ChangeNotifier {
     esicController.clear();
     locationRadiusController.text = '50';
     isFetchLocation = false;
+    isVisit = false;
     faceRegisterId = null;
   }
 
@@ -787,6 +795,7 @@ String? get employeeImageUrl {
       officeLocation: selectOfficeLocation,
       locationRadius: locationRadiusController.text,
       isFetchLocation: isFetchLocation,
+      isVisitor: isVisit,
       faceRegisterId: faceRegisterId,
       setCguids: cguid, 
       listenRes: (val) async {
@@ -906,6 +915,7 @@ String? get employeeImageUrl {
   final bool userStatusToSend = isEditingAdmin ? (selectedEmploye?.isActive ?? true) : isActive;
   final bool punchAllowedToSend = isEditingAdmin ? (selectedEmploye?.punchAllowed ?? true) : punchAllowed;
   final bool fetchLocationToSend = isEditingAdmin ? (selectedEmploye?.isFetchLocation ?? false) : isFetchLocation;
+  final bool visitToSend = isEditingAdmin ? (selectedEmploye?.isVisitor ?? false) : isVisit;
   final String locationRadiusToSend = isEditingAdmin ? (selectedEmploye?.locationRadius?.toString() ?? '50') : (locationRadiusController.text.isNotEmpty ? locationRadiusController.text : (selectedEmploye?.locationRadius?.toString() ?? '50'));
   final String workTypeToSend = !showOffice ? (selectedEmploye?.workType ?? '') : (selectWorkType.isNotEmpty ? selectWorkType : (selectedEmploye?.workType ?? ''));
   final String officeLocationToSend = !showOffice ? (selectedEmploye?.officeLocation ?? '') : (selectOfficeLocation.isNotEmpty ? selectOfficeLocation : (selectedEmploye?.officeLocation ?? ''));
@@ -954,6 +964,7 @@ String? get employeeImageUrl {
   officeLocation: officeLocationToSend,
   locationRadius: locationRadiusToSend,
   isFetchLocation: fetchLocationToSend,
+  isVisitor: visitToSend,
   faceRegisterId: faceRegisterId,
   setCguids: cguid,
   removeImage: _removeProfileImage,
@@ -979,6 +990,7 @@ void populateEmployeeData(Employeelists? employee, BuildContext context) {
   _profileImage = null;
   _removeProfileImage = false;
   faceRegisterId = employee.faceRegisterId?.toString() ?? '';
+  isVisit = employee.isVisitor ?? false;
   
   // Set basic info (same as above)
   firstNameController.text = employee.firstName ?? '';
