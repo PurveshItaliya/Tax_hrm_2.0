@@ -12,18 +12,18 @@ import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 class FaceRecognitionService {
-  Interpreter? _recognitionInterpreter;
-  Interpreter? _livenessInterpreter;
-  bool _isInitialized = false;
+  Interpreter? recognitionInterpreter;
+  Interpreter? livenessInterpreter;
+  bool isInitialized = false;
 
-  void _log(String message) {
+  void log(String message) {
     debugPrint("[FaceRecognitionService] $message");
   }
 
-  final String _recModelPath = 'assets/models/mobilefacenet.tflite';
-  final String _fasModelPath = 'assets/models/fas.tflite';
+  final String recModelPath = 'assets/models/mobilefacenet.tflite';
+  final String fasModelPath = 'assets/models/fas.tflite';
 
-  final FaceDetector _faceDetector = FaceDetector(
+  final FaceDetector faceDetector = FaceDetector(
     options: FaceDetectorOptions(
       enableContours: false,
       enableLandmarks: false,
@@ -38,39 +38,39 @@ class FaceRecognitionService {
   static const bool useMockModels = false;
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (isInitialized) return;
 
-    _log("Initializing models. useMockModels: $useMockModels");
+    log("Initializing models. useMockModels: $useMockModels");
     if (useMockModels) {
-      _recognitionInterpreter = null;
-      _livenessInterpreter = null;
+      recognitionInterpreter = null;
+      livenessInterpreter = null;
     } else {
       try {
-        _recognitionInterpreter = await Interpreter.fromAsset(_recModelPath);
-        _log("Recognition model loaded successfully.");
+        recognitionInterpreter = await Interpreter.fromAsset(recModelPath);
+        log("Recognition model loaded successfully.");
       } catch (e) {
-        _log("Error loading recognition model: $e");
+        log("Error loading recognition model: $e");
         debugPrint("Error loading recognition model: $e");
       }
 
       try {
-        _livenessInterpreter = await Interpreter.fromAsset(_fasModelPath);
-        _log("Liveness model loaded successfully.");
+        livenessInterpreter = await Interpreter.fromAsset(fasModelPath);
+        log("Liveness model loaded successfully.");
       } catch (e) {
-        _log("Error loading liveness model: $e");
+        log("Error loading liveness model: $e");
         debugPrint("Error loading liveness model: $e");
       }
     }
 
-    _isInitialized = true;
-    _log("Initialization complete.");
+    isInitialized = true;
+    log("Initialization complete.");
   }
 
   void dispose() {
-    _log("Disposing FaceRecognitionService.");
-    _faceDetector.close();
-    _recognitionInterpreter?.close();
-    _livenessInterpreter?.close();
+    log("Disposing FaceRecognitionService.");
+    faceDetector.close();
+    recognitionInterpreter?.close();
+    livenessInterpreter?.close();
   }
 
   /// Convert CameraImage to ML Kit InputImage
@@ -121,7 +121,7 @@ class FaceRecognitionService {
   }
 
   Future<List<Face>> detectFaces(InputImage inputImage) async {
-    return await _faceDetector.processImage(inputImage);
+    return await faceDetector.processImage(inputImage);
   }
 
   /// Validates a face for enrollment or punch (size, angle, single face)
@@ -248,7 +248,7 @@ class FaceRecognitionService {
   }
 
   /// Preprocess image for TFLite (resize, normalize)
-  static Float32List _imageToByteListFloat32Static(
+  static Float32List imageToByteListFloat32Static(
     img.Image image,
     int inputSize,
     double mean,
@@ -296,7 +296,7 @@ class FaceRecognitionService {
         height: 80,
       );
       
-      return _imageToByteListFloat32Static(resized, 80, 0.0, 1.0);
+      return imageToByteListFloat32Static(resized, 80, 0.0, 1.0);
     } catch (e) {
       debugPrint("Isolate Liveness Error: $e");
       return null;
@@ -330,7 +330,7 @@ class FaceRecognitionService {
       }
 
       final resized = img.copyResize(normalizedCrop, width: 112, height: 112);
-      return _imageToByteListFloat32Static(resized, 112, 127.5, 127.5);
+      return imageToByteListFloat32Static(resized, 112, 127.5, 127.5);
     } catch (e) {
       debugPrint("Isolate Recognition Error: $e");
       return null;
@@ -343,13 +343,13 @@ class FaceRecognitionService {
     Face face,
     CameraDescription camera,
   ) async {
-    _log("checkLiveness called for face boundingBox: ${face.boundingBox}");
-    if (!_isInitialized) {
-      _log("Error: Service not initialized before calling checkLiveness");
+    log("checkLiveness called for face boundingBox: ${face.boundingBox}");
+    if (!isInitialized) {
+      log("Error: Service not initialized before calling checkLiveness");
       return false;
     }
-    if (_livenessInterpreter == null) {
-      _log("Warning: Liveness interpreter is null, bypassing liveness check.");
+    if (livenessInterpreter == null) {
+      log("Warning: Liveness interpreter is null, bypassing liveness check.");
       return true; // Mock live
     }
 
@@ -362,7 +362,7 @@ class FaceRecognitionService {
       }));
       
       if (processedInput == null) {
-        _log("Error: _processLivenessIsolate returned null");
+        log("Error: _processLivenessIsolate returned null");
         return false;
       }
 
@@ -372,13 +372,13 @@ class FaceRecognitionService {
         0.0,
       ).reshape([1, 3]); // Output: [fake_score_1, real_score, fake_score_2]
 
-      _livenessInterpreter!.run(input, output);
+      livenessInterpreter!.run(input, output);
 
       double fakeScore1 = output[0][0];
       double realScore = output[0][1];
       double fakeScore2 = output[0][2];
 
-      _log("Liveness scores - real: $realScore, fake1: $fakeScore1, fake2: $fakeScore2");
+      log("Liveness scores - real: $realScore, fake1: $fakeScore1, fake2: $fakeScore2");
 
       // The class with the highest score is the prediction
       if (realScore > fakeScore1 && realScore > fakeScore2) {
@@ -386,7 +386,7 @@ class FaceRecognitionService {
       }
       return false;
     } catch (e) {
-      _log("Liveness check error: $e");
+      log("Liveness check error: $e");
       debugPrint("CheckLiveness Error: $e");
       return false;
     }
@@ -398,9 +398,9 @@ class FaceRecognitionService {
     Face face,
     CameraDescription camera,
   ) async {
-    _log("generateFaceEmbedding called for boundingBox: ${face.boundingBox}");
-    if (!_isInitialized) {
-      _log("Error: Service not initialized before calling generateFaceEmbedding");
+    log("generateFaceEmbedding called for boundingBox: ${face.boundingBox}");
+    if (!isInitialized) {
+      log("Error: Service not initialized before calling generateFaceEmbedding");
       return null;
     }
     try {
@@ -409,31 +409,31 @@ class FaceRecognitionService {
         'cameraImage': cameraImage,
         'sensorOrientation': camera.sensorOrientation,
         'boundingBox': face.boundingBox,
-        'hasInterpreter': _recognitionInterpreter != null,
+        'hasInterpreter': recognitionInterpreter != null,
       }));
       
       if (processedResult == null) {
-        _log("Error: _processRecognitionIsolate returned null");
+        log("Error: _processRecognitionIsolate returned null");
         return null;
       }
       
-      if (_recognitionInterpreter == null) {
+      if (recognitionInterpreter == null) {
         final res = processedResult as List<double>;
-        _log("Face embedding generated (mock/pseudo). Length: ${res.length}");
+        log("Face embedding generated (mock/pseudo). Length: ${res.length}");
         return res; // pseudoEmbedding is already a List<double>
       }
 
       var input = (processedResult as Float32List).reshape([1, 112, 112, 3]);
       var output = List.filled(1 * 192, 0.0).reshape([1, 192]);
 
-      _recognitionInterpreter!.run(input, output);
+      recognitionInterpreter!.run(input, output);
 
       List<double> embedding = List<double>.from(output[0]);
       final normalized = _l2NormalizeStatic(embedding);
-      _log("Face embedding generated. Length: ${normalized.length}");
+      log("Face embedding generated. Length: ${normalized.length}");
       return normalized;
     } catch (e) {
-      _log("generateFaceEmbedding error: $e");
+      log("generateFaceEmbedding error: $e");
       debugPrint("generateFaceEmbedding Error: $e");
       return null;
     }
@@ -441,9 +441,9 @@ class FaceRecognitionService {
 
   /// Generate embedding vector for a static File
   Future<List<double>?> generateFaceEmbeddingFromFile(File file) async {
-    _log("generateFaceEmbeddingFromFile called for file: ${file.path}");
-    if (!_isInitialized) {
-      _log("Error: Service not initialized before calling generateFaceEmbeddingFromFile");
+    log("generateFaceEmbeddingFromFile called for file: ${file.path}");
+    if (!isInitialized) {
+      log("Error: Service not initialized before calling generateFaceEmbeddingFromFile");
       return null;
     }
     try {
@@ -451,14 +451,14 @@ class FaceRecognitionService {
       final faces = await detectFaces(inputImage);
 
       if (faces.isEmpty) {
-        _log("No face detected in the file.");
+        log("No face detected in the file.");
         return null;
       }
 
       final imageBytes = await file.readAsBytes();
       final image = img.decodeImage(imageBytes);
       if (image == null) {
-        _log("Error: Failed to decode image from bytes.");
+        log("Error: Failed to decode image from bytes.");
         return null;
       }
 
@@ -467,7 +467,7 @@ class FaceRecognitionService {
       // Normalize lighting for better detection across different lighting conditions
       final normalizedCrop = img.normalize(faceCrop, min: 0, max: 255);
 
-      if (_recognitionInterpreter == null) {
+      if (recognitionInterpreter == null) {
         final resized = img.copyResize(normalizedCrop, width: 8, height: 24);
         List<double> pseudoEmbedding = [];
         for (int i = 0; i < 24; i++) {
@@ -478,12 +478,12 @@ class FaceRecognitionService {
           }
         }
         final normalized = _l2NormalizeStatic(pseudoEmbedding);
-        _log("Static file embedding generated (mock/pseudo). Length: ${normalized.length}");
+        log("Static file embedding generated (mock/pseudo). Length: ${normalized.length}");
         return normalized;
       }
 
       final resized = img.copyResize(normalizedCrop, width: 112, height: 112);
-      var input = _imageToByteListFloat32Static(
+      var input = imageToByteListFloat32Static(
         resized,
         112,
         127.5,
@@ -491,14 +491,14 @@ class FaceRecognitionService {
       ).reshape([1, 112, 112, 3]);
       var output = List.filled(1 * 192, 0.0).reshape([1, 192]);
 
-      _recognitionInterpreter!.run(input, output);
+      recognitionInterpreter!.run(input, output);
 
       List<double> embedding = List<double>.from(output[0]);
       final normalized = _l2NormalizeStatic(embedding);
-      _log("Static file embedding generated. Length: ${normalized.length}");
+      log("Static file embedding generated. Length: ${normalized.length}");
       return normalized;
     } catch (e) {
-      _log("generateFaceEmbeddingFromFile error: $e");
+      log("generateFaceEmbeddingFromFile error: $e");
       debugPrint("generateFaceEmbeddingFromFile Error: $e");
       return null;
     }
@@ -506,13 +506,20 @@ class FaceRecognitionService {
 
   /// Encode array to Base64
   String embeddingToBase64(List<double> embedding) {
-    final bytes = Float64List.fromList(embedding).buffer.asUint8List();
+    final float32List = Float32List(embedding.length);
+    for (int i = 0; i < embedding.length; i++) {
+      float32List[i] = embedding[i];
+    }
+    final bytes = float32List.buffer.asUint8List();
     return base64Encode(bytes);
   }
 
   /// Decode Base64 to array
   List<double> embeddingFromBase64(String base64Str) {
     final bytes = base64Decode(base64Str);
+    if (bytes.length == 768) {
+      return bytes.buffer.asFloat32List().map((e) => e.toDouble()).toList();
+    }
     return bytes.buffer.asFloat64List().toList();
   }
 

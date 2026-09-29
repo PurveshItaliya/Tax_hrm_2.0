@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'package:camera/camera.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -250,8 +251,11 @@ class SelfiePunchProvider extends ChangeNotifier {
       debugPrint("STARTCAMERA: 13. Initializing new controller");
       final newController = CameraController(
         selectedCamera,
-        ResolutionPreset.high,
+        ResolutionPreset.medium,
         enableAudio: false,
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
       );
       await newController.initialize();
 
@@ -368,8 +372,11 @@ class SelfiePunchProvider extends ChangeNotifier {
 
     final newController = CameraController(
       newCamera,
-      ResolutionPreset.high,
+      ResolutionPreset.medium,
       enableAudio: false,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
     );
     cameraController = newController;
 
@@ -438,10 +445,13 @@ class SelfiePunchProvider extends ChangeNotifier {
   Future<File> flipCapturedImage(File file) async {
     try {
       final bytes = await file.readAsBytes();
-      final originalImage = img.decodeImage(bytes);
-      if (originalImage == null) return file;
-      img.Image flippedImage = img.flipHorizontal(originalImage);
-      final fixedBytes = img.encodeJpg(flippedImage);
+      final fixedBytes = await Isolate.run(() {
+        final originalImage = img.decodeImage(bytes);
+        if (originalImage == null) return bytes;
+        final flippedImage = img.flipHorizontal(originalImage);
+        return img.encodeJpg(flippedImage);
+      });
+      if (fixedBytes == bytes) return file;
       final newFile = File(file.path)..writeAsBytesSync(fixedBytes);
       return newFile;
     } catch (e) {
@@ -1566,7 +1576,9 @@ class SelfiePunchProvider extends ChangeNotifier {
 
     setPunchLoader(true);
     try {
-      await shiftMasterDataGet(context);
+      // Fetch shift data in the background while processing face
+      final shiftDataFuture = shiftMasterDataGet(context);
+
 
       String punchTypeString =
           (checkStatus == null ||
@@ -1584,43 +1596,6 @@ class SelfiePunchProvider extends ChangeNotifier {
           ? 'IN'
           : (checkStatus!.attendenceLog!.last.status == 'IN' ? 'OUT' : 'IN');
 
-      // ── Flash overlay before capturing image if dark ──
-      if (isDarkEnvironment && isFrontCamera) {
-        showFlashOverlay = true;
-        notifyListeners();
-        
-        try {
-          await cameraController!.setFlashMode(FlashMode.torch);
-        } catch (_) {}
-        
-        // Wait for screen to brighten and camera to adjust
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-
-      await takePicture();
-      
-      if (showFlashOverlay) {
-        showFlashOverlay = false;
-        notifyListeners();
-      }
-
-      if (imageFile == null) {
-        showtoastmessage(cameraImageNotCapturedString);
-        setPunchLoader(false);
-        return;
-      }
-
-      File sendImg = await flipCapturedImage(imageFile!);
-
-      // ── Persist selfie to permanent storage immediately after capture ───────
-      // This ensures the image survives OS temp-file cleanup before sync.
-      lastPersistedSelfiePath =
-          await OfflinePunchSyncService.persistSelfieImage(sendImg.path);
-      // ────────────────────────────────────────────────────────────────────────
-
-      // We DO NOT flip the image yet. ML Kit relies on the original EXIF orientation
-      // provided by the camera to detect the face correctly!
-
       // --- Face Verification Intercept (Silent, in-screen) ---
       bool isVerified = true;
       try {
@@ -1631,15 +1606,19 @@ class SelfiePunchProvider extends ChangeNotifier {
             debugPrint("[SelfiePunchProvider] Face verification failed: No registered FaceId.");
             isVerified = false; // Strictly enforce face registration
           } else {
-            debugPrint("[SelfiePunchProvider] Starting face verification for FaceId: $faceId");
+            debugPrint("[SelfiePunchProvider] Starting live stream face verification for FaceId: $faceId");
             final faceProvider = Provider.of<FaceVerificationProvider>(
               context,
               listen: false,
             );
-            isVerified = await faceProvider.verifyStaticFile(
-              imageFile!,
-              faceId.toString(),
-            );
+            if (cameraController != null && cameraController!.value.isInitialized) {
+              isVerified = await faceProvider.verifyLiveStream(
+                cameraController!,
+                faceId.toString(),
+              );
+            } else {
+              isVerified = false;
+            }
             debugPrint("[SelfiePunchProvider] Face verification result: $isVerified");
           }
         } else {
@@ -1731,8 +1710,32 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
       // -----------------------------------
 
-      // Now flip it before uploading to server
-      sendImg = await flipCapturedImage(imageFile!);
+      // Wait for shift data before taking picture and proceeding
+      await shiftDataFuture;
+
+      // Restart camera preview if it was stopped by the verification stream
+      if (cameraController != null && cameraController!.value.isInitialized) {
+        try {
+          // ensure preview is running
+          await cameraController!.resumePreview();
+        } catch (_) {}
+      }
+
+      await takePicture();
+
+      if (imageFile == null) {
+        showtoastmessage(cameraImageNotCapturedString);
+        setPunchLoader(false);
+        return;
+      }
+
+      File sendImg = await flipCapturedImage(imageFile!);
+
+      // ── Persist selfie to permanent storage immediately after capture ───────
+      // This ensures the image survives OS temp-file cleanup before sync.
+      lastPersistedSelfiePath =
+          await OfflinePunchSyncService.persistSelfieImage(sendImg.path);
+      // ────────────────────────────────────────────────────────────────────────
 
       await onTapPunchs(context, currentDay, punchTypeString, isFromWidget);
       setPunchLoader(false); // Hide the loading screen behind the dialog
