@@ -88,6 +88,7 @@ class Employeelists {
   bool? isFetchLocation;
   dynamic faceRegisterId;
   bool? punchAllowed;
+  bool? isVisitor;
 
   Employeelists({
     this.id,
@@ -156,6 +157,7 @@ class Employeelists {
     this.isFetchLocation,
     this.faceRegisterId,
     this.punchAllowed,
+    this.isVisitor,
   });
 
   Employeelists.fromJson(Map<String, dynamic> json) {
@@ -224,6 +226,7 @@ class Employeelists {
     isFetchLocation = json['IsFetchLocation'] ?? json['isFetchLocation'];
     faceRegisterId = json['FaceRegisterId'];
     punchAllowed = json['PunchAllowed'];
+    isVisitor = json['IsVisitor'] ?? json['isVisitor'];
   }
 
   Map<String, dynamic> toJson() {
@@ -294,6 +297,7 @@ class Employeelists {
     data['IsFetchLocation'] = isFetchLocation;
     data['FaceRegisterId '] = faceRegisterId;
     data['PunchAllowed'] = punchAllowed;
+    data['IsVisitor'] = isVisitor;
     return data;
   }
 }

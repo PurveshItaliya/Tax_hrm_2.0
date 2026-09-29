@@ -107,6 +107,7 @@ class Employeeclass {
     locationRadius,
     isFetchLocation,
     faceRegisterId,
+    isVisitor,
     required Function(dynamic val) listenRes,
   }) async {
     var url = Uri.parse('${apibaseurl}api/Master/CreateEmp');
@@ -165,6 +166,7 @@ class Employeeclass {
         "LocationRadius": locationRadius?.toString() ?? '50',
         "IsFetchLocation": isFetchLocation?.toString() ?? 'false',
         "FaceRegisterId": faceRegisterId?.toString() ?? '',
+        "IsVisitor": isVisitor?.toString() ?? 'false',
       };
 
       var req = http.MultipartRequest("POST", url);
@@ -240,6 +242,7 @@ class Employeeclass {
     isFetchLocation,
     setCguids,
     faceRegisterId,
+    isVisitor,
     bool removeImage = false,
     required Function(dynamic val) listenRes,
   }) async {
@@ -300,6 +303,7 @@ class Employeeclass {
       "LocationRadius": locationRadius?.toString() ?? '50',
       "IsFetchLocation": isFetchLocation?.toString() ?? 'false',
       "FaceRegisterId": faceRegisterId?.toString() ?? '',
+      "IsVisitor": isVisitor?.toString() ?? 'false',
     };
 
     if (removeImage) {

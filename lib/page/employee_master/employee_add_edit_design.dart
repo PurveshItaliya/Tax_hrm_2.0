@@ -884,6 +884,53 @@ Widget _accountTab(EmployeeMasterProvider provider, Size size, context) {
           ],
         ),
 
+        const SizedBox(height: 18),
+
+        /// VISIT SETTINGS
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildLabeledField(
+                label: 'Visit',
+                child: Container(
+                  height: 50.0,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: ColorConst.textBorder,
+                      width: 1.3,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12.0),
+                        child: Text(
+                          provider.isVisit
+                              ? enabledString
+                              : disabledString,
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                      ),
+                      Switch(
+                        value: provider.isVisit,
+                        activeColor: ColorConst.themeColor,
+                        onChanged: (value) {
+                          provider.setVisit(value);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: SizedBox()),
+          ],
+        ),
+
         const SizedBox(height: 15),
 
         _buildStatusSection(provider),
