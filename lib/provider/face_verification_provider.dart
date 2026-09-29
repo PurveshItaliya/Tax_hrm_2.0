@@ -12,8 +12,8 @@ import 'package:tax_hrm/page/face_registation/face_recognition_service.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 
 class FaceVerificationProvider extends ChangeNotifier {
-  final FaceRecognitionService _recognitionService = FaceRecognitionService();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+  final FaceRecognitionService recognitionService = FaceRecognitionService();
+  final FlutterSecureStorage secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(
       encryptedSharedPreferences: true,
     ),
@@ -26,12 +26,12 @@ class FaceVerificationProvider extends ChangeNotifier {
 
   // Multi-step Enrollment
   int enrollmentStep = 0;
-  List<List<double>> _enrollmentEmbeddings = [];
+  List<List<double>> enrollmentEmbeddings = [];
 
   // Camera
   CameraController? cameraController;
   bool isProcessingFrame = false;
-  Stopwatch _stabilityStopwatch = Stopwatch();
+  Stopwatch stabilityStopwatch = Stopwatch();
 
   // Persistent Settings
   bool isFacePunchEnabled = false;
@@ -45,12 +45,12 @@ class FaceVerificationProvider extends ChangeNotifier {
   // Constants
   static const double THRESHOLD =
       0.65; // Cosine similarity threshold for MobileFaceNet
-  final String _templateKeyPrefix = 'face_template_v2_'; // Append empId
+  final String templateKeyPrefix = 'face_template_v2_'; // Append empId
 
   // Logs
   List<String> logs = [];
 
-  void _log(String message) {
+  void log(String message) {
     logs.add("${DateTime.now().toIso8601String().split('T').last}: $message");
     debugPrint("[FaceVerificationProvider] $message");
     // Notify listeners if needed for UI, but usually not necessary unless debugging
@@ -60,46 +60,47 @@ class FaceVerificationProvider extends ChangeNotifier {
   Future<Map<String, String>> getAllEnrolledFaces() async {
     Map<String, String> allValues = {};
     try {
-      allValues = await _secureStorage.readAll();
+      allValues = await secureStorage.readAll();
     } catch (e) {
-      _log("Secure storage readAll failed (likely corrupted key). Deleting all data. Error: $e");
+      log("Secure storage readAll failed (likely corrupted key). Deleting all data. Error: $e");
       try {
-        await _secureStorage.deleteAll();
+        await secureStorage.deleteAll();
       } catch (_) {}
     }
 
     final faces = <String, String>{};
     allValues.forEach((key, value) {
-      if (key.startsWith(_templateKeyPrefix)) {
-        String empId = key.substring(_templateKeyPrefix.length);
+      if (key.startsWith(templateKeyPrefix)) {
+        String empId = key.substring(templateKeyPrefix.length);
         faces[empId] = value;
       }
     });
     return faces;
   }
 
-  void _setState(
+  void setState(
     FaceProcessState state, {
     FaceErrorReason error = FaceErrorReason.none,
   }) {
     if (currentState == state && currentError == error) return;
     currentState = state;
     currentError = error;
-    _log("State changed to: $state, Error: $error");
+    log("State changed to: $state, Error: $error");
     notifyListeners();
   }
 
   // ---- CAMERA MANAGEMENT ----
   Future<void> initCamera({required bool forEnrollment}) async {
-    _setState(FaceProcessState.initializing);
-    _log("Initializing camera. For enrollment: $forEnrollment");
+    setState(FaceProcessState.initializing);
+    log("Initializing camera. For enrollment: $forEnrollment");
+    await recognitionService.initialize();
     enrollmentStep = 0;
-    _enrollmentEmbeddings.clear();
+    enrollmentEmbeddings.clear();
 
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
-        _setState(
+        setState(
           FaceProcessState.failed,
           error: FaceErrorReason.cameraUnavailable,
         );
@@ -121,22 +122,22 @@ class FaceVerificationProvider extends ChangeNotifier {
       );
 
       await cameraController!.initialize();
-      _setState(FaceProcessState.idle);
+      setState(FaceProcessState.idle);
 
-      _log("Camera initialized. Starting image stream.");
-      _stabilityStopwatch.reset();
+      log("Camera initialized. Starting image stream.");
+      stabilityStopwatch.reset();
 
       // Maximize screen brightness for face detection
       try {
         await ScreenBrightness().setScreenBrightness(1.0);
       } catch (e) {
-        _log("Could not set screen brightness: $e");
+        log("Could not set screen brightness: $e");
       }
 
       bool firstFrame = true;
       cameraController!.startImageStream((image) {
         if (firstFrame) {
-          _log(
+          log(
             "Received first frame from camera! Size: ${image.width}x${image.height}",
           );
           firstFrame = false;
@@ -145,15 +146,15 @@ class FaceVerificationProvider extends ChangeNotifier {
         if (!isProcessingFrame) {
           isProcessingFrame = true;
           if (forEnrollment) {
-            _processEnrollmentFrame(image, frontCamera);
+            processEnrollmentFrame(image, frontCamera);
           } else {
-            _processVerificationFrame(image, frontCamera);
+            processVerificationFrame(image, frontCamera);
           }
         }
       });
     } catch (e) {
-      _log("Camera init error: $e");
-      _setState(
+      log("Camera init error: $e");
+      setState(
         FaceProcessState.failed,
         error: FaceErrorReason.cameraUnavailable,
       );
@@ -161,18 +162,18 @@ class FaceVerificationProvider extends ChangeNotifier {
   }
 
   Future<void> stopCamera() async {
-    _log("Stopping camera");
+    log("Stopping camera");
     final controller = cameraController;
     cameraController = null;
     isProcessingFrame = false;
-    _stabilityStopwatch.stop();
-    _setState(FaceProcessState.idle);
+    stabilityStopwatch.stop();
+    setState(FaceProcessState.idle);
 
     // Restore original screen brightness
     try {
       await ScreenBrightness().resetScreenBrightness();
     } catch (e) {
-      _log("Could not reset screen brightness: $e");
+      log("Could not reset screen brightness: $e");
     }
 
     if (controller != null) {
@@ -184,15 +185,15 @@ class FaceVerificationProvider extends ChangeNotifier {
   }
 
   void retry() {
-    _log("Retry called");
+    log("Retry called");
     enrollmentStep = 0;
-    _enrollmentEmbeddings.clear();
-    _setState(FaceProcessState.idle);
+    enrollmentEmbeddings.clear();
+    setState(FaceProcessState.idle);
   }
 
   // ---- ENROLLMENT FLOW ----
 
-  Future<void> _processEnrollmentFrame(
+  Future<void> processEnrollmentFrame(
     CameraImage image,
     CameraDescription camera,
   ) async {
@@ -203,8 +204,8 @@ class FaceVerificationProvider extends ChangeNotifier {
     }
 
     try {
-      _setState(FaceProcessState.detectingFace);
-      final inputImage = _recognitionService.convertCameraImageToInputImage(
+      setState(FaceProcessState.detectingFace);
+      final inputImage = recognitionService.convertCameraImageToInputImage(
         image,
         camera,
       );
@@ -212,17 +213,17 @@ class FaceVerificationProvider extends ChangeNotifier {
         isProcessingFrame = false;
         return;
       }
-      final faces = await _recognitionService.detectFaces(inputImage);
+      final faces = await recognitionService.detectFaces(inputImage);
 
-      final error = _recognitionService.validateFaceQuality(
+      final error = recognitionService.validateFaceQuality(
         faces,
         Size(image.width.toDouble(), image.height.toDouble()),
       );
       if (error != null) {
-        _stabilityStopwatch.stop();
-        _setState(
+        stabilityStopwatch.stop();
+        setState(
           FaceProcessState.detectingFace,
-          error: _parseErrorReason(error),
+          error: parseErrorReason(error),
         );
         isProcessingFrame = false;
         return;
@@ -230,15 +231,15 @@ class FaceVerificationProvider extends ChangeNotifier {
 
       final face = faces.first;
       
-      _setState(FaceProcessState.checkingLiveness);
-      bool isLive = await _recognitionService.checkLiveness(
+      setState(FaceProcessState.checkingLiveness);
+      bool isLive = await recognitionService.checkLiveness(
         image,
         face,
         camera,
       );
       if (!isLive) {
-        _stabilityStopwatch.stop();
-        _setState(
+        stabilityStopwatch.stop();
+        setState(
           FaceProcessState.detectingFace,
           error: FaceErrorReason.spoofDetected,
         );
@@ -246,51 +247,49 @@ class FaceVerificationProvider extends ChangeNotifier {
         return;
       }
 
-      _setState(FaceProcessState.faceDetected);
+      setState(FaceProcessState.faceDetected);
 
-      if (!_stabilityStopwatch.isRunning) _stabilityStopwatch.start();
+      if (!stabilityStopwatch.isRunning) stabilityStopwatch.start();
 
       int requiredDelay = enrollmentStep == 0 ? 500 : 1000;
-      if (_stabilityStopwatch.elapsedMilliseconds < requiredDelay) {
+      if (stabilityStopwatch.elapsedMilliseconds < requiredDelay) {
         // Wait for stability / movement validation
         isProcessingFrame = false;
         return;
       }
 
-      _setState(FaceProcessState.recognizing);
-      final embedding = await _recognitionService.generateFaceEmbedding(
+      setState(FaceProcessState.recognizing);
+      final embedding = await recognitionService.generateFaceEmbedding(
         image,
         face,
         camera,
       );
       if (embedding == null) {
-        _setState(
+        setState(
           FaceProcessState.failed,
           error: FaceErrorReason.modelInitFailed,
         );
         return;
       }
 
-      _enrollmentEmbeddings.add(embedding);
+      enrollmentEmbeddings.add(embedding);
       enrollmentStep++;
 
-      _log("Enrollment step $enrollmentStep completed successfully.");
+      log("Enrollment step $enrollmentStep completed successfully.");
 
       if (enrollmentStep < 3) {
-        _log("Waiting for next enrollment step...");
+        log("Waiting for next enrollment step...");
         // We need more steps. Reset the stopwatch to wait 500ms for the next frame.
-        _stabilityStopwatch.reset();
-        _stabilityStopwatch.start();
+        stabilityStopwatch.reset();
+        stabilityStopwatch.start();
         // Force state update to notify UI of step progress
         notifyListeners();
         return; // Exit and process next frames
       }
 
-      _log("All 3 enrollment steps completed. Formatting to JSON...");
+      log("All 3 enrollment steps completed. Formatting to JSON...");
 
-      String jsonStr = _recognitionService.embeddingToBase64(
-        _enrollmentEmbeddings.first,
-      );
+      String jsonStr = jsonEncode(enrollmentEmbeddings.map((e) => recognitionService.embeddingToBase64(e)).toList());
 
       // Store the registered template to be accessed by UI/APIs
       registeredFaceTemplate = jsonStr;
@@ -301,32 +300,32 @@ class FaceVerificationProvider extends ChangeNotifier {
       try {
         String empId = curentUser?['Id']?.toString() ?? 'UNKNOWN';
         if (empId != 'UNKNOWN') {
-          _log("Saving embeddings JSON to secure storage for user: $empId");
-          await _secureStorage.write(
-            key: _templateKeyPrefix + empId,
+          log("Saving embeddings JSON to secure storage for user: $empId");
+          await secureStorage.write(
+            key: templateKeyPrefix + empId,
             value: jsonStr,
           );
         }
       } catch (e) {
-        _log("Failed to save to secure storage: $e");
+        log("Failed to save to secure storage: $e");
       }
 
-      _log("Face successfully registered.");
+      log("Face successfully registered.");
       isSyncing =
           true; // Show loader immediately on success screen while API sync runs
-      _setState(FaceProcessState.success);
+      setState(FaceProcessState.success);
       stopCamera();
     } catch (e) {
-      _log("Enrollment frame error: $e");
+      log("Enrollment frame error: $e");
     } finally {
       isProcessingFrame = false;
     }
   }
 
   // ---- VERIFICATION FLOW ----
-  int _consecutiveLiveFrames = 0;
+  int consecutiveLiveFrames = 0;
 
-  Future<void> _processVerificationFrame(
+  Future<void> processVerificationFrame(
     CameraImage image,
     CameraDescription camera,
   ) async {
@@ -339,8 +338,8 @@ class FaceVerificationProvider extends ChangeNotifier {
     }
 
     try {
-      _setState(FaceProcessState.detectingFace);
-      final inputImage = _recognitionService.convertCameraImageToInputImage(
+      setState(FaceProcessState.detectingFace);
+      final inputImage = recognitionService.convertCameraImageToInputImage(
         image,
         camera,
       );
@@ -348,40 +347,40 @@ class FaceVerificationProvider extends ChangeNotifier {
         isProcessingFrame = false;
         return;
       }
-      final faces = await _recognitionService.detectFaces(inputImage);
+      final faces = await recognitionService.detectFaces(inputImage);
 
-      final error = _recognitionService.validateFaceQuality(
+      final error = recognitionService.validateFaceQuality(
         faces,
         Size(image.width.toDouble(), image.height.toDouble()),
       );
       if (error != null) {
-        _consecutiveLiveFrames = 0;
-        _stabilityStopwatch.stop();
-        _setState(
+        consecutiveLiveFrames = 0;
+        stabilityStopwatch.stop();
+        setState(
           FaceProcessState.detectingFace,
-          error: _parseErrorReason(error),
+          error: parseErrorReason(error),
         );
         isProcessingFrame = false;
         return;
       }
 
       final face = faces.first;
-      _setState(FaceProcessState.checkingLiveness);
+      setState(FaceProcessState.checkingLiveness);
 
-      if (!_stabilityStopwatch.isRunning) _stabilityStopwatch.start();
-      if (_stabilityStopwatch.elapsedMilliseconds < 500) {
+      if (!stabilityStopwatch.isRunning) stabilityStopwatch.start();
+      if (stabilityStopwatch.elapsedMilliseconds < 500) {
         isProcessingFrame = false;
         return; // Need stability
       }
 
-      bool isLive = await _recognitionService.checkLiveness(
+      bool isLive = await recognitionService.checkLiveness(
         image,
         face,
         camera,
       );
       if (!isLive) {
-        _consecutiveLiveFrames = 0;
-        _setState(
+        consecutiveLiveFrames = 0;
+        setState(
           FaceProcessState.failed,
           error: FaceErrorReason.spoofDetected,
         );
@@ -389,31 +388,31 @@ class FaceVerificationProvider extends ChangeNotifier {
         return;
       }
 
-      _consecutiveLiveFrames++;
-      if (_consecutiveLiveFrames < 3) {
+      consecutiveLiveFrames++;
+      if (consecutiveLiveFrames < 3) {
         isProcessingFrame = false;
         return; // Require 3 consecutive live frames
       }
 
       // Liveness passed, do recognition
-      _setState(FaceProcessState.recognizing);
+      setState(FaceProcessState.recognizing);
 
       String empId = curentUser?['Id']?.toString() ?? 'UNKNOWN';
       String? storedStr;
       
       try {
-        storedStr = await _secureStorage.read(
-          key: _templateKeyPrefix + empId,
+        storedStr = await secureStorage.read(
+          key: templateKeyPrefix + empId,
         );
       } catch (e) {
-        _log("Secure storage read failed (likely corrupted key). Error: $e");
+        log("Secure storage read failed (likely corrupted key). Error: $e");
         try {
-          await _secureStorage.deleteAll();
+          await secureStorage.deleteAll();
         } catch (_) {}
       }
 
       if (storedStr == null) {
-        _setState(
+        setState(
           FaceProcessState.failed,
           error: FaceErrorReason.templateMissing,
         );
@@ -432,7 +431,7 @@ class FaceVerificationProvider extends ChangeNotifier {
               );
             } else if (item is String) {
               storedEmbeddings.add(
-                _recognitionService.embeddingFromBase64(item),
+                recognitionService.embeddingFromBase64(item),
               );
             }
           }
@@ -446,7 +445,7 @@ class FaceVerificationProvider extends ChangeNotifier {
               );
             } else if (item is String) {
               storedEmbeddings.add(
-                _recognitionService.embeddingFromBase64(item),
+                recognitionService.embeddingFromBase64(item),
               );
             }
           }
@@ -458,16 +457,16 @@ class FaceVerificationProvider extends ChangeNotifier {
             final parts = storedStr.split(',');
             for (var part in parts) {
               storedEmbeddings.add(
-                _recognitionService.embeddingFromBase64(part),
+                recognitionService.embeddingFromBase64(part),
               );
             }
           } else {
             storedEmbeddings.add(
-              _recognitionService.embeddingFromBase64(storedStr),
+              recognitionService.embeddingFromBase64(storedStr),
             );
           }
         } catch (e2) {
-          _setState(
+          setState(
             FaceProcessState.failed,
             error: FaceErrorReason.templateMissing,
           );
@@ -477,7 +476,7 @@ class FaceVerificationProvider extends ChangeNotifier {
       }
 
       if (storedEmbeddings.isEmpty) {
-        _setState(
+        setState(
           FaceProcessState.failed,
           error: FaceErrorReason.templateMissing,
         );
@@ -485,14 +484,14 @@ class FaceVerificationProvider extends ChangeNotifier {
         return;
       }
 
-      final liveEmbedding = await _recognitionService.generateFaceEmbedding(
+      final liveEmbedding = await recognitionService.generateFaceEmbedding(
         image,
         face,
         camera,
       );
 
       if (liveEmbedding == null) {
-        _setState(
+        setState(
           FaceProcessState.failed,
           error: FaceErrorReason.modelInitFailed,
         );
@@ -502,7 +501,7 @@ class FaceVerificationProvider extends ChangeNotifier {
 
       double maxSimilarity = -1.0;
       for (var stored in storedEmbeddings) {
-        double similarity = _recognitionService.calculateCosineSimilarity(
+        double similarity = recognitionService.calculateCosineSimilarity(
           liveEmbedding,
           stored,
         );
@@ -512,19 +511,19 @@ class FaceVerificationProvider extends ChangeNotifier {
       }
 
       lastSimilarity = maxSimilarity;
-      _log(
+      log(
         "Max Similarity across ${storedEmbeddings.length} templates: $maxSimilarity",
       );
 
       if (maxSimilarity >= THRESHOLD) {
-        _setState(FaceProcessState.waitingForConfirmation);
+        setState(FaceProcessState.waitingForConfirmation);
         // We do not stop camera here immediately so preview can freeze, but we stop processing frames.
       } else {
-        _setState(FaceProcessState.failed, error: FaceErrorReason.mismatch);
+        setState(FaceProcessState.failed, error: FaceErrorReason.mismatch);
         stopCamera();
       }
     } catch (e) {
-      _log("Verification frame error: $e");
+      log("Verification frame error: $e");
     } finally {
       isProcessingFrame = false;
     }
@@ -533,11 +532,12 @@ class FaceVerificationProvider extends ChangeNotifier {
   /// Verify face using a static image file (e.g. taken by another camera controller)
   Future<bool> verifyStaticFile(File imageFile, String storedStr) async {
     try {
-      await _recognitionService.initialize();
-      _log("Starting static file face verification...");
+      await recognitionService.initialize();
+      log("Starting static file face verification...");
       List<List<double>> storedEmbeddings = [];
 
       try {
+        await recognitionService.initialize();
         final decoded = jsonDecode(storedStr);
         if (decoded is List) {
           for (var item in decoded) {
@@ -547,7 +547,7 @@ class FaceVerificationProvider extends ChangeNotifier {
               );
             } else if (item is String) {
               storedEmbeddings.add(
-                _recognitionService.embeddingFromBase64(item),
+                recognitionService.embeddingFromBase64(item),
               );
             }
           }
@@ -561,37 +561,37 @@ class FaceVerificationProvider extends ChangeNotifier {
               );
             } else if (item is String) {
               storedEmbeddings.add(
-                _recognitionService.embeddingFromBase64(item),
+                recognitionService.embeddingFromBase64(item),
               );
             }
           }
         } else {
           storedEmbeddings.add(
-            _recognitionService.embeddingFromBase64(storedStr),
+            recognitionService.embeddingFromBase64(storedStr),
           );
         }
       } catch (e) {
         if (storedStr.contains(',')) {
           final parts = storedStr.split(',');
           for (var part in parts) {
-            storedEmbeddings.add(_recognitionService.embeddingFromBase64(part));
+            storedEmbeddings.add(recognitionService.embeddingFromBase64(part));
           }
         } else {
           storedEmbeddings.add(
-            _recognitionService.embeddingFromBase64(storedStr),
+            recognitionService.embeddingFromBase64(storedStr),
           );
         }
       }
 
       if (storedEmbeddings.isEmpty) {
-        _log("Failed: storedEmbeddings is empty");
+        log("Failed: storedEmbeddings is empty");
         return false;
       }
 
-      final liveEmbedding = await _recognitionService
+      final liveEmbedding = await recognitionService
           .generateFaceEmbeddingFromFile(imageFile);
       if (liveEmbedding == null) {
-        _log(
+        log(
           "Failed: Could not generate embedding from file (no face or error)",
         );
         return false;
@@ -599,7 +599,7 @@ class FaceVerificationProvider extends ChangeNotifier {
 
       double maxSimilarity = -1.0;
       for (var stored in storedEmbeddings) {
-        double similarity = _recognitionService.calculateCosineSimilarity(
+        double similarity = recognitionService.calculateCosineSimilarity(
           liveEmbedding,
           stored,
         );
@@ -609,16 +609,126 @@ class FaceVerificationProvider extends ChangeNotifier {
       }
 
       lastSimilarity = maxSimilarity;
-      _log("Static File Max Similarity: $maxSimilarity");
+      log("Static File Max Similarity: $maxSimilarity");
 
       return maxSimilarity >= THRESHOLD;
     } catch (e) {
-      _log("Static file verification error: $e");
+      log("Static file verification error: $e");
       return false;
     }
   }
 
-  FaceErrorReason _parseErrorReason(String err) {
+  /// Verify face live using a CameraController stream (for Punch Verification)
+  Future<bool> verifyLiveStream(CameraController controller, String storedStr) async {
+    log("Starting live stream face verification...");
+    await recognitionService.initialize();
+    
+    List<List<double>> storedEmbeddings = [];
+    try {
+      final decoded = jsonDecode(storedStr);
+      if (decoded is List) {
+        for (var item in decoded) {
+          if (item is List) {
+            storedEmbeddings.add(item.map((e) => (e as num).toDouble()).toList());
+          } else if (item is String) {
+            storedEmbeddings.add(recognitionService.embeddingFromBase64(item));
+          }
+        }
+      } else if (decoded is Map<String, dynamic> && decoded.containsKey("faceEmbeddings")) {
+        List<dynamic> list = decoded["faceEmbeddings"];
+        for (var item in list) {
+          if (item is List) {
+            storedEmbeddings.add(item.map((e) => (e as num).toDouble()).toList());
+          } else if (item is String) {
+            storedEmbeddings.add(recognitionService.embeddingFromBase64(item));
+          }
+        }
+      } else {
+        storedEmbeddings.add(recognitionService.embeddingFromBase64(storedStr));
+      }
+    } catch (e) {
+      if (storedStr.contains(',')) {
+        for (var part in storedStr.split(',')) {
+          storedEmbeddings.add(recognitionService.embeddingFromBase64(part));
+        }
+      } else {
+        storedEmbeddings.add(recognitionService.embeddingFromBase64(storedStr));
+      }
+    }
+
+    if (storedEmbeddings.isEmpty) return false;
+
+    Completer<bool> completer = Completer<bool>();
+    bool isProcessing = false;
+    Stopwatch stability = Stopwatch()..start();
+    
+    try {
+      if (controller.value.isStreamingImages) {
+        await controller.stopImageStream();
+      }
+      
+      await controller.startImageStream((image) async {
+        if (isProcessing || completer.isCompleted) return;
+        isProcessing = true;
+        
+        try {
+           final inputImage = recognitionService.convertCameraImageToInputImage(image, controller.description);
+           if (inputImage == null) { isProcessing = false; return; }
+           
+           final faces = await recognitionService.detectFaces(inputImage);
+           final error = recognitionService.validateFaceQuality(faces, Size(image.width.toDouble(), image.height.toDouble()));
+           if (error != null) {
+              stability.reset();
+              stability.start();
+              isProcessing = false;
+              return;
+           }
+           
+           bool isLive = await recognitionService.checkLiveness(image, faces.first, controller.description);
+           if (!isLive) {
+              if (!completer.isCompleted) completer.complete(false);
+              return;
+           }
+           
+           final liveEmbedding = await recognitionService.generateFaceEmbedding(image, faces.first, controller.description);
+           if (liveEmbedding == null) {
+              if (!completer.isCompleted) completer.complete(false);
+              return;
+           }
+           
+           double maxSimilarity = -1.0;
+           for (var stored in storedEmbeddings) {
+             double similarity = recognitionService.calculateCosineSimilarity(liveEmbedding, stored);
+             if (similarity > maxSimilarity) maxSimilarity = similarity;
+           }
+           
+           if (maxSimilarity >= THRESHOLD) {
+              if (!completer.isCompleted) completer.complete(true);
+           } else {
+              // Wait for 3 consecutive mismatches maybe? Or just fail immediately
+              if (!completer.isCompleted) completer.complete(false); 
+           }
+        } catch (e) {
+           log("Live stream verification frame error: $e");
+        } finally {
+           isProcessing = false;
+        }
+      });
+      
+      // Wait for result with a timeout (e.g. 15 seconds)
+      bool result = await completer.future.timeout(const Duration(seconds: 15), onTimeout: () => false);
+      return result;
+    } catch (e) {
+      log("verifyLiveStream error: $e");
+      return false;
+    } finally {
+      if (controller.value.isStreamingImages) {
+        await controller.stopImageStream();
+      }
+    }
+  }
+
+  FaceErrorReason parseErrorReason(String err) {
     switch (err) {
       case 'noFace':
         return FaceErrorReason.noFace;
@@ -634,7 +744,7 @@ class FaceVerificationProvider extends ChangeNotifier {
   }
 
   void cancelPunch() {
-    _log("Punch cancelled");
+    log("Punch cancelled");
     stopCamera();
   }
 
@@ -645,7 +755,7 @@ class FaceVerificationProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _recognitionService.dispose();
+    recognitionService.dispose();
     stopCamera();
     super.dispose();
   }
