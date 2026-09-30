@@ -35,8 +35,12 @@ class LeaveUserProvider extends ChangeNotifier {
   int? editingLeaveEmpId;
 
   // ==================== FORM CONTROLLERS ====================
-  TextEditingController txtLeaveStartDate = TextEditingController(text: DateFormat('dd-MM-yyyy').format(DateTime.now()));
-  TextEditingController txtLeaveEndDate = TextEditingController(text: DateFormat('dd-MM-yyyy').format(DateTime.now()));
+  TextEditingController txtLeaveStartDate = TextEditingController(
+    text: DateFormat('dd-MM-yyyy').format(DateTime.now()),
+  );
+  TextEditingController txtLeaveEndDate = TextEditingController(
+    text: DateFormat('dd-MM-yyyy').format(DateTime.now()),
+  );
   TextEditingController txtReason = TextEditingController();
 
   // ==================== DATE VARIABLES ====================
@@ -46,11 +50,11 @@ class LeaveUserProvider extends ChangeNotifier {
   // ==================== LEAVE TYPE SELECTION ====================
   int selectedIndex = 0;
   final List<String> leaveType = ["Full Day", "1st Half", "2nd Half"];
-  
+
   bool get isFullDay => selectedIndex == 0;
   bool get isFirstHalf => selectedIndex == 1;
   bool get isSecondHalf => selectedIndex == 2;
-  
+
   String get selectedLeaveDuration => leaveType[selectedIndex];
   String get selectedDayType {
     if (isFullDay) return 'Full Day';
@@ -66,7 +70,7 @@ class LeaveUserProvider extends ChangeNotifier {
   GetLeaveMaster? slTypeData;
 
   Employeelists? selectedEmployee;
-  
+
   // Getters
   Employeelists? get getSelectedEmployee => selectedEmployee;
 
@@ -84,6 +88,9 @@ class LeaveUserProvider extends ChangeNotifier {
 
   String showPaidLeaves = '0';
   String showTotalGainPaidLeaves = '0';
+
+  String showLimitStartDate = '';
+  String showLimitEndDate = '';
 
   // ==================== USER LEAVES ====================
   List<LeaveListData> userLeaves = [];
@@ -104,7 +111,9 @@ class LeaveUserProvider extends ChangeNotifier {
       leaveTypeList = result;
       setPaidLeaveTypeData();
       notifyListeners();
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   // ==================== LOAD USER LEAVES ====================
@@ -113,7 +122,9 @@ class LeaveUserProvider extends ChangeNotifier {
       final result = await LeaveApiService().userLeaveList();
       userLeaves = result;
       notifyListeners();
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   // ==================== LOAD PAID LEAVE SUMMARY ====================
@@ -122,22 +133,31 @@ class LeaveUserProvider extends ChangeNotifier {
       await loadLeaveTypes();
       await loadUserLeaves();
       _calculatePaidLeaveSummary();
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   // ==================== LOAD LEAVE DATA ====================
-  Future<void> loadLeaveData(context,{bool isEdit = false, dynamic leaveData}) async {
+  Future<void> loadLeaveData(
+    context, {
+    bool isEdit = false,
+    dynamic leaveData,
+  }) async {
     try {
       setloading(true);
       resetForm();
-      final empProvider = Provider.of<EmployeMastServices>(context, listen: false);
+      final empProvider = Provider.of<EmployeMastServices>(
+        context,
+        listen: false,
+      );
       await loadLeaveTypes();
       await loadUserLeaves();
       if (curentUser['Role'] == 'Admin') {
         await empProvider.getAllEmployesData();
       }
       if (isEdit && leaveData != null) {
-        setEditLeaveData(leaveData,empProvider);
+        setEditLeaveData(leaveData, empProvider);
       }
       setloading(false);
     } catch (e) {
@@ -146,34 +166,33 @@ class LeaveUserProvider extends ChangeNotifier {
   }
 
   // ==================== SET EDIT LEAVE DATA ====================
-  void setEditLeaveData(dynamic leaveData,dynamic empProvider) {
+  void setEditLeaveData(dynamic leaveData, dynamic empProvider) {
     isEditMode = true;
     editingLeaveCguid = leaveData.cguid?.toString();
     editingLeaveId = _parseInt(leaveData.empLeaveId);
     editingLeaveEmpId = _parseInt(leaveData.empId);
-    
+
     // Parse dates
     selectedFromDate = _parseLeaveDate(leaveData.fromDate) ?? DateTime.now();
     selectedToDate = _parseLeaveDate(leaveData.toDate) ?? DateTime.now();
-    
+
     // Set text controllers
     txtLeaveStartDate.text = DateFormat('dd-MM-yyyy').format(selectedFromDate);
     txtLeaveEndDate.text = DateFormat('dd-MM-yyyy').format(selectedToDate);
     txtReason.text = leaveData.remarks?.toString() ?? '';
 
     for (var i in empProvider.allemployes) {
-      if(i.id == editingLeaveEmpId) {
+      if (i.id == editingLeaveEmpId) {
         selectedEmployee = i;
       }
     }
 
     for (var j in leaveStatusList) {
-
-      if(j.keys == leaveData.approveStatus) {
+      if (j.keys == leaveData.approveStatus) {
         selectedLeaveStatusName = j.values;
       }
     }
-    
+
     // Set leave type (Full Day / Half Day)
     if (leaveData.dayType?.toString() == 'Full Day') {
       selectedIndex = 0;
@@ -185,7 +204,7 @@ class LeaveUserProvider extends ChangeNotifier {
       // Default to Full Day if unknown
       selectedIndex = 0;
     }
-    
+
     // Set selected leave type
     selectedLeaveTypeName = leaveData.leaveTypeFName?.toString();
     if (selectedLeaveTypeName != null && leaveTypeList.isNotEmpty) {
@@ -194,10 +213,10 @@ class LeaveUserProvider extends ChangeNotifier {
         orElse: () => leaveTypeList.first,
       );
     }
-    
+
     // Calculate eligible leave
     _calculateEligibleLeave();
-    
+
     notifyListeners();
   }
 
@@ -246,7 +265,9 @@ class LeaveUserProvider extends ChangeNotifier {
     for (final pattern in ['dd-MM-yyyy', 'dd/MM/yyyy', 'MM/dd/yyyy']) {
       try {
         return DateFormat(pattern).parseStrict(dateText);
-      } catch (_) { /* ignored */ }
+      } catch (_) {
+        /* ignored */
+      }
     }
     return null;
   }
@@ -258,7 +279,10 @@ class LeaveUserProvider extends ChangeNotifier {
   void setPaidLeaveTypeData() {
     slTypeData = null;
     for (var element in leaveTypeList) {
-      final leaveTypeName = element.leaveTypeFName?.toString().trim().toUpperCase();
+      final leaveTypeName = element.leaveTypeFName
+          ?.toString()
+          .trim()
+          .toUpperCase();
       final leaveTypeValue = element.leaveType?.toString().trim().toUpperCase();
 
       if (leaveTypeName == 'PAID LEAVE' || leaveTypeValue == 'PAID') {
@@ -284,32 +308,66 @@ class LeaveUserProvider extends ChangeNotifier {
     }
   }
 
+  List<DateTime>? _getLimitDateRange(GetLeaveMaster? leaveTypeData) {
+    if (leaveTypeData == null) return null;
+    int year = selectedFromDate.year;
+    int currentMonth = selectedFromDate.month;
+
+    switch (leaveTypeData.leaveLimit) {
+      case 'Monthly':
+        return [
+          DateTime(year, currentMonth, 1),
+          DateTime(year, currentMonth + 1, 0),
+        ];
+      case 'Quarterly':
+        if (currentMonth >= 1 && currentMonth <= 3) {
+          return [DateTime(year, 1, 1), DateTime(year, 3, 31)];
+        } else if (currentMonth >= 4 && currentMonth <= 6) {
+          return [DateTime(year, 4, 1), DateTime(year, 6, 30)];
+        } else if (currentMonth >= 7 && currentMonth <= 9) {
+          return [DateTime(year, 7, 1), DateTime(year, 9, 30)];
+        } else {
+          return [DateTime(year, 10, 1), DateTime(year, 12, 31)];
+        }
+      case 'HalfYearly':
+        if (currentMonth >= 1 && currentMonth <= 6) {
+          return [DateTime(year, 1, 1), DateTime(year, 6, 30)];
+        } else {
+          return [DateTime(year, 7, 1), DateTime(year, 12, 31)];
+        }
+      case 'Yearly':
+        return [DateTime(year, 1, 1), DateTime(year, 12, 31)];
+      default:
+        return null;
+    }
+  }
+
   bool isLeaveInSelectedLimit(DateTime leaveDate) {
     if (selectedLeaveTypeData == null) return false;
     return isLeaveInLimit(leaveDate, selectedLeaveTypeData!);
   }
 
   bool isLeaveInLimit(DateTime leaveDate, GetLeaveMaster leaveTypeData) {
-    if (selectedFromDate.year != leaveDate.year) {
-      return false;
-    }
+    final range = _getLimitDateRange(leaveTypeData);
+    if (range == null) return false;
 
-    switch (leaveTypeData.leaveLimit) {
-      case 'Monthly':
-        return leaveDate.month == selectedFromDate.month;
-      case 'Quarterly':
-        final selectedQuarter = ((selectedFromDate.month - 1) ~/ 3) + 1;
-        final leaveQuarter = ((leaveDate.month - 1) ~/ 3) + 1;
-        return selectedQuarter == leaveQuarter;
-      case 'HalfYearly':
-        final selectedHalf = selectedFromDate.month <= 6 ? 1 : 2;
-        final leaveHalf = leaveDate.month <= 6 ? 1 : 2;
-        return selectedHalf == leaveHalf;
-      case 'Yearly':
-        return true;
-      default:
-        return false;
-    }
+    DateTime startDate = range[0];
+    DateTime endDate = range[1];
+
+    DateTime normalizedLeaveDate = DateTime(
+      leaveDate.year,
+      leaveDate.month,
+      leaveDate.day,
+    );
+    DateTime normalizedStart = DateTime(
+      startDate.year,
+      startDate.month,
+      startDate.day,
+    );
+    DateTime normalizedEnd = DateTime(endDate.year, endDate.month, endDate.day);
+
+    return !normalizedLeaveDate.isBefore(normalizedStart) &&
+        !normalizedLeaveDate.isAfter(normalizedEnd);
   }
 
   // ==================== CALCULATE ELIGIBLE LEAVE ====================
@@ -326,10 +384,58 @@ class LeaveUserProvider extends ChangeNotifier {
       return;
     }
 
+    final range = _getLimitDateRange(selectedLeaveTypeData);
+    if (range != null) {
+      showLimitStartDate = DateFormat('dd-MM-yyyy').format(range[0]);
+      showLimitEndDate = DateFormat('dd-MM-yyyy').format(range[1]);
+    } else {
+      showLimitStartDate = '';
+      showLimitEndDate = '';
+    }
+
+    List<LeaveListData> filterLeaveList = [];
+
+    for (var i in userLeaves) {
+      if (range != null) {
+        final leaveFrom = _parseLeaveDate(i.fromDate);
+        final leaveTo =
+            _parseLeaveDate(i.toDate) ??
+            leaveFrom; // Fallback to fromDate if toDate is null
+
+        if (leaveFrom != null && leaveTo != null) {
+          final normalizedFrom = DateTime(
+            leaveFrom.year,
+            leaveFrom.month,
+            leaveFrom.day,
+          );
+          final normalizedTo = DateTime(
+            leaveTo.year,
+            leaveTo.month,
+            leaveTo.day,
+          );
+          final limitStart = DateTime(
+            range[0].year,
+            range[0].month,
+            range[0].day,
+          );
+          final limitEnd = DateTime(
+            range[1].year,
+            range[1].month,
+            range[1].day,
+          );
+
+          if (!normalizedFrom.isBefore(limitStart) &&
+              !normalizedTo.isAfter(limitEnd)) {
+            filterLeaveList.add(i);
+          }
+        }
+      }
+    }
+
     final gainLeave = selectedLeaveGainLimit(selectedLeaveTypeData);
     double usedLeave = 0;
 
-    for (var element in userLeaves) {
+    for (var element in filterLeaveList) {
       // Skip the current leave being edited
       final elementEmpId = _parseInt(element.empId);
       final elementLeaveId = _parseInt(element.empLeaveId);
@@ -341,13 +447,23 @@ class LeaveUserProvider extends ChangeNotifier {
           editingLeaveId == elementLeaveId) {
         continue;
       }
-      
+
+      final matchByName =
+          element.leaveTypeFName != null &&
+          selectedLeaveTypeData!.leaveTypeFName != null &&
+          element.leaveTypeFName!.toString().trim().toUpperCase() ==
+              selectedLeaveTypeData!.leaveTypeFName!
+                  .toString()
+                  .trim()
+                  .toUpperCase();
+
       if (elementEmpId == selectedEmpId &&
           _isApprovedStatus(element.approveStatus) &&
-          elementLeaveTypeId == selectedLeaveTypeData!.leaveTypeId) {
+          (elementLeaveTypeId == selectedLeaveTypeData!.leaveTypeId ||
+              matchByName)) {
         final leaveDate = _parseLeaveDate(element.fromDate);
         if (leaveDate != null && isLeaveInSelectedLimit(leaveDate)) {
-          usedLeave += parseLeaveCount(element.leaveDuration);
+          usedLeave += parseLeaveCount(element.leaveDays);
         }
       }
     }
@@ -355,6 +471,7 @@ class LeaveUserProvider extends ChangeNotifier {
     showGainCounting = formatLeaveCount(gainLeave);
     showUsedCounting = formatLeaveCount(usedLeave);
     showEligibleCounting = formatLeaveCount(gainLeave - usedLeave);
+
     notifyListeners();
   }
 
@@ -362,6 +479,8 @@ class LeaveUserProvider extends ChangeNotifier {
     showGainCounting = '0';
     showUsedCounting = '0';
     showEligibleCounting = '0';
+    showLimitStartDate = '';
+    showLimitEndDate = '';
   }
 
   int? get _selectedEligibilityEmployeeId {
@@ -405,12 +524,18 @@ class LeaveUserProvider extends ChangeNotifier {
     double usedLeave = 0;
 
     for (var element in userLeaves) {
+      final matchByName =
+          element.leaveTypeFName != null &&
+          slTypeData!.leaveTypeFName != null &&
+          element.leaveTypeFName!.toString().trim().toUpperCase() ==
+              slTypeData!.leaveTypeFName!.toString().trim().toUpperCase();
+
       if (element.empId == curentUser['Id'] &&
           element.approveStatus == 'A' &&
-          element.leaveTypeId == slTypeData!.leaveTypeId) {
+          (element.leaveTypeId == slTypeData!.leaveTypeId || matchByName)) {
         final leaveDate = DateTime.tryParse(element.fromDate.toString());
         if (leaveDate != null && isLeaveInLimit(leaveDate, slTypeData!)) {
-          usedLeave += parseLeaveCount(element.leaveDuration);
+          usedLeave += parseLeaveCount(element.leaveDays);
         }
       }
     }
@@ -423,7 +548,6 @@ class LeaveUserProvider extends ChangeNotifier {
   String _formatNumber(double value) {
     return value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
   }
-
 
   // ==================== RESET FORM ====================
   void resetForm() {
@@ -441,6 +565,8 @@ class LeaveUserProvider extends ChangeNotifier {
     selectedLeaveTypeName = null;
     showGainCounting = '0';
     showUsedCounting = '0';
+    showLimitStartDate = '';
+    showLimitEndDate = '';
     selectedEmployee = null;
     selectedLeaveStatusName = null;
     showEligibleCounting = '0';
@@ -453,22 +579,33 @@ class LeaveUserProvider extends ChangeNotifier {
     if (_isSameDate(selectedFromDate, selectedToDate)) {
       return isFullDay ? 1 : 0.5;
     } else {
-      DateTime from = DateTime(selectedFromDate.year, selectedFromDate.month, selectedFromDate.day);
-      DateTime to = DateTime(selectedToDate.year, selectedToDate.month, selectedToDate.day);
+      DateTime from = DateTime(
+        selectedFromDate.year,
+        selectedFromDate.month,
+        selectedFromDate.day,
+      );
+      DateTime to = DateTime(
+        selectedToDate.year,
+        selectedToDate.month,
+        selectedToDate.day,
+      );
       int totalDays = to.difference(from).inDays + 1;
       return isFullDay ? totalDays.toDouble() : totalDays / 2;
     }
   }
 
   // ==================== SUBMIT NEW LEAVE ====================
-  Future<void> addHandleSubmit(BuildContext context, GlobalKey<FormState> formKey) async {
+  Future<void> addHandleSubmit(
+    BuildContext context,
+    GlobalKey<FormState> formKey,
+  ) async {
     if (islodering) return;
-    
+
     try {
       setloading(true);
       FocusManager.instance.primaryFocus?.unfocus();
       autovalidateMode = AutovalidateMode.always;
-      
+
       if (formKey.currentState!.validate()) {
         if (curentUser['Role'] == 'Admin' && selectedEmployee == null) {
           showtoastmessage('Select Employee');
@@ -482,77 +619,90 @@ class LeaveUserProvider extends ChangeNotifier {
 
         final durationCounts = _calculateDurationCounts();
         final allowleave = double.tryParse(showEligibleCounting) ?? 0;
-        
+
         if (allowleave < durationCounts) {
           showtoastmessage('You cannot apply leave more than eligible leave');
           return;
         }
-        
+
         String setGuid = generateCustomUuid();
         String dayType = selectedDayType;
-        
-        await LeaveMasterApiService().applyLeave(
-          setEmployeId: _selectedSubmitEmployeeId,
-          leaveTypeCguids: selectedLeaveTypeData?.cguid ?? '',
-          fromdate: selectedFromDate.toString(),
-          leaveTypeid: selectedLeaveTypeData?.leaveTypeId ?? 0,
-          leaveYears: DateTime.now().year,
-          leavedec: durationCounts,
-          remarks: txtReason.text,
-          sendCguid: setGuid,
-          todate: selectedToDate.toString(),
-          leaveStatusSet: _selectedLeaveStatusKey,
-          dayTypes: dayType,
-        ).then((value) async {
-          if (value.success == true) {
-            bool isAdmin = curentUser['Role'] == 'Admin';
-            String custIdBase = curentUser is Map ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '' : '';
-            String companyId = selectedcurentcompany?.companyId?.toString() ?? '';
-            
-            String targetTopic;
-            String titleName;
-            String userName;
-            if (isAdmin) {
-              targetTopic = '${custIdBase}_${companyId}_$_selectedSubmitEmployeeId';
-              String fName = selectedEmployee?.firstName ?? '';
-              String lName = selectedEmployee?.lastName ?? '';
-              userName = '$fName $lName'.trim().toUpperCase();
-              titleName = 'USER $userName';
-            } else {
-              targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
-              String fName = curentUser['FirstName']?.toString() ?? '';
-              String lName = curentUser['LastName']?.toString() ?? '';
-              userName = '$fName $lName'.trim().toUpperCase();
-              String fullCompanyName = selectedcurentcompany?.companyName?.toString() ?? 'COMPANY';
-              titleName = fullCompanyName.trim().split(' ').first;
-            }
 
-            String formatDateStr(DateTime? d) {
-              if (d == null) return '';
-              try {
-                return DateFormat('dd/MM/yyyy').format(d);
-              } catch (_) {
-                return d.toString();
+        await LeaveMasterApiService()
+            .applyLeave(
+              setEmployeId: _selectedSubmitEmployeeId,
+              leaveTypeCguids: selectedLeaveTypeData?.cguid ?? '',
+              fromdate: selectedFromDate.toString(),
+              leaveTypeid: selectedLeaveTypeData?.leaveTypeId ?? 0,
+              leaveYears: DateTime.now().year,
+              leavedec: durationCounts,
+              remarks: txtReason.text,
+              sendCguid: setGuid,
+              todate: selectedToDate.toString(),
+              leaveStatusSet: _selectedLeaveStatusKey,
+              dayTypes: dayType,
+            )
+            .then((value) async {
+              if (value.success == true) {
+                bool isAdmin = curentUser['Role'] == 'Admin';
+                String custIdBase = curentUser is Map
+                    ? curentUser['CustId']?.toString() ??
+                          curentUser['custid']?.toString() ??
+                          ''
+                    : '';
+                String companyId =
+                    selectedcurentcompany?.companyId?.toString() ?? '';
+
+                String targetTopic;
+                String titleName;
+                String userName;
+                if (isAdmin) {
+                  targetTopic =
+                      '${custIdBase}_${companyId}_$_selectedSubmitEmployeeId';
+                  String fName = selectedEmployee?.firstName ?? '';
+                  String lName = selectedEmployee?.lastName ?? '';
+                  userName = '$fName $lName'.trim().toUpperCase();
+                  titleName = 'USER $userName';
+                } else {
+                  targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
+                  String fName = curentUser['FirstName']?.toString() ?? '';
+                  String lName = curentUser['LastName']?.toString() ?? '';
+                  userName = '$fName $lName'.trim().toUpperCase();
+                  String fullCompanyName =
+                      selectedcurentcompany?.companyName?.toString() ??
+                      'COMPANY';
+                  titleName = fullCompanyName.trim().split(' ').first;
+                }
+
+                String formatDateStr(DateTime? d) {
+                  if (d == null) return '';
+                  try {
+                    return DateFormat('dd/MM/yyyy').format(d);
+                  } catch (_) {
+                    return d.toString();
+                  }
+                }
+
+                String formattedFrom = formatDateStr(selectedFromDate);
+                String formattedTo = formatDateStr(selectedToDate);
+
+                await EventsApiClass().sendPushNotification(
+                  title: '$userName Leave Applied',
+                  description:
+                      '$userName leave request from $formattedFrom to $formattedTo has been submitted.',
+                  topicOverride: targetTopic,
+                  custIdOverride: targetTopic,
+                  topicTitleOverride: titleName,
+                );
               }
-            }
-            String formattedFrom = formatDateStr(selectedFromDate);
-            String formattedTo = formatDateStr(selectedToDate);
-            
-            await EventsApiClass().sendPushNotification(
-              title: '$userName Leave Applied',
-              description: '$userName leave request from $formattedFrom to $formattedTo has been submitted.',
-              topicOverride: targetTopic,
-              custIdOverride: targetTopic,
-              topicTitleOverride: titleName,
-            );
-          }
-          showtoastmessage('Leave applied successfully');
-          resetForm();
-          nextScreen(context, AnimatedBottomBar(), onthenValue: (val) {});
-          autovalidateMode = AutovalidateMode.disabled;
-        }).catchError((error) {
-          showtoastmessage('Error applying leave: $error');
-        });
+              showtoastmessage('Leave applied successfully');
+              resetForm();
+              nextScreen(context, AnimatedBottomBar(), onthenValue: (val) {});
+              autovalidateMode = AutovalidateMode.disabled;
+            })
+            .catchError((error) {
+              showtoastmessage('Error applying leave: $error');
+            });
       }
     } catch (e) {
       showtoastmessage('Error applying leave');
@@ -562,13 +712,16 @@ class LeaveUserProvider extends ChangeNotifier {
   }
 
   // ==================== UPDATE EXISTING LEAVE ====================
-  Future<void> updateHandleSubmit(BuildContext context, GlobalKey<FormState> formKey) async {
+  Future<void> updateHandleSubmit(
+    BuildContext context,
+    GlobalKey<FormState> formKey,
+  ) async {
     if (islodering) return;
-    
+
     try {
       setloading(true);
       FocusManager.instance.primaryFocus?.unfocus();
-      
+
       if (formKey.currentState!.validate()) {
         if (curentUser['Role'] == 'Admin' && selectedEmployee == null) {
           showtoastmessage('Select Employee');
@@ -582,77 +735,90 @@ class LeaveUserProvider extends ChangeNotifier {
 
         final durationCounts = _calculateDurationCounts();
         final allowleave = double.tryParse(showEligibleCounting) ?? 0;
-        
+
         if (allowleave < durationCounts) {
           showtoastmessage('You cannot apply leave more than eligible leave');
           return;
         }
-        
-        String dayType = selectedDayType;
-        
-        // Call update API (adjust according to your API structure)
-        await LeaveMasterApiService().updateLeave(
-          sendCguid: editingLeaveCguid ?? '',
-          setEmpid: _selectedSubmitEmployeeId,
-          leaveTypeCguids: selectedLeaveTypeData?.cguid ?? '',
-          fromdate: selectedFromDate.toString(),
-          leaveTypeid: selectedLeaveTypeData?.leaveTypeId ?? 0,
-          leaveYears: DateTime.now().year,
-          leavedec: durationCounts,
-          remarks: txtReason.text,
-          todate: selectedToDate.toString(),
-          leaveStatus: _selectedLeaveStatusKey,
-          dayTypes: dayType,
-        ).then((value) async {
-          if (value.success == true) {
-            bool isAdmin = curentUser['Role'] == 'Admin';
-            String custIdBase = curentUser is Map ? curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '' : '';
-            String companyId = selectedcurentcompany?.companyId?.toString() ?? '';
-            
-            String targetTopic;
-            String titleName;
-            String userName;
-            if (isAdmin) {
-              targetTopic = '${custIdBase}_${companyId}_$_selectedSubmitEmployeeId';
-              String fName = selectedEmployee?.firstName ?? '';
-              String lName = selectedEmployee?.lastName ?? '';
-              userName = '$fName $lName'.trim().toUpperCase();
-              titleName = 'USER $userName';
-            } else {
-              targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
-              String fName = curentUser['FirstName']?.toString() ?? '';
-              String lName = curentUser['LastName']?.toString() ?? '';
-              userName = '$fName $lName'.trim().toUpperCase();
-              String fullCompanyName = selectedcurentcompany?.companyName?.toString() ?? 'COMPANY';
-              titleName = fullCompanyName.trim().split(' ').first;
-            }
 
-            String formatDateStr(DateTime? d) {
-              if (d == null) return '';
-              try {
-                return DateFormat('dd/MM/yyyy').format(d);
-              } catch (_) {
-                return d.toString();
+        String dayType = selectedDayType;
+
+        // Call update API (adjust according to your API structure)
+        await LeaveMasterApiService()
+            .updateLeave(
+              sendCguid: editingLeaveCguid ?? '',
+              setEmpid: _selectedSubmitEmployeeId,
+              leaveTypeCguids: selectedLeaveTypeData?.cguid ?? '',
+              fromdate: selectedFromDate.toString(),
+              leaveTypeid: selectedLeaveTypeData?.leaveTypeId ?? 0,
+              leaveYears: DateTime.now().year,
+              leavedec: durationCounts,
+              remarks: txtReason.text,
+              todate: selectedToDate.toString(),
+              leaveStatus: _selectedLeaveStatusKey,
+              dayTypes: dayType,
+            )
+            .then((value) async {
+              if (value.success == true) {
+                bool isAdmin = curentUser['Role'] == 'Admin';
+                String custIdBase = curentUser is Map
+                    ? curentUser['CustId']?.toString() ??
+                          curentUser['custid']?.toString() ??
+                          ''
+                    : '';
+                String companyId =
+                    selectedcurentcompany?.companyId?.toString() ?? '';
+
+                String targetTopic;
+                String titleName;
+                String userName;
+                if (isAdmin) {
+                  targetTopic =
+                      '${custIdBase}_${companyId}_$_selectedSubmitEmployeeId';
+                  String fName = selectedEmployee?.firstName ?? '';
+                  String lName = selectedEmployee?.lastName ?? '';
+                  userName = '$fName $lName'.trim().toUpperCase();
+                  titleName = 'USER $userName';
+                } else {
+                  targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
+                  String fName = curentUser['FirstName']?.toString() ?? '';
+                  String lName = curentUser['LastName']?.toString() ?? '';
+                  userName = '$fName $lName'.trim().toUpperCase();
+                  String fullCompanyName =
+                      selectedcurentcompany?.companyName?.toString() ??
+                      'COMPANY';
+                  titleName = fullCompanyName.trim().split(' ').first;
+                }
+
+                String formatDateStr(DateTime? d) {
+                  if (d == null) return '';
+                  try {
+                    return DateFormat('dd/MM/yyyy').format(d);
+                  } catch (_) {
+                    return d.toString();
+                  }
+                }
+
+                String formattedFrom = formatDateStr(selectedFromDate);
+                String formattedTo = formatDateStr(selectedToDate);
+
+                await EventsApiClass().sendPushNotification(
+                  title: '$userName Leave Updated',
+                  description:
+                      '$userName leave request from $formattedFrom to $formattedTo has been updated.',
+                  topicOverride: targetTopic,
+                  custIdOverride: targetTopic,
+                  topicTitleOverride: titleName,
+                );
               }
-            }
-            String formattedFrom = formatDateStr(selectedFromDate);
-            String formattedTo = formatDateStr(selectedToDate);
-            
-            await EventsApiClass().sendPushNotification(
-              title: '$userName Leave Updated',
-              description: '$userName leave request from $formattedFrom to $formattedTo has been updated.',
-              topicOverride: targetTopic,
-              custIdOverride: targetTopic,
-              topicTitleOverride: titleName,
-            );
-          }
-          showtoastmessage('Leave updated successfully');
-          resetForm();
-          nextScreen(context, AnimatedBottomBar(), onthenValue: (val) {});
-          autovalidateMode = AutovalidateMode.disabled;
-        }).catchError((error) {
-          showtoastmessage('Error updating leave: $error');
-        });
+              showtoastmessage('Leave updated successfully');
+              resetForm();
+              nextScreen(context, AnimatedBottomBar(), onthenValue: (val) {});
+              autovalidateMode = AutovalidateMode.disabled;
+            })
+            .catchError((error) {
+              showtoastmessage('Error updating leave: $error');
+            });
       }
     } catch (e) {
       showtoastmessage('Error updating leave');
@@ -662,13 +828,17 @@ class LeaveUserProvider extends ChangeNotifier {
   }
 
   // ==================== DATE PICKER ====================
-  Future<void> pickStartDate(BuildContext context, Size size, bool setFirstDate) async {
+  Future<void> pickStartDate(
+    BuildContext context,
+    Size size,
+    bool setFirstDate,
+  ) async {
     final today = DateTime.now();
     final currentDate = DateTime(today.year, today.month, today.day);
     final firstSelectableDate = setFirstDate
         ? isEditMode && selectedFromDate.isBefore(currentDate)
-            ? selectedFromDate
-            : currentDate
+              ? selectedFromDate
+              : currentDate
         : selectedFromDate;
 
     final picked = await showDatePicker(
@@ -687,7 +857,9 @@ class LeaveUserProvider extends ChangeNotifier {
               onPrimary: ColorConst.white,
             ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(foregroundColor: ColorConst.themeColor),
+              style: TextButton.styleFrom(
+                foregroundColor: ColorConst.themeColor,
+              ),
             ),
           ),
           child: child!,
@@ -698,24 +870,30 @@ class LeaveUserProvider extends ChangeNotifier {
     if (picked == null) return;
 
     if (setFirstDate) {
-      if (picked.isBefore(selectedToDate) || _isSameDate(picked, selectedToDate)) {
+      if (picked.isBefore(selectedToDate) ||
+          _isSameDate(picked, selectedToDate)) {
         selectedFromDate = picked;
-        txtLeaveStartDate.text = DateFormat('dd-MM-yyyy').format(selectedFromDate);
+        txtLeaveStartDate.text = DateFormat(
+          'dd-MM-yyyy',
+        ).format(selectedFromDate);
       } else {
         selectedFromDate = picked;
         selectedToDate = picked;
-        txtLeaveStartDate.text = DateFormat('dd-MM-yyyy').format(selectedFromDate);
+        txtLeaveStartDate.text = DateFormat(
+          'dd-MM-yyyy',
+        ).format(selectedFromDate);
         txtLeaveEndDate.text = DateFormat('dd-MM-yyyy').format(selectedToDate);
       }
     } else {
-      if (picked.isAfter(selectedFromDate) || _isSameDate(picked, selectedFromDate)) {
+      if (picked.isAfter(selectedFromDate) ||
+          _isSameDate(picked, selectedFromDate)) {
         selectedToDate = picked;
         txtLeaveEndDate.text = DateFormat('dd-MM-yyyy').format(selectedToDate);
       } else {
         showtoastmessage('End date cannot be before Start date');
       }
     }
-    
+
     // Recalculate eligible leave when dates change
     _calculateEligibleLeave();
     notifyListeners();
@@ -744,12 +922,10 @@ class LeaveUserProvider extends ChangeNotifier {
   // } catch (e) {
   //   setloading(false);
   // }
-// }
-
-
+  // }
 }
 
-class GetLeaveStatus{
-  String keys,values;
-  GetLeaveStatus(this.keys,this.values);
+class GetLeaveStatus {
+  String keys, values;
+  GetLeaveStatus(this.keys, this.values);
 }

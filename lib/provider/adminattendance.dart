@@ -76,7 +76,8 @@ class AdminAttenDanceServices extends ChangeNotifier {
         // 1. Search Query
         bool matchesSearch = true;
         if (_searchQuery.isNotEmpty) {
-          final fullName = '${employee.firstName} ${employee.lastName}'.toLowerCase();
+          final fullName = '${employee.firstName} ${employee.lastName}'
+              .toLowerCase();
           final firstName = employee.firstName?.toLowerCase() ?? '';
           final lastName = employee.lastName?.toLowerCase() ?? '';
           matchesSearch =

@@ -65,7 +65,7 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
     final positionMasterService = Provider.of<PositionMasterService>(context);
     return Scaffold(
             backgroundColor: ColorConst.scaffoldColor,
-            appBar: showCustomeAppBar(newShiftMasterString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);},),
+            appBar: showCustomeAppBar(widget.addEditFlag ? newShiftMasterString : editShiftMasterString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);},),
             body: shiftTiminigMasterProvider.islodering ? userProfileShimmer(size) : Padding(
                 padding: EdgeInsets.all(size.height*0.02),
                 child: Column(
@@ -81,36 +81,33 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
                             children: [
                               Text("$shiftFullNameString :", style: normalHeadingText(size)),
                               heightSpacer(size.height * 0.01),
-                              IgnorePointer(
-                                ignoring: widget.addEditFlag ? false : true,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: AppSearchableDropdown<ShiftGroup>(
-                                        dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedShiftGroup),
-                                        initialItem: shiftTiminigMasterProvider.selectedShiftGroup,
-                                        validator: (val){
-                                          if (val == null) {
-                                            return 'Please Select Shift Full Name';
-                                          }
-                                          return null;
-                                        },
-                                        hintText: selectShiftFullNameString,
-                                        futureRequest: shiftTiminigMasterProvider.getFilterShiftGroup,
-                                        items: shiftTiminigMasterProvider.mainShiftGroupList,
-                                        itemAsString: (item) => item.shiftGroupFname.toString(),
-                                        headerBuilder: (context, selectedItem, enabled) {
-                                          return Text(shiftTiminigMasterProvider.selectedShiftGroup == null ? selectShiftFullNameString : shiftTiminigMasterProvider.selectedShiftGroup!.shiftGroupFname.toString());
-                                        },
-                                        onChanged: (value) {
-                                          shiftTiminigMasterProvider.shiftFullNameontap(value);
-                                        },
-                                      ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AppSearchableDropdown<ShiftGroup>(
+                                      dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedShiftGroup),
+                                      initialItem: shiftTiminigMasterProvider.selectedShiftGroup,
+                                      validator: (val){
+                                        if (val == null) {
+                                          return 'Please Select Shift Full Name';
+                                        }
+                                        return null;
+                                      },
+                                      hintText: selectShiftFullNameString,
+                                      futureRequest: shiftTiminigMasterProvider.getFilterShiftGroup,
+                                      items: shiftTiminigMasterProvider.mainShiftGroupList,
+                                      itemAsString: (item) => item.shiftGroupFname.toString(),
+                                      headerBuilder: (context, selectedItem, enabled) {
+                                        return Text(shiftTiminigMasterProvider.selectedShiftGroup == null ? selectShiftFullNameString : shiftTiminigMasterProvider.selectedShiftGroup!.shiftGroupFname.toString());
+                                      },
+                                      onChanged: (value) {
+                                        shiftTiminigMasterProvider.shiftFullNameontap(value);
+                                      },
                                     ),
-                                    widthSpacer(size.width*0.02),
-                                    addIconSetData(size, () {nextScreen(context, ShiftMasterScreen(), onthenValue: (value) {});})
-                                  ],
-                                ),
+                                  ),
+                                  widthSpacer(size.width*0.02),
+                                  addIconSetData(size, () {nextScreen(context, ShiftMasterScreen(), onthenValue: (value) {});})
+                                ],
                               ),
                               heightSpacer(size.height * 0.01),
                               Text("$shiftShortNameString :", style: normalHeadingText(size)),
@@ -119,70 +116,64 @@ class _AddShiftTimingMasterScreenState extends State<AddShiftTimingMasterScreen>
                               heightSpacer(size.height * 0.01),
                               Text("$departmentString :", style: normalHeadingText(size)),
                               heightSpacer(size.height * 0.01),
-                              IgnorePointer(
-                                ignoring: widget.addEditFlag ? false : true,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: AppSearchableDropdown<DepartMnetModel>(
-                                        dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedDepartment),
-                                        initialItem: shiftTiminigMasterProvider.selectedDepartment,
-                                        validator: (val){
-                                          if (val == null) {
-                                            return 'Please Select Department Name';
-                                          }
-                                          return null;
-                                        },
-                                        hintText: selectDepartmentNameString,
-                                        futureRequest: context.read<DepartmentServices>().getFilterDepartment,
-                                        items: context.read<DepartmentServices>().activepartment,
-                                        itemAsString: (item) => item.departmentName.toString(),
-                                        headerBuilder: (context, selectedItem, enabled) {
-                                          return Text(shiftTiminigMasterProvider.selectedDepartment == null ? selectDepartmentNameString : shiftTiminigMasterProvider.selectedDepartment!.departmentName.toString());
-                                        },
-                                        onChanged: (value) {
-                                          shiftTiminigMasterProvider.depatmentontap(value,positionMasterService);
-                                        },
-                                      ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AppSearchableDropdown<DepartMnetModel>(
+                                      dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedDepartment),
+                                      initialItem: shiftTiminigMasterProvider.selectedDepartment,
+                                      validator: (val){
+                                        if (val == null) {
+                                          return 'Please Select Department Name';
+                                        }
+                                        return null;
+                                      },
+                                      hintText: selectDepartmentNameString,
+                                      futureRequest: context.read<DepartmentServices>().getFilterDepartment,
+                                      items: context.read<DepartmentServices>().activepartment,
+                                      itemAsString: (item) => item.departmentName.toString(),
+                                      headerBuilder: (context, selectedItem, enabled) {
+                                        return Text(shiftTiminigMasterProvider.selectedDepartment == null ? selectDepartmentNameString : shiftTiminigMasterProvider.selectedDepartment!.departmentName.toString());
+                                      },
+                                      onChanged: (value) {
+                                        shiftTiminigMasterProvider.depatmentontap(value,positionMasterService);
+                                      },
                                     ),
-                                    widthSpacer(size.width*0.02),
-                                    addIconSetData(size, () {nextScreen(context, DepartmentScreen(),onthenValue: (val){},);})
-                                  ],
-                                ),
+                                  ),
+                                  widthSpacer(size.width*0.02),
+                                  addIconSetData(size, () {nextScreen(context, DepartmentScreen(),onthenValue: (val){},);})
+                                ],
                               ),
                               heightSpacer(size.height * 0.01),
                               Text("$designationString :", style: normalHeadingText(size)),
                               heightSpacer(size.height * 0.01),
-                              IgnorePointer(
-                                ignoring: widget.addEditFlag ? false : true,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: AppSearchableDropdown<PositionDataL>(
-                                        dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedDesignation),
-                                        initialItem: shiftTiminigMasterProvider.selectedDesignation,
-                                        validator: (val){
-                                          if (val == null) {
-                                            return 'Please Select Designation Name';
-                                          }
-                                          return null;
-                                        },
-                                        hintText: selectDesignationNameString,
-                                        futureRequest: shiftTiminigMasterProvider.getFilterDesignation,
-                                        items: shiftTiminigMasterProvider.getFiltersPostionList,
-                                        itemAsString: (item) => item.positionName.toString(),
-                                        headerBuilder: (context, selectedItem, enabled) {
-                                          return Text(shiftTiminigMasterProvider.selectedDesignation == null ? selectDesignationNameString : shiftTiminigMasterProvider.selectedDesignation!.positionName.toString());
-                                        },
-                                        onChanged: (value) {
-                                          shiftTiminigMasterProvider.designationontap(value);
-                                        },
-                                      ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AppSearchableDropdown<PositionDataL>(
+                                      dropdownKey: ValueKey(shiftTiminigMasterProvider.selectedDesignation),
+                                      initialItem: shiftTiminigMasterProvider.selectedDesignation,
+                                      validator: (val){
+                                        if (val == null) {
+                                          return 'Please Select Designation Name';
+                                        }
+                                        return null;
+                                      },
+                                      hintText: selectDesignationNameString,
+                                      futureRequest: shiftTiminigMasterProvider.getFilterDesignation,
+                                      items: shiftTiminigMasterProvider.getFiltersPostionList,
+                                      itemAsString: (item) => item.positionName.toString(),
+                                      headerBuilder: (context, selectedItem, enabled) {
+                                        return Text(shiftTiminigMasterProvider.selectedDesignation == null ? selectDesignationNameString : shiftTiminigMasterProvider.selectedDesignation!.positionName.toString());
+                                      },
+                                      onChanged: (value) {
+                                        shiftTiminigMasterProvider.designationontap(value);
+                                      },
                                     ),
-                                    widthSpacer(size.width*0.02),
-                                    addIconSetData(size, () {nextScreen(context, DesignationScreen(),onthenValue: (val){},);}),
-                                  ],
-                                ),
+                                  ),
+                                  widthSpacer(size.width*0.02),
+                                  addIconSetData(size, () {nextScreen(context, DesignationScreen(),onthenValue: (val){},);}),
+                                ],
                               ),
                               heightSpacer(size.height * 0.01),
                               Text("$selectWorkDaysString :", style: normalHeadingText(size)),
