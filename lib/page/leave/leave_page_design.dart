@@ -256,9 +256,13 @@ Widget buildEligibleInfo(Size size, LeaveUserProvider provider) {
           children: [
             Icon(Icons.info_outline, color: Colors.orange.shade700, size: 18),
             SizedBox(width: 8),
-            Text(
-              leaveEligibilityString,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.orange.shade800),
+            Expanded(
+              child: Text(
+                provider.showLimitStartDate.isNotEmpty
+                    ? "$leaveEligibilityString (${provider.showLimitStartDate} to ${provider.showLimitEndDate})"
+                    : leaveEligibilityString,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.orange.shade800),
+              ),
             ),
           ],
         ),

@@ -73,9 +73,11 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     if (attendanceProviders.filteredEmployeeList.isEmpty &&
         attendanceProviders.searchQuery.isEmpty &&
         attendanceProviders.selectedDepartment == 'ALL') {
-      attendanceProviders.filteredEmployeeList = List.from(
-        attendanceProviders.empAttendanceList,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        attendanceProviders.filteredEmployeeList = List.from(
+          attendanceProviders.empAttendanceList,
+        );
+      });
     }
 
     return RefreshIndicator(
@@ -1286,8 +1288,6 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           nextScreen(
             context,
             AttendanceScreen(empData: employee),
-            onthenValue: (value) =>
-                attendanceProviders.refreshCurrentMonthData(context),
           );
         },
         borderRadius: BorderRadius.circular(12),

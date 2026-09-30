@@ -267,6 +267,7 @@ String get shiftDurationString => LanguageProvider.translate("Shift Duration", "
 String get shiftBeginTimeString => LanguageProvider.translate("Shift Begin Time", "Shift Begin Time");
 String get shiftEndTimeString => LanguageProvider.translate("Shift End Time", "Shift End Time"); 
 String get newShiftMasterString => LanguageProvider.translate("New Shift Master", "New Shift Master");
+String get editShiftMasterString => LanguageProvider.translate("Edit Shift Master", "Edit Shift Master");
 
 // Add shift Timing titles
 String get designationString => LanguageProvider.translate("Designation", "Designation");

@@ -1860,10 +1860,12 @@ Future<void> showDayDetails(
                         ],
                       ),
                     )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        heightSpacer(5),
+                  : SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          heightSpacer(5),
                         Center(
                           child: Container(
                             width: 40,
@@ -2368,10 +2370,10 @@ Future<void> showDayDetails(
                         heightSpacer(size.height * 0.01),
 
                         if (attendenceLog != null && attendenceLog.isNotEmpty)
-                          Expanded(
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              itemCount: attendenceLog.length,
+                          ListView.separated(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: attendenceLog.length,
                               padding: EdgeInsets.symmetric(
                                 horizontal: size.width * 0.03,
                               ),
@@ -2807,7 +2809,6 @@ Future<void> showDayDetails(
                                 );
                               },
                             ),
-                          ),
 
                         curentUser['Role'] == 'Admin'
                             ? Padding(
@@ -2880,7 +2881,8 @@ Future<void> showDayDetails(
                             : Container(),
                         heightSpacer(size.height * 0.015),
                       ],
-                    );
+                    ),
+                  );
             },
           ),
         );

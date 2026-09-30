@@ -34,6 +34,7 @@ class LeaveListData {
   double? eligibleLeave;
   String? firstName;
   String? lastName;
+  double? leaveDays;
 
   LeaveListData(
       {this.empLeaveId,
@@ -59,7 +60,8 @@ class LeaveListData {
       this.usedLeave,
       this.eligibleLeave,
       this.firstName,
-      this.lastName});
+      this.lastName,
+      this.leaveDays});
 
   LeaveListData.fromJson(Map<String, dynamic> json) {
     empLeaveId = json['EmpLeaveId'];
@@ -86,6 +88,7 @@ class LeaveListData {
     eligibleLeave = json['EligibleLeave'];
     firstName = json['FirstName'];
     lastName = json['LastName'];
+    leaveDays = json['LeaveDays'] != null ? double.tryParse(json['LeaveDays'].toString()) : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -114,6 +117,7 @@ class LeaveListData {
     data['EligibleLeave'] = eligibleLeave;
     data['FirstName'] = firstName;
     data['LastName'] = lastName;
+    data['LeaveDays'] = leaveDays;
     return data;
   }
 }
