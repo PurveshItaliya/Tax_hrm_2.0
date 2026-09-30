@@ -14,6 +14,8 @@ import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/services/notifications/notification_logger_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
 
+import '../services/notifications/notification_generator_service.dart';
+
 
 class ReminderNotificationService {
   static final FlutterLocalNotificationsPlugin notificationsPlugin =
@@ -153,25 +155,25 @@ class ReminderNotificationService {
     // await updateHolidaysAndLeaves();
 
     // 3. Generate and schedule notifications
-    // final now = DateTime.now();
-    // final items = NotificationGeneratorService.generateAll(
-    //   employees: employees,
-    //   holidays: holidays,
-    //   currentUserId: userId,
-    //   now: now,
-    // );
+    final now = DateTime.now();
+    final items = NotificationGeneratorService.generateAll(
+      employees: employees,
+      holidays: holidays,
+      currentUserId: userId,
+      now: now,
+    );
 
-    // final scheduledIds = await NotificationGeneratorService.scheduleItems(items);
-    // await NotificationStorageService.saveScheduleMetadata(
-    //   companyId: companyId,
-    //   userId: userId,
-    //   scheduledIds: scheduledIds,
-    // );
+    final scheduledIds = await NotificationGeneratorService.scheduleItems(items);
+    await NotificationStorageService.saveScheduleMetadata(
+      companyId: companyId,
+      userId: userId,
+      scheduledIds: scheduledIds,
+    );
 
     // 4. Run shift reminders
     await scheduleReminders();
 
-    // NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS COMPLETE (Refreshed: ${scheduledIds.length} events scheduled) ---');
+    NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS COMPLETE (Refreshed: ${scheduledIds.length} events scheduled) ---');
   }
 
   static Future<String> scheduleReminders() async {
@@ -189,7 +191,7 @@ class ReminderNotificationService {
 
     StringBuffer logStr = StringBuffer();
     void addLog(String msg) {
-      logStr.writeln(msg);
+      NotificationLoggerService.scheduling('PUNCH_REMINDER: $msg');
     }
 
 

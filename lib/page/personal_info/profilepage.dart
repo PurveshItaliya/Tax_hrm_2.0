@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/usermasterprovider.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -17,7 +16,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/page/employee_master/employee_add_edit_screen.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
@@ -46,13 +44,8 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(
-      context,
-    );
     final userMasterService = Provider.of<UserMasterService>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               appBar: showCustomeAppBar(
                 personalInfoString,

@@ -16,7 +16,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class RecruitmentPageScreen extends StatefulWidget {
@@ -42,11 +41,8 @@ class _RecruitmentPageScreenState extends State<RecruitmentPageScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final recuritmentProvider =  Provider.of<RecuritmentProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               floatingActionButton: recuritmentProvider.islodering ? SizedBox() : Padding(

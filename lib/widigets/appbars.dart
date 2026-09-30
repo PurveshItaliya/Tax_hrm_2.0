@@ -201,7 +201,7 @@ Future<void> pdfViewsPopMenu(
           children: [
             const Icon(Icons.picture_as_pdf, color: Colors.black),
             const SizedBox(width: 10),
-            Text("PDF", style: normalHeadingText(size)),
+            Text(pdfString, style: normalHeadingText(size)),
           ],
         ),
       ),
@@ -211,7 +211,7 @@ Future<void> pdfViewsPopMenu(
           children: [
             const Icon(Icons.print_sharp, color: Colors.black),
             const SizedBox(width: 10),
-            Text("Print", style: normalHeadingText(size)),
+            Text(printString, style: normalHeadingText(size)),
           ],
         ),
       ),
@@ -221,7 +221,7 @@ Future<void> pdfViewsPopMenu(
           children: [
             const Icon(Icons.table_chart, color: Colors.black),
             const SizedBox(width: 10),
-            Text("Excel", style: normalHeadingText(size)),
+            Text(excelString, style: normalHeadingText(size)),
           ],
         ),
       ),

@@ -71,7 +71,7 @@ class CompanyMasterApi {
 class CompanyDataApis {
   Future getCompanyDataList() async {
     var url = Uri.parse(
-      '${apibaseurl}api/Master/CompanyList?CustId=${curentUser['CustId']} ',
+      '${apibaseurl}api/Master/CompanyList?CustId=${curentUser['CustId']}',
     );
 
     var response = await http.get(

@@ -14,7 +14,6 @@ import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class OtpVerificationOfLogin extends StatefulWidget {
@@ -46,12 +45,9 @@ class _OtpVerificationOfLoginState extends State<OtpVerificationOfLogin> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final otpverificationprovider = Provider.of<Otpverificationprovider>(context);
     Provider.of<LanguageProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               appBar: showCustomeAppBar(backString, size,iconsOntap: () {backScreen(context);}),
               body: Padding(

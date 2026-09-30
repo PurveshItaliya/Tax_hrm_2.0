@@ -1,9 +1,11 @@
-// ignore_for_file: void_checks, use_build_context_synchronously, empty_catches, strict_top_level_inference, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:tax_hrm/provider/location_tracking_provider.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/attendance/customdialog.dart';
 import 'package:tax_hrm/page/home/home_design_screen.dart';
@@ -17,6 +19,7 @@ import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'package:tax_hrm/widigets/location_tracking_banner_widget.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 
@@ -29,7 +32,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Flag to prevent multiple dialog opens
   bool _isDialogShowing = false;
   bool _isCalculating = false;
@@ -45,8 +48,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _homeProvider = Provider.of<HomeProvider>(context, listen: false);
     _initHome();
+  }
+
+  // ── iOS foreground-resume hook ─────────────────────────────────────────────
+  // When the user returns to the app (e.g. from Settings, after a phone call),
+  // we re-validate permission and stream state. This ensures:
+  //   • The banner updates immediately if the user changed location permission.
+  //   • The stream restarts if it died while the app was deeply backgrounded.
+  // Note: we deliberately do NOT use AppLifecycleState.detached — iOS does not
+  //       guarantee that callback before termination.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && Platform.isIOS) {
+      final controller = Provider.of<LocationTrackingProvider>(
+        context,
+        listen: false,
+      );
+      controller.refreshIosTrackingStatus();
+    }
   }
 
   Future<void> _initHome() async {
@@ -104,6 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _homeProvider.stopWorkingHoursTimer();
     _isDialogShowing = false;
     _isCalculating = false;
@@ -134,6 +157,13 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
+                // ── iOS location tracking status banner ──────────────────────
+                // Shown only on iOS during an active Punch session. Transparent
+                // on Android (guarded inside LocationTrackingBannerWidget).
+                // Displays: Active / Reduced Accuracy / Permission Denied / Services Off
+                if (curentUser['Role'] != 'Admin')
+                  const LocationTrackingBannerWidget(),
+
                 if(curentUser['Role'] != 'Admin') ...[
                   buildDateHeader(size),
                 ] else ...[
@@ -157,7 +187,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppBar(
       automaticallyImplyLeading: false,
       backgroundColor: ColorConst.white,
-      toolbarHeight: size.height * 0.08,
       title: GestureDetector(
         onTap: curentUser['Role'] == 'Admin' 
             ? () { homeProvider.companyHandleSubmit(context, size: size); } 

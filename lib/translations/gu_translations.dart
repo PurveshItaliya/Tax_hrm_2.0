@@ -4,7 +4,8 @@ final Map<String, String> guTranslations = {
   'Leave': 'રજા',
   'Setting': 'સેટિંગ',
   'Logout': 'લોગઆઉટ',
-  'Simpy Enter your Username & Password': 'ફક્ત તમારું વપરાશકર્તા નામ અને પાસવર્ડ દાખલ કરો',
+  'Simpy Enter your Username & Password':
+      'ફક્ત તમારું વપરાશકર્તા નામ અને પાસવર્ડ દાખલ કરો',
   'Username': 'વપરાશકર્તા નામ',
   'Password': 'પાસવર્ડ',
   'Filed is Required': 'આ ફીલ્ડ જરૂરી છે',
@@ -15,8 +16,10 @@ final Map<String, String> guTranslations = {
   'Verify': 'ચકાસો',
   'Back': 'પાછા',
   'Verification Code': 'ચકાસણી કોડ',
-  'Choose how you want to receive your 6-digit verification code.': 'તમારો 6-આંકડાનો વેરિફિકેશન કોડ કેવી રીતે મેળવવો તે પસંદ કરો.',
-  'A verification code has been sent to your registered ': 'તમારા રજિસ્ટર્ડ સરનામે વેરિફિકેશન કોડ મોકલવામાં આવ્યો છે ',
+  'Choose how you want to receive your 6-digit verification code.':
+      'તમારો 6-આંકડાનો વેરિફિકેશન કોડ કેવી રીતે મેળવવો તે પસંદ કરો.',
+  'A verification code has been sent to your registered ':
+      'તમારા રજિસ્ટર્ડ સરનામે વેરિફિકેશન કોડ મોકલવામાં આવ્યો છે ',
   'Mobile': 'મોબાઈલ',
   'E-mail': 'ઈમેલ',
   'Salary Slip': 'સેલેરી સ્લિપ',
@@ -189,7 +192,8 @@ final Map<String, String> guTranslations = {
   'Select Designation Name': 'હોદ્દાનું નામ પસંદ કરો',
   'Select Time': 'સમય પસંદ કરો',
   'Ok': 'બરાબર',
-  'Please select at least one working day': 'કૃપા કરીને ઓછામાં ઓછો એક કામકાજનો દિવસ પસંદ કરો',
+  'Please select at least one working day':
+      'કૃપા કરીને ઓછામાં ઓછો એક કામકાજનો દિવસ પસંદ કરો',
   'Position is already used !!!': 'હોદ્દો પહેલેથી જ ઉપયોગમાં લેવાઈ ગયો છે !!!',
   'Add Event': 'કાર્યક્રમ ઉમેરો',
   'Edit Event': 'કાર્યક્રમમાં ફેરફાર કરો',
@@ -310,12 +314,15 @@ final Map<String, String> guTranslations = {
   'Select Month': 'મહિનો પસંદ કરો',
   'appNameString': 'TAX HRM 2.0',
   'ooopsString': 'અરેરે!',
-  'internetDecString': 'કોઈ ઇન્ટરનેટ કનેક્શન મળ્યું નથી \n તમારું કનેક્શન તપાસો',
+  'internetDecString':
+      'કોઈ ઇન્ટરનેટ કનેક્શન મળ્યું નથી \n તમારું કનેક્શન તપાસો',
   'tryAgainString': 'ફરી પ્રયાસ કરો',
   'welcomeTitle1String': 'હું કર્મચારી છું',
   'welcomeTitle2String': 'માલિક / એડમિન એક્સેસ',
-  'welcomeDec1String': 'તમારા કાર્યસ્થળના સાધનો અને સંસાધનો મેળવવા માટે સાઇન ઇન કરો.',
-  'welcomeDec2String': 'તમારી સંસ્થા બનાવો અને તમારી ટીમને કાર્યક્ષમ રીતે સંચાલિત કરો.',
+  'welcomeDec1String':
+      'તમારા કાર્યસ્થળના સાધનો અને સંસાધનો મેળવવા માટે સાઇન ઇન કરો.',
+  'welcomeDec2String':
+      'તમારી સંસ્થા બનાવો અને તમારી ટીમને કાર્યક્ષમ રીતે સંચાલિત કરો.',
   'welcomeTaxHrmString': 'TAXHRM માં આપનું સ્વાગત છે',
   'welcomeDecString': 'ચાલો આજે તમે શું જોવા માંગો છો તે પસંદ કરીને શરૂ કરીએ.',
   'loginString': 'લોગિન',
@@ -330,8 +337,10 @@ final Map<String, String> guTranslations = {
   'verifyString': 'ચકાસો',
   'backString': 'પાછા',
   'verificationCodeString': 'ચકાસણી કોડ',
-  'otpTitlesString': 'તમારો 6-આંકડાનો વેરિફિકેશન કોડ કેવી રીતે મેળવવો તે પસંદ કરો.',
-  'verifyOtpSendString': 'તમારા રજિસ્ટર્ડ સરનામે વેરિફિકેશન કોડ મોકલવામાં આવ્યો છે ',
+  'otpTitlesString':
+      'તમારો 6-આંકડાનો વેરિફિકેશન કોડ કેવી રીતે મેળવવો તે પસંદ કરો.',
+  'verifyOtpSendString':
+      'તમારા રજિસ્ટર્ડ સરનામે વેરિફિકેશન કોડ મોકલવામાં આવ્યો છે ',
   'mobileString': 'મોબાઈલ',
   'emailString': 'ઈમેલ',
   'adminLeavePage': 'રજાની વિનંતી',
@@ -375,7 +384,8 @@ final Map<String, String> guTranslations = {
   'Out': 'આઉટ',
   'Action': 'ક્રિયા',
   'Delete Entry': 'એન્ટ્રી કાઢી નાખો',
-  'Are you sure you want to delete the punch entry at': 'શું તમે ખરેખર પંચ એન્ટ્રી કાઢી નાખવા માંગો છો',
+  'Are you sure you want to delete the punch entry at':
+      'શું તમે ખરેખર પંચ એન્ટ્રી કાઢી નાખવા માંગો છો',
   'Punch entry at': 'પંચ એન્ટ્રી',
   'deleted': 'કાઢી નાખેલ',
   'Added new punch at': 'નવું પંચ ઉમેર્યું',
@@ -398,7 +408,8 @@ final Map<String, String> guTranslations = {
   'Try searching with a different name': 'અન્ય નામથી શોધવાનો પ્રયત્ન કરો',
   'Clear Search': 'શોધ સાફ કરો',
   'Completed': 'પૂર્ણ થયેલ',
-  'Punch in before 10:00 AM to avoid late marking': 'મોડા પડવાનું ટાળવા માટે સવારે ૧૦:૦૦ વાગ્યા પહેલાં પંચ કરો',
+  'Punch in before 10:00 AM to avoid late marking':
+      'મોડા પડવાનું ટાળવા માટે સવારે ૧૦:૦૦ વાગ્યા પહેલાં પંચ કરો',
   'No': 'ના',
   'DOB': 'જન્મ તારીખ',
   'DOJ': 'જોડાવાની તારીખ',
@@ -434,8 +445,10 @@ final Map<String, String> guTranslations = {
   'Total Employees': 'કુલ કર્મચારીઓ',
   'All Employees': 'બધા કર્મચારીઓ',
   'ID': 'આઈડી',
-  'Always Allow — active for shift tracking': 'હંમેશા પરવાનગી આપો — શિફ્ટ ટ્રેકિંગ માટે સક્રિય',
-  'Required to track location during your shift': 'તમારી શિફ્ટ દરમિયાન લોકેશન ટ્રેક કરવા માટે જરૂરી',
+  'Always Allow — active for shift tracking':
+      'હંમેશા પરવાનગી આપો — શિફ્ટ ટ્રેકિંગ માટે સક્રિય',
+  'Required to track location during your shift':
+      'તમારી શિફ્ટ દરમિયાન લોકેશન ટ્રેક કરવા માટે જરૂરી',
   'Date Selection': 'તારીખ પસંદગી',
   'Location Timeline': 'લોકેશન ટાઈમલાઈન',
   'Loading coordinates...': 'કોઓર્ડિનેટ્સ લોડ થઈ રહ્યાં છે...',
@@ -445,7 +458,8 @@ final Map<String, String> guTranslations = {
   'Remaining Hours': 'બાકીના કલાકો',
   'Overtime Hours': 'ઓવરટાઇમના કલાકો',
   'Delete Payroll Data': 'પેરોલ ડેટા કાઢી નાખો',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'શું તમે ખરેખર પસંદ કરેલા મહિના માટે પેરોલ હાજરીનો ડેટા કાઢી નાખવા માંગો છો? આ પ્રક્રિયા પાછી ખેંચી શકાશે નહીં.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'શું તમે ખરેખર પસંદ કરેલા મહિના માટે પેરોલ હાજરીનો ડેટા કાઢી નાખવા માંગો છો? આ પ્રક્રિયા પાછી ખેંચી શકાશે નહીં.',
   'Break': 'બ્રેક',
   'Total': 'કુલ',
   'Hrs': 'કલાકો',
@@ -467,6 +481,7 @@ final Map<String, String> guTranslations = {
   'selectOfficeString': 'કાર્યાલય પસંદ કરો',
   'selectWorkTypeString': 'કાર્ય પ્રકાર પસંદ કરો',
   'fetchLocationString': 'સ્થાન મેળવો',
+  'visitString': 'શું મુલાકાત છે',
   'enabledString': 'સક્રિય',
   'disabledString': 'નિષ્ક્રિય',
   'locationRadiusString': 'સ્થાન ત્રિજ્યા (મીટર)',
@@ -536,10 +551,12 @@ final Map<String, String> guTranslations = {
   'Other': 'અન્ય',
   'Custom Event Type': 'કસ્ટમ કાર્યક્રમ પ્રકાર',
   'Enter custom event type': 'કસ્ટમ કાર્યક્રમ પ્રકાર દાખલ કરો',
-  'Please enter custom event type': 'કૃપા કરીને કસ્ટમ કાર્યક્રમ પ્રકાર દાખલ કરો',
+  'Please enter custom event type':
+      'કૃપા કરીને કસ્ટમ કાર્યક્રમ પ્રકાર દાખલ કરો',
   'Attachments': 'જોડાણો',
   'Click to upload attachments': 'જોડાણો અપલોડ કરવા માટે ક્લિક કરો',
-  'Supported: Images, PDF, Word, Excel files': 'સપોર્ટેડ: ઈમેજીસ, પીડીએફ, વર્ડ, એક્સેલ ફાઈલો',
+  'Supported: Images, PDF, Word, Excel files':
+      'સપોર્ટેડ: ઈમેજીસ, પીડીએફ, વર્ડ, એક્સેલ ફાઈલો',
   'Create Event': 'કાર્યક્રમ બનાવો',
   'Event Type': 'કાર્યક્રમનો પ્રકાર',
   'Event Name': 'કાર્યક્રમનું નામ',
@@ -556,4 +573,98 @@ final Map<String, String> guTranslations = {
   'Event Created Successfully': 'કાર્યક્રમ સફળતાપૂર્વક બન્યો',
   'Event Updated Successfully': 'કાર્યક્રમ સફળતાપૂર્વક અપડેટ થયો',
   'Please enter Event Name': 'કૃપા કરીને કાર્યક્રમનું નામ દાખલ કરો',
+  'faceRegistrationRequiredString': 'ચહેરાની નોંધણી જરૂરી છે',
+  'faceRegistrationDescString':
+      'સલામત હાજરી ટ્રેકિંગ સુનિશ્ચિત કરવા માટે, તમે પંચ ઇન અથવા આઉટ કરતા પહેલા તમારે તમારો ચહેરો નોંધણી કરવો પડશે.',
+  'registerFaceNowString': 'હમણાં ચહેરો નોંધણી કરો',
+  'punchAttendanceString': 'હાજરી પંચ કરો',
+  'offlineModeString': 'ઑફલાઇન મોડ — ઑનલાઇન થાય ત્યારે પંચ સિંક થશે',
+  'noLocationDetailsString': 'કોઈ સ્થાન વિગતો નથી.',
+  'locationPendingString': 'સ્થાન બાકી છે',
+  'inRangeString': 'અંદર (રેન્જમાં)',
+  'outOfRangeString': 'બહાર (રેન્જની બહાર)',
+  'locationString': 'સ્થાન',
+  'retryCameraString': 'કેમેરા ફરી પ્રયાસ કરો',
+  'cameraString': 'કેમેરા',
+  'unableToGetLocationGpsString':
+      'સ્થાન મેળવવામાં અસમર્થ. કૃપા કરીને તમારું GPS તપાસો.',
+  'accountInactiveString': 'તમારું એકાઉન્ટ નિષ્ક્રિય છે',
+  'passwordChangedString': 'તમારો પાસવર્ડ બદલાઈ ગયો છે',
+  'checksFailedString': 'તપાસ નિષ્ફળ ગઈ, કૃપા કરીને ફરી પ્રયાસ કરો',
+  'punchSavedOfflineString': 'પંચ ઑફલાઇન સફળતાપૂર્વક સાચવવામાં આવ્યો',
+  'punchTryAgainString': 'પંચ ફરી પ્રયાસ કરો',
+  'errorOccurredString': 'ભૂલ આવી, કૃપા કરીને ફરી પ્રયાસ કરો',
+  'punchSavedOfflineWillSyncString':
+      'પંચ ઑફલાઇન સાચવવામાં આવ્યો. ઇન્ટરનેટ પાછું આવશે ત્યારે સિંક થશે.',
+  'failedToSaveOfflineString':
+      'ઑફલાઇન પંચ સાચવવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.',
+  'cameraImageNotCapturedString':
+      'કેમેરા છબી લેવામાં આવી નથી, કૃપા કરીને ફરી પ્રયાસ કરો',
+  'successfullyString': 'સફળતાપૂર્વક',
+  'administratorString': 'એડમિનિસ્ટ્રેટર',
+  'reRegisterFaceString': 'ચહેરો ફરીથી નોંધણી કરો',
+  'faceIsRegisteredString': 'ચહેરો નોંધાયેલ છે',
+  'selectLanguageString': 'ભાષા પસંદ કરો',
+  'searchLanguageString': 'ભાષા શોધો...',
+  'versionString': 'આવૃત્તિ',
+  'areYouSureToTitleString': 'શું તમે ચોક્કસ છો કે તમે ',
+  'yesString': 'હા',
+  'pleaseWaitString': 'કૃપા કરીને રાહ જુઓ',
+  'whileCreatingProfileString': ' તમારી પ્રોફાઇલ બનાવતી વખતે',
+  'punchDeniedString': 'પંચ નકારવામાં આવ્યો',
+  'locationServicesDisabledString': 'સ્થાન સેવાઓ અક્ષમ છે',
+  'gpsTurnedOffString':
+      'તમારું GPS હાલમાં બંધ છે. કૃપા કરીને આગળ વધવા માટે સ્થાન સેવાઓ સક્ષમ કરો.',
+  'backgroundLocationAccessString': 'બેકગ્રાઉન્ડ સ્થાન ઍક્સેસ',
+  'bgLocationDescString':
+      'તમારી પાળી દરમિયાન તમારી હાજરી અને કાર્ય સ્થળને સચોટ રીતે ટ્રૅક કરવા માટે, આ ઍપ બેકગ્રાઉન્ડમાં ચાલતી હોય ત્યારે પણ તમારા સ્થાનને ઍક્સેસ કરવાની જરૂર છે.',
+  'bgLocationAlwaysAllowString':
+      'બેકગ્રાઉન્ડ ટ્રેકિંગ સક્ષમ કરવા માટે કૃપા કરીને આગલી સ્ક્રીન પર "Always Allow" પસંદ કરો.',
+  'continueString': 'ચાલુ રાખો',
+  'notNowString': 'અત્યારે નહીં',
+  'enableBgLocationString': 'બેકગ્રાઉન્ડ સ્થાન સક્ષમ કરો',
+  'bgLocationNotGrantedString':
+      'બેકગ્રાઉન્ડ સ્થાનની ઍક્સેસ આપવામાં આવી નથી. તેને સક્ષમ કરવા માટે:',
+  'openSettingsString': 'સેટિંગ્સ ખોલો',
+  'tapAppLocationString': 'આ ઍપ પર ટૅપ કરો → સ્થાન',
+  'selectAlwaysString': '"Always" પસંદ કરો',
+  'skipForNowString': 'અત્યારે છોડી દો',
+  'allString': 'બધા',
+  'activeString': 'સક્રિય',
+  'inActiveString': 'નિષ્ક્રિય',
+  'pdfString': 'PDF',
+  'printString': 'પ્રિન્ટ',
+  'excelString': 'Excel',
+  'punchAddedSuccessfullyString': 'પંચ સફળતાપૂર્વક ઉમેરવામાં આવ્યો',
+  'offlinePunchAddedRecordString':
+      'તમારો ઑફલાઇન પંચ સીધો તમારા હાજરી રેકોર્ડમાં ઉમેરવામાં આવ્યો છે.',
+  'offlinePunchAddedServerSuccessString':
+      'ઑફલાઇન પંચ સર્વર પર સફળતાપૂર્વક ઉમેરવામાં આવ્યો!',
+  'failedToAddPunchTryAgainString':
+      'પંચ ઉમેરવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.',
+  'duplicateOfflinePunchDiscardedString':
+      'ડુપ્લિકેટ ઑફલાઇન પંચ કાઢી નાખવામાં આવ્યો.',
+  'duplicatePunchWarningString': 'ડુપ્લિકેટ પંચ ચેતવણી',
+  'punchRecordedWithin5MinsString':
+      'પંચ 5 મિનિટમાં નોંધાયેલ છે અથવા પહેલેથી ઇતિહાસમાં છે',
+  'allDuplicatePunchesResolvedString': 'બધા ડુપ્લિકેટ પંચ ઉકેલાયા.',
+  'offlinePunchWithEmojiString': '📱 ઑફલાઇન પંચ',
+  'serverHistoryWithEmojiString': '🌐 સર્વર ઇતિહાસ',
+  'addOfflinePunchToHistoryString': 'શું આ ઑફલાઇન પંચને ઇતિહાસમાં ઉમેરવો છે?',
+  'discardString': 'કાઢી નાખો',
+  'addPunchString': 'પંચ ઉમેરો',
+  'deletePayslipString': 'પેસ્લિપ કાઢી નાખો',
+  'areYouSureDeletePayslipString':
+      'શું તમે ચોક્કસ છો કે તમે આ પેસ્લિપ કાઢી નાખવા માંગો છો?',
+  'payslipDeletedSuccessString': 'પેસ્લિપ સફળતાપૂર્વક કાઢી નાખવામાં આવી',
+  'pdfDownloadSuccessString': 'PDF સફળતાપૂર્વક ડાઉનલોડ થઈ!!!',
+  'pdfDownloadFailedString': 'PDF ડાઉનલોડ નિષ્ફળ!!!',
+  'endDateCannotBeBeforeStartDateString':
+      'સમાપ્તિ તારીખ શરૂઆતની તારીખથી પહેલા ન હોઈ શકે',
+  'selectLeaveTypeString': 'રજાનો પ્રકાર પસંદ કરો',
+  'cannotApplyMoreThanEligibleString':
+      'તમે લાયક રજા કરતા વધુ રજા માટે અરજી કરી શકતા નથી',
+  'updateLeaveApiNotAvailableString': 'રજા અપડેટ કરવાની API ઉપલબ્ધ નથી',
+  'locationServicesAreDisabledString': 'સ્થાન સેવાઓ અક્ષમ છે.',
+  'locationPermissionsAreDeniedString': 'સ્થાન પરવાનગીઓ નકારવામાં આવી છે',
 };

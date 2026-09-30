@@ -4,7 +4,8 @@ final Map<String, String> knTranslations = {
   'Leave': 'ಬಿಡು',
   'Setting': 'ಸೆಟ್ಟಿಂಗ್',
   'Logout': 'ಲಾಗ್ಔಟ್',
-  'Simpy Enter your Username & Password': 'ಸರಳವಾಗಿ ನಿಮ್ಮ ಬಳಕೆದಾರಹೆಸರು ಮತ್ತು ಪಾಸ್ವರ್ಡ್ ಅನ್ನು ನಮೂದಿಸಿ',
+  'Simpy Enter your Username & Password':
+      'ಸರಳವಾಗಿ ನಿಮ್ಮ ಬಳಕೆದಾರಹೆಸರು ಮತ್ತು ಪಾಸ್ವರ್ಡ್ ಅನ್ನು ನಮೂದಿಸಿ',
   'Username': 'ಬಳಕೆದಾರ ಹೆಸರು',
   'Password': 'ಪಾಸ್ವರ್ಡ್',
   'Filed is Required': 'ಸಲ್ಲಿಸಬೇಕಾದ ಅಗತ್ಯವಿದೆ',
@@ -15,8 +16,10 @@ final Map<String, String> knTranslations = {
   'Verify': 'ಪರಿಶೀಲಿಸಿ',
   'Back': 'ಹಿಂದೆ',
   'Verification Code': 'ಪರಿಶೀಲನೆ ಕೋಡ್',
-  'Choose how you want to receive your 6-digit verification code.': 'ನಿಮ್ಮ 6-ಅಂಕಿಯ ಪರಿಶೀಲನೆ ಕೋಡ್ ಅನ್ನು ನೀವು ಹೇಗೆ ಸ್ವೀಕರಿಸಲು ಬಯಸುತ್ತೀರಿ ಎಂಬುದನ್ನು ಆರಿಸಿ.',
-  'A verification code has been sent to your registered ': 'ನಿಮ್ಮ ನೋಂದಾಯಿತರಿಗೆ ಪರಿಶೀಲನೆ ಕೋಡ್ ಅನ್ನು ಕಳುಹಿಸಲಾಗಿದೆ',
+  'Choose how you want to receive your 6-digit verification code.':
+      'ನಿಮ್ಮ 6-ಅಂಕಿಯ ಪರಿಶೀಲನೆ ಕೋಡ್ ಅನ್ನು ನೀವು ಹೇಗೆ ಸ್ವೀಕರಿಸಲು ಬಯಸುತ್ತೀರಿ ಎಂಬುದನ್ನು ಆರಿಸಿ.',
+  'A verification code has been sent to your registered ':
+      'ನಿಮ್ಮ ನೋಂದಾಯಿತರಿಗೆ ಪರಿಶೀಲನೆ ಕೋಡ್ ಅನ್ನು ಕಳುಹಿಸಲಾಗಿದೆ',
   'Mobile': 'ಮೊಬೈಲ್',
   'E-mail': 'ಇಮೇಲ್',
   'Salary Slip': 'ಸಂಬಳ ಚೀಟಿ',
@@ -64,7 +67,8 @@ final Map<String, String> knTranslations = {
   'Enter Title': 'ಶೀರ್ಷಿಕೆಯನ್ನು ನಮೂದಿಸಿ',
   'Paid Holiday': 'ಪಾವತಿಸಿದ ರಜೆ',
   'UnPaid Holiday': 'ಪಾವತಿಸದ ರಜೆ',
-  'Please select at least one date': 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ದಿನಾಂಕವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+  'Please select at least one date':
+      'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ದಿನಾಂಕವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
   'Add New Note': 'ಹೊಸ ಟಿಪ್ಪಣಿ ಸೇರಿಸಿ',
   'No Note Added!': 'ಯಾವುದೇ ಟಿಪ್ಪಣಿಯನ್ನು ಸೇರಿಸಲಾಗಿಲ್ಲ!',
   'Search Notes': 'ಟಿಪ್ಪಣಿಗಳನ್ನು ಹುಡುಕಿ',
@@ -131,9 +135,12 @@ final Map<String, String> knTranslations = {
   'Date Of Joining': 'ಸೇರುವ ದಿನಾಂಕ',
   'Select DOB': 'DOB ಆಯ್ಕೆಮಾಡಿ',
   'Select DOJ': 'DOJ ಆಯ್ಕೆಮಾಡಿ',
-  'Please enter a valid email address': 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ',
-  'Enter valid 10 digit mobile number': 'ಮಾನ್ಯವಾದ 10 ಅಂಕಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ',
-  'Please enter a valid mobile number': 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ',
+  'Please enter a valid email address':
+      'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ',
+  'Enter valid 10 digit mobile number':
+      'ಮಾನ್ಯವಾದ 10 ಅಂಕಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ',
+  'Please enter a valid mobile number':
+      'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ',
   'No TimeLine Added!': 'ಯಾವುದೇ ಟೈಮ್‌ಲೈನ್ ಸೇರಿಸಲಾಗಿಲ್ಲ!',
   'Google Map': 'ಗೂಗಲ್ ನಕ್ಷೆ',
   'Add to Location TimeLine': 'ಸ್ಥಳ ಟೈಮ್‌ಲೈನ್‌ಗೆ ಸೇರಿಸಿ',
@@ -189,7 +196,8 @@ final Map<String, String> knTranslations = {
   'Select Designation Name': 'ಹುದ್ದೆಯ ಹೆಸರನ್ನು ಆಯ್ಕೆಮಾಡಿ',
   'Select Time': 'ಸಮಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
   'Ok': 'ಸರಿ',
-  'Please select at least one working day': 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಕೆಲಸದ ದಿನವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+  'Please select at least one working day':
+      'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಕೆಲಸದ ದಿನವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
   'Position is already used !!!': 'ಸ್ಥಾನವನ್ನು ಈಗಾಗಲೇ ಬಳಸಲಾಗಿದೆ !!!',
   'Add Event': 'ಈವೆಂಟ್ ಸೇರಿಸಿ',
   'Edit Event': 'ಈವೆಂಟ್ ಸಂಪಾದಿಸಿ',
@@ -315,7 +323,8 @@ final Map<String, String> knTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +339,10 @@ final Map<String, String> knTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +387,8 @@ final Map<String, String> knTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +411,8 @@ final Map<String, String> knTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +448,10 @@ final Map<String, String> knTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +461,8 @@ final Map<String, String> knTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -469,7 +485,8 @@ final Map<String, String> knTranslations = {
   'Enter Announcement Place': 'ಪ್ರಕಟಣೆಯ ಸ್ಥಳವನ್ನು ನಮೂದಿಸಿ',
   'Announcement Details': 'ಪ್ರಕಟಣೆಯ ವಿವರಗಳು',
   'Enter Announcement Details': 'ಪ್ರಕಟಣೆಯ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ',
-  'Announcement Published Successfully': 'ಪ್ರಕಟಣೆಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಪ್ರಕಟಿಸಲಾಗಿದೆ',
+  'Announcement Published Successfully':
+      'ಪ್ರಕಟಣೆಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಪ್ರಕಟಿಸಲಾಗಿದೆ',
   'Announcement Updated Successfully': 'ಪ್ರಕಟಣೆಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ನವೀಕರಿಸಲಾಗಿದೆ',
   'Please enter Announcement Title': 'ದಯವಿಟ್ಟು ಪ್ರಕಟಣೆಯ ಶೀರ್ಷಿಕೆಯನ್ನು ನಮೂದಿಸಿ',
   'Please select Announcement Type': 'ದಯವಿಟ್ಟು ಪ್ರಕಟಣೆಯ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
@@ -484,10 +501,12 @@ final Map<String, String> knTranslations = {
   'Other': 'ಇತರೆ',
   'Custom Event Type': 'ಕಸ್ಟಮ್ ಈವೆಂಟ್ ಪ್ರಕಾರ',
   'Enter custom event type': 'ಕಸ್ಟಮ್ ಈವೆಂಟ್ ಪ್ರಕಾರವನ್ನು ನಮೂದಿಸಿ',
-  'Please enter custom event type': 'ದಯವಿಟ್ಟು ಕಸ್ಟಮ್ ಈವೆಂಟ್ ಪ್ರಕಾರವನ್ನು ನಮೂದಿಸಿ',
+  'Please enter custom event type':
+      'ದಯವಿಟ್ಟು ಕಸ್ಟಮ್ ಈವೆಂಟ್ ಪ್ರಕಾರವನ್ನು ನಮೂದಿಸಿ',
   'Attachments': 'ಲಗತ್ತುಗಳು',
   'Click to upload attachments': 'ಲಗತ್ತುಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ',
-  'Supported: Images, PDF, Word, Excel files': 'ಬೆಂಬಲಿತ: ಚಿತ್ರಗಳು, PDF, ವರ್ಡ್, ಎಕ್ಸೆಲ್ ಫೈಲ್‌ಗಳು',
+  'Supported: Images, PDF, Word, Excel files':
+      'ಬೆಂಬಲಿತ: ಚಿತ್ರಗಳು, PDF, ವರ್ಡ್, ಎಕ್ಸೆಲ್ ಫೈಲ್‌ಗಳು',
   'Create Event': 'ಈವೆಂಟ್ ಅನ್ನು ರಚಿಸಿ',
   'Event Type': 'ಈವೆಂಟ್ ಪ್ರಕಾರ',
   'Event Name': 'ಈವೆಂಟ್ ಹೆಸರು',

@@ -4,7 +4,8 @@ final Map<String, String> hiTranslations = {
   'Leave': 'छुट्टी',
   'Setting': 'सेटिंग',
   'Logout': 'लॉगआउट',
-  'Simpy Enter your Username & Password': 'बस अपना उपयोगकर्ता नाम और पासवर्ड दर्ज करें',
+  'Simpy Enter your Username & Password':
+      'बस अपना उपयोगकर्ता नाम और पासवर्ड दर्ज करें',
   'Username': 'उपयोगकर्ता नाम',
   'Password': 'पासवर्ड',
   'Filed is Required': 'यह फ़ील्ड आवश्यक है',
@@ -15,8 +16,10 @@ final Map<String, String> hiTranslations = {
   'Verify': 'सत्यापित करें',
   'Back': 'पीछे',
   'Verification Code': 'सत्यापन कोड',
-  'Choose how you want to receive your 6-digit verification code.': 'चुनें कि आप अपना 6-अंकीय सत्यापन कोड कैसे प्राप्त करना चाहते हैं।',
-  'A verification code has been sent to your registered ': 'एक सत्यापन कोड आपके पंजीकृत पते पर भेजा गया है ',
+  'Choose how you want to receive your 6-digit verification code.':
+      'चुनें कि आप अपना 6-अंकीय सत्यापन कोड कैसे प्राप्त करना चाहते हैं।',
+  'A verification code has been sent to your registered ':
+      'एक सत्यापन कोड आपके पंजीकृत पते पर भेजा गया है ',
   'Mobile': 'मोबाइल',
   'E-mail': 'ईमेल',
   'Salary Slip': 'सैलरी स्लिप',
@@ -132,7 +135,8 @@ final Map<String, String> hiTranslations = {
   'Select DOB': 'जन्म तिथि चुनें',
   'Select DOJ': 'शामिल होने की तिथि चुनें',
   'Please enter a valid email address': 'कृपया एक मान्य ईमेल पता दर्ज करें',
-  'Enter valid 10 digit mobile number': 'मान्य 10 अंकों का मोबाइल नंबर दर्ज करें',
+  'Enter valid 10 digit mobile number':
+      'मान्य 10 अंकों का मोबाइल नंबर दर्ज करें',
   'Please enter a valid mobile number': 'कृपया एक मान्य मोबाइल नंबर दर्ज करें',
   'No TimeLine Added!': 'कोई टाइमलाइन नहीं जोड़ी गई!',
   'Google Map': 'गूगल मैप',
@@ -189,7 +193,8 @@ final Map<String, String> hiTranslations = {
   'Select Designation Name': 'पद नाम चुनें',
   'Select Time': 'समय चुनें',
   'Ok': 'ठीक है',
-  'Please select at least one working day': 'कृपया कम से कम एक कार्य दिवस चुनें',
+  'Please select at least one working day':
+      'कृपया कम से कम एक कार्य दिवस चुनें',
   'Position is already used !!!': 'पद पहले से ही उपयोग में है !!!',
   'Add Event': 'कार्यक्रम जोड़ें',
   'Edit Event': 'कार्यक्रम संपादित करें',
@@ -300,7 +305,8 @@ final Map<String, String> hiTranslations = {
   'Your OTP Expire !!': 'आपका ओटीपी समाप्त हो गया है !!',
   'Please enter OTP within': 'कृपया भीतर ओटीपी दर्ज करें',
   'seconds': 'सेकंड',
-  'No data available to download': 'डाउनलोड करने के लिए कोई डेटा उपलब्ध नहीं है',
+  'No data available to download':
+      'डाउनलोड करने के लिए कोई डेटा उपलब्ध नहीं है',
   'Export Daily Attendance Report': 'दैनिक हाजिरी रिपोर्ट निर्यात करें',
   'Export Monthly Attendance Report': 'मासिक हाजिरी रिपोर्ट निर्यात करें',
   'Loading attendance data...': 'हाजिरी डेटा लोड हो रहा है...',
@@ -314,8 +320,10 @@ final Map<String, String> hiTranslations = {
   'tryAgainString': 'फिर प्रयास करें',
   'welcomeTitle1String': 'मैं एक कर्मचारी हूँ',
   'welcomeTitle2String': 'मालिक / एडमिन एक्सेस',
-  'welcomeDec1String': 'अपने कार्यस्थल के टूल और संसाधनों तक पहुँचने के लिए साइन इन करें।',
-  'welcomeDec2String': 'अपना संगठन बनाएं और अपनी टीम को कुशलतापूर्वक प्रबंधित करें।',
+  'welcomeDec1String':
+      'अपने कार्यस्थल के टूल और संसाधनों तक पहुँचने के लिए साइन इन करें।',
+  'welcomeDec2String':
+      'अपना संगठन बनाएं और अपनी टीम को कुशलतापूर्वक प्रबंधित करें।',
   'welcomeTaxHrmString': 'TAXHRM में आपका स्वागत है',
   'welcomeDecString': 'आइए आज आप क्या देखना चाहते हैं चुनकर शुरुआत करें।',
   'loginString': 'लॉगिन',
@@ -330,7 +338,8 @@ final Map<String, String> hiTranslations = {
   'verifyString': 'सत्यापित करें',
   'backString': 'पीछे',
   'verificationCodeString': 'सत्यापन कोड',
-  'otpTitlesString': 'चुनें कि आप अपना 6-अंकीय सत्यापन कोड कैसे प्राप्त करना चाहते हैं।',
+  'otpTitlesString':
+      'चुनें कि आप अपना 6-अंकीय सत्यापन कोड कैसे प्राप्त करना चाहते हैं।',
   'verifyOtpSendString': 'एक सत्यापन कोड आपके पंजीकृत पते पर भेजा गया है ',
   'mobileString': 'मोबाइल',
   'emailString': 'ईमेल',
@@ -375,7 +384,8 @@ final Map<String, String> hiTranslations = {
   'Out': 'प्रस्थान',
   'Action': 'कार्रवाई',
   'Delete Entry': 'प्रविष्टि हटाएं',
-  'Are you sure you want to delete the punch entry at': 'क्या आप निश्चित रूप से पंच प्रविष्टि हटाना चाहते हैं',
+  'Are you sure you want to delete the punch entry at':
+      'क्या आप निश्चित रूप से पंच प्रविष्टि हटाना चाहते हैं',
   'Punch entry at': 'पंच प्रविष्टि',
   'deleted': 'हटाया गया',
   'Added new punch at': 'नया पंच जोड़ा गया',
@@ -398,7 +408,8 @@ final Map<String, String> hiTranslations = {
   'Try searching with a different name': 'दूसरे नाम से खोजने का प्रयास करें',
   'Clear Search': 'खोज साफ़ करें',
   'Completed': 'पूरा हुआ',
-  'Punch in before 10:00 AM to avoid late marking': 'देरी से बचने के लिए सुबह 10:00 बजे से पहले पंच इन करें',
+  'Punch in before 10:00 AM to avoid late marking':
+      'देरी से बचने के लिए सुबह 10:00 बजे से पहले पंच इन करें',
   'No': 'नहीं',
   'DOB': 'जन्म तिथि',
   'DOJ': 'शामिल होने की तिथि',
@@ -434,8 +445,10 @@ final Map<String, String> hiTranslations = {
   'Total Employees': 'कुल कर्मचारी',
   'All Employees': 'सभी कर्मचारी',
   'ID': 'आईडी',
-  'Always Allow — active for shift tracking': 'हमेशा अनुमति दें — शिफ्ट ट्रैकिंग के लिए सक्रिय',
-  'Required to track location during your shift': 'आपकी शिफ्ट के दौरान स्थान ट्रैक करने के लिए आवश्यक',
+  'Always Allow — active for shift tracking':
+      'हमेशा अनुमति दें — शिफ्ट ट्रैकिंग के लिए सक्रिय',
+  'Required to track location during your shift':
+      'आपकी शिफ्ट के दौरान स्थान ट्रैक करने के लिए आवश्यक',
   'Date Selection': 'तारीख का चयन',
   'Location Timeline': 'लोकेशन टाइमलाइन',
   'Loading coordinates...': 'निर्देशांक लोड हो रहे हैं...',
@@ -445,7 +458,8 @@ final Map<String, String> hiTranslations = {
   'Remaining Hours': 'शेष घंटे',
   'Overtime Hours': 'ओवरटाइम घंटे',
   'Delete Payroll Data': 'पेरोल डेटा हटाएं',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'क्या आप निश्चित रूप से चयनित महीने के लिए पेरोल उपस्थिति डेटा हटाना चाहते हैं? यह कार्रवाई वापस नहीं ली जा सकती।',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'क्या आप निश्चित रूप से चयनित महीने के लिए पेरोल उपस्थिति डेटा हटाना चाहते हैं? यह कार्रवाई वापस नहीं ली जा सकती।',
   'Break': 'ब्रेक',
   'Total': 'कुल',
   'Hrs': 'घंटे',
@@ -467,6 +481,7 @@ final Map<String, String> hiTranslations = {
   'selectOfficeString': 'कार्यालय चुनें',
   'selectWorkTypeString': 'कार्य का प्रकार चुनें',
   'fetchLocationString': 'स्थान प्राप्त करें',
+  'visitString': 'क्या विजिट है',
   'enabledString': 'सक्षम',
   'disabledString': 'अक्षम',
   'locationRadiusString': 'स्थान त्रिज्या (मीटर)',
@@ -539,7 +554,8 @@ final Map<String, String> hiTranslations = {
   'Please enter custom event type': 'कृपया कस्टम कार्यक्रम प्रकार दर्ज करें',
   'Attachments': 'अनुलग्नक',
   'Click to upload attachments': 'अनुलग्नक अपलोड करने के लिए क्लिक करें',
-  'Supported: Images, PDF, Word, Excel files': 'समर्थित: छवियाँ, पीडीएफ, वर्ड, एक्सेल फ़ाइलें',
+  'Supported: Images, PDF, Word, Excel files':
+      'समर्थित: छवियाँ, पीडीएफ, वर्ड, एक्सेल फ़ाइलें',
   'Create Event': 'कार्यक्रम बनाएं',
   'Event Type': 'कार्यक्रम का प्रकार',
   'Event Name': 'कार्यक्रम का नाम',
@@ -556,4 +572,98 @@ final Map<String, String> hiTranslations = {
   'Event Created Successfully': 'कार्यक्रम सफलतापूर्वक बनाया गया',
   'Event Updated Successfully': 'कार्यक्रम सफलतापूर्वक अपडेट किया गया',
   'Please enter Event Name': 'कृपया कार्यक्रम का नाम दर्ज करें',
+  'faceRegistrationRequiredString': 'चेहरा पंजीकरण आवश्यक है',
+  'faceRegistrationDescString':
+      'सुरक्षित उपस्थिति ट्रैकिंग सुनिश्चित करने के लिए, आपको पंच इन या आउट करने से पहले अपना चेहरा पंजीकृत करना होगा।',
+  'registerFaceNowString': 'अभी चेहरा पंजीकृत करें',
+  'punchAttendanceString': 'उपस्थिति पंच करें',
+  'offlineModeString': 'ऑफ़लाइन मोड — ऑनलाइन होने पर पंच सिंक हो जाएगा',
+  'noLocationDetailsString': 'कोई स्थान विवरण नहीं।',
+  'locationPendingString': 'स्थान लंबित है',
+  'inRangeString': 'सीमा के अंदर',
+  'outOfRangeString': 'सीमा के बाहर',
+  'locationString': 'स्थान',
+  'retryCameraString': 'कैमरा पुनः प्रयास करें',
+  'cameraString': 'कैमरा',
+  'unableToGetLocationGpsString':
+      'स्थान प्राप्त करने में असमर्थ। कृपया अपना GPS जांचें।',
+  'accountInactiveString': 'आपका खाता निष्क्रिय है',
+  'passwordChangedString': 'आपका पासवर्ड बदल दिया गया है',
+  'checksFailedString': 'जांच विफल रही, कृपया पुनः प्रयास करें',
+  'punchSavedOfflineString': 'पंच ऑफ़लाइन सफलतापूर्वक सहेजा गया',
+  'punchTryAgainString': 'पंच पुनः प्रयास करें',
+  'errorOccurredString': 'त्रुटि हुई, कृपया पुनः प्रयास करें',
+  'punchSavedOfflineWillSyncString':
+      'पंच ऑफ़लाइन सहेजा गया। इंटरनेट वापस आने पर सिंक होगा।',
+  'failedToSaveOfflineString':
+      'ऑफ़लाइन पंच सहेजने में विफल। कृपया पुनः प्रयास करें।',
+  'cameraImageNotCapturedString':
+      'कैमरा छवि कैप्चर नहीं की गई, कृपया पुनः प्रयास करें',
+  'successfullyString': 'सफलतापूर्वक',
+  'administratorString': 'व्यवस्थापक',
+  'reRegisterFaceString': 'चेहरा पुनः पंजीकृत करें',
+  'faceIsRegisteredString': 'चेहरा पंजीकृत है',
+  'selectLanguageString': 'भाषा चुनें',
+  'searchLanguageString': 'भाषा खोजें...',
+  'versionString': 'संस्करण',
+  'areYouSureToTitleString': 'क्या आप निश्चित हैं कि आप ',
+  'yesString': 'हाँ',
+  'pleaseWaitString': 'कृपया प्रतीक्षा करें',
+  'whileCreatingProfileString': ' अपनी प्रोफ़ाइल बनाते समय',
+  'punchDeniedString': 'पंच अस्वीकृत',
+  'locationServicesDisabledString': 'स्थान सेवाएँ अक्षम हैं',
+  'gpsTurnedOffString':
+      'आपका GPS वर्तमान में बंद है। कृपया आगे बढ़ने के लिए स्थान सेवाएँ सक्षम करें।',
+  'backgroundLocationAccessString': 'पृष्ठभूमि स्थान एक्सेस',
+  'bgLocationDescString':
+      'आपकी शिफ्ट के दौरान आपकी उपस्थिति और कार्य स्थान को सटीक रूप से ट्रैक करने के लिए, इस ऐप को पृष्ठभूमि में चलने पर भी आपके स्थान तक पहुंचने की आवश्यकता है।',
+  'bgLocationAlwaysAllowString':
+      'पृष्ठभूमि ट्रैकिंग सक्षम करने के लिए कृपया अगली स्क्रीन पर "Always Allow" चुनें।',
+  'continueString': 'जारी रखें',
+  'notNowString': 'अभी नहीं',
+  'enableBgLocationString': 'पृष्ठभूमि स्थान सक्षम करें',
+  'bgLocationNotGrantedString':
+      'पृष्ठभूमि स्थान एक्सेस नहीं दिया गया था। इसे सक्षम करने के लिए:',
+  'openSettingsString': 'सेटिंग्स खोलें',
+  'tapAppLocationString': 'इस ऐप पर टैप करें → स्थान',
+  'selectAlwaysString': '"Always" चुनें',
+  'skipForNowString': 'अभी के लिए छोड़ दें',
+  'allString': 'सभी',
+  'activeString': 'सक्रिय',
+  'inActiveString': 'निष्क्रिय',
+  'pdfString': 'PDF',
+  'printString': 'प्रिंट',
+  'excelString': 'Excel',
+  'punchAddedSuccessfullyString': 'पंच सफलतापूर्वक जोड़ा गया',
+  'offlinePunchAddedRecordString':
+      'आपका ऑफ़लाइन पंच सीधे आपके उपस्थिति रिकॉर्ड में जोड़ दिया गया है।',
+  'offlinePunchAddedServerSuccessString':
+      'ऑफ़लाइन पंच सर्वर पर सफलतापूर्वक जोड़ा गया!',
+  'failedToAddPunchTryAgainString':
+      'पंच जोड़ने में विफल। कृपया पुनः प्रयास करें।',
+  'duplicateOfflinePunchDiscardedString': 'डुप्लिकेट ऑफ़लाइन पंच हटा दिया गया।',
+  'duplicatePunchWarningString': 'डुप्लिकेट पंच चेतावनी',
+  'punchRecordedWithin5MinsString':
+      'पंच 5 मिनट के भीतर दर्ज किया गया है या पहले से ही इतिहास में है',
+  'allDuplicatePunchesResolvedString': 'सभी डुप्लिकेट पंच हल हो गए।',
+  'offlinePunchWithEmojiString': '📱 ऑफ़लाइन पंच',
+  'serverHistoryWithEmojiString': '🌐 सर्वर इतिहास',
+  'addOfflinePunchToHistoryString':
+      'क्या इस ऑफ़लाइन पंच को इतिहास में जोड़ना है?',
+  'discardString': 'हटाएं',
+  'addPunchString': 'पंच जोड़ें',
+  'deletePayslipString': 'पेस्लिप हटाएं',
+  'areYouSureDeletePayslipString':
+      'क्या आप निश्चित हैं कि आप यह पेस्लिप हटाना चाहते हैं?',
+  'payslipDeletedSuccessString': 'पेस्लिप सफलतापूर्वक हटा दी गई',
+  'pdfDownloadSuccessString': 'PDF सफलतापूर्वक डाउनलोड हुआ!!!',
+  'pdfDownloadFailedString': 'PDF डाउनलोड विफल!!!',
+  'endDateCannotBeBeforeStartDateString':
+      'समाप्ति तिथि प्रारंभ तिथि से पहले नहीं हो सकती',
+  'selectLeaveTypeString': 'छुट्टी का प्रकार चुनें',
+  'cannotApplyMoreThanEligibleString':
+      'आप योग्य छुट्टी से अधिक छुट्टी के लिए आवेदन नहीं कर सकते',
+  'updateLeaveApiNotAvailableString': 'छुट्टी अपडेट API उपलब्ध नहीं है',
+  'locationServicesAreDisabledString': 'स्थान सेवाएँ अक्षम हैं।',
+  'locationPermissionsAreDeniedString': 'स्थान की अनुमति अस्वीकार कर दी गई है',
 };

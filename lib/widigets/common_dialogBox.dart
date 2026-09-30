@@ -48,7 +48,7 @@ Future<bool> commonDialogBoxDesign({context, size, title, onTapLogOut}) async {
 
                   heightSpacer(size.height * 0.01),
 
-                  Text('Are you sure you want to $title?', textAlign: TextAlign.center,style: const TextStyle(  fontSize: 14,  color: Colors.grey)),
+                  Text('$areYouSureToTitleString$title?', textAlign: TextAlign.center,style: const TextStyle(  fontSize: 14,  color: Colors.grey)),
 
                   heightSpacer(size.height * 0.05),
 
@@ -89,7 +89,7 @@ Future<bool> commonDialogBoxDesign({context, size, title, onTapLogOut}) async {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : Text('Yes, $title' ,style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColorConst.white)),
+                        : Text('$yesString, $title' ,style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ColorConst.white)),
                   ),
 
                   heightSpacer(size.height * 0.015),
@@ -108,7 +108,7 @@ Future<bool> commonDialogBoxDesign({context, size, title, onTapLogOut}) async {
                         : () {
                             Navigator.pop(context);
                           },
-                    child: const Text('No',style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black)),
+                    child: Text(noString,style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black)),
                   ),
                 ],
               ),
@@ -138,8 +138,8 @@ Future createDataBaseLoaderDesign(context) {
        child: Column(
          children: [
            heightSpacer(MediaQuery.of(context).size.height * 0.02),
-            Text('Please Wait',style: TextStyle(color: ColorConst.black,fontSize: MediaQuery.of(context).size.height * 0.03,fontWeight: FontWeight.bold  ),textAlign: TextAlign.center,),
-            Text(' while createing your Profile',style: TextStyle(color: ColorConst.black,fontSize: MediaQuery.of(context).size.height * 0.022,fontWeight: FontWeight.w400  ),),
+            Text(pleaseWaitString,style: TextStyle(color: ColorConst.black,fontSize: MediaQuery.of(context).size.height * 0.03,fontWeight: FontWeight.bold  ),textAlign: TextAlign.center,),
+            Text(whileCreatingProfileString,style: TextStyle(color: ColorConst.black,fontSize: MediaQuery.of(context).size.height * 0.022,fontWeight: FontWeight.w400  ),),
             LottieBuilder.asset('assets/images/databaselottie.json',height: MediaQuery.of(context).size.height * 0.2,),
             heightSpacer(MediaQuery.of(context).size.height * 0.02),
          ],
@@ -166,7 +166,7 @@ void punchDeniedShowDialog(String msg, context) {
             Icon(Icons.warning_amber_rounded, size: 50, color: Colors.redAccent),
             const SizedBox(height: 15),
             Text(
-              "Punch Denied",
+              punchDeniedString,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -194,7 +194,7 @@ void punchDeniedShowDialog(String msg, context) {
                     const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
               ),
               child: Text(
-                "OK",
+                okString,
                 style: TextStyle(fontSize: 16, color: ColorConst.white),
               ),
             ),
@@ -257,16 +257,16 @@ class _GpsDialogState extends State<_GpsDialog> with WidgetsBindingObserver {
         children: [
           Icon(Icons.location_off, color: ColorConst.themeColor, size: 28),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Location Services Disabled',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              locationServicesDisabledString,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ),
         ],
       ),
-      content: const Text(
-        'Your GPS is currently turned off. Please enable location services to proceed.',
+      content: Text(
+        gpsTurnedOffString,
         style: TextStyle(fontSize: 14),
       ),
       actions: [
@@ -284,7 +284,7 @@ class _GpsDialogState extends State<_GpsDialog> with WidgetsBindingObserver {
           onPressed: () async {
             await Geolocator.openLocationSettings();
           },
-          child: const Text('Settings', style: TextStyle(color: Colors.white)),
+          child: Text(settingString, style: const TextStyle(color: Colors.white)),
         ),
       ],
     );
@@ -326,7 +326,7 @@ Future<bool> showIosBackgroundLocationExplanationDialog(BuildContext context) as
             ),
             const SizedBox(height: 16),
             Text(
-              'Background Location Access',
+              backgroundLocationAccessString,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18, 
@@ -336,7 +336,7 @@ Future<bool> showIosBackgroundLocationExplanationDialog(BuildContext context) as
             ),
             const SizedBox(height: 12),
             Text(
-              'To accurately track your attendance and work location throughout your shift, this app needs to access your location even when running in the background.',
+              bgLocationDescString,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14, 
@@ -361,7 +361,7 @@ Future<bool> showIosBackgroundLocationExplanationDialog(BuildContext context) as
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'On the next screen, please select "Always Allow" to enable background tracking.',
+                      bgLocationAlwaysAllowString,
                       style: TextStyle(
                         fontSize: 12, 
                         color: ColorConst.isDark ? Colors.white60 : Colors.black54, 
@@ -382,7 +382,7 @@ Future<bool> showIosBackgroundLocationExplanationDialog(BuildContext context) as
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                child: Text(continueString, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
               ),
             ),
             const SizedBox(height: 8),
@@ -391,7 +391,7 @@ Future<bool> showIosBackgroundLocationExplanationDialog(BuildContext context) as
               child: TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: Text(
-                  'Not Now', 
+                  notNowString, 
                   style: TextStyle(
                     fontSize: 14, 
                     color: ColorConst.isDark ? Colors.grey.shade400 : Colors.grey,
@@ -441,7 +441,7 @@ Future<bool> showIosBackgroundLocationSettingsDialog(BuildContext context) async
             ),
             const SizedBox(height: 16),
             Text(
-              'Enable Background Location',
+              enableBgLocationString,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18, 
@@ -451,7 +451,7 @@ Future<bool> showIosBackgroundLocationSettingsDialog(BuildContext context) async
             ),
             const SizedBox(height: 12),
             Text(
-              'Background location access was not granted. To enable it:',
+              bgLocationNotGrantedString,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14, 
@@ -460,9 +460,9 @@ Future<bool> showIosBackgroundLocationSettingsDialog(BuildContext context) async
               ),
             ),
             const SizedBox(height: 12),
-            _buildStep('1', 'Open Settings'),
-            _buildStep('2', 'Tap on this App → Location'),
-            _buildStep('3', 'Select "Always"'),
+            _buildStep('1', openSettingsString),
+            _buildStep('2', tapAppLocationString),
+            _buildStep('3', selectAlwaysString),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -477,7 +477,7 @@ Future<bool> showIosBackgroundLocationSettingsDialog(BuildContext context) async
                   await openAppSettings();
                 },
                 icon: const Icon(Icons.settings, color: Colors.white, size: 18),
-                label: const Text('Open Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                label: Text(openSettingsString, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
               ),
             ),
             const SizedBox(height: 8),
@@ -486,7 +486,7 @@ Future<bool> showIosBackgroundLocationSettingsDialog(BuildContext context) async
               child: TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: Text(
-                  'Skip for Now', 
+                  skipForNowString, 
                   style: TextStyle(
                     fontSize: 14, 
                     color: ColorConst.isDark ? Colors.grey.shade400 : Colors.grey,

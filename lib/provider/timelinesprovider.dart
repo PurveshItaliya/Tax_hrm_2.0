@@ -1,6 +1,8 @@
 // ignore_for_file: use_build_context_synchronously, strict_top_level_inference, avoid_function_literals_in_foreach_calls, empty_catches, body_might_complete_normally_catch_error, library_prefixes, unused_local_variable
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +14,9 @@ import 'package:tax_hrm/api/setTimeline.dart';
 import 'package:tax_hrm/models/company/timelines.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
+import 'package:tax_hrm/services/location_batch_service.dart';
+import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 
 class TimeLineServices with ChangeNotifier {
@@ -31,27 +36,43 @@ class TimeLineServices with ChangeNotifier {
   // *************************************************  get timeLine View ******************************************************************
   
   timeViewLoadData({setEmpId}) async {
+    developer.log('timeViewLoadData: Started for EmpId: $setEmpId', name: 'TimeLineProvider');
     try {
       showUserTimeLines.clear();
       setloading(true);
+      developer.log('timeViewLoadData: Calling gettimeLines', name: 'TimeLineProvider');
       await gettimeLines(setEmpId: setEmpId);
+      developer.log('timeViewLoadData: gettimeLines completed', name: 'TimeLineProvider');
       setloading(false);
       
-    } catch (e) {
+    } catch (e, stackTrace) {
+      developer.log('timeViewLoadData: Error occurred - $e', name: 'TimeLineProvider', error: e, stackTrace: stackTrace);
       setloading(false);
     }
     notifyListeners();
   }
 
   gettimeLines({setEmpId}) async {
+    developer.log('gettimeLines: Started', name: 'TimeLineProvider');
     try {
       String formattedDate = dateTimers.DateFormat('yyyy-MM-dd').format(setDates);
+      developer.log('gettimeLines: Formatted Date: $formattedDate', name: 'TimeLineProvider');
       await LocationTimeLineClass().getUserTimeLine(selectedDate: formattedDate, setUserId: setEmpId).then((value) {
         mainUserTimeLines = value;
+        developer.log('gettimeLines: Received ${mainUserTimeLines.length} timelines from API', name: 'TimeLineProvider');
+        
+        for (var item in mainUserTimeLines) {
+        }
+
+        developer.log('gettimeLines: Starting data processing loop', name: 'TimeLineProvider');
+        int processedCount = 0;
+        int addedCount = 0;
         mainUserTimeLines.forEach((element) {
+          processedCount++;
           if (element.latitude != null && element.logitude != null && element.latitude != 'null' && element.logitude != 'null') {
             if (showUserTimeLines.isEmpty) {
               showUserTimeLines.add(element);
+              addedCount++;
             } else {
               bool isInValidRange = isLocationInRange(
                 previousLatitude: double.parse(
@@ -66,16 +87,22 @@ class TimeLineServices with ChangeNotifier {
               );
 
               if (isInValidRange) {
+                // Location skipped because it's too close
               } else {
                 showUserTimeLines.add(element);
+                addedCount++;
               }
             }
           }
         });
+        developer.log('gettimeLines: Data processing finished. Processed: $processedCount, Added: $addedCount', name: 'TimeLineProvider');
       }).onError((error, stackTrace) {
+        developer.log('gettimeLines: Error inside LocationTimeLineClass call - $error', name: 'TimeLineProvider', error: error, stackTrace: stackTrace);
         setloading(false);
       },);
-    } catch (e) { /* ignored */ }
+    } catch (e, stackTrace) { 
+        developer.log('gettimeLines: Exception caught - $e', name: 'TimeLineProvider', error: e, stackTrace: stackTrace);
+    }
   }
 
   bool isLocationInRange({
@@ -138,13 +165,13 @@ class TimeLineServices with ChangeNotifier {
       } else {
         await Geolocator.openLocationSettings();
       }
-      return Future.error('Location services are disabled.');
+      return Future.error(locationServicesAreDisabledString);
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied');
+        return Future.error(locationPermissionsAreDeniedString);
       } else {
         notifyListeners();
       }
@@ -184,11 +211,23 @@ class TimeLineServices with ChangeNotifier {
     notifyListeners();
 
     deviceName = await getDeviceName();
-    await Provider.of<AttendanceEmp>(context, listen: false).checkLastPunch(curentUser['Id']).then((value) {
+    await Provider.of<AttendanceEmp>(context, listen: false).checkLastPunch(curentUser['Id']).then((value) async {
       if(Provider.of<AttendanceEmp>(context, listen: false).checkStatus!.attendenceLog!.isNotEmpty){
         if(Provider.of<AttendanceEmp>(context, listen: false).checkStatus!.attendenceLog!.last.status == 'IN'){
-          LocationTimeLineClass().setUserTimeLine(deviceName: 'Fore',deviceType: Platform.isAndroid ? 'Android $deviceName' :'Ios $deviceName', latitude: setlatitude, logitude: setlongitude, pincode: postalCode,  addres: currentLocation);
+          await LocationBatchStorage.appendLocation(
+            latitude: double.parse(setlatitude!),
+            longitude: double.parse(setlongitude!),
+            entryTime: DateTime.now(),
+          );
+          
+          final String userDataStr = await SaveUser().getUserDatas();
+          if (userDataStr.isNotEmpty) {
+            final dynamic userData = jsonDecode(userDataStr);
+            await LocationBatchStorage.uploadPendingBatch(userData: userData, isMapScreen: false, isAppForeground: true);
+          }
+        } else {
         }
+      } else {
       }
     },);
 

@@ -12,6 +12,7 @@ import 'package:tax_hrm/models/payrool/monthsbreak.dart';
 import 'package:tax_hrm/models/payrool/viewPayroll.dart';
 import 'package:tax_hrm/page/salaryslip/month_picker_package.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
 
 class SalaryStructureProvider extends ChangeNotifier {
@@ -135,15 +136,15 @@ class SalaryStructureProvider extends ChangeNotifier {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('Delete Payslip'),
-            content: const Text('Are you sure you want to delete this payslip?'),
+            title: Text(deletePayslipString),
+            content: Text(areYouSureDeletePayslipString),
             actions: <Widget>[
               TextButton(
-                child: const Text('Cancel'),
+                child: Text(cancelString),
                 onPressed: () => Navigator.of(context).pop(false),
               ),
               TextButton(
-                child: const Text('Delete'),
+                child: Text(deleteString),
                 onPressed: () => Navigator.of(context).pop(true),
               ),
             ],
@@ -154,7 +155,7 @@ class SalaryStructureProvider extends ChangeNotifier {
       if (confirm == true) {
         setloading(true);
         await PaySlipApiSerices().deletePlaySlipData(payslipcguid: setpayslipcguid).then((value) {
-          showtoastmessage('Payslip deleted successfully');
+          showtoastmessage(payslipDeletedSuccessString);
           getPaySlipsData();
         });
       }
@@ -195,12 +196,12 @@ class SalaryStructureProvider extends ChangeNotifier {
       File path  = File(filePath);
 
       await path.writeAsBytes(response.bodyBytes).then((value) async {
-        showtoastmessage('PDF Download Successfully!!!');
+        showtoastmessage(pdfDownloadSuccessString);
       },);
       setloading(false);
     } catch (e) {
       setloading(false);
-      showtoastmessage('PDF Download Failed!!!');
+      showtoastmessage(pdfDownloadFailedString);
     } finally {
       setloading(false);
       notifyListeners();

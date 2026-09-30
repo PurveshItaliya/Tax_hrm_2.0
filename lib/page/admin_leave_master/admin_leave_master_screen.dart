@@ -14,7 +14,6 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 
 class AdminLeaveMasterScreen extends StatefulWidget {
   const AdminLeaveMasterScreen({super.key});
@@ -41,9 +40,7 @@ class _AdminLeaveMasterScreenState extends State<AdminLeaveMasterScreen> {
     safeAreaBgAndTextColor(context);
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final leaveEmployeeeMastServices =  Provider.of<LeaveEmployeeeMastServices>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               floatingActionButton: leaveEmployeeeMastServices.islodering ? SizedBox() : iconWithTextBtnDesign(size,addLeaveString,isIcon: false,onTap: () async {

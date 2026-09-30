@@ -1,7 +1,8 @@
 // ignore_for_file: avoid_print, deprecated_member_use, empty_catches, strict_top_level_inference, unused_local_variable
 
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +10,12 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';
+import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/app_providers.dart';
+import 'package:tax_hrm/services/widget_link_service.dart';
+import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
-import 'package:tax_hrm/utils/colorsfile.dart';
-import 'package:upgrader/upgrader.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/theme_provider.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
@@ -22,6 +25,9 @@ import 'package:tax_hrm/firebase_options.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/models/company/getallcompany.dart';
+import 'package:tax_hrm/utils/background_logger.dart';
 
 // --- DUMMY FIREBASE HANDLER TO PREVENT CRASH FROM OLD CACHE ---
 @pragma('vm:entry-point')
@@ -40,6 +46,15 @@ const taskName = "LocationTimeLines";
 
 late SharedPreferences globalPrefs;
 
+/// Set to true on iOS when the app is cold-started by tapping the punch widget.
+/// Read from UserDefaults (via SharedPreferences) before runApp; cleared immediately.
+bool iosWidgetPunchLaunch = false;
+
+/// Set to true on Android when the app is warm/cold-started by tapping the punch widget
+/// and [MaterialApp.home] directly placed [WidgetPunchWrapper] as the root widget.
+/// Prevents [WidgetLinkService] from pushing a second [WidgetPunchWrapper] on top.
+bool androidWidgetLaunch = false;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (defaultTargetPlatform == TargetPlatform.iOS) {
@@ -50,6 +65,28 @@ Future<void> main() async {
     }
   }
   globalPrefs = await SharedPreferences.getInstance();
+  // iOS widget cold-start: check flag written by AppDelegate to UserDefaults.
+  // SharedPreferences uses UserDefaults with "flutter." prefix on iOS, so
+  // AppDelegate's "flutter.widgetPunchPending" is readable here as 'widgetPunchPending'.
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    debugPrint("🟠 [WidgetDebug] main() reading globalPrefs for 'widgetPunchPending'");
+    iosWidgetPunchLaunch = globalPrefs.getBool('widgetPunchPending') ?? false;
+    debugPrint("🟠 [WidgetDebug] main() iosWidgetPunchLaunch = $iosWidgetPunchLaunch");
+    if (iosWidgetPunchLaunch) {
+      debugPrint("🟠 [WidgetDebug] main() clearing 'widgetPunchPending' from globalPrefs");
+      await globalPrefs.remove('widgetPunchPending'); // clear so it doesn't fire again
+    }
+  }
+  // Pre-load curentUser and company for fast startup (eliminates async wait later)
+  try {
+    final userStr = globalPrefs.getString('data') ?? '';
+    if (userStr.isNotEmpty) curentUser = jsonDecode(userStr);
+    
+    final companyStr = globalPrefs.getString('companysave') ?? '';
+    if (companyStr.isNotEmpty) {
+      selectedcurentcompany = GetCompanyData.fromJson(jsonDecode(companyStr));
+    }
+  } catch (_) {}
   await initializeDateFormatting();
   try {
     await Firebase.initializeApp(
@@ -81,290 +118,13 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]).then((_) {
+    // Dump persistent background logs to the IDE console on startup
+    BackgroundLogger.dumpLogsToConsole();
     runApp(MyApp());
   });
 }
 
-// ─── Custom Upgrade Alert ─────────────────────────────────────────────────────
-class PremiumUpgradeAlert extends UpgradeAlert {
-  PremiumUpgradeAlert({
-    super.key,
-    super.upgrader,
-    super.child,
-    super.showIgnore,
-    super.showLater,
-    super.barrierDismissible,
-  });
-
-  @override
-  UpgradeAlertState createState() => _PremiumUpgradeAlertState();
-}
-
-class _PremiumUpgradeAlertState extends UpgradeAlertState {
-  bool _showUpdateDialog = false;
-
-  @override
-  void showTheDialog({
-    Key? key,
-    required BuildContext context,
-    required String? title,
-    required String message,
-    required String? releaseNotes,
-    required bool barrierDismissible,
-    required UpgraderMessages messages,
-  }) {
-    if (!mounted) return;
-
-    // Save the last alerted date (required by upgrader internals)
-    widget.upgrader.saveLastAlerted();
-
-    setState(() {
-      _showUpdateDialog = true;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      textDirection: TextDirection.ltr,
-      children: [
-        super.build(context),
-        if (_showUpdateDialog)
-          Positioned.fill(
-            child: Container(
-              color: Colors.black54,
-              child: PopScope(
-                canPop: false,
-                child: Material(
-                  color: Colors.transparent,
-                  child: Center(
-                    child: _buildDialogContent(context),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildDialogContent(BuildContext context) {
-    // Fetch app version properly platform-wise
-    String newVersion = '';
-    if (Platform.isAndroid) {
-      newVersion = widget.upgrader.currentAppStoreVersion ?? '';
-    } else if (Platform.isIOS) {
-      // On iOS, App Store version can be null if not live yet or due to region.
-      // Fallback to extracting from message or using installed version.
-      newVersion = widget.upgrader.currentAppStoreVersion ?? widget.upgrader.currentInstalledVersion ?? '';
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ─── Gradient Header ──────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  ColorConst.themeColor,
-                  ColorConst.darkGreenColor,
-                ],
-              ),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-              ),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.system_update_alt_rounded,
-                    color: Colors.white,
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Update Available',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                if (newVersion.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withOpacity(0.4)),
-                    ),
-                    child: Text(
-                      'Version $newVersion',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          // ─── Body ─────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'A new version of TAX HRM is ready for you.',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF1A1A1A),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Please update the app to continue. This update includes important improvements and bug fixes.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF6B6B6B),
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Feature highlights
-                _buildFeatureRow(
-                    Icons.speed_rounded, 'Better performance and stability'),
-                const SizedBox(height: 10),
-                _buildFeatureRow(
-                    Icons.security_rounded, 'Security and data improvements'),
-                const SizedBox(height: 10),
-                _buildFeatureRow(
-                    Icons.auto_fix_high_rounded, 'Bug fixes and refinements'),
-                const SizedBox(height: 24),
-
-                // Full-width Update button
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ColorConst.themeColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () {
-                      if (Platform.isAndroid) {
-                        widget.upgrader.sendUserToAppStore();
-                      } else if (Platform.isIOS) {
-                        // iOS-specific handling: if sendUserToAppStore fails due to null appStoreListingURL,
-                        // you can also provide a direct link fallback here if you have your App ID.
-                        widget.upgrader.sendUserToAppStore();
-                      }
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.download_rounded, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Update Now',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Mandatory note
-                Center(
-                  child: Text(
-                    'This update is required to continue using the app.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureRow(IconData icon, String text) {
-    return Row(
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: ColorConst.themeColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: ColorConst.themeColor, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF3A3A3A),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+// ─── App ─────────────────────────────────────────────────────────────────────
 
 // ─── App ─────────────────────────────────────────────────────────────────────
 class MyApp extends StatefulWidget {
@@ -379,6 +139,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetLinkService.instance.initialize();
   }
 
   @override
@@ -395,7 +156,54 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // Fire-and-forget: never block the UI thread
       FcmTokenService.instance.verifyMandatoryTopics();
+
+      // ── Offline punch sync on resume ─────────────────────────────────
+      // Process any pending offline punches that accumulated while the app
+      // was backgrounded or while the device had no internet.
+      _syncOfflinePunchesIfNeeded();
     }
+  }
+
+  /// Attempt to sync offline punches when the app resumes.
+  /// Only runs if (a) there are pending records and (b) internet is available.
+  void _syncOfflinePunchesIfNeeded() {
+    Future<void> syncRun() async {
+      final int pending = await OfflinePunchSyncService.instance.pendingCount();
+      if (pending == 0) return;
+
+      // Check connectivity via provider if mounted.
+      if (!mounted) return;
+      final bool isOnline =
+          Provider.of<InternetConnectionProvider>(context, listen: false)
+              .connectionType != 0;
+
+      if (!isOnline) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final String userStr = prefs.getString('data') ?? '';
+      if (userStr.isEmpty) return;
+
+      Map<String, dynamic>? userData;
+      Map<String, dynamic>? companyData;
+      try {
+        userData = jsonDecode(userStr) as Map<String, dynamic>;
+      } catch (_) {
+        return;
+      }
+      final String companyStr = prefs.getString('companysave') ?? '';
+      if (companyStr.isNotEmpty) {
+        try {
+          companyData = jsonDecode(companyStr) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+
+      await OfflinePunchSyncService.instance.syncAllPending(
+        userData: userData,
+        companyData: companyData,
+      );
+    }
+
+    syncRun().catchError((_) {});
   }
   @override
   Widget build(BuildContext context) {
@@ -448,19 +256,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   child: child!,
                 ),
               );
-              return PremiumUpgradeAlert(
-                showIgnore: false,
-                showLater: false,
-                barrierDismissible: false,
-                upgrader: Upgrader(
-                  durationUntilAlertAgain: const Duration(seconds: 0),
-                  debugDisplayAlways: false,
-                  debugLogging: true,
-                ),
-                child: mChild,
-              );
+              return mChild;
             },
-            home: const ShowSpleshPage(),
+            home: Builder(builder: (context) {
+              final defaultRoute = ui.PlatformDispatcher.instance.defaultRouteName;
+              debugPrint("🟠 [WidgetDebug] MaterialApp home evaluation: defaultRouteName='$defaultRoute', iosWidgetPunchLaunch=$iosWidgetPunchLaunch");
+              
+              if (defaultRoute == '/punch_widget' || defaultRoute.contains('punch') || iosWidgetPunchLaunch) {
+                if (curentUser != null) {
+                  // Mark that we have ALREADY placed WidgetPunchWrapper as the root.
+                  // This stops WidgetLinkService.handlePunchWidgetOpen from pushing a
+                  // second copy on top (which was causing the camera session ID mismatch).
+                  androidWidgetLaunch = true;
+                  return const WidgetPunchWrapper();
+                } else {
+                  // Fallback if somehow they are logged out or data is missing
+                  // We still need to configure splash to redirect
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final splashProvider = Provider.of<SplashProvider>(context, listen: false);
+                    splashProvider.pendingNavigationPage = const WidgetPunchWrapper();
+                  });
+                }
+              }
+              return const ShowSpleshPage();
+            }),
           );
         },
       ),

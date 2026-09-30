@@ -4,7 +4,8 @@ final Map<String, String> taTranslations = {
   'Leave': 'கிளம்பு',
   'Setting': 'அமைத்தல்',
   'Logout': 'வெளியேறு',
-  'Simpy Enter your Username & Password': 'உங்கள் பயனர்பெயர் மற்றும் கடவுச்சொல்லை உள்ளிடவும்',
+  'Simpy Enter your Username & Password':
+      'உங்கள் பயனர்பெயர் மற்றும் கடவுச்சொல்லை உள்ளிடவும்',
   'Username': 'பயனர் பெயர்',
   'Password': 'கடவுச்சொல்',
   'Filed is Required': 'தாக்கல் செய்யப்பட வேண்டும்',
@@ -15,8 +16,10 @@ final Map<String, String> taTranslations = {
   'Verify': 'சரிபார்க்கவும்',
   'Back': 'மீண்டும்',
   'Verification Code': 'சரிபார்ப்பு குறியீடு',
-  'Choose how you want to receive your 6-digit verification code.': 'உங்களின் 6 இலக்க சரிபார்ப்புக் குறியீட்டை எப்படிப் பெற விரும்புகிறீர்கள் என்பதைத் தேர்வுசெய்யவும்.',
-  'A verification code has been sent to your registered ': 'நீங்கள் பதிவுசெய்தவருக்கு சரிபார்ப்புக் குறியீடு அனுப்பப்பட்டுள்ளது',
+  'Choose how you want to receive your 6-digit verification code.':
+      'உங்களின் 6 இலக்க சரிபார்ப்புக் குறியீட்டை எப்படிப் பெற விரும்புகிறீர்கள் என்பதைத் தேர்வுசெய்யவும்.',
+  'A verification code has been sent to your registered ':
+      'நீங்கள் பதிவுசெய்தவருக்கு சரிபார்ப்புக் குறியீடு அனுப்பப்பட்டுள்ளது',
   'Mobile': 'மொபைல்',
   'E-mail': 'மின்னஞ்சல்',
   'Salary Slip': 'சம்பள சீட்டு',
@@ -64,7 +67,8 @@ final Map<String, String> taTranslations = {
   'Enter Title': 'தலைப்பை உள்ளிடவும்',
   'Paid Holiday': 'கட்டண விடுமுறை',
   'UnPaid Holiday': 'செலுத்தப்படாத விடுமுறை',
-  'Please select at least one date': 'குறைந்தபட்சம் ஒரு தேதியைத் தேர்ந்தெடுக்கவும்',
+  'Please select at least one date':
+      'குறைந்தபட்சம் ஒரு தேதியைத் தேர்ந்தெடுக்கவும்',
   'Add New Note': 'புதிய குறிப்பைச் சேர்க்கவும்',
   'No Note Added!': 'குறிப்பு சேர்க்கப்படவில்லை!',
   'Search Notes': 'குறிப்புகளைத் தேடுங்கள்',
@@ -132,7 +136,8 @@ final Map<String, String> taTranslations = {
   'Select DOB': 'DOB ஐத் தேர்ந்தெடுக்கவும்',
   'Select DOJ': 'DOJ ஐத் தேர்ந்தெடுக்கவும்',
   'Please enter a valid email address': 'சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்',
-  'Enter valid 10 digit mobile number': 'செல்லுபடியாகும் 10 இலக்க மொபைல் எண்ணை உள்ளிடவும்',
+  'Enter valid 10 digit mobile number':
+      'செல்லுபடியாகும் 10 இலக்க மொபைல் எண்ணை உள்ளிடவும்',
   'Please enter a valid mobile number': 'சரியான மொபைல் எண்ணை உள்ளிடவும்',
   'No TimeLine Added!': 'காலவரிசை சேர்க்கப்படவில்லை!',
   'Google Map': 'கூகுள் மேப்',
@@ -189,7 +194,8 @@ final Map<String, String> taTranslations = {
   'Select Designation Name': 'பதவி பெயரைத் தேர்ந்தெடுக்கவும்',
   'Select Time': 'நேரத்தைத் தேர்ந்தெடுக்கவும்',
   'Ok': 'சரி',
-  'Please select at least one working day': 'குறைந்தது ஒரு வேலை நாளையாவது தேர்ந்தெடுக்கவும்',
+  'Please select at least one working day':
+      'குறைந்தது ஒரு வேலை நாளையாவது தேர்ந்தெடுக்கவும்',
   'Position is already used !!!': 'நிலை ஏற்கனவே பயன்படுத்தப்பட்டது !!!',
   'Add Event': 'நிகழ்வைச் சேர்க்கவும்',
   'Edit Event': 'நிகழ்வைத் திருத்து',
@@ -302,7 +308,8 @@ final Map<String, String> taTranslations = {
   'seconds': 'விநாடிகள்',
   'No data available to download': 'பதிவிறக்க எந்த தரவும் இல்லை',
   'Export Daily Attendance Report': 'தினசரி வருகை அறிக்கையை ஏற்றுமதி செய்க',
-  'Export Monthly Attendance Report': 'மாதாந்திர வருகை அறிக்கையை ஏற்றுமதி செய்க',
+  'Export Monthly Attendance Report':
+      'மாதாந்திர வருகை அறிக்கையை ஏற்றுமதி செய்க',
   'Loading attendance data...': 'வருகை தரவு ஏற்றப்படுகிறது...',
   'Today\'s Attendance': 'Today\'s Attendance',
   'See All': 'அனைத்தையும் காண்க',
@@ -315,7 +322,8 @@ final Map<String, String> taTranslations = {
   'welcomeTitle1String': 'I’m an Employee',
   'welcomeTitle2String': 'Owner / Admin Access',
   'welcomeDec1String': 'Sign in to access your workplace tools and resources.',
-  'welcomeDec2String': 'Create your organization and manage your team efficiently.',
+  'welcomeDec2String':
+      'Create your organization and manage your team efficiently.',
   'welcomeTaxHrmString': 'Welcome to TAXHRM',
   'welcomeDecString': 'Let’s begin by choosing what you want to explore today.',
   'loginString': 'Login',
@@ -330,8 +338,10 @@ final Map<String, String> taTranslations = {
   'verifyString': 'Verify',
   'backString': 'Back',
   'verificationCodeString': 'Verification Code',
-  'otpTitlesString': 'Choose how you want to receive your 6-digit verification code.',
-  'verifyOtpSendString': 'A verification code has been sent to your registered ',
+  'otpTitlesString':
+      'Choose how you want to receive your 6-digit verification code.',
+  'verifyOtpSendString':
+      'A verification code has been sent to your registered ',
   'mobileString': 'Mobile',
   'emailString': 'E-mail',
   'adminLeavePage': 'Leave Request',
@@ -376,7 +386,8 @@ final Map<String, String> taTranslations = {
   'Out': 'Out',
   'Action': 'Action',
   'Delete Entry': 'Delete Entry',
-  'Are you sure you want to delete the punch entry at': 'Are you sure you want to delete the punch entry at',
+  'Are you sure you want to delete the punch entry at':
+      'Are you sure you want to delete the punch entry at',
   'Punch entry at': 'Punch entry at',
   'deleted': 'deleted',
   'Added new punch at': 'Added new punch at',
@@ -399,7 +410,8 @@ final Map<String, String> taTranslations = {
   'Try searching with a different name': 'Try searching with a different name',
   'Clear Search': 'Clear Search',
   'Completed': 'Completed',
-  'Punch in before 10:00 AM to avoid late marking': 'Punch in before 10:00 AM to avoid late marking',
+  'Punch in before 10:00 AM to avoid late marking':
+      'Punch in before 10:00 AM to avoid late marking',
   'No': 'No',
   'DOB': 'DOB',
   'DOJ': 'DOJ',
@@ -435,8 +447,10 @@ final Map<String, String> taTranslations = {
   'Total Employees': 'Total Employees',
   'All Employees': 'All Employees',
   'ID': 'ID',
-  'Always Allow — active for shift tracking': 'Always Allow — active for shift tracking',
-  'Required to track location during your shift': 'Required to track location during your shift',
+  'Always Allow — active for shift tracking':
+      'Always Allow — active for shift tracking',
+  'Required to track location during your shift':
+      'Required to track location during your shift',
   'Date Selection': 'Date Selection',
   'Location Timeline': 'Location Timeline',
   'Loading coordinates...': 'Loading coordinates...',
@@ -446,7 +460,8 @@ final Map<String, String> taTranslations = {
   'Remaining Hours': 'Remaining Hours',
   'Overtime Hours': 'Overtime Hours',
   'Delete Payroll Data': 'Delete Payroll Data',
-  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.': 'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
+  'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.':
+      'Are you sure you want to delete the payroll attendance data for the selected month? This action cannot be undone.',
   'Break': 'Break',
   'Total': 'Total',
   'Hrs': 'Hrs',
@@ -469,10 +484,13 @@ final Map<String, String> taTranslations = {
   'Enter Announcement Place': 'அறிவிப்பு இடத்தை உள்ளிடவும்',
   'Announcement Details': 'அறிவிப்பு விவரங்கள்',
   'Enter Announcement Details': 'அறிவிப்பு விவரங்களை உள்ளிடவும்',
-  'Announcement Published Successfully': 'அறிவிப்பு வெற்றிகரமாக வெளியிடப்பட்டது',
-  'Announcement Updated Successfully': 'அறிவிப்பு வெற்றிகரமாக புதுப்பிக்கப்பட்டது',
+  'Announcement Published Successfully':
+      'அறிவிப்பு வெற்றிகரமாக வெளியிடப்பட்டது',
+  'Announcement Updated Successfully':
+      'அறிவிப்பு வெற்றிகரமாக புதுப்பிக்கப்பட்டது',
   'Please enter Announcement Title': 'தயவுசெய்து அறிவிப்பு தலைப்பை உள்ளிடவும்',
-  'Please select Announcement Type': 'தயவுசெய்து அறிவிப்பு வகையைத் தேர்ந்தெடுக்கவும்',
+  'Please select Announcement Type':
+      'தயவுசெய்து அறிவிப்பு வகையைத் தேர்ந்தெடுக்கவும்',
   'Please select Event Type': 'தயவுசெய்து நிகழ்வு வகையைத் தேர்ந்தெடுக்கவும்',
   'General Announcement': 'பொது அறிவிப்பு',
   'Company Update': 'நிறுவன புதுப்பிப்பு',
@@ -484,10 +502,12 @@ final Map<String, String> taTranslations = {
   'Other': 'மற்றவை',
   'Custom Event Type': 'தனிப்பயன் நிகழ்வு வகை',
   'Enter custom event type': 'தனிப்பயன் நிகழ்வு வகையை உள்ளிடவும்',
-  'Please enter custom event type': 'தயவுசெய்து தனிப்பயன் நிகழ்வு வகையை உள்ளிடவும்',
+  'Please enter custom event type':
+      'தயவுசெய்து தனிப்பயன் நிகழ்வு வகையை உள்ளிடவும்',
   'Attachments': 'இணைப்புகள்',
   'Click to upload attachments': 'இணைப்புகளை பதிவேற்ற கிளிக் செய்யவும்',
-  'Supported: Images, PDF, Word, Excel files': 'ஆதரிக்கப்படும்: படங்கள், PDF, வேர்ட், எக்செல் கோப்புகள்',
+  'Supported: Images, PDF, Word, Excel files':
+      'ஆதரிக்கப்படும்: படங்கள், PDF, வேர்ட், எக்செல் கோப்புகள்',
   'Create Event': 'நிகழ்வை உருவாக்கவும்',
   'Event Type': 'நிகழ்வு வகை',
   'Event Name': 'நிகழ்வு பெயர்',

@@ -21,7 +21,7 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 import 'package:tax_hrm/utils/attendance_perf_logger.dart';
 
@@ -59,14 +59,11 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final payRollProviders = Provider.of<PayRollProviders>(context);
     final employeMastServices = Provider.of<EmployeMastServices>(context);
 
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor:ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(widget.addEditFlag?addEmployeeSalaryString:editEmployeeSalaryString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -98,7 +95,7 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
                     children: [
                       Expanded(
                         child: IgnorePointer(
-                          ignoring: widget.addEditFlag ?false:true,
+                          ignoring: !widget.addEditFlag || (curentUser != null && curentUser['Role'] != 'Admin'),
                           child: CustomDropdown<Employeelists>.searchRequest(
                             decoration: CustomDropdownDecoration(
                               expandedBorder: Border.all(color: ColorConst.textBorder),
@@ -119,9 +116,10 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
                                 children: [
                                   Expanded(child: Text("${payRollProviders.selectedAddEmployeeList!.firstName.toString()} ${payRollProviders.selectedAddEmployeeList!.lastName.toString()}")),
                                   widthSpacer(size.width*0.02),
-                                  InkWell(onTap: (){
-                                    payRollProviders.iconAddOntap(context);
-                                  },child: Icon(Icons.close,size: 15,color: ColorConst.black,))
+                                  if (curentUser == null || curentUser['Role'] == 'Admin')
+                                    InkWell(onTap: (){
+                                      payRollProviders.iconAddOntap(context);
+                                    },child: Icon(Icons.close,size: 15,color: ColorConst.black,))
                                 ],
                               );
                             },

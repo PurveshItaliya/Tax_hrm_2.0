@@ -294,7 +294,7 @@ class ShiftMasterProvider extends ChangeNotifier {
   PositionDataL? selectedDesignation;
   List<PositionDataL>  getFiltersPostionList= [];
 
-  List<String> daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  List<String> daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   List<bool> checkBoxValues = List.generate(7, (index) => true);
   bool selectWeekDayValue = false;
   
@@ -458,13 +458,13 @@ class ShiftMasterProvider extends ChangeNotifier {
             break2Duration: "${pickedBreak2Time.hour.toString().padLeft(2, '0')}:${pickedBreak2Time.minute.toString().padLeft(2, '0')}:${pickbreak2Seconds.toString().padLeft(2, '0')}",
             shiftType: "",
             setCguid: addEditFlag == true ? setGuids : setdid.cguid,
-            mon: checkBoxValues[1],
-            tue: checkBoxValues[2],
-            wed: checkBoxValues[3],
-            thru: checkBoxValues[4],
-            fri: checkBoxValues[5],
-            sat: checkBoxValues[6],
-            sun: checkBoxValues[0],
+            mon: checkBoxValues[0],
+            tue: checkBoxValues[1],
+            wed: checkBoxValues[2],
+            thru: checkBoxValues[3],
+            fri: checkBoxValues[4],
+            sat: checkBoxValues[5],
+            sun: checkBoxValues[6],
             setinsertmood: addEditFlag,
             shitid: addEditFlag == true ?"":setdid.shiftID,
             context: context,).then((value) {
@@ -516,13 +516,13 @@ class ShiftMasterProvider extends ChangeNotifier {
   Future editHandleSubmit(context,GetShiftMasterData getShiftMasterData) async {
     try {
       setloading(true);
-      checkBoxValues[0] = getShiftMasterData.sun ?? false;
-      checkBoxValues[1] = getShiftMasterData.mon ?? false;
-      checkBoxValues[2] = getShiftMasterData.tue ?? false;
-      checkBoxValues[3] = getShiftMasterData.wed ?? false;
-      checkBoxValues[4] = getShiftMasterData.thu ?? false;
-      checkBoxValues[5] = getShiftMasterData.fri ?? false;
-      checkBoxValues[6] = getShiftMasterData.sat ?? false;
+      checkBoxValues[0] = getShiftMasterData.mon ?? false;
+      checkBoxValues[1] = getShiftMasterData.tue ?? false;
+      checkBoxValues[2] = getShiftMasterData.wed ?? false;
+      checkBoxValues[3] = getShiftMasterData.thu ?? false;
+      checkBoxValues[4] = getShiftMasterData.fri ?? false;
+      checkBoxValues[5] = getShiftMasterData.sat ?? false;
+      checkBoxValues[6] = getShiftMasterData.sun ?? false;
       break1Value = getShiftMasterData.break1!;
       break2Value = getShiftMasterData.break2!;
       for (var element in Provider.of<DepartmentServices>(context, listen: false).showedepartment) {

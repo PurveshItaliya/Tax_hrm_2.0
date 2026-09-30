@@ -303,6 +303,7 @@ class AttendenceLog {
   String? custId;
   String? device;
   String? fileURL;
+  bool? isOffline; // To indicate this is a pending offline punch
 
   AttendenceLog({
     this.logId,
@@ -327,6 +328,7 @@ class AttendenceLog {
     this.custId,
     this.device,
     this.fileURL,
+    this.isOffline,
   });
 
   AttendenceLog.fromJson(Map<String, dynamic> json) {
@@ -352,6 +354,7 @@ class AttendenceLog {
     custId = json['CustId'] ?? "";
     device = json['Device'] ?? "";
     fileURL = json['FileURL'] ?? "";
+    isOffline = json['IsOffline'] ?? false;
   }
 
   Map<String, dynamic> toJson() {
@@ -378,6 +381,7 @@ class AttendenceLog {
     data['CustId'] = custId;
     data['Device'] = device;
     data['FileURL'] = fileURL;
+    data['IsOffline'] = isOffline;
     return data;
   }
 }

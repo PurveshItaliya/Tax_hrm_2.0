@@ -16,7 +16,6 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_popmenu.dart';
 import 'package:tax_hrm/widigets/commonpaginator.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 
 class AdditionDeductionScreen extends StatefulWidget {
   const AdditionDeductionScreen({super.key});
@@ -46,9 +45,7 @@ class _AdditionDeductionScreenState extends State<AdditionDeductionScreen> {
     final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context,);
     final additionProvider =  Provider.of<AdditionProvider>(context);
     final appPaginationController = Provider.of<AppPaginationProvider>(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
               floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
               floatingActionButton: additionProvider.islodering ? SizedBox() : Padding(

@@ -4,7 +4,6 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/regiostrationmodel/registration.dart';
-import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/registrationprovider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
@@ -14,7 +13,6 @@ import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
 import 'package:tax_hrm/widigets/loadersshow.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class RegistrationForm extends StatefulWidget {
@@ -43,9 +41,8 @@ class _RegistrationFormState extends State<RegistrationForm> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     safeAreaBgAndTextColor(context);
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final registrationProvider = Provider.of<RegistrationProvider>(context);
-    return checkInterNetConnection.connectionType == 0 ? const NoInternetViewPage() : Scaffold(
+    return Scaffold(
       backgroundColor: ColorConst.scaffoldColor,
       appBar: showCustomeAppBar(backString, size,iconsOntap: () {
         backScreen(context);

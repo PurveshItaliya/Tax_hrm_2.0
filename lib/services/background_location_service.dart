@@ -1,16 +1,16 @@
 // ignore_for_file: avoid_print, empty_catches
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tax_hrm/services/location_batch_service.dart';
+import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -28,9 +28,15 @@ const String kLocationTestTaskName   = 'hrmLocationTestTask';
 const String kPrefTestMode           = 'wm_test_mode';
 const String kNotifChannelId         = 'location_tracking_channel';
 const String kNotifChannelName       = 'Location Tracking';
-const double kMovementThresholdMeters = 50.0;
+const double kMovementThresholdMeters = 5.0;
 const String kPrefLocationNotifShown = 'location_tracking_notif_shown';
 const int    kLocationTrackingNotifId = 887;
+
+// ── Dedicated offline punch sync task ─────────────────────────────────────────
+// Completely independent of location tracking.
+// Registered every time an offline punch is saved; fires when network returns.
+const String kOfflineSyncTaskName       = 'OfflinePunchSync';
+const String kOfflineSyncTaskUniqueName = 'hrmOfflineSyncTaskUnique';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WorkManager callbackDispatcher
@@ -53,6 +59,25 @@ void callbackDispatcher() {
       WidgetsFlutterBinding.ensureInitialized();
       DartPluginRegistrant.ensureInitialized();
 
+      // ── Route by task name ────────────────────────────────────────────────
+      if (task == kOfflineSyncTaskName) {
+        // ── DEDICATED OFFLINE PUNCH SYNC TASK ────────────────────────────
+        // Runs independently of location tracking — works for ALL users
+        // regardless of IsFetchLocation flag or punch status.
+        // NOTE: Does NOT chain a location task — completely independent.
+        try {
+          final bgPrefs = await SharedPreferences.getInstance();
+          final String userStr = bgPrefs.getString('data') ?? '';
+          if (userStr.isNotEmpty) {
+            final Map<String, dynamic> userData =
+                jsonDecode(userStr) as Map<String, dynamic>;
+            await OfflinePunchSyncService.syncInBackground(userData: userData);
+          }
+        } catch (_) {}
+        return true; // ← Early return: NO chained location task for sync tasks
+      }
+
+      // ── LOCATION TRACKING TASK (existing flow) ────────────────────────
       final notifPlugin = FlutterLocalNotificationsPlugin();
       await notifPlugin.initialize(
         settings: const InitializationSettings(
@@ -85,21 +110,21 @@ void callbackDispatcher() {
 
       await _onBackground(notifPlugin);
 
-    } catch (e) { /* ignored */ }
-
-    // ── Chained 1-minute re-schedule (test mode only) ─────────────────────
-    // WorkManager periodic minimum = 15 min. To test every 1 min when the
-    // app is fully closed, each task re-schedules the next one-off task.
-    if (kTestMode) {
+      // ── Chained 1-minute re-schedule ─────────────────────────────────────
+      // Only for location task — runs INSIDE the try block after _onBackground.
+      // Fires 1 minute after this task completes, keeping tracking alive when
+      // the app is force-killed. The uploadPendingBatch TTL guard (10 min) inside
+      // _onBackground ensures the actual API is NOT called on every chain fire.
       try {
         await Workmanager().registerOneOffTask(
           'hrmChained_${DateTime.now().millisecondsSinceEpoch}',
-          kLocationTestTaskName,
+          kLocationTaskName,
           initialDelay: const Duration(minutes: 1),
           constraints: Constraints(networkType: NetworkType.connected),
         );
       } catch (e) { /* ignored */ }
-    }
+
+    } catch (e) { /* ignored */ }
 
     return true;
   });
@@ -147,6 +172,9 @@ Future<void> _onBackground(FlutterLocalNotificationsPlugin notifPlugin) async {
     // Admin does not need location tracking
     return;
   }
+  
+  // ── Step 0: Always attempt to upload any pending batch locally ─────────────
+  await LocationBatchStorage.uploadPendingBatch(userData: userData);
 
   final String token     = userData['token'] ?? '';
   final dynamic empId    = userData['Id'];
@@ -220,8 +248,11 @@ Future<void> _onBackground(FlutterLocalNotificationsPlugin notifPlugin) async {
     }
     try {
       position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 12),
+        locationSettings: AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          forceLocationManager: true, // Forces fresh live hardware GPS reading
+          timeLimit: const Duration(seconds: 12),
+        ),
       );
     } catch (_) {
       position = await Geolocator.getLastKnownPosition();
@@ -260,141 +291,25 @@ Future<void> _onBackground(FlutterLocalNotificationsPlugin notifPlugin) async {
     return;
   }
 
-  await showDebug('📡 Got GPS', 'Checking distance from last timeline...');
+  await showDebug('📡 Got GPS', 'Appending to local batch queue...');
 
-  // ── Step 3: Distance check (skip if < 50m, unless test mode) ─────────────
-  try {
-    final String formattedDate   = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final String companyDataStr  = await SaveUser().getselectedcompany();
-    dynamic companyData;
-    if (companyDataStr.isNotEmpty) {
-      companyData = jsonDecode(companyDataStr);
-    }
-    final dynamic companyIdForTimeline = companyData?['CompanyId'] ?? companyId;
-
-    final timelineUrl = Uri.parse(
-      '${kApiBaseUrl}api/Transation/GetTimelineList?CompanyID=$companyIdForTimeline&EmpId=$empId&Date=$formattedDate',
-    );
-    final timelineResponse = await http.get(
-      timelineUrl,
-      headers: {'Authorization': 'bearer $token'},
-    ).timeout(const Duration(seconds: 15));
-
-    bool shouldSubmit = true;
-
-    if (timelineResponse.statusCode == 200) {
-      final dynamic timelineData = jsonDecode(timelineResponse.body);
-      List timelineList = [];
-      if (timelineData is List) {
-        timelineList = timelineData;
-      } else if (timelineData is Map && timelineData['data'] is List) {
-        timelineList = timelineData['data'];
-      }
-
-      if (timelineList.isNotEmpty) {
-        final dynamic lastEntry = timelineList.last;
-        final double? prevLat = double.tryParse(lastEntry['Latitude']?.toString() ?? '');
-        final double? prevLng = double.tryParse(lastEntry['Logitude']?.toString() ?? '');
-
-        if (prevLat != null && prevLng != null) {
-          final double distance = Geolocator.distanceBetween(
-            prevLat, prevLng,
-            position.latitude, position.longitude,
-          );
-          shouldSubmit = kTestMode || distance > kMovementThresholdMeters;
-          if (!shouldSubmit) {
-            await showDebug('⏭ BG Skipped', 'Moved only ${distance.toStringAsFixed(1)}m (need ${kMovementThresholdMeters}m)');
-          } else if (kTestMode) {
-            await showDebug('🚀 BG Submitting', 'Test mode — submitting always.');
-          }
-        }
-      }
-    }
-    if (!shouldSubmit && !kTestMode) return;
-  } catch (e) {
-    await showDebug('⚠️ Timeline Warning', 'Timeline check failed: $e — submitting anyway');
-  }
-
-  // ── Step 4: Submit to API ─────────────────────────────────────────────────
-  await _callApiFunction(
-    position: position,
-    userData: userData,
-    notifPlugin: notifPlugin,
+  await LocationBatchStorage.appendLocation(
+    latitude: position.latitude,
+    longitude: position.longitude,
+    entryTime: DateTime.now(),
+    accuracy: position.accuracy,
   );
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HTTP POST to CreateTimeline API
-// ─────────────────────────────────────────────────────────────────────────────
-Future<void> _callApiFunction({
-  required Position position,
-  required dynamic userData,
-  required FlutterLocalNotificationsPlugin notifPlugin,
-}) async {
-  String address    = '';
-  String postalCode = '';
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.reload();
+  bool isMapScreen = prefs.getBool('MapActive') ?? false;
+  bool isAppForeground = prefs.getBool('AppForeground') ?? false;
 
-  try {
-    final List<Placemark> placemarks = await Geocoding().placemarkFromCoordinates(
-      position.latitude, position.longitude,
-    );
-    if (placemarks.isNotEmpty) {
-      final Placemark place = placemarks.first;
-      postalCode = place.postalCode ?? '';
-      address    = '${place.subThoroughfare ?? ''} ${place.thoroughfare ?? ''}, '
-          '${place.subLocality ?? ''}, ${place.locality ?? ''}, '
-          '${place.subAdministrativeArea ?? ''}, '
-          '${place.administrativeArea ?? ''} ${place.postalCode ?? ''}, '
-          '${place.country ?? ''}';
-    }
-  } catch (e) { /* ignored */ }
-
-  try {
-    final Map<String, dynamic> body = {
-      'EmpId':      userData['Id'],
-      'CompanyId':  userData['CompanyId'],
-      'Latitude':   position.latitude.toString(),
-      'Logitude':   position.longitude.toString(),
-      'Pincode':    postalCode,
-      'DeviceType': Platform.isAndroid ? 'Android' : 'iOS',
-      'DeviceName': 'Background',
-      'Address':    address,
-    };
-
-    final String token = userData['token'] ?? '';
-    await http.post(
-      Uri.parse('${kApiBaseUrl}api/Transation/CreateTimeline'),
-      body: jsonEncode(body),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept':        '*/*',
-        'Authorization': 'bearer $token',
-      },
-    ).timeout(const Duration(seconds: 15));
-
-
-    if (kTestMode) {
-      await notifPlugin.show(
-        id: 890,
-        title: '✅ Location Sent!',
-        body: '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}'
-            ' | ${DateFormat('HH:mm:ss').format(DateTime.now())}',
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            kNotifChannelId, kNotifChannelName,
-            importance: Importance.high,
-            priority: Priority.high,
-            playSound: true,
-          ),
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
-      );
-    }
-  } catch (e) { /* ignored */ }
+  await LocationBatchStorage.uploadPendingBatch(
+    userData: userData, 
+    isMapScreen: isMapScreen, 
+    isAppForeground: isAppForeground
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -433,7 +348,7 @@ Future<void> initializeBackgroundService() async {
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
       autoStart: false,
-      isForegroundMode: false, // Wait until startLocationTracking to upgrade to foreground
+      isForegroundMode: true, // MUST BE true to stay alive when app is closed
       notificationChannelId: kNotifChannelId,
       initialNotificationTitle: 'Location Tracking Active',
       initialNotificationContent: 'Tracking is active until you Punch Out.',
@@ -459,27 +374,47 @@ Future<void> registerLocationWorkManager() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool(kPrefTestMode, kTestMode);
 
-  if (kTestMode) {
-    // Cancel any stale periodic task
-    await Workmanager().cancelByUniqueName(kLocationTaskUniqueName);
+  // Cancel any stale task
+  await Workmanager().cancelByUniqueName(kLocationTaskUniqueName);
 
-    // Seed the first one-off — it will chain itself every 1 min
+  // Seed the first one-off — it will chain itself every 1 min
+  await Workmanager().registerOneOffTask(
+    kLocationTaskUniqueName,
+    kLocationTaskName,
+    initialDelay: const Duration(seconds: 10),
+    constraints: Constraints(networkType: NetworkType.connected),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Register DEDICATED offline punch sync WorkManager task
+//
+// Called every time an offline punch is saved.
+// Completely independent of location tracking — works for ALL users:
+//   • Users with IsFetchLocation = false
+//   • Admins
+//   • Users who never punched in online (location tracking never started)
+//
+// Fires immediately when internet connectivity is restored.
+// ExistingWorkPolicy.replace ensures only ONE sync task queued at a time.
+// ─────────────────────────────────────────────────────────────────────────────
+Future<void> registerOfflineSyncWorkManager() async {
+  try {
     await Workmanager().registerOneOffTask(
-      kLocationTestTaskName,     // unique name (stable so duplicates are skipped)
-      kLocationTestTaskName,
-      initialDelay: const Duration(seconds: 10),
-      constraints: Constraints(networkType: NetworkType.connected),
+      kOfflineSyncTaskUniqueName,
+      kOfflineSyncTaskName,
+      // Very short delay — OS will hold it until network is available
+      initialDelay: const Duration(seconds: 5),
+      constraints: Constraints(
+        networkType: NetworkType.connected, // Wait for internet
+        requiresBatteryNotLow: false,       // Sync even on low battery
+      ),
+      existingWorkPolicy: ExistingWorkPolicy.replace, // Deduplicate
     );
-  } else {
-    // Production: 15-min periodic task
-    await Workmanager().registerPeriodicTask(
-      kLocationTaskUniqueName,
-      kLocationTaskName,
-      frequency: const Duration(minutes: 15),
-      initialDelay: const Duration(seconds: 10),
-      backoffPolicy: BackoffPolicy.exponential,
-      backoffPolicyDelay: const Duration(minutes: 1),
-    );
+  } catch (_) {
+    // WorkManager not yet initialized — safe to ignore here;
+    // the foreground connectivity-restored path (InternetConnectionProvider)
+    // will handle it when the app is open.
   }
 }
 
@@ -504,6 +439,52 @@ Future<bool> onIosBackground(ServiceInstance service) async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
   return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Foreground Location Logger — captures GPS every 30 seconds while the
+// flutter_background_service isolate is alive (app open or minimised).
+//
+// 30 seconds is the minimum meaningful interval: finer would drain battery
+// without adding real movement resolution, since the 15-meter distance filter
+// in appendLocation() already deduplicates stationary readings.
+//
+// The actual Timeline API upload is governed separately by the 10-minute TTL
+// inside uploadPendingBatch — this loop only collects GPS points locally.
+// ─────────────────────────────────────────────────────────────────────────────
+bool _isFetchingLocation = false;
+
+void startLocationLogger(FlutterLocalNotificationsPlugin notifPlugin) {
+  Timer.periodic(const Duration(seconds: 30), (timer) async {
+    if (_isFetchingLocation) return;
+    _isFetchingLocation = true;
+    try {
+      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      final LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) return;
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          forceLocationManager: true,
+          timeLimit: const Duration(seconds: 12),
+        ),
+      );
+
+      await LocationBatchStorage.appendLocation(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        entryTime: DateTime.now(),
+        accuracy: position.accuracy,
+      );
+    } catch (_) {
+      // ignore — GPS unavailable or permission revoked mid-session
+    } finally {
+      _isFetchingLocation = false;
+    }
+  });
 }
 
 @pragma('vm:entry-point')
@@ -542,16 +523,24 @@ void onStart(ServiceInstance service) async {
     ),
   );
 
+  startLocationLogger(notifPlugin);
 
   // Run immediately on start
   await _onBackground(notifPlugin);
 
-  // Then repeat every 1 min (test) or 5 min (production)
-  final timerDuration = kTestMode
-      ? const Duration(minutes: 1)
-      : const Duration(minutes: 5);
-
-  Timer.periodic(timerDuration, (timer) async {
-    await _onBackground(notifPlugin);
+  // Dynamic timer to support map active = 5 mins, background = 10 mins
+  int tick = 0;
+  Timer.periodic(const Duration(minutes: 1), (timer) async {
+    tick++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    bool isMapScreen = prefs.getBool('MapActive') ?? false;
+    
+    int target = isMapScreen ? 5 : 10;
+    
+    if (tick >= target) {
+      tick = 0;
+      await _onBackground(notifPlugin);
+    }
   });
 }

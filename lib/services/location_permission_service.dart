@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -64,67 +65,89 @@ class LocationPermissionService {
   ///
   /// A pre-permission explanation dialog is shown first per Apple HIG §Location.
   static Future<bool> executeAppleCompliantFlow(BuildContext context) async {
+    developer.log('[iOS-PERMISSION] Starting executeAppleCompliantFlow...', name: 'LocationPermissionService');
     LocationPermission currentPerm = await checkPermission();
+    developer.log('[iOS-PERMISSION] Initial permission state: $currentPerm', name: 'LocationPermissionService');
 
-    // Guard: already at Always — nothing to do
-    if (currentPerm == LocationPermission.always) {
-      return true;
+    // Guard: On iOS, whileInUse is perfectly sufficient for background tracking via the blue indicator.
+    // On Android, we strictly need Always.
+    if (Platform.isIOS) {
+      if (currentPerm == LocationPermission.always || currentPerm == LocationPermission.whileInUse) {
+        developer.log('[iOS-PERMISSION] ✅ Already have $currentPerm. Sufficient for iOS. Proceeding.', name: 'LocationPermissionService');
+        return true;
+      }
+    } else {
+      if (currentPerm == LocationPermission.always) {
+        developer.log('[iOS-PERMISSION] ✅ Already have LocationPermission.always. Proceeding.', name: 'LocationPermissionService');
+        return true;
+      }
     }
 
     // ── Pre-permission explanation dialog (Apple HIG requirement) ─────────────
     if (!context.mounted) return false;
+    developer.log('[iOS-PERMISSION] Showing Pre-Permission dialog...', name: 'LocationPermissionService');
     final agreedToContinue = await PermissionDialogWidget.showPrePermissionDialog(context);
     if (!agreedToContinue) {
+      developer.log('[iOS-PERMISSION] ❌ User cancelled Pre-Permission dialog.', name: 'LocationPermissionService');
       return false;
     }
+    developer.log('[iOS-PERMISSION] User agreed to continue to system prompt.', name: 'LocationPermissionService');
 
     // ── Step 1: Request basic permission if denied ───────────────────────────
     if (currentPerm == LocationPermission.denied) {
+      developer.log('[iOS-PERMISSION] Requesting initial Geolocator permission...', name: 'LocationPermissionService');
       // iOS and Android both request basic permission first
       currentPerm = await Geolocator.requestPermission();
+      developer.log('[iOS-PERMISSION] Initial request resulted in: $currentPerm', name: 'LocationPermissionService');
 
       if (currentPerm == LocationPermission.denied ||
           currentPerm == LocationPermission.deniedForever) {
+        developer.log('[iOS-PERMISSION] ❌ Permission denied or deniedForever after prompt.', name: 'LocationPermissionService');
         if (context.mounted) {
           final openSet = await PermissionDialogWidget.showPermissionDeniedDialog(context);
           if (openSet) {
+            developer.log('[iOS-PERMISSION] User chose to Open Settings.', name: 'LocationPermissionService');
             await openSettings();
             await waitForAppResume();
             currentPerm = await checkPermission();
+            developer.log('[iOS-PERMISSION] Returned from Settings. New permission: $currentPerm', name: 'LocationPermissionService');
           }
         }
         if (currentPerm != LocationPermission.always && currentPerm != LocationPermission.whileInUse) {
+          developer.log('[iOS-PERMISSION] ❌ Flow failed. Required at least whileInUse.', name: 'LocationPermissionService');
           return false;
         }
       }
     }
 
     // ── Step 2: Request Always permission ────────────────────────────────────
-    // Uncomment the Platform.isIOS block below once iOS bg location is ready.
     if (currentPerm == LocationPermission.whileInUse) {
-      // if (Platform.isIOS) {
-      //   // IMPORTANT: 500ms delay lets iOS fully register the whileInUse grant.
-      //   // Without this, requestAlwaysAuthorization() may silently no-op.
-      //   final alwaysStatus = await Permission.locationAlways.status;
-      //   if (!alwaysStatus.isGranted) {
-      //     await Future.delayed(const Duration(milliseconds: 500));
-      //     await Permission.locationAlways.request();
-      //     await waitForSystemDialogToClose();
-      //   }
-      // } else {
-        // Android Step 2: request Always upgrade
-        if (!Platform.isIOS) {
-          final alwaysStatus = await Permission.locationAlways.status;
-          if (!alwaysStatus.isGranted) {
-            await Permission.locationAlways.request();
-            await waitForSystemDialogToClose();
-          }
+      developer.log('[iOS-PERMISSION] Current state is whileInUse. Checking for Always upgrade...', name: 'LocationPermissionService');
+      if (Platform.isIOS) {
+        // iOS Apple HIG: request Always only after whileInUse is confirmed.
+        // The 500ms delay is required — iOS silently no-ops requestAlwaysAuthorization
+        // if the whileInUse grant has not been fully committed to the system yet.
+        final alwaysStatus = await Permission.locationAlways.status;
+        if (!alwaysStatus.isGranted) {
+          developer.log('[iOS-PERMISSION] Requesting iOS locationAlways...', name: 'LocationPermissionService');
+          await Future.delayed(const Duration(milliseconds: 500));
+          await Permission.locationAlways.request();
+          await waitForSystemDialogToClose();
         }
-      // }
+      } else {
+        // Android Step 2: request Always upgrade
+        final alwaysStatus = await Permission.locationAlways.status;
+        if (!alwaysStatus.isGranted) {
+          await Permission.locationAlways.request();
+          await waitForSystemDialogToClose();
+        }
+      }
 
       currentPerm = await checkPermission();
+      developer.log('[iOS-PERMISSION] Permission after Always request step: $currentPerm', name: 'LocationPermissionService');
 
-      // Fallback: If still only whileInUse, show settings upgrade dialog
+      // Fallback: If still only whileInUse on Android, show settings upgrade dialog.
+      // On iOS whileInUse is acceptable — the stream works in foreground/background.
       if (currentPerm == LocationPermission.whileInUse && !Platform.isIOS) {
         if (context.mounted) {
           final openSet = await PermissionDialogWidget.showEnableAlwaysDialog(context);
@@ -138,6 +161,18 @@ class LocationPermissionService {
     }
 
     final finalPerm = await checkPermission();
+    // On iOS, whileInUse is acceptable: the Geolocator stream with
+    // allowBackgroundLocationUpdates=true will still deliver updates while
+    // the app is backgrounded (blue indicator shown), even without Always.
+    if (Platform.isIOS) {
+      final bool iosSuccess = finalPerm == LocationPermission.always || finalPerm == LocationPermission.whileInUse;
+      if (iosSuccess) {
+        developer.log('[iOS-PERMISSION] ✅ Flow successful for iOS ($finalPerm).', name: 'LocationPermissionService');
+      } else {
+        developer.log('[iOS-PERMISSION] ❌ Flow failed for iOS ($finalPerm).', name: 'LocationPermissionService');
+      }
+      return iosSuccess;
+    }
     return finalPerm == LocationPermission.always;
   }
 }

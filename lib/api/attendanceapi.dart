@@ -350,7 +350,7 @@ class AttendanceApis{
 
   Future getCompanyDataList(month,year) async {
     var url = Uri.parse(
-      '${apibaseurl}api/HRM/HRMTopListReport?Month=$month&Year=$year ',
+      '${apibaseurl}api/HRM/HRMTopListReport?Month=$month&Year=$year',
     );
 
     var response = await http.get(

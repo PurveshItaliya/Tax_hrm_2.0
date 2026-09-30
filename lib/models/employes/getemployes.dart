@@ -6,9 +6,20 @@
 
 import 'dart:convert';
 
-List<Employeelists> employeelistsFromJson(String str) => List<Employeelists>.from(json.decode(str).map((x) => Employeelists.fromJson(x)));
+List<Employeelists> employeelistsFromJson(String str) {
+  var list = List<Employeelists>.from(
+    json.decode(str).map((x) => Employeelists.fromJson(x)),
+  );
+  list.sort(
+    (a, b) => (a.firstName ?? '').toString().toLowerCase().compareTo(
+      (b.firstName ?? '').toString().toLowerCase(),
+    ),
+  );
+  return list;
+}
 
-String employeelistsToJson(List<Employeelists> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+String employeelistsToJson(List<Employeelists> data) =>
+    json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class Employeelists {
   int? id;
@@ -75,73 +86,79 @@ class Employeelists {
   String? officeLocation;
   int? locationRadius;
   bool? isFetchLocation;
+  dynamic faceRegisterId;
+  bool? punchAllowed;
+  bool? isVisitor;
 
-  Employeelists(
-      {this.id,
-      this.companyId,
-      this.companyName,
-      this.firstName,
-      this.lastName,
-      this.img,
-      this.mobile1,
-      this.mobile2,
-      this.add1,
-      this.add2,
-      this.add3,
-      this.pincodeId,
-      this.cityId,
-      this.stateId,
-      this.dOB,
-      this.dOJ,
-      this.annivarsaryDate,
-      this.email,
-      this.gender,
-      this.pAN,
-      this.maritalStatus,
-      this.departmentId,
-      this.positionId,
-      this.role,
-      this.iFSC,
-      this.bankName,
-      this.branchName,
-      this.accNo,
-      this.accType,
-      this.salaryType,
-      this.salaryAmount,
-      this.isActive,
-      this.isLogin,
-      this.highestDegree,
-      this.degreeName,
-      this.universityName,
-      this.passingYear,
-      this.uANNo,
-      this.eSICNo,
-      this.shiftCguid,
-      this.custId,
-      this.cguid,
-      this.userName,
-      this.password,
-      this.iPAddress,
-      this.serverName,
-      this.entryTime,
-      this.flag,
-      this.totalhours,
-      this.areaName,
-      this.cityName,
-      this.stateName,
-      this.positionName,
-      this.departmentName,
-      this.success,
-      this.token,
-      this.cRM,
-      this.officeman,
-      this.hRM,
-      this.isAdmin,
-      this.workType,
-      this.officeLocation,
-      this.locationRadius,
-      this.isFetchLocation,
-    });
+  Employeelists({
+    this.id,
+    this.companyId,
+    this.companyName,
+    this.firstName,
+    this.lastName,
+    this.img,
+    this.mobile1,
+    this.mobile2,
+    this.add1,
+    this.add2,
+    this.add3,
+    this.pincodeId,
+    this.cityId,
+    this.stateId,
+    this.dOB,
+    this.dOJ,
+    this.annivarsaryDate,
+    this.email,
+    this.gender,
+    this.pAN,
+    this.maritalStatus,
+    this.departmentId,
+    this.positionId,
+    this.role,
+    this.iFSC,
+    this.bankName,
+    this.branchName,
+    this.accNo,
+    this.accType,
+    this.salaryType,
+    this.salaryAmount,
+    this.isActive,
+    this.isLogin,
+    this.highestDegree,
+    this.degreeName,
+    this.universityName,
+    this.passingYear,
+    this.uANNo,
+    this.eSICNo,
+    this.shiftCguid,
+    this.custId,
+    this.cguid,
+    this.userName,
+    this.password,
+    this.iPAddress,
+    this.serverName,
+    this.entryTime,
+    this.flag,
+    this.totalhours,
+    this.areaName,
+    this.cityName,
+    this.stateName,
+    this.positionName,
+    this.departmentName,
+    this.success,
+    this.token,
+    this.cRM,
+    this.officeman,
+    this.hRM,
+    this.isAdmin,
+    this.workType,
+    this.officeLocation,
+    this.locationRadius,
+    this.isFetchLocation,
+    this.faceRegisterId,
+    this.punchAllowed,
+    this.isVisitor,
+  });
 
   Employeelists.fromJson(Map<String, dynamic> json) {
     id = json['Id'];
@@ -200,14 +217,16 @@ class Employeelists {
     departmentName = json['DepartmentName'];
     success = json['success'];
     token = json['token'];
-    cRM = json['CRM'];
     officeman = json['Officeman'];
     hRM = json['HRM'];
     isAdmin = json['isAdmin'];
     workType = json['WorkType'];
     officeLocation = json['OfficeLocation'];
     locationRadius = json['LocationRadius'];
-    isFetchLocation = json['IsFetchLocation'];
+    isFetchLocation = json['IsFetchLocation'] ?? json['isFetchLocation'];
+    faceRegisterId = json['FaceRegisterId'];
+    punchAllowed = json['PunchAllowed'];
+    isVisitor = json['IsVisitor'] ?? json['isVisitor'];
   }
 
   Map<String, dynamic> toJson() {
@@ -276,6 +295,9 @@ class Employeelists {
     data['OfficeLocation'] = officeLocation;
     data['LocationRadius'] = locationRadius;
     data['IsFetchLocation'] = isFetchLocation;
+    data['FaceRegisterId '] = faceRegisterId;
+    data['PunchAllowed'] = punchAllowed;
+    data['IsVisitor'] = isVisitor;
     return data;
   }
 }

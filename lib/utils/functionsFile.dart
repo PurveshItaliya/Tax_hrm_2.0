@@ -10,8 +10,7 @@ void safeAreaBgAndTextColor(BuildContext context,{Color? safeAreaBgColor,Brightn
   final isDark = Theme.of(context).brightness == Brightness.dark;
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
-      statusBarColor:
-          isDark ? ColorConst.black : (safeAreaBgColor ?? ColorConst.white),
+      statusBarColor: safeAreaBgColor ?? ColorConst.white,
       statusBarIconBrightness:
           isDark ? Brightness.light : (safeAreaBrightness ??Brightness.dark),
       statusBarBrightness:

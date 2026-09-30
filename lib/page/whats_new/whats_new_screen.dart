@@ -7,7 +7,8 @@ import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
+
+import '../../widigets/noInternetView.dart';
 
 class WhatsNewPage extends StatefulWidget {
   const WhatsNewPage({super.key});
@@ -36,8 +37,19 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     
     String version103 = Platform.isAndroid ? 'v1.0.3' : 'v1.0.2';
     String versionName103 = 'Major Updates & Enhancements';
+    
+    String version104 = 'v1.0.4';
+    String versionName104 = 'Performance & Usability Enhancements';
 
-    versions = Platform.isAndroid ? ['All', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] : ['All', 'v1.0.2', 'v1.0.1','v1.0.0'];
+    String version105 = 'v1.0.5';
+    String versionName105 = 'Major Feature Enhancements';
+
+    String version106 = 'v1.0.6';
+    String versionName106 = 'Punch Widget & Enhancements';
+
+    versions = Platform.isAndroid 
+        ? ['All', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        : ['All', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -430,6 +442,116 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Optimized navigation and loading performance',
         ],
       ),
+      ReleaseNoteItem(
+        id: 24,
+        title: 'Punch In/Out Validation',
+        description: 'Improved Punch In/Out with dynamic company-wise location and radius validation.',
+        version: version104,
+        versionName: versionName104,
+        date: 'August 01, 2026',
+        category: 'Both',
+        icon: Icons.location_on,
+        bgColor: const Color(0xFF00BCD4),
+        features: [
+          'Dynamic company-wise location validation',
+          'Radius-based punch restriction',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 25,
+        title: 'User Payroll Master',
+        description: 'Added Payroll Master option on the user side.',
+        version: version104,
+        versionName: versionName104,
+        date: 'August 01, 2026',
+        category: 'Employee App',
+        icon: Icons.payments,
+        bgColor: const Color(0xFF795548),
+        features: [
+          'Added Payroll Master option on the user side',
+        ],
+      ),
+      // --- v1.0.4 New Features Added ---
+      ReleaseNoteItem(
+        id: 26,
+        title: 'Leaderboard Auto-Refresh & Audio Fixes',
+        description: 'Added automatic refresh to the leaderboard when changing months, and fixed an issue where the app would pause background music (e.g. Spotify) on startup.',
+        version: version104,
+        versionName: versionName104,
+        date: 'August 15, 2026',
+        category: 'Both',
+        icon: Icons.autorenew,
+        bgColor: const Color(0xFF3F51B5),
+        features: [
+          'Leaderboard now auto-refreshes data when selecting a different month',
+          'Splash screen video no longer interrupts other apps playing audio',
+          'General performance optimizations',
+        ],
+      ),
+      // --- v1.0.5 New Features Added ---
+      ReleaseNoteItem(
+        id: 27,
+        title: 'Attendance & Leave Enhancements',
+        description: 'Improved accuracy and better tracking for Attendance, Leaves, and Holidays.',
+        version: version105,
+        versionName: versionName105,
+        date: 'September 15, 2026',
+        category: 'Both',
+        icon: Icons.event_available,
+        bgColor: const Color(0xFF4CAF50), // Green
+        features: [
+          'Improved Attendance: More accurate Present, Absent, Leave, and Holiday status and counts.',
+          'Better Leave & Holiday Tracking: Leave and Holiday records now display correctly, with improved leave count calculations.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 28,
+        title: 'Offline & Location Tracking',
+        description: 'Robust offline support and improved location tracking capabilities.',
+        version: version105,
+        versionName: versionName105,
+        date: 'September 15, 2026',
+        category: 'Employee App',
+        icon: Icons.location_on,
+        bgColor: const Color(0xFF2196F3), // Blue
+        features: [
+          'Offline Punch Support: Punch In/Out works even without internet, with automatic synchronization when connectivity is restored.',
+          'Smart Location Tracking: Improved background and offline location tracking with optimized data synchronization.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 29,
+        title: 'Smart Timeline & Map Experience',
+        description: 'New features to view travel summaries, detect stops, and enjoy a cleaner map view.',
+        version: version105,
+        versionName: versionName105,
+        date: 'September 15, 2026',
+        category: 'Both',
+        icon: Icons.map,
+        bgColor: const Color(0xFFFF9800), // Orange
+        features: [
+          'Travel & Location Summary: View punch-session-wise travel distance, working duration, and movement details.',
+          'Smart Stop Detection: Easily track important stops with stop count and stay duration.',
+          'Improved Map Experience: Cleaner map view with Punch In, Punch Out, travel routes, and important stops.',
+        ],
+      ),
+      if (Platform.isAndroid)
+        ReleaseNoteItem(
+          id: 30,
+          title: 'New Punch Widget',
+          description: 'You can now add the TAX HRM Punch Widget directly to your phone\'s Home Screen! Enjoy instant, 1-tap access to the Punch screen for faster and hassle-free attendance tracking.',
+          version: version106,
+          versionName: versionName106,
+          date: 'September 19, 2026',
+          category: 'Employee App',
+          icon: Icons.widgets_rounded,
+          bgColor: const Color(0xFF673AB7), // Deep Purple
+          features: [
+            'Add Punch Widget to Home Screen',
+            'Instant 1-tap access to the Punch screen',
+            'Minor performance improvements and bug fixes',
+          ],
+        ),
     ];
 
     _animationController = AnimationController(

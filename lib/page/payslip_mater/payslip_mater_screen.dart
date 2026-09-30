@@ -20,7 +20,6 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/appbars.dart';
 import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class PaySlipMaterScreen extends StatefulWidget {
@@ -47,14 +46,11 @@ class _PaySlipMaterScreenState extends State<PaySlipMaterScreen> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final checkInterNetConnection = Provider.of<InternetConnectionProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final paySlipProviders = Provider.of<PaySlipProviders>(context);
     Provider.of<LanguageProvider>(context);
     safeAreaBgAndTextColor(context);
-    return checkInterNetConnection.connectionType == 0
-        ? const NoInternetViewPage()
-        : Scaffold(
+    return Scaffold(
             backgroundColor: ColorConst.scaffoldColor,
             appBar: showCustomeAppBar(paySlipString, size,titleColors: ColorConst.appbarTextColor,iconsOntap: (){backScreen(context);}),
             body: refreshIndicatorDesign(

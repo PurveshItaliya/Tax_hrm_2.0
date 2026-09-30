@@ -20,14 +20,13 @@ import 'package:tax_hrm/page/home/selfie_punch_screen.dart';
 import 'package:tax_hrm/page/leave/admin_leave_page.dart';
 import 'package:tax_hrm/page/leave/leavepage.dart';
 import 'package:tax_hrm/page/setting/setting_page.dart';
-import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/theme_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
-import 'package:tax_hrm/widigets/noInternetView.dart';
+import 'package:tax_hrm/widgets/premium_upgrade_alert.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Interaction state enum
@@ -45,8 +44,7 @@ class AnimatedBottomBar extends StatefulWidget {
 }
 
 class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
-  final MainBottomBarController controller =
-      Get.put(MainBottomBarController());
+  final MainBottomBarController controller = Get.put(MainBottomBarController());
 
   @override
   void initState() {
@@ -56,6 +54,8 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
         if (!mounted) return;
 
         // For admin users, trigger the notification permission flow right away
+
+        
         // since they don't go to the punch screen.
         if (isAdmin && !PermissionFlowService.isFlowRunning) {
           await PermissionFlowService.run(
@@ -64,7 +64,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
             notificationOnly: true,
           );
         }
-        
+
         // Wait until no permission flow is actively running,
         // no dialogs are on top (isCurrent == true),
         // and any route transition animation has fully completed.
@@ -117,58 +117,56 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
 
-    final internetProvider = context.watch<InternetConnectionProvider>();
-
     // Keep listening for theme and language changes.
     context.watch<ThemeProvider>();
     context.watch<LanguageProvider>();
 
-    return WillPopScope(
-      onWillPop: () => commonDialogBoxDesign(
+    return AppUpgradeWrapper(
+      child: WillPopScope(
+        onWillPop: () => commonDialogBoxDesign(
         context: context,
         size: size,
         title: exitString,
       ),
-      child: internetProvider.connectionType == 0
-          ? const NoInternetViewPage()
-          : Obx(() {
-              final selectedPage = controller.fabSelected.value
-                  ? SelfiePunchScreen()
-                  : pageList[controller.selectedIndex.value];
+      child: Obx(() {
+        final selectedPageRaw = controller.fabSelected.value
+            ? SelfiePunchScreen()
+            : pageList[controller.selectedIndex.value];
 
-              // ── All platforms: Flutter Liquid Glass bar ──
-              // Using the same Flutter-drawn _LiquidNavBar on iOS and Android
-              // for a consistent glass pill appearance on all iOS versions.
-              return Scaffold(
-                backgroundColor: ColorConst.scaffoldColor,
-                extendBody: true,
-                body: LiquidGlassView(
-                  backgroundWidget: selectedPage,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: _LiquidNavBar(
-                          key: ValueKey(
-                            context
-                                .watch<LanguageProvider>()
-                                .currentLanguage,
-                          ),
-                          isAdmin: isAdmin,
-                          selectedIndex: controller.selectedIndex.value,
-                          fabSelected: controller.fabSelected.value,
-                          onTabSelected: controller.changeTab,
-                          onPunchSelected: controller.selectFab,
-                        ),
-                      ),
-                    ],
+        final selectedPage = selectedPageRaw;
+
+        // ── All platforms: Flutter Liquid Glass bar ──
+        // Using the same Flutter-drawn _LiquidNavBar on iOS and Android
+        // for a consistent glass pill appearance on all iOS versions.
+        return Scaffold(
+          backgroundColor: ColorConst.scaffoldColor,
+          extendBody: true,
+          body: LiquidGlassView(
+            backgroundWidget: selectedPage,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _LiquidNavBar(
+                    key: ValueKey(
+                      context.watch<LanguageProvider>().currentLanguage,
+                    ),
+                    isAdmin: isAdmin,
+                    selectedIndex: controller.selectedIndex.value,
+                    fabSelected: controller.fabSelected.value,
+                    onTabSelected: controller.changeTab,
+                    onPunchSelected: controller.selectFab,
                   ),
                 ),
-              );
-            }),
+              ],
+            ),
+          ),
+        );
+      }),
+      ),
     );
   }
 }
@@ -214,7 +212,7 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
   late final AnimationController _stretchCtrl;
 
   // ── Animated values ────────────────────────────────────────────────────────
-  late Animation<double> _dropXAnim;  // slide X animation
+  late Animation<double> _dropXAnim; // slide X animation
   late Animation<double> _stretchAnim; // –1 (left) … 0 … +1 (right)
 
   // Live values (updated directly during drag)
@@ -225,9 +223,9 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
 
   // ── Gesture state (Listener-based — no arena conflicts) ─────────────────────
   _BarState _barState = _BarState.idle;
-  int _committedIndex = 0;    // drives actual navigation
-  int _previewIndex = 0;      // visual target during drag
-  int _lastHapticIndex = -1;  // track haptic boundaries
+  int _committedIndex = 0; // drives actual navigation
+  int _previewIndex = 0; // visual target during drag
+  int _lastHapticIndex = -1; // track haptic boundaries
 
   // Raw pointer tracking
   bool _pointerDown = false;
@@ -256,10 +254,7 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
 
   // ── Glass style for punch button (unchanged) ───────────────────────────────
   static const LiquidGlassStyle _punchGlassStyle = LiquidGlassStyle(
-    shape: LiquidGlassShape.roundedRectangle(
-      cornerRadius: 100,
-      borderWidth: 0,
-    ),
+    shape: LiquidGlassShape.roundedRectangle(cornerRadius: 100, borderWidth: 0),
     appearance: LiquidGlassAppearance(
       color: Color(0x32FFFFFF),
       saturation: 1.20,
@@ -333,7 +328,7 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
     _slideCtrl = AnimationController(vsync: this);
     _liftCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),   // tap bounce: quick rise
+      duration: const Duration(milliseconds: 120), // tap bounce: quick rise
       reverseDuration: const Duration(milliseconds: 300), // spring-fall
     );
     _pressCtrl = AnimationController(
@@ -363,7 +358,8 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
   void didUpdateWidget(_LiquidNavBar old) {
     super.didUpdateWidget(old);
     // External navigation change (e.g. back button)
-    if (old.selectedIndex != widget.selectedIndex && _barState == _BarState.idle) {
+    if (old.selectedIndex != widget.selectedIndex &&
+        _barState == _BarState.idle) {
       _committedIndex = widget.selectedIndex;
       _previewIndex = widget.selectedIndex;
       if (_pillWidth > 0) _animateTo(widget.selectedIndex, fromExternal: true);
@@ -396,9 +392,10 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
     // Determine stretch direction
     if (!_reducedMotion && diff.abs() > 10) {
       final dir = diff > 0 ? 1.0 : -1.0;
-      _stretchAnim = Tween<double>(begin: 0, end: dir).animate(
-        CurvedAnimation(parent: _stretchCtrl, curve: Curves.easeOut),
-      );
+      _stretchAnim = Tween<double>(
+        begin: 0,
+        end: dir,
+      ).animate(CurvedAnimation(parent: _stretchCtrl, curve: Curves.easeOut));
       _stretchCtrl.forward(from: 0).then((_) {
         // Return stretch
         _stretchAnim = Tween<double>(begin: dir, end: 0).animate(
@@ -408,14 +405,13 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
       });
     }
 
-    final ms = fromExternal
-        ? 300
-        : (_reducedMotion ? 80 : 300);
+    final ms = fromExternal ? 300 : (_reducedMotion ? 80 : 300);
 
     _slideCtrl.duration = Duration(milliseconds: ms);
-    _dropXAnim = Tween<double>(begin: current, end: target).animate(
-      CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic),
-    );
+    _dropXAnim = Tween<double>(
+      begin: current,
+      end: target,
+    ).animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
     _slideCtrl.forward(from: 0);
     _slideCtrl.addListener(_onSlideUpdate);
   }
@@ -497,7 +493,8 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
     final delta = e.localPosition - _pointerDownPos;
 
     // Enter DRAG mode when horizontal movement > 8px
-    if (!_isDragging && !_isLongPressed &&
+    if (!_isDragging &&
+        !_isLongPressed &&
         delta.dx.abs() > 8 &&
         delta.dx.abs() > delta.dy.abs()) {
       _isDragging = true;
@@ -616,8 +613,7 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    final tabs =
-        widget.isAdmin ? _adminTabs : _employeeTabs;
+    final tabs = widget.isAdmin ? _adminTabs : _employeeTabs;
 
     final barGlassStyle = LiquidGlassStyle(
       shape: LiquidGlassShape.continuousRoundedRectangle(
@@ -669,8 +665,12 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withOpacity(0.12) // subtle white border for dark
-                          : Colors.white.withOpacity(0.80), // strong white border for light
+                          ? Colors.white.withOpacity(
+                              0.12,
+                            ) // subtle white border for dark
+                          : Colors.white.withOpacity(
+                              0.80,
+                            ), // strong white border for light
                       width: 1.0,
                     ),
                   ),
@@ -734,7 +734,8 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
           // ── Employee punch FAB ───────────────────────────────────────────
           if (!widget.isAdmin)
             Positioned(
-              bottom: 35, // Perfectly vertically centered within the 62px height bar (which is at bottom: 10)
+              bottom:
+                  35, // Perfectly vertically centered within the 62px height bar (which is at bottom: 10)
               child: _LiquidPunchButton(
                 selected: widget.fabSelected,
                 onTap: widget.onPunchSelected,
@@ -825,89 +826,103 @@ class _GlassDropLayer extends StatelessWidget {
       curve: Curves.easeOutCubic,
       child: AnimatedBuilder(
         animation: Listenable.merge([
-        dropX,
-        liftProgress,
-        pressProgress,
-        stretchProgress,
-      ]),
-      builder: (ctx, _) {
-        final lift = reducedMotion ? 0.0 : liftProgress.value;
-        final press = reducedMotion ? 0.0 : pressProgress.value;
-        final stretch = reducedMotion ? 0.0 : stretchProgress.value;
+          dropX,
+          liftProgress,
+          pressProgress,
+          stretchProgress,
+        ]),
+        builder: (ctx, _) {
+          final lift = reducedMotion ? 0.0 : liftProgress.value;
+          final press = reducedMotion ? 0.0 : pressProgress.value;
+          final stretch = reducedMotion ? 0.0 : stretchProgress.value;
 
-        // ── Drop geometry ───────────────────────────────────────────────
-        // normalH = 54px inside a 62px pill — 4px padding top & bottom.
-        // No baseLift at idle: the pill is perfectly centred in the bar.
-        // liftCtrl animates it upward only during long-press / drag.
-        final stretchExtra = dropNormalWidth * 0.18 * stretch.abs();
-        final currentWidth = dropNormalWidth + stretchExtra;
-        const normalH = 54.0;
-        final liftedExtra = lift * 16.0;   // rises 16px on long-press
-        final pressedSquash = press * 4.0;
-        final currentH = normalH + liftedExtra - pressedSquash;
+          // ── Drop geometry ───────────────────────────────────────────────
+          // normalH = 54px inside a 62px pill — 4px padding top & bottom.
+          // No baseLift at idle: the pill is perfectly centred in the bar.
+          // liftCtrl animates it upward only during long-press / drag.
+          final stretchExtra = dropNormalWidth * 0.18 * stretch.abs();
+          final currentWidth = dropNormalWidth + stretchExtra;
+          const normalH = 54.0;
+          final liftedExtra = lift * 16.0; // rises 16px on long-press
+          final pressedSquash = press * 4.0;
+          final currentH = normalH + liftedExtra - pressedSquash;
 
-        // Vertical: centred growth — top formula handles both up & down
+          // Vertical: centred growth — top formula handles both up & down
 
-        // Horizontal: center the drop on dropX (clamped to pill bounds)
-        final left = dropX.value - currentWidth / 2;
-        final clampedLeft = left.clamp(0.0, pillWidth - currentWidth);
+          // Horizontal: center the drop on dropX (clamped to pill bounds)
+          final left = dropX.value - currentWidth / 2;
+          final clampedLeft = left.clamp(0.0, pillWidth - currentWidth);
 
-
-        // Stack with Clip.none so the lifted drop can rise ABOVE the pill
-        // without being clipped by the container bounds.
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: clampedLeft,
-              // Centre-anchored growth: as currentH increases the pill
-              // expands equally upward AND downward — centre stays fixed.
-              top: (62 - currentH) / 2 + (press * 2.0),
-              width: currentWidth,
-              height: currentH,
-              child: RepaintBoundary(
-                // LiquidGlassLens provides real-time blur + refraction
-                // magnification — replacing the manual BackdropFilter stack.
-                child: LiquidGlassLens(
-                  style: LiquidGlassStyle(
-                    shape: LiquidGlassShape.continuousRoundedRectangle(
-                      cornerRadius: 50,
-                      borderWidth: 0.1,
-                      borderColor: isDark
-                          ? Colors.white.withOpacity(0.20)
-                          : Colors.white.withOpacity(0.78),
-                      clipQuality: LiquidGlassClipQuality.roundedRectangle,
-                    ),
-                    appearance: LiquidGlassAppearance(
-                      color: Color.lerp(
-                            isDark ? const Color(0x8E7E7E7E) : const Color(
-                                0x2A1E1616), // Idle: Opaque
-                            isDark ? const Color(0x401C1C1E) : const Color(0x40FFFFFF), // Drag: True transparent glass
-                            lift,
-                          ) ??
-                          (isDark ? const Color(0xEE1C1C1E) : const Color(0xFAFFFFFF)),
-                      saturation: 1.0 + (2.0 * lift), // 1.0 -> 3.0 (high saturation for glassy look)
-                      blur: LiquidGlassBlur(
-                        sigmaX: 40.0 * lift, // Deep blur
-                        sigmaY: 40.0 * lift,
+          // Stack with Clip.none so the lifted drop can rise ABOVE the pill
+          // without being clipped by the container bounds.
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: clampedLeft,
+                // Centre-anchored growth: as currentH increases the pill
+                // expands equally upward AND downward — centre stays fixed.
+                top: (62 - currentH) / 2 + (press * 2.0),
+                width: currentWidth,
+                height: currentH,
+                child: RepaintBoundary(
+                  // LiquidGlassLens provides real-time blur + refraction
+                  // magnification — replacing the manual BackdropFilter stack.
+                  child: LiquidGlassLens(
+                    style: LiquidGlassStyle(
+                      shape: LiquidGlassShape.continuousRoundedRectangle(
+                        cornerRadius: 50,
+                        borderWidth: 0.1,
+                        borderColor: isDark
+                            ? Colors.white.withOpacity(0.20)
+                            : Colors.white.withOpacity(0.78),
+                        clipQuality: LiquidGlassClipQuality.roundedRectangle,
+                      ),
+                      appearance: LiquidGlassAppearance(
+                        color:
+                            Color.lerp(
+                              isDark
+                                  ? const Color(0x8E7E7E7E)
+                                  : const Color(0x2A1E1616), // Idle: Opaque
+                              isDark
+                                  ? const Color(0x401C1C1E)
+                                  : const Color(
+                                      0x40FFFFFF,
+                                    ), // Drag: True transparent glass
+                              lift,
+                            ) ??
+                            (isDark
+                                ? const Color(0xEE1C1C1E)
+                                : const Color(0xFAFFFFFF)),
+                        saturation:
+                            1.0 +
+                            (2.0 *
+                                lift), // 1.0 -> 3.0 (high saturation for glassy look)
+                        blur: LiquidGlassBlur(
+                          sigmaX: 40.0 * lift, // Deep blur
+                          sigmaY: 40.0 * lift,
+                        ),
+                      ),
+                      refraction: LiquidGlassRefraction(
+                        refractionType: OpticalRefraction(
+                          refraction:
+                              1.0 +
+                              (1.0 *
+                                  lift), // 1.0 -> 2.0 (strong optical distortion)
+                          refractionWidth: 32.0 * lift, // 0 -> 32
+                          depth: 1 * lift, // 0 -> 1.50 (thick glass depth)
+                        ),
                       ),
                     ),
-                    refraction: LiquidGlassRefraction(
-                      refractionType: OpticalRefraction(
-                        refraction: 1.0 + (1.0 * lift),      // 1.0 -> 2.0 (strong optical distortion)
-                        refractionWidth: 32.0 * lift,        // 0 -> 32
-                        depth: 1 * lift,                  // 0 -> 1.50 (thick glass depth)
-                      ),
-                    ),
+                    child: const SizedBox.expand(),
                   ),
-                  child: const SizedBox.expand(),
                 ),
               ),
-            ),
-          ],
-        );
-      },
-    ));
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -930,8 +945,9 @@ class _TabItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedColor = isDark ? Colors.white : ColorConst.themeColor;
-    final unselectedColor =
-        isDark ? Colors.white.withOpacity(0.48) : ColorConst.bottomIconColor;
+    final unselectedColor = isDark
+        ? Colors.white.withOpacity(0.48)
+        : ColorConst.bottomIconColor;
 
     return Semantics(
       button: true,
@@ -950,7 +966,7 @@ class _TabItem extends StatelessWidget {
                 curve: Curves.easeOut,
                 // Selected: 23px (noticeably bigger), unselected: 17px
                 height: selected ? 23 : 17,
-                width:  selected ? 23 : 17,
+                width: selected ? 23 : 17,
                 child: SvgPicture.asset(
                   asset,
                   colorFilter: ColorFilter.mode(
@@ -1027,14 +1043,8 @@ class _LiquidPunchButton extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: selected
-                          ? [
-                              ColorConst.darkGreenColor,
-                              ColorConst.themeColor,
-                            ]
-                          : [
-                              ColorConst.themeColor,
-                              ColorConst.darkGreenColor,
-                            ],
+                          ? [ColorConst.darkGreenColor, ColorConst.themeColor]
+                          : [ColorConst.themeColor, ColorConst.darkGreenColor],
                     ),
                     border: Border.all(
                       color: Colors.white.withOpacity(0.80),
@@ -1042,19 +1052,16 @@ class _LiquidPunchButton extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: ColorConst.themeColor
-                            .withOpacity(selected ? 0.40 : 0.22),
+                        color: ColorConst.themeColor.withOpacity(
+                          selected ? 0.40 : 0.22,
+                        ),
                         blurRadius: selected ? 18 : 10,
                         offset: const Offset(0, 5),
                       ),
                     ],
                   ),
                   child: Center(
-                    child: Image.asset(
-                      tapImageString,
-                      height: 31,
-                      width: 31,
-                    ),
+                    child: Image.asset(tapImageString, height: 31, width: 31),
                   ),
                 ),
               ),
