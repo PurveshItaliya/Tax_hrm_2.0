@@ -37,6 +37,7 @@ import 'package:tax_hrm/page/shift/shift_master_screen.dart';
 import 'package:tax_hrm/page/shift/shift_timing/shift_timing_master_screen.dart';
 import 'package:tax_hrm/page/usertimelineview/timelinepop.dart';
 import 'package:tax_hrm/page/usertimelineview/smart_timeline_screen.dart';
+import 'package:tax_hrm/page/visit/visit_screen.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/holidayprovider.dart';
 import 'package:tax_hrm/provider/payrollprovider.dart';
@@ -93,6 +94,16 @@ class HomeProvider extends ChangeNotifier {
 
   // home menu design
   homepageMenuGet(context) {
+    bool isVisitor = false;
+    if (curentUser != null) {
+      var val = curentUser['isVisitor'] ?? curentUser['IsVisitor'];
+      if (val is bool) {
+        isVisitor = val;
+      } else if (val != null) {
+        isVisitor = val.toString().toLowerCase() == 'true';
+      }
+    }
+
     homeGridOptionList = curentUser['Role'] == 'Admin' ? [
       HomeGridClass(image: attendanceUserString, title: attendanceString, onTap: () {
         changeSelectBottomBar(1);
@@ -136,6 +147,10 @@ class HomeProvider extends ChangeNotifier {
       HomeGridClass(image: aediDecImageString, title: addDeduString, onTap: () {
         nextScreen(context, AdditionDeductionScreen(), onthenValue: (value) {});
       }),
+      if (isVisitor)
+        HomeGridClass(image: visitImageString, title: visitString, onTap: () {
+          nextScreen(context, VisitScreen(), onthenValue: (value) {});
+        }),
     ] : [
       HomeGridClass(image: attendanceUserString, title: attendanceString,onTap: (){
         changeSelectBottomBar(1);
@@ -154,18 +169,6 @@ class HomeProvider extends ChangeNotifier {
       },), 
       HomeGridClass(image: notesImageString, title: noteString,onTap: () {
         nextScreen(context, NotesViewPage(), onthenValue: (value) {});
-
-
-
-
-
-
-
-
-
-
-
-        
       },),
       HomeGridClass(image: documentImageString, title: documentString,onTap: () {
         nextScreen(context, ShowDocumentScreen(), onthenValue: (value) {});
@@ -176,6 +179,10 @@ class HomeProvider extends ChangeNotifier {
       HomeGridClass(image: timelineviewString, title: timeLineViewString,onTap: () {
         nextScreen(context, SmartTimelineScreen(userId: curentUser['Id'].toString()),onthenValue: (value){});
       },),
+      if (isVisitor)
+        HomeGridClass(image: visitImageString, title: visitString, onTap: () {
+          nextScreen(context, VisitScreen(), onthenValue: (value) {});
+        }),
     ];
   }
 

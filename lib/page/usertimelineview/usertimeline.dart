@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
 import 'dart:convert';
@@ -44,12 +45,15 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
   @override
   void initState() {
     super.initState();
+    developer.log('EmployeTimelines initState: Started', name: 'UserTimelineScreen');
     SharedPreferences.getInstance().then((prefs) => prefs.setBool('MapActive', true));
     Provider.of<InternetConnectionProvider>(context, listen: false).getAllConnectionData();
+    developer.log('EmployeTimelines initState: Calling timeViewLoadData', name: 'UserTimelineScreen');
     Provider.of<TimeLineServices>(context, listen: false).timeViewLoadData(setEmpId: widget.userId);
     
     _timelineUpdateSub = FlutterBackgroundService().on('update_timeline').listen((event) {
       if (mounted) {
+        developer.log('EmployeTimelines background listener: update_timeline received', name: 'UserTimelineScreen');
         Provider.of<TimeLineServices>(context, listen: false).timeViewLoadData(setEmpId: widget.userId);
       }
     });
@@ -130,6 +134,7 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
 
   void _centerMapOnPoints(List<LatLng> points) {
     if (points.isNotEmpty && points.last != _lastCenteredPoint) {
+      developer.log('_centerMapOnPoints: Centering on point ${points.last.latitude}, ${points.last.longitude}', name: 'UserTimelineScreen');
       _lastCenteredPoint = points.last;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -138,7 +143,10 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
           });
           try {
             _mapController.move(points.last, 16.0);
-          } catch (e) { /* ignored */ }
+            developer.log('_centerMapOnPoints: Map moved successfully', name: 'UserTimelineScreen');
+          } catch (e) {
+            developer.log('_centerMapOnPoints: Failed to move map - $e', name: 'UserTimelineScreen', error: e);
+          }
         }
       });
     }
@@ -155,6 +163,8 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
     List<LatLng> pointsList = [];
     List<Marker> markersList = [];
     List<dynamic> validTimelineItems = [];
+
+    developer.log('build: Processing ${timeLineServices.showUserTimeLines.length} timeline items', name: 'UserTimelineScreen');
 
     for (int i = 0; i < timeLineServices.showUserTimeLines.length; i++) {
       var item = timeLineServices.showUserTimeLines[i];

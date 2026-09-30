@@ -84,6 +84,7 @@ String get eventString => LanguageProvider.translate("Announcement", "Announceme
 String get recuritmentString => LanguageProvider.translate("Recuritment", "Recuritment");
 String get addDeduString => LanguageProvider.translate("Addition Deduction", "Addition Deduction");
 String get employeeMasterTitleString => LanguageProvider.translate("Employee", "Employee");
+String get visitString => LanguageProvider.translate("Visit", "Visit");
 
 // Selfie Punch Screen Title
 String get punchString => LanguageProvider.translate("Punch", "Punch");

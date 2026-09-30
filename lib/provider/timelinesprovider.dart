@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -35,31 +36,43 @@ class TimeLineServices with ChangeNotifier {
   // *************************************************  get timeLine View ******************************************************************
   
   timeViewLoadData({setEmpId}) async {
+    developer.log('timeViewLoadData: Started for EmpId: $setEmpId', name: 'TimeLineProvider');
     try {
       showUserTimeLines.clear();
       setloading(true);
+      developer.log('timeViewLoadData: Calling gettimeLines', name: 'TimeLineProvider');
       await gettimeLines(setEmpId: setEmpId);
+      developer.log('timeViewLoadData: gettimeLines completed', name: 'TimeLineProvider');
       setloading(false);
       
-    } catch (e) {
+    } catch (e, stackTrace) {
+      developer.log('timeViewLoadData: Error occurred - $e', name: 'TimeLineProvider', error: e, stackTrace: stackTrace);
       setloading(false);
     }
     notifyListeners();
   }
 
   gettimeLines({setEmpId}) async {
+    developer.log('gettimeLines: Started', name: 'TimeLineProvider');
     try {
       String formattedDate = dateTimers.DateFormat('yyyy-MM-dd').format(setDates);
+      developer.log('gettimeLines: Formatted Date: $formattedDate', name: 'TimeLineProvider');
       await LocationTimeLineClass().getUserTimeLine(selectedDate: formattedDate, setUserId: setEmpId).then((value) {
         mainUserTimeLines = value;
+        developer.log('gettimeLines: Received ${mainUserTimeLines.length} timelines from API', name: 'TimeLineProvider');
         
         for (var item in mainUserTimeLines) {
         }
 
+        developer.log('gettimeLines: Starting data processing loop', name: 'TimeLineProvider');
+        int processedCount = 0;
+        int addedCount = 0;
         mainUserTimeLines.forEach((element) {
+          processedCount++;
           if (element.latitude != null && element.logitude != null && element.latitude != 'null' && element.logitude != 'null') {
             if (showUserTimeLines.isEmpty) {
               showUserTimeLines.add(element);
+              addedCount++;
             } else {
               bool isInValidRange = isLocationInRange(
                 previousLatitude: double.parse(
@@ -74,16 +87,22 @@ class TimeLineServices with ChangeNotifier {
               );
 
               if (isInValidRange) {
+                // Location skipped because it's too close
               } else {
                 showUserTimeLines.add(element);
+                addedCount++;
               }
             }
           }
         });
+        developer.log('gettimeLines: Data processing finished. Processed: $processedCount, Added: $addedCount', name: 'TimeLineProvider');
       }).onError((error, stackTrace) {
+        developer.log('gettimeLines: Error inside LocationTimeLineClass call - $error', name: 'TimeLineProvider', error: error, stackTrace: stackTrace);
         setloading(false);
       },);
-    } catch (e) { /* ignored */ }
+    } catch (e, stackTrace) { 
+        developer.log('gettimeLines: Exception caught - $e', name: 'TimeLineProvider', error: e, stackTrace: stackTrace);
+    }
   }
 
   bool isLocationInRange({

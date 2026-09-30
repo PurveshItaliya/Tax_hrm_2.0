@@ -136,10 +136,11 @@ class SmartTimelineProvider with ChangeNotifier {
         return;
       }
 
-      // ── Step 2: Process each session independently ────────────────────────
-      final List<ProcessedTimeline> sessionTimelines = [];
-      for (final session in _sessions) {
-        final result = await LocationTimelineProcessor.process(
+      // ── Step 2: Process all sessions in PARALLEL ─────────────────────────
+      // Sequential for-loop was processing 4 sessions one by one, each doing
+      // geocoding I/O — replaced with Future.wait() to run concurrently.
+      final sessionTimelines = await Future.wait(
+        _sessions.map((session) => LocationTimelineProcessor.process(
           rawGpsPoints: rawGpsPoints.cast(),
           punchInTime: session.inTime,
           punchOutTime: session.outTime,
@@ -147,9 +148,8 @@ class SmartTimelineProvider with ChangeNotifier {
           punchInLng: session.inLng,
           punchOutLat: session.outLat,
           punchOutLng: session.outLng,
-        );
-        sessionTimelines.add(result);
-      }
+        )),
+      );
 
       // ── Step 3: Merge all sessions into one combined timeline ─────────────
       _timeline = _mergeSessions(sessionTimelines);

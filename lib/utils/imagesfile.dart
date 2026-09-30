@@ -37,6 +37,7 @@
   String candidateImageString = 'assets/images/candidate.png';
   String aediDecImageString = 'assets/images/aediDec.png';
   String employeeMasterImageString = 'assets/images/employee.png';
+  String visitImageString = 'assets/images/event.png'; // Using event.png as a placeholder image
 
   // holidays screen image
   String calendarIconsString = 'assets/images/calendarIcons.png';

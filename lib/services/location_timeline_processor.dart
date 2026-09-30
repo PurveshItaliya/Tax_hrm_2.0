@@ -324,7 +324,6 @@ class LocationTimelineProcessor {
     double? punchOutLng,
   }) async {
     final isCurrentlyWorkedIn = punchOutTime == null;
-    final boundary = punchOutTime ?? DateTime.now();
 
     print(
       '[SMART_TIMELINE] 🚀 Processing ${rawGpsPoints.length} raw points | IN: $punchInTime | OUT: $punchOutTime',
@@ -332,8 +331,26 @@ class LocationTimelineProcessor {
 
     final allFiltered = LocationPointFilter._filter(rawGpsPoints);
 
+    // For open sessions (no punch out), cap the boundary to the last GPS point
+    // instead of DateTime.now() (which could be DAYS later if the user forgot
+    // to punch out, giving wildly wrong "27370 min worked" values).
+    final DateTime effectiveBoundary;
+    if (punchOutTime != null) {
+      effectiveBoundary = punchOutTime;
+    } else if (allFiltered.isNotEmpty) {
+      // Use the last GPS point's time as the boundary for open sessions
+      final lastGpsTime = allFiltered
+          .where((p) => !p.time.isBefore(punchInTime))
+          .fold<DateTime?>(null, (prev, p) => prev == null || p.time.isAfter(prev) ? p.time : prev);
+      effectiveBoundary = lastGpsTime ?? punchInTime;
+      print('[SMART_TIMELINE] Open session: using last GPS time as boundary: $effectiveBoundary');
+    } else {
+      // No GPS data at all for open session — boundary = punch in time (0 min)
+      effectiveBoundary = punchInTime;
+    }
+
     final windowed = allFiltered.where((p) {
-      return !p.time.isBefore(punchInTime) && !p.time.isAfter(boundary);
+      return !p.time.isBefore(punchInTime) && !p.time.isAfter(effectiveBoundary);
     }).toList();
 
     print(
@@ -433,16 +450,18 @@ class LocationTimelineProcessor {
       );
     }
 
-    for (final event in events) {
-      if (event.latitude != 0.0 && event.longitude != 0.0) {
-        event.address = await AddressResolver.resolve(
-          event.latitude,
-          event.longitude,
-        );
-      }
-    }
+    // ── Resolve addresses in PARALLEL — avoids blocking the main thread ──────
+    // Sequential `await` inside a for-loop was causing ~11 geocoding calls one
+    // by one, skipping hundreds of frames and making the UI freeze.
+    await Future.wait(
+      events
+          .where((e) => e.latitude != 0.0 && e.longitude != 0.0)
+          .map((e) async {
+        e.address = await AddressResolver.resolve(e.latitude, e.longitude);
+      }),
+    );
 
-    final workingMinutes = boundary.difference(punchInTime).inMinutes;
+    final workingMinutes = effectiveBoundary.difference(punchInTime).inMinutes;
 
     print(
       '[SMART_TIMELINE] ✅ Done: ${events.length} events | ${stays.length} stops | ${totalDistanceKm.toStringAsFixed(2)} km',

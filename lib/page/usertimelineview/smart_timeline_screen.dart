@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:developer' as developer;
 import 'package:tax_hrm/models/timeline_event.dart';
 import 'package:tax_hrm/provider/commanDataseta.dart';
 import 'package:tax_hrm/services/location_timeline_processor.dart';
@@ -41,6 +42,7 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
   @override
   void initState() {
     super.initState();
+    developer.log('SmartTimelineScreen initState: Started for userId=${widget.userId}, date=${widget.date}', name: 'SmartTimelineScreen');
     // Signal background service: user is on map → use 5-min upload interval
     SharedPreferences.getInstance().then((p) => p.setBool('MapActive', true));
 
@@ -120,9 +122,13 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
   // ── Map helpers ────────────────────────────────────────────────────────────
   void _fitMapToEvents(List<TimelineEvent> events) {
     if (events.isEmpty) return;
+    developer.log('_fitMapToEvents: Attempting to fit map to ${events.length} events', name: 'SmartTimelineScreen');
     final lats = events.map((e) => e.latitude).where((v) => v != 0).toList();
     final lngs = events.map((e) => e.longitude).where((v) => v != 0).toList();
-    if (lats.isEmpty) return;
+    if (lats.isEmpty) {
+        developer.log('_fitMapToEvents: No valid coordinates to fit', name: 'SmartTimelineScreen');
+        return;
+    }
 
     final south = lats.reduce((a, b) => a < b ? a : b);
     final north = lats.reduce((a, b) => a > b ? a : b);
@@ -130,13 +136,17 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
     final east = lngs.reduce((a, b) => a > b ? a : b);
 
     try {
+      developer.log('_fitMapToEvents: Bounds ($south, $west) to ($north, $east)', name: 'SmartTimelineScreen');
       _mapController.fitCamera(
         CameraFit.bounds(
           bounds: LatLngBounds(LatLng(south, west), LatLng(north, east)),
           padding: const EdgeInsets.fromLTRB(60, 120, 60, 320),
         ),
       );
-    } catch (_) {}
+      developer.log('_fitMapToEvents: Map fitted successfully', name: 'SmartTimelineScreen');
+    } catch (e) {
+      developer.log('_fitMapToEvents: Error fitting map - $e', name: 'SmartTimelineScreen', error: e);
+    }
   }
 
   /// Called when user taps a punch/stop in the bottom sheet list.
@@ -353,6 +363,7 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
   // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    developer.log('build: Start building SmartTimelineScreen', name: 'SmartTimelineScreen');
     final provider = Provider.of<SmartTimelineProvider>(context);
     final datePickerProvider = Provider.of<CommandWidigetsProvider>(context);
     final size = MediaQuery.of(context).size;
@@ -362,6 +373,7 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
     // it registers a new callback on every setState/rebuild.
     if (!provider.isLoading && provider.events.isNotEmpty && !_hasMapFitted) {
       _hasMapFitted = true;
+      developer.log('build: Data loaded, scheduling map fit', name: 'SmartTimelineScreen');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _fitMapToEvents(provider.events);
       });
