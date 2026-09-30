@@ -480,6 +480,7 @@ final Map<String, String> enTranslations = {
   'selectOfficeString': 'Select Office',
   'selectWorkTypeString': 'Select Work Type',
   'fetchLocationString': 'Fetch Location',
+  'visitString': 'Is Visit',
   'enabledString': 'Enabled',
   'disabledString': 'Disabled',
   'locationRadiusString': 'Location Radius (m)',

@@ -1499,6 +1499,9 @@ class SelfiePunchProvider extends ChangeNotifier {
   ]) async {
     if (PunchLoader == true) return;
 
+    // Fetch fresh location before checking distance to ensure it's up to date
+    await getCurrentLocation(context: context);
+
     if (distance > allowedRadius) {
       if (context.mounted) {
         showDialog(
@@ -1721,7 +1724,19 @@ class SelfiePunchProvider extends ChangeNotifier {
         } catch (_) {}
       }
 
+      if (isDarkEnvironment) {
+        showFlashOverlay = true;
+        notifyListeners();
+        // Short delay to let the screen render white before capture
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
       await takePicture();
+
+      if (isDarkEnvironment) {
+        showFlashOverlay = false;
+        notifyListeners();
+      }
 
       if (imageFile == null) {
         showtoastmessage(cameraImageNotCapturedString);

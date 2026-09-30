@@ -892,7 +892,7 @@ Widget _accountTab(EmployeeMasterProvider provider, Size size, context) {
           children: [
             Expanded(
               child: _buildLabeledField(
-                label: 'Visit',
+                label: visitString,
                 child: Container(
                   height: 50.0,
                   decoration: BoxDecoration(

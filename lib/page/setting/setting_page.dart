@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/face_registation/face_registration_screen.dart';
@@ -645,10 +646,12 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                 color: ColorConst.themeColor.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.face_retouching_natural,
-                color: ColorConst.themeColor,
-                size: 20,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SvgPicture.asset(
+                  'assets/images/faceid.svg',
+                  color: ColorConst.themeColor,
+                ),
               ),
             ),
             title: Text(
