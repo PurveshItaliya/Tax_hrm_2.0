@@ -481,6 +481,7 @@ final Map<String, String> guTranslations = {
   'selectOfficeString': 'કાર્યાલય પસંદ કરો',
   'selectWorkTypeString': 'કાર્ય પ્રકાર પસંદ કરો',
   'fetchLocationString': 'સ્થાન મેળવો',
+  'visitString': 'શું મુલાકાત છે',
   'enabledString': 'સક્રિય',
   'disabledString': 'નિષ્ક્રિય',
   'locationRadiusString': 'સ્થાન ત્રિજ્યા (મીટર)',

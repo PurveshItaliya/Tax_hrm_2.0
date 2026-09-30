@@ -1,8 +1,10 @@
 // ignore_for_file: invalid_return_type_for_catch_error, deprecated_member_use, strict_top_level_inference, use_build_context_synchronously
 
+import 'dart:developer';
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -64,6 +66,11 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     // Check for punch sync results every time the screen comes to foreground.
     if (state == AppLifecycleState.resumed && mounted) {
       PunchSyncSummaryDialog.showIfNeeded(context);
+      
+      // Auto-update location when app returns from background
+      if (!_isFlowRunning && _permissionsChecked) {
+        selfiePunchProvider.getCurrentLocation(context: context);
+      }
     }
   }
 
@@ -213,7 +220,16 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     if (curentUser?['Role'] == 'Admin') return;
 
     final faceId = curentUser?["FaceRegisterId"];
-    if (faceId == null || faceId.toString().isEmpty) {
+    final alternativeFaceId = curentUser?["FaceRegisterId "];
+    
+    log("=== FACE REGISTRATION DEBUG ===");
+    log("CurrentUser Keys: ${curentUser?.keys.toList()}");
+    log("FaceRegisterId value: '$faceId'");
+    log("FaceRegisterId  value: '$alternativeFaceId'");
+    log("===============================");
+
+    if ((faceId == null || faceId.toString().isEmpty) && 
+        (alternativeFaceId == null || alternativeFaceId.toString().isEmpty)) {
       await showDialog(
         context: context,
         barrierDismissible: false,
@@ -248,9 +264,10 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
                         color: ColorConst.themeColor.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        Icons.face_retouching_natural_rounded,
-                        size: 48,
+                      child: SvgPicture.asset(
+                        'assets/images/faceid.svg',
+                        height: 48,
+                        width: 48,
                         color: ColorConst.themeColor,
                       ),
                     ),

@@ -481,6 +481,7 @@ final Map<String, String> hiTranslations = {
   'selectOfficeString': 'कार्यालय चुनें',
   'selectWorkTypeString': 'कार्य का प्रकार चुनें',
   'fetchLocationString': 'स्थान प्राप्त करें',
+  'visitString': 'क्या विजिट है',
   'enabledString': 'सक्षम',
   'disabledString': 'अक्षम',
   'locationRadiusString': 'स्थान त्रिज्या (मीटर)',

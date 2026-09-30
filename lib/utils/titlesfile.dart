@@ -546,6 +546,7 @@ String get selectRoleString => LanguageProvider.translate("selectRoleString", "S
 String get selectOfficeString => LanguageProvider.translate("selectOfficeString", "Select Office");
 String get selectWorkTypeString => LanguageProvider.translate("selectWorkTypeString", "Select Work Type");
 String get fetchLocationString => LanguageProvider.translate("fetchLocationString", "Fetch Location");
+String get visitString => LanguageProvider.translate("visitString", "Is Visit");
 String get enabledString => LanguageProvider.translate("enabledString", "Enabled");
 String get disabledString => LanguageProvider.translate("disabledString", "Disabled");
 String get locationRadiusString => LanguageProvider.translate("locationRadiusString", "Location Radius (m)");
