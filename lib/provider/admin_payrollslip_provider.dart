@@ -1,6 +1,7 @@
 // ignore_for_file: empty_catches, use_build_context_synchronously, strict_top_level_inference, deprecated_member_use
 
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -43,6 +44,10 @@ class AdminPayrollslipProvider extends ChangeNotifier {
   double totalBreakMinutes = 0;
   double paidHolidayBreakMinutes = 0;
   int weekOffCount = 0;
+  double halfPaidLeaveCount = 0;
+  int totalHolidays = 0;
+  double paidHolidayDays = 0;
+  int actualWorkingMinutes = 0;
 
   GetShiftMasterData? selectedUserShift;
   List<List<dynamic>> csvData = [];
@@ -168,6 +173,10 @@ class AdminPayrollslipProvider extends ChangeNotifier {
     totalBreakMinutes = 0;
     paidHolidayBreakMinutes = 0;
     weekOffCount = 0;
+    halfPaidLeaveCount = 0;
+    totalHolidays = 0;
+    paidHolidayDays = 0;
+    actualWorkingMinutes = 0;
     selectedUserShift = null;
     csvData.clear();
     payrollstoreDatalist.clear();
@@ -211,11 +220,15 @@ class AdminPayrollslipProvider extends ChangeNotifier {
 
     final futureAttendance = AttendancePerformanceLogger.instance.track(
       'AttendanceApis.getEmpMonathAttendace',
-      () => AttendanceApis().getEmpMonathAttendace(
-        selectedAddEmployeeList!.id,
-        month,
-        year,
-      ),
+      () async {
+        final response = await AttendanceApis().getEmpMonathAttendace(
+          selectedAddEmployeeList!.id,
+          month,
+          year,
+        );
+        log("AttendanceList API Response: ${jsonEncode(response.map((e) => e.toJson()).toList())}");
+        return response;
+      },
       executionMode: 'parallel',
     );
     
@@ -227,6 +240,7 @@ class AdminPayrollslipProvider extends ChangeNotifier {
 
     final attendanceData = results[2] as List<EmployeAttendance>;
     final holidays = results[3] as List<GetHolidayById>;
+    totalHolidays = holidays.length;
     
     Provider.of<AttendanceEmp>(context, listen: false).getMonthAttenDance = attendanceData;
 
@@ -253,20 +267,17 @@ class AdminPayrollslipProvider extends ChangeNotifier {
         if (_isPaidLeaveGroup(leaveGroup)) {
           attendanceLeaveDates[dateKey] = 'paid';
           paidLeave += leaveDuration;
+          if (leaveDuration == 0.5) {
+            halfPaidLeaveCount += 1;
+          }
           useTotalMinuts += (shiftWorkingMinutes * leaveDuration).toInt();
         } else if (_isUnpaidLeaveGroup(leaveGroup)) {
           attendanceLeaveDates[dateKey] = 'unpaid';
           usedlwp += leaveDuration;
         } else if (leaveGroup == 'weekoff') {
-          attendanceWeekOffCount++;
           attendanceLeaveDates[dateKey] = 'weekoff';
         }
       }
-      
-      if (element.leaveGroup == 'WeekOff') {
-        attendanceWeekOffCount++;
-      }
-      
       final totalMin = int.tryParse(element.totalMinute?.toString() ?? '');
       if (totalMin != null) {
         useTotalMinuts += totalMin;
@@ -275,7 +286,7 @@ class AdminPayrollslipProvider extends ChangeNotifier {
 
     // Calculate holiday counts using the already fetched holidays
     _calculateHolidayLeaveCounts(holidays, attendancePresentDates, attendanceLeaveDates);
-    _calculateWeekOffCount(attendanceWeekOffCount);
+    _calculateWeekOffCount(attendanceData);
     showUserTotalHours = _formatMinutes(useTotalMinuts);
 
     await buildAttendanceListForMonth(context, lastDateOfMonth, holidayList: holidays);
@@ -310,7 +321,8 @@ class AdminPayrollslipProvider extends ChangeNotifier {
       double totalbreaks = 0;
       bool hasAttendance = false;
       final dayCode = DateFormat('EEE').format(currentDate).toLowerCase();
-      final isWeekOff = selectedUserShift != null && _isWeekOffDay(dayCode);
+      bool isWeekOff = selectedUserShift != null && _isWeekOffDay(dayCode);
+      bool isApiWeekOff = false;
       bool isHoliday = false;
       bool isPaidHoliday = false;
       bool isUnpaidHoliday = false;
@@ -327,6 +339,11 @@ class AdminPayrollslipProvider extends ChangeNotifier {
       for (final element in attendanceProvider.getMonthAttenDance) {
         final useDate = _parsePayrollDate(element.attendenceDate);
         if (!_isSameDate(useDate, currentDate)) continue;
+
+        if (element.weekOff == true || element.weekOff?.toString().toLowerCase() == 'true') {
+          isWeekOff = true;
+          isApiWeekOff = true;
+        }
 
         if (element.inTime != null) {
           try {
@@ -428,7 +445,7 @@ class AdminPayrollslipProvider extends ChangeNotifier {
       }
 
       // Handle week off (only if not already a holiday)
-      if (isWeekOff && !isHoliday && displayOutTime.isEmpty) {
+      if (isWeekOff && !isHoliday && displayOutTime.isEmpty && (!isApiWeekOff || (inTime.isEmpty && outTime.isEmpty))) {
         displayInTime = '-';
         displayOutTime = 'Week Off';
         displayBreakTime = '-';
@@ -438,7 +455,7 @@ class AdminPayrollslipProvider extends ChangeNotifier {
 
       // Calculate working minutes for regular attendance
       int workingMinutes = 0;
-      if (hasAttendance && !isHoliday && !isWeekOff) {
+      if (hasAttendance && !isHoliday) {
         totalbreaks += shiftBreakTime;
         totalBreakMinutes += totalbreaks;
         
@@ -446,10 +463,11 @@ class AdminPayrollslipProvider extends ChangeNotifier {
         if (totalParts.length == 2 && showTotalHours.isNotEmpty && showTotalHours != '-') {
           final hours = int.tryParse(totalParts[0]) ?? 0;
           final minutes = int.tryParse(totalParts[1]) ?? 0;
-          workingMinutes = ((hours * 60) + minutes) - totalbreaks.toInt();
+          workingMinutes = ((hours * 60) + minutes);
           if (workingMinutes < 0) workingMinutes = 0;
         }
       }
+      actualWorkingMinutes += workingMinutes;
 
       // Set display values
       displayInTime = displayInTime.isEmpty ? (inTime.isEmpty ? '--:--' : inTime) : displayInTime;
@@ -658,18 +676,36 @@ class AdminPayrollslipProvider extends ChangeNotifier {
     return data.map((row) => row.map((cell) => '"${cell.toString().replaceAll('"', '""')}"').join(',')).join('\n');
   }
 
-  String getFormattedTotalHours() => showUserTotalHours.isEmpty ? '00:00' : showUserTotalHours;
+  String getFormattedTotalHours() {
+    int totalHoursMinutes = actualWorkingMinutes 
+                          - (totalBreakMinutes + paidHolidayBreakMinutes).toInt() 
+                          + (paidLeave * shiftWorkingMinutes).toInt() 
+                          + (paidHolidayDays * shiftWorkingMinutes).toInt();
+    if (totalHoursMinutes < 0) totalHoursMinutes = 0;
+    return _formatMinutes(totalHoursMinutes);
+  }
 
   String getTotalBreakTime() => _formatMinutes((totalBreakMinutes + paidHolidayBreakMinutes).toInt());
 
   String getTotalWorkingHours() {
-    final workingMinutes = useTotalMinuts - (totalBreakMinutes + paidHolidayBreakMinutes).toInt();
-    return _formatMinutes(workingMinutes < 0 ? 0 : workingMinutes);
+    return _formatMinutes(actualWorkingMinutes);
   }
 
   String get formattedPaidLeave => _formatDayCount(paidLeave);
 
   String get formattedUnpaidLeave => _formatDayCount(usedlwp);
+
+  String getFormattedPaidLeaveHours() {
+    return _formatMinutes((paidLeave * shiftWorkingMinutes).toInt());
+  }
+
+  String getFormattedPaidHolidayHours() {
+    return _formatMinutes((paidHolidayDays * shiftWorkingMinutes).toInt());
+  }
+
+  String getFormattedHalfPaidLeaveCount() {
+    return _formatDayCount(halfPaidLeaveCount);
+  }
 
   // ==================== PUNCH ENTRY METHODS ====================
 
@@ -859,7 +895,7 @@ class AdminPayrollslipProvider extends ChangeNotifier {
       if (totalHolidayDays <= 0) continue;
 
       if (isPaidHoliday) {
-        paidLeave += totalHolidayDays;
+        paidHolidayDays += totalHolidayDays;
         useTotalMinuts += (shiftWorkingMinutes * totalHolidayDays).toInt();
         paidHolidayBreakMinutes += (shiftBreakTime * totalHolidayDays);
       } else if (isUnpaidHoliday) {
@@ -977,7 +1013,10 @@ class AdminPayrollslipProvider extends ChangeNotifier {
     }
 
     // FIXED: Use holiday.enddate instead of holiday.holidayDate
-    final endDate = _parsePayrollDate(holiday.enddate) ?? startDate;
+    DateTime endDate = _parsePayrollDate(holiday.enddate) ?? startDate;
+    if (endDate.year < 2000) {
+      endDate = startDate;
+    }
     final currentMonthStart = DateTime(addPaySummarycurrentMonth.year, addPaySummarycurrentMonth.month, 1);
     final currentMonthEnd = DateTime(addPaySummarycurrentMonth.year, addPaySummarycurrentMonth.month + 1, 0);
 
@@ -1040,17 +1079,42 @@ class AdminPayrollslipProvider extends ChangeNotifier {
     return 'Holiday';
   }
 
-  void _calculateWeekOffCount(int attendanceWeekOffCount) {
+  void _calculateWeekOffCount(List<EmployeAttendance> attendanceData) {
     weekOffCount = 0;
-    if (selectedUserShift == null) {
-      weekOffCount = attendanceWeekOffCount;
-      return;
-    }
-
     final lastDateOfMonth = DateTime(addPaySummarycurrentMonth.year, addPaySummarycurrentMonth.month + 1, 0);
+    
     for (var day = 1; day <= lastDateOfMonth.day; day++) {
-      final dayCode = DateFormat('EEE').format(DateTime(addPaySummarycurrentMonth.year, addPaySummarycurrentMonth.month, day)).toLowerCase();
-      if (_isWeekOffDay(dayCode)) weekOffCount++;
+      final date = DateTime(addPaySummarycurrentMonth.year, addPaySummarycurrentMonth.month, day);
+      final dayCode = DateFormat('EEE').format(date).toLowerCase();
+      
+      bool isWeekOff = _isWeekOffDay(dayCode);
+      bool hasAttendance = false;
+      
+      for (final element in attendanceData) {
+        final useDate = _parsePayrollDate(element.attendenceDate);
+        if (_isSameDate(useDate, date)) {
+          final inTimeStr = element.inTime?.toString().toLowerCase().trim() ?? 'null';
+          final outTimeStr = element.outTime?.toString().toLowerCase().trim() ?? 'null';
+          
+          if (element.weekOff == true || element.weekOff?.toString().toLowerCase() == 'true') {
+            isWeekOff = true;
+          }
+          
+          if (inTimeStr != 'null' && inTimeStr.isNotEmpty) {
+            hasAttendance = true;
+          }
+          if (outTimeStr != 'null' && outTimeStr.isNotEmpty) {
+            hasAttendance = true;
+          }
+          if (element.present == true) {
+            hasAttendance = true;
+          }
+        }
+      }
+      
+      if (isWeekOff && !hasAttendance) {
+        weekOffCount++;
+      }
     }
   }
 

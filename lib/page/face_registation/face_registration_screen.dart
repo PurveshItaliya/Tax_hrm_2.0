@@ -154,6 +154,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
         return moveBackString;
       case FaceErrorReason.straightenFace:
         return straightenFaceString;
+      case FaceErrorReason.alignFace:
+        return "Please align your face within the circular frame";
       case FaceErrorReason.cameraDenied:
         return cameraPermissionDeniedString;
       case FaceErrorReason.cameraUnavailable:

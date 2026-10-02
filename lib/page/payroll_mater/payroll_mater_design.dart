@@ -106,15 +106,25 @@ Widget attendanceInOutDesign({size,bgColor,borderColor,date,inTimePunch,outTimep
       children: [
         buildTableHeaderCell(size, date, width: size.width * 0.2,textColors: ColorConst.black),
         verticalBorder(),
-        buildTableHeaderCell(size, inTimePunch, width: size.width * 0.15, textColors: ColorConst.black),
-        verticalBorder(),
-        buildTableHeaderCell(size, outTimepuchOut, width: size.width * 0.15, textColors: outTimepuchOut == 'Week Off' ? Colors.red : outTimepuchOut == 'PAID LEAVE' ? Colors.green : outTimepuchOut == 'UNPAID LEAVE' ? Colors.orange : attendanceDataList == true ? Colors.deepPurple : ColorConst.black,),
-        verticalBorder(),
-        buildTableHeaderCell(size, breakHours, width: size.width * 0.12,textColors: ColorConst.black),
-        verticalBorder(),
-        buildTableHeaderCell(size, hoursCount, width: size.width * 0.12,textColors: ColorConst.black),
-        verticalBorder(),
-        buildTableHeaderCell(size, workingHours, width: size.width * 0.12,textColors: ColorConst.black),
+        if (attendanceDataList == true || outTimepuchOut == 'Week Off' || outTimepuchOut == 'PAID LEAVE' || outTimepuchOut == 'UNPAID LEAVE')
+          Expanded(
+            child: buildTableHeaderCell(size, outTimepuchOut, width: double.infinity, 
+              textColors: outTimepuchOut == 'Week Off' ? Colors.red : 
+                          outTimepuchOut == 'PAID LEAVE' ? Colors.green : 
+                          outTimepuchOut == 'UNPAID LEAVE' ? Colors.orange : 
+                          Colors.deepPurple),
+          )
+        else ...[
+          buildTableHeaderCell(size, inTimePunch, width: size.width * 0.15, textColors: ColorConst.black),
+          verticalBorder(),
+          buildTableHeaderCell(size, outTimepuchOut, width: size.width * 0.15, textColors: ColorConst.black),
+          verticalBorder(),
+          buildTableHeaderCell(size, breakHours, width: size.width * 0.12,textColors: ColorConst.black),
+          verticalBorder(),
+          buildTableHeaderCell(size, hoursCount, width: size.width * 0.12,textColors: ColorConst.black),
+          verticalBorder(),
+          buildTableHeaderCell(size, workingHours, width: size.width * 0.12,textColors: ColorConst.black),
+        ],
       ],
     )
   );

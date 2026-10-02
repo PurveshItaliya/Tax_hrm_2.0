@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' show sqrt;
+import 'dart:typed_data';
 import 'dart:ui';
 import 'dart:isolate';
 import 'package:flutter/foundation.dart';
@@ -125,14 +126,19 @@ class FaceRecognitionService {
   }
 
   /// Validates a face for enrollment or punch (size, angle, single face)
-  String? validateFaceQuality(List<Face> faces, Size imageSize) {
+  String? validateFaceQuality(List<Face> faces, CameraImage image, CameraDescription camera) {
     if (faces.isEmpty) return 'noFace';
     if (faces.length > 1) return 'multipleFaces';
 
     final face = faces.first;
 
+    // Calculate actual image size based on rotation
+    bool isRotated = camera.sensorOrientation == 90 || camera.sensorOrientation == 270;
+    double actualWidth = isRotated ? image.height.toDouble() : image.width.toDouble();
+    double actualHeight = isRotated ? image.width.toDouble() : image.height.toDouble();
+
     // Check face size (e.g. > 20% of image height)
-    if (face.boundingBox.height < imageSize.height * 0.2) {
+    if (face.boundingBox.height < actualHeight * 0.2) {
       return 'moveCloser';
     }
 
@@ -144,6 +150,23 @@ class FaceRecognitionService {
     if (face.headEulerAngleZ != null &&
         (face.headEulerAngleZ! > 15 || face.headEulerAngleZ! < -15)) {
       return 'straightenFace';
+    }
+
+    // Check if the entire face bounding box is within the central circular frame area.
+    // We define a strict central region based on the camera image dimensions.
+    double centerX = actualWidth / 2;
+    double centerY = actualHeight / 2;
+    
+    double allowedRadiusX = actualWidth * 0.35;
+    double allowedRadiusY = actualHeight * 0.25;
+    
+    bool isOutsideFrame = face.boundingBox.left < (centerX - allowedRadiusX) ||
+                          face.boundingBox.right > (centerX + allowedRadiusX) ||
+                          face.boundingBox.top < (centerY - allowedRadiusY) ||
+                          face.boundingBox.bottom > (centerY + allowedRadiusY);
+
+    if (isOutsideFrame) {
+      return 'alignFace';
     }
 
     return null; // Valid face
@@ -504,22 +527,36 @@ class FaceRecognitionService {
     }
   }
 
-  /// Encode array to Base64
+  /// Encode array to Base64 (Quantized to Int8 for a 4x shorter string)
   String embeddingToBase64(List<double> embedding) {
-    final float32List = Float32List(embedding.length);
+    final int8List = Int8List(embedding.length);
     for (int i = 0; i < embedding.length; i++) {
-      float32List[i] = embedding[i];
+      // The embeddings are L2 normalized, so values are roughly between -1.0 and 1.0.
+      int val = (embedding[i] * 127.0).round();
+      if (val > 127) val = 127;
+      if (val < -128) val = -128;
+      int8List[i] = val;
     }
-    final bytes = float32List.buffer.asUint8List();
+    final bytes = int8List.buffer.asUint8List();
     return base64Encode(bytes);
   }
 
-  /// Decode Base64 to array
+  /// Decode Base64 to array (Supports both new short Int8 format and legacy Float32/Float64)
   List<double> embeddingFromBase64(String base64Str) {
     final bytes = base64Decode(base64Str);
+    
+    // New 4x shorter format (192 bytes for 192 features)
+    if (bytes.length == 192) {
+      final int8List = bytes.buffer.asInt8List();
+      return int8List.map((e) => e / 127.0).toList();
+    }
+    
+    // Legacy Float32 format (768 bytes for 192 features)
     if (bytes.length == 768) {
       return bytes.buffer.asFloat32List().map((e) => e.toDouble()).toList();
     }
+    
+    // Legacy Float64 format
     return bytes.buffer.asFloat64List().toList();
   }
 
@@ -531,5 +568,26 @@ class FaceRecognitionService {
       dotProduct += e1[i] * e2[i];
     }
     return dotProduct;
+  }
+
+  /// Average multiple embeddings into a single normalized embedding
+  List<double> averageEmbeddings(List<List<double>> embeddings) {
+    if (embeddings.isEmpty) return [];
+    if (embeddings.length == 1) return embeddings.first;
+    
+    int length = embeddings.first.length;
+    List<double> avg = List.filled(length, 0.0);
+    
+    for (var emb in embeddings) {
+      for (int i = 0; i < length; i++) {
+        avg[i] += emb[i];
+      }
+    }
+    
+    for (int i = 0; i < length; i++) {
+      avg[i] /= embeddings.length;
+    }
+    
+    return _l2NormalizeStatic(avg);
   }
 }

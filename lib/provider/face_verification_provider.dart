@@ -19,6 +19,8 @@ class FaceVerificationProvider extends ChangeNotifier {
     ),
   );
 
+  int _cameraSessionId = 0;
+
   // State
   FaceProcessState currentState = FaceProcessState.idle;
   FaceErrorReason currentError = FaceErrorReason.none;
@@ -91,9 +93,20 @@ class FaceVerificationProvider extends ChangeNotifier {
 
   // ---- CAMERA MANAGEMENT ----
   Future<void> initCamera({required bool forEnrollment}) async {
+    _cameraSessionId++;
+    final int currentSession = _cameraSessionId;
+
+    isProcessingFrame = false;
     setState(FaceProcessState.initializing);
     log("Initializing camera. For enrollment: $forEnrollment");
+    
     await recognitionService.initialize();
+    
+    if (currentSession != _cameraSessionId) {
+      log("initCamera aborted: session invalidated during model initialization.");
+      return;
+    }
+    
     enrollmentStep = 0;
     enrollmentEmbeddings.clear();
 
@@ -122,6 +135,14 @@ class FaceVerificationProvider extends ChangeNotifier {
       );
 
       await cameraController!.initialize();
+      
+      if (currentSession != _cameraSessionId) {
+        log("initCamera aborted: session invalidated during camera initialization.");
+        await cameraController!.dispose();
+        cameraController = null;
+        return;
+      }
+      
       setState(FaceProcessState.idle);
 
       log("Camera initialized. Starting image stream.");
@@ -162,6 +183,7 @@ class FaceVerificationProvider extends ChangeNotifier {
   }
 
   Future<void> stopCamera() async {
+    _cameraSessionId++; // Invalidate any ongoing initCamera sessions
     log("Stopping camera");
     final controller = cameraController;
     cameraController = null;
@@ -204,7 +226,6 @@ class FaceVerificationProvider extends ChangeNotifier {
     }
 
     try {
-      setState(FaceProcessState.detectingFace);
       final inputImage = recognitionService.convertCameraImageToInputImage(
         image,
         camera,
@@ -217,7 +238,8 @@ class FaceVerificationProvider extends ChangeNotifier {
 
       final error = recognitionService.validateFaceQuality(
         faces,
-        Size(image.width.toDouble(), image.height.toDouble()),
+        image,
+        camera,
       );
       if (error != null) {
         stabilityStopwatch.stop();
@@ -287,12 +309,13 @@ class FaceVerificationProvider extends ChangeNotifier {
         return; // Exit and process next frames
       }
 
-      log("All 3 enrollment steps completed. Formatting to JSON...");
-
-      String jsonStr = jsonEncode(enrollmentEmbeddings.map((e) => recognitionService.embeddingToBase64(e)).toList());
+      log("All 3 enrollment steps completed. Averaging embeddings...");
+      
+      final averagedEmbedding = recognitionService.averageEmbeddings(enrollmentEmbeddings);
+      String finalString = recognitionService.embeddingToBase64(averagedEmbedding);
 
       // Store the registered template to be accessed by UI/APIs
-      registeredFaceTemplate = jsonStr;
+      registeredFaceTemplate = finalString;
       isEnrolled = true;
 
       // Save the JSON string to secure storage for the current logged-in user if available in global context,
@@ -303,7 +326,7 @@ class FaceVerificationProvider extends ChangeNotifier {
           log("Saving embeddings JSON to secure storage for user: $empId");
           await secureStorage.write(
             key: templateKeyPrefix + empId,
-            value: jsonStr,
+            value: finalString,
           );
         }
       } catch (e) {
@@ -338,7 +361,6 @@ class FaceVerificationProvider extends ChangeNotifier {
     }
 
     try {
-      setState(FaceProcessState.detectingFace);
       final inputImage = recognitionService.convertCameraImageToInputImage(
         image,
         camera,
@@ -351,7 +373,8 @@ class FaceVerificationProvider extends ChangeNotifier {
 
       final error = recognitionService.validateFaceQuality(
         faces,
-        Size(image.width.toDouble(), image.height.toDouble()),
+        image,
+        camera,
       );
       if (error != null) {
         consecutiveLiveFrames = 0;
@@ -676,7 +699,7 @@ class FaceVerificationProvider extends ChangeNotifier {
            if (inputImage == null) { isProcessing = false; return; }
            
            final faces = await recognitionService.detectFaces(inputImage);
-           final error = recognitionService.validateFaceQuality(faces, Size(image.width.toDouble(), image.height.toDouble()));
+           final error = recognitionService.validateFaceQuality(faces, image, controller.description);
            if (error != null) {
               stability.reset();
               stability.start();
@@ -738,6 +761,8 @@ class FaceVerificationProvider extends ChangeNotifier {
         return FaceErrorReason.moveCloser;
       case 'straightenFace':
         return FaceErrorReason.straightenFace;
+      case 'alignFace':
+        return FaceErrorReason.alignFace;
       default:
         return FaceErrorReason.unexpected;
     }

@@ -20,6 +20,7 @@ enum FaceErrorReason {
   moveCloser,
   moveBack,
   straightenFace,
+  alignFace,
   livenessFailed,
   spoofDetected,
   mismatch,
