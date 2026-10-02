@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print, strict_top_level_inference
 
 import 'dart:convert';
+import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'package:tax_hrm/models/authclass/adminloginclass.dart';
 import 'package:tax_hrm/models/authclass/checkclass.dart';
@@ -13,6 +14,9 @@ class AuthLoginService {
   Future calllogin(entername, password) async {
     var bodys = {"Username": entername,"Password": password,};
     var url = Uri.parse('$apibaseurl/api/Token/Login');
+    print("----- API REQUEST: Login -----");
+    print("URL: $url");
+    print("Payload: ${jsonEncode(bodys)}");
     var response = await http.post(
       url,
       body: jsonEncode(bodys),
@@ -24,6 +28,10 @@ class AuthLoginService {
         'Content-Type': 'application/json',
       },
     );
+    print("----- API RESPONSE: Login -----");
+    print("Status Code: ${response.statusCode}");
+    print("Response Body: ${response.body}");
+    print("-------------------------------");
     return userLoginFromJson(response.body);
   }
 
@@ -40,11 +48,18 @@ class AuthLoginService {
     };
     var bodyJson = jsonEncode(bodys);
 
+    log("----- API REQUEST: EmpLogin -----", name: "EmpLogin");
+    log("URL: $url", name: "EmpLogin");
+    log("Payload: $bodyJson", name: "EmpLogin");
     var response = await http.post(
       url,
       body: bodyJson,
       headers: headers,
     );
+    log("----- API RESPONSE: EmpLogin -----", name: "EmpLogin");
+    log("Status Code: ${response.statusCode}", name: "EmpLogin");
+    log("Response Body: ${response.body}", name: "EmpLogin");
+    log("----------------------------------", name: "EmpLogin");
     return empUserLoginFromJson(response.body);
   }
 

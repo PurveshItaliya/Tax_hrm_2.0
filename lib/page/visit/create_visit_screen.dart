@@ -66,6 +66,32 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
     );
   }
 
+  void _showEmployeeSearchSheet(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return _EmployeeSearchSheet(
+          employees: controller.employeesList,
+          selectedEmployees: controller.selectedAssignTo,
+          onSelected: (employee) {
+            if (controller.selectedAssignTo.contains(employee)) {
+              controller.selectedAssignTo.remove(employee);
+            } else {
+              controller.selectedAssignTo.add(employee);
+            }
+          },
+          isDark: isDark,
+        );
+      },
+    );
+  }
+
   void _showPartySearchSheet(BuildContext context) {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
@@ -394,28 +420,67 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                 // Assign To (Admin only)
                 if (curentUser != null && curentUser['Role'] == 'Admin') ...[
                   _buildLabel('Assign To Employee', context, isRequired: true),
-                  Container(
-                    height: 46,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      border: Border.all(color: isDark ? Colors.grey[800]! : Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<Employeelists>(
-                        isExpanded: true,
-                        dropdownColor: Theme.of(context).cardColor,
-                        hint: Text('Select Employee', style: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[500], fontSize: 13.5)),
-                        value: controller.selectedAssignTo.value,
-                        items: controller.employeesList.map((emp) {
-                          String empName = '${emp.firstName ?? ''} ${emp.lastName ?? ''}'.trim();
-                          return DropdownMenuItem(
-                            value: emp,
-                            child: Text(empName.isNotEmpty ? empName : 'Employee #${emp.id}', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.5)),
-                          );
-                        }).toList(),
-                        onChanged: (val) => controller.selectedAssignTo.value = val,
+                  InkWell(
+                    onTap: () => _showEmployeeSearchSheet(context),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 46),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        border: Border.all(color: isDark ? Colors.grey[800]! : Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.people_alt_rounded, color: ColorConst.themeColor, size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Obx(() {
+                              if (controller.selectedAssignTo.isEmpty) {
+                                return Text(
+                                  'Select Employees',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.grey[500] : Colors.grey[500],
+                                    fontSize: 13.5,
+                                  ),
+                                );
+                              }
+                              return Wrap(
+                                spacing: 6.0,
+                                runSpacing: 6.0,
+                                children: controller.selectedAssignTo.map((emp) {
+                                  String empName = '${emp.firstName ?? ''} ${emp.lastName ?? ''}'.trim();
+                                  if (empName.isEmpty) empName = 'Employee #${emp.id}';
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: ColorConst.themeColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: ColorConst.themeColor.withOpacity(0.3)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.person, size: 14, color: ColorConst.themeColor),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          empName,
+                                          style: TextStyle(
+                                            color: ColorConst.themeColor,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              );
+                            }),
+                          ),
+                          Icon(Icons.arrow_drop_down_rounded, color: isDark ? Colors.grey[400] : Colors.grey[600], size: 22),
+                        ],
                       ),
                     ),
                   ),
@@ -722,6 +787,175 @@ class _PartySearchSheetState extends State<_PartySearchSheet> {
                 label: const Text(
                   '+ Add Other / New Party',
                   style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmployeeSearchSheet extends StatefulWidget {
+  final List<Employeelists> employees;
+  final RxList<Employeelists> selectedEmployees;
+  final ValueChanged<Employeelists> onSelected;
+  final bool isDark;
+
+  const _EmployeeSearchSheet({
+    required this.employees,
+    required this.selectedEmployees,
+    required this.onSelected,
+    required this.isDark,
+  });
+
+  @override
+  State<_EmployeeSearchSheet> createState() => _EmployeeSearchSheetState();
+}
+
+class _EmployeeSearchSheetState extends State<_EmployeeSearchSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredEmployees = widget.employees.where((emp) {
+      final name = ('${emp.firstName ?? ''} ${emp.lastName ?? ''}').toLowerCase();
+      return name.contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.65,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          children: [
+            // Handle Bar
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Header Title
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Select Employees',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.pop(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Search Bar
+            TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val),
+              autofocus: true,
+              style: TextStyle(fontSize: 13.5, color: Theme.of(context).textTheme.bodyLarge?.color),
+              decoration: InputDecoration(
+                hintText: 'Search employee by name...',
+                hintStyle: TextStyle(fontSize: 13, color: widget.isDark ? Colors.grey[400] : Colors.grey[500]),
+                prefixIcon: Icon(Icons.search, size: 20, color: ColorConst.themeColor),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                filled: true,
+                fillColor: widget.isDark ? Colors.grey[900] : Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Filtered Employee List
+            Expanded(
+              child: filteredEmployees.isEmpty
+                  ? const Center(
+                      child: Text('No employees found', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    )
+                  : ListView.separated(
+                      itemCount: filteredEmployees.length,
+                      separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.withOpacity(0.15)),
+                      itemBuilder: (context, index) {
+                        final emp = filteredEmployees[index];
+                        return Obx(() {
+                          final isSelected = widget.selectedEmployees.contains(emp);
+                          String empName = '${emp.firstName ?? ''} ${emp.lastName ?? ''}'.trim();
+                          
+                          return ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            leading: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: isSelected
+                                  ? ColorConst.themeColor
+                                  : ColorConst.themeColor.withOpacity(0.1),
+                              child: Icon(
+                                Icons.person_rounded,
+                                size: 16,
+                                color: isSelected ? Colors.white : ColorConst.themeColor,
+                              ),
+                            ),
+                            title: Text(
+                              empName.isNotEmpty ? empName : 'Employee #${emp.id}',
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                fontSize: 13.5,
+                                color: isSelected ? ColorConst.themeColor : Theme.of(context).textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                            trailing: isSelected
+                                ? Icon(Icons.check_circle_rounded, color: ColorConst.themeColor, size: 20)
+                                : null,
+                            onTap: () => widget.onSelected(emp),
+                          );
+                        });
+                      },
+                    ),
+            ),
+            
+            const SizedBox(height: 8),
+
+            // Done Button
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorConst.themeColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Done',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
                 ),
               ),
             ),

@@ -91,18 +91,38 @@ class VisitApis {
     developer.log('URL: $url', name: 'VisitApis');
     developer.log('Request Body: ${jsonEncode(body)}', name: 'VisitApis');
 
-    var response = await http.post(url, body: jsonEncode(body), headers: {
-      'Authorization': 'bearer ${curentUser['token']}',
-      'Content-Type': 'application/json',
-    });
+    try {
+      var response = await http.post(url, body: jsonEncode(body), headers: {
+        'Authorization': 'bearer ${curentUser['token']}',
+        'Content-Type': 'application/json',
+      });
 
-    developer.log('Status Code: ${response.statusCode}', name: 'VisitApis');
-    developer.log('Response Body: ${response.body}', name: 'VisitApis');
+      developer.log('Status Code: ${response.statusCode}', name: 'VisitApis');
+      developer.log('Response Body: ${response.body}', name: 'VisitApis');
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to create/update visit');
+      if (response.statusCode == 200) {
+        try {
+          return jsonDecode(response.body);
+        } catch (parseError) {
+          developer.log('JSON Parse Error: $parseError', name: 'VisitApis', error: parseError);
+          developer.log('Raw body that failed to parse: ${response.body}', name: 'VisitApis');
+          throw Exception('Server returned 200 but response is not valid JSON: ${response.body}');
+        }
+      } else {
+        developer.log(
+          '--- CreateUpdateVisit FAILED ---\nStatus: ${response.statusCode}\nBody: ${response.body}',
+          name: 'VisitApis',
+        );
+        throw Exception(
+          'CreateUpdateVisit failed [${response.statusCode}]: ${response.body}',
+        );
+      }
+    } catch (e, stackTrace) {
+      if (e is Exception && e.toString().contains('CreateUpdateVisit failed')) {
+        rethrow;
+      }
+      developer.log('Network/Unexpected Error in createUpdateVisit: $e', name: 'VisitApis', error: e, stackTrace: stackTrace);
+      throw Exception('Network error in createUpdateVisit: $e');
     }
   }
 

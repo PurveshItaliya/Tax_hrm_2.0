@@ -96,12 +96,19 @@ class HomeProvider extends ChangeNotifier {
   homepageMenuGet(context) {
     bool isVisitor = false;
     if (curentUser != null) {
+      print("----- DEBUG isVisitor -----");
+      print("curentUser Data: $curentUser");
       var val = curentUser['isVisitor'] ?? curentUser['IsVisitor'];
+      print("Raw isVisitor value: $val, type: ${val?.runtimeType}");
       if (val is bool) {
         isVisitor = val;
       } else if (val != null) {
         isVisitor = val.toString().toLowerCase() == 'true';
       }
+      print("Parsed isVisitor value: $isVisitor");
+      print("---------------------------");
+    } else {
+      print("----- DEBUG isVisitor: curentUser is null -----");
     }
 
     homeGridOptionList = curentUser['Role'] == 'Admin' ? [
@@ -147,10 +154,9 @@ class HomeProvider extends ChangeNotifier {
       HomeGridClass(image: aediDecImageString, title: addDeduString, onTap: () {
         nextScreen(context, AdditionDeductionScreen(), onthenValue: (value) {});
       }),
-      if (isVisitor)
-        HomeGridClass(image: visitImageString, title: visitString, onTap: () {
-          nextScreen(context, VisitScreen(), onthenValue: (value) {});
-        }),
+      HomeGridClass(image: visitImageString, title: visitString, onTap: () {
+        nextScreen(context, VisitScreen(), onthenValue: (value) {});
+      }),
     ] : [
       HomeGridClass(image: attendanceUserString, title: attendanceString,onTap: (){
         changeSelectBottomBar(1);

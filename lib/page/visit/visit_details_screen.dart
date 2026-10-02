@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -5,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'package:intl/intl.dart';
 import 'package:tax_hrm/api/visit_api.dart';
 import 'package:tax_hrm/models/visit/visit_detail_model.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
@@ -80,10 +83,10 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           }
         }
       } catch (e) {
-        if (mounted) setState(() => _visitorAddress = 'Address not found');
+        if (mounted) setState(() => _visitorAddress = '');
       }
     } else {
-      if (mounted) setState(() => _visitorAddress = 'No location provided');
+      if (mounted) setState(() => _visitorAddress = '');
     }
   }
 
@@ -394,14 +397,35 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Theme.of(context).textTheme.bodyLarge?.color),
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              status?.toUpperCase() ?? 'PENDING',
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black87,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                letterSpacing: 0.5,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: ColorConst.themeColor.withOpacity(0.1),
+                border: Border.all(color: ColorConst.themeColor.withOpacity(0.5)),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _statusColor(status),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    status?.toUpperCase() ?? 'PENDING',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -672,7 +696,9 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     
     setState(() => _isLoading = true);
     try {
+      developer.log('--- Start _updateRemark ---', name: 'VisitDetails');
       Map<String, dynamic> updateData = _visitData!.toJson();
+      developer.log('Base _visitData toJson: $updateData', name: 'VisitDetails');
       
       Map<String, dynamic> payload = {
         "CompanyId": updateData['CompanyId'] ?? widget.companyId,
@@ -690,10 +716,14 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         "PartyName": updateData['PartyName'],
       };
 
+      developer.log('Payload being sent for remark update: $payload', name: 'VisitDetails');
       await VisitApis().createUpdateVisit(payload, flag: 'U');
+      
+      developer.log('Remark update successful!', name: 'VisitDetails');
       showtoastmessage('Remark saved successfully');
       await _fetchVisitDetails();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      developer.log('Exception in _updateRemark: $e', name: 'VisitDetails', error: e, stackTrace: stackTrace);
       setState(() => _isLoading = false);
       showtoastmessage('Failed to save remark: $e');
     }
@@ -723,8 +753,17 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Visitor Punch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                const SizedBox(height: 6),
-                Text(_visitorAddress, style: TextStyle(fontSize: 12, color: Colors.grey.shade600), maxLines: 2, overflow: TextOverflow.ellipsis),
+                if (_visitorAddress.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.location_on_rounded, size: 14, color: ColorConst.themeColor),
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(_visitorAddress, style: TextStyle(fontSize: 12, color: Colors.grey.shade600), maxLines: 2, overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -748,7 +787,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         actions: [
-          if (!_isLoading && _visitData != null)
+          if (!_isLoading && _visitData != null && curentUser != null && (curentUser['Role'] == 'Admin' || curentUser['role'] == 'Admin'))
             IconButton(
               icon: _isDeleting
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -803,7 +842,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                               if (_visitData?.mobile1 != null && _visitData!.mobile1!.isNotEmpty) _visitData?.mobile1,
                               if (_visitData?.mobile2 != null && _visitData!.mobile2!.isNotEmpty) _visitData?.mobile2
                             ].join(', ')),
-                          if (_visitData?.partyAddress != null && _visitData!.partyAddress!.isNotEmpty)
+                          if (_visitData?.partyAddress != null && _visitData!.partyAddress!.trim().isNotEmpty && _visitData!.partyAddress!.toLowerCase() != 'null')
                             _buildCleanRow('Address', _visitData!.partyAddress!),
                           
                           _buildSectionTitle('Visitor Details'),
@@ -846,29 +885,36 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                             ),
                           ],
                           
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: ((_visitData?.remarks ?? '').toString().trim().isNotEmpty)
-                                    ? _buildCleanRow('Remarks', _visitData!.remarks!)
-                                    : Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
-                                        child: Text('No remarks added.', style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic, fontSize: 13.5)),
-                                      ),
+                          InkWell(
+                            onTap: _showAddRemarkDialog,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: ((_visitData?.remarks ?? '').toString().trim().isNotEmpty)
+                                        ? _buildCleanRow('Remarks', _visitData!.remarks!)
+                                        : Padding(
+                                            padding: const EdgeInsets.only(bottom: 12),
+                                            child: Text('No remarks added. Tap to add.', style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic, fontSize: 13.5)),
+                                          ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      ((_visitData?.remarks ?? '').toString().trim().isNotEmpty) ? Icons.edit_note_rounded : Icons.add_comment_rounded,
+                                      color: ColorConst.themeColor,
+                                      size: 22,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    tooltip: ((_visitData?.remarks ?? '').toString().trim().isNotEmpty) ? 'Edit Remark' : 'Add Remark',
+                                    onPressed: _showAddRemarkDialog,
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: Icon(
-                                  ((_visitData?.remarks ?? '').toString().trim().isNotEmpty) ? Icons.edit_note_rounded : Icons.add_comment_rounded,
-                                  color: ColorConst.themeColor,
-                                  size: 22,
-                                ),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                tooltip: ((_visitData?.remarks ?? '').toString().trim().isNotEmpty) ? 'Edit Remark' : 'Add Remark',
-                                onPressed: _showAddRemarkDialog,
-                              ),
-                            ],
+                            ),
                           ),
 
                           _buildDocumentsGrid(context),

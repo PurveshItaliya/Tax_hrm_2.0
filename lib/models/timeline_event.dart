@@ -1,7 +1,7 @@
 // ignore_for_file: prefer_collection_literals
 
 /// Represents the type of a processed timeline event.
-enum TimelineEventType { punchIn, stay, punchOut }
+enum TimelineEventType { punchIn, stay, punchOut, visit }
 
 /// A single processed event in the smart movement timeline.
 /// Built from raw GPS records after filtering, stay-detection, and geocoding.
@@ -34,6 +34,9 @@ class TimelineEvent {
   /// Cumulative total distance (km) from Punch In up to this event.
   final double totalDistanceKm;
 
+  /// Optional visit unique key ID for navigating to visit details.
+  final String? visitUkeyId;
+
   TimelineEvent({
     required this.type,
     required this.startTime,
@@ -44,6 +47,7 @@ class TimelineEvent {
     this.durationMinutes = 0,
     this.distanceFromPrevKm = 0.0,
     this.totalDistanceKm = 0.0,
+    this.visitUkeyId,
   });
 
   /// Formatted label used in the timeline card title.
@@ -55,6 +59,8 @@ class TimelineEvent {
         return 'Punch Out';
       case TimelineEventType.stay:
         return 'Stop';
+      case TimelineEventType.visit:
+        return 'Visit';
     }
   }
 

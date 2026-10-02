@@ -9,6 +9,7 @@ import 'package:tax_hrm/models/attendance/attendanceBlog.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/timeline_event.dart';
 import 'package:tax_hrm/services/location_timeline_processor.dart';
+import 'package:tax_hrm/api/visit_api.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: represents one punch session (one IN → OUT pair)
@@ -105,12 +106,13 @@ class SmartTimelineProvider with ChangeNotifier {
         LocationTimeLineClass().getUserTimeLine(
           setUserId: empId,
           selectedDate: formattedDate,
-        ),
+        ).catchError((e) { print('GPS Error: $e'); return []; }),
         AttendanceApis().getDateBlogEmp(
           selectedDate,
           int.tryParse(empId) ?? 0,
           companyId,
-        ),
+        ).catchError((e) { print('Attendance Error: $e'); return AttendanceDayBlog(); }),
+        VisitApis().getVisitList(companyId.toString(), '', empId).catchError((e) { print('Visit Error: $e'); return []; }),
       ]);
 
       final rawGpsPoints = results[0] as List;
@@ -154,8 +156,52 @@ class SmartTimelineProvider with ChangeNotifier {
       // ── Step 3: Merge all sessions into one combined timeline ─────────────
       _timeline = _mergeSessions(sessionTimelines);
 
+      // ── Step 4: Map & Inject Visits ───────────────────────────────────────
+      final rawVisits = results[2] as List;
+      List<TimelineEvent> visitEvents = [];
+      for (var visit in rawVisits) {
+        String assignTo = visit['VisitAssignTo']?.toString() ?? '';
+        List<String> assignedIds = assignTo.split(',').map((e) => e.trim()).toList();
+        String status = visit['VisitStatus']?.toString() ?? '';
+        String visitTimeStr = visit['VisitTime']?.toString() ?? '';
+        String entryTimeStr = visit['EntryTime']?.toString() ?? '';
+        String normStatus = status.toLowerCase().replaceAll(' ', '').replaceAll('_', '').replaceAll('-', '');
+
+        bool isDateMatch = visitTimeStr.startsWith(formattedDate) || entryTimeStr.startsWith(formattedDate);
+        bool isAssignMatch = assignedIds.contains(empId.trim());
+        bool isStatusMatch = !(normStatus == 'pending' || normStatus == '' || normStatus == '0');
+
+        if (isDateMatch && isAssignMatch && isStatusMatch) {
+          double? lat = double.tryParse(visit['ImgLatitude']?.toString() ?? '');
+          double? lng = double.tryParse(visit['ImgLogitude']?.toString() ?? '');
+          if (lat != null && lng != null) {
+            DateTime visitTime = DateTime.tryParse(entryTimeStr) ?? DateTime.tryParse(visitTimeStr) ?? DateTime.now();
+            String partyName = visit['PartyName']?.toString() ?? '';
+            String visitName = visit['VisitName']?.toString() ?? 'Visit';
+            String address = partyName.isNotEmpty ? '$visitName - $status ($partyName)' : '$visitName - $status';
+
+            visitEvents.add(TimelineEvent(
+              type: TimelineEventType.visit,
+              startTime: visitTime,
+              latitude: lat,
+              longitude: lng,
+              address: address,
+              durationMinutes: 0,
+              distanceFromPrevKm: 0.0,
+              totalDistanceKm: 0.0,
+              visitUkeyId: visit['VisitUkeyId']?.toString(),
+            ));
+          }
+        }
+      }
+
+      if (visitEvents.isNotEmpty) {
+        _timeline.events.addAll(visitEvents);
+        _timeline.events.sort((a, b) => a.startTime.compareTo(b.startTime));
+      }
+
       print(
-        '[SMART_TIMELINE] ✅ Combined: ${_timeline.events.length} events | ${_timeline.stopsCount} stops | ${_timeline.totalDistanceKm.toStringAsFixed(2)} km | ${_timeline.totalWorkingMinutes} min worked',
+        '[SMART_TIMELINE] ✅ Combined: ${_timeline.events.length} events (incl ${visitEvents.length} visits) | ${_timeline.stopsCount} stops | ${_timeline.totalDistanceKm.toStringAsFixed(2)} km | ${_timeline.totalWorkingMinutes} min worked',
       );
       print('[SMART_TIMELINE] ════════════════════════════════════════════');
     } catch (e, stack) {

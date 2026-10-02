@@ -11,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' as dateTimers;
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/api/setTimeline.dart';
+import 'package:tax_hrm/api/visit_api.dart';
 import 'package:tax_hrm/models/company/timelines.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
@@ -32,6 +33,7 @@ class TimeLineServices with ChangeNotifier {
   double thresholdInMeters = 50; // 100 meters
   List<LocationTimelInes>  showUserTimeLines = [];
   List<LocationTimelInes>  mainUserTimeLines = [];
+  List<dynamic> showVisits = [];
 
   // *************************************************  get timeLine View ******************************************************************
   
@@ -53,18 +55,14 @@ class TimeLineServices with ChangeNotifier {
   }
 
   gettimeLines({setEmpId}) async {
-    developer.log('gettimeLines: Started', name: 'TimeLineProvider');
+    print('==== gettimeLines: Started for EmpId: $setEmpId ====');
     try {
       String formattedDate = dateTimers.DateFormat('yyyy-MM-dd').format(setDates);
-      developer.log('gettimeLines: Formatted Date: $formattedDate', name: 'TimeLineProvider');
-      await LocationTimeLineClass().getUserTimeLine(selectedDate: formattedDate, setUserId: setEmpId).then((value) {
+      print('gettimeLines: Formatted Date: $formattedDate');
+      
+      // 1. Fetch Timeline Points
+      Future<void> timelineFuture = LocationTimeLineClass().getUserTimeLine(selectedDate: formattedDate, setUserId: setEmpId).then((value) {
         mainUserTimeLines = value;
-        developer.log('gettimeLines: Received ${mainUserTimeLines.length} timelines from API', name: 'TimeLineProvider');
-        
-        for (var item in mainUserTimeLines) {
-        }
-
-        developer.log('gettimeLines: Starting data processing loop', name: 'TimeLineProvider');
         int processedCount = 0;
         int addedCount = 0;
         mainUserTimeLines.forEach((element) {
@@ -75,33 +73,64 @@ class TimeLineServices with ChangeNotifier {
               addedCount++;
             } else {
               bool isInValidRange = isLocationInRange(
-                previousLatitude: double.parse(
-                  showUserTimeLines.last.latitude!,
-                ),
-                previousLongitude: double.parse(
-                  showUserTimeLines.last.logitude!,
-                ),
+                previousLatitude: double.parse(showUserTimeLines.last.latitude!),
+                previousLongitude: double.parse(showUserTimeLines.last.logitude!),
                 currentLatitude: double.parse(element.latitude!),
                 currentLongitude: double.parse(element.logitude!),
                 thresholdInMeters: thresholdInMeters,
               );
-
-              if (isInValidRange) {
-                // Location skipped because it's too close
-              } else {
+              if (!isInValidRange) {
                 showUserTimeLines.add(element);
                 addedCount++;
               }
             }
           }
         });
-        developer.log('gettimeLines: Data processing finished. Processed: $processedCount, Added: $addedCount', name: 'TimeLineProvider');
-      }).onError((error, stackTrace) {
-        developer.log('gettimeLines: Error inside LocationTimeLineClass call - $error', name: 'TimeLineProvider', error: error, stackTrace: stackTrace);
-        setloading(false);
-      },);
-    } catch (e, stackTrace) { 
-        developer.log('gettimeLines: Exception caught - $e', name: 'TimeLineProvider', error: e, stackTrace: stackTrace);
+      }).catchError((error) {
+        print('gettimeLines: Error inside LocationTimeLineClass call - $error');
+      });
+
+      // 2. Fetch Visits
+      Future<void> visitsFuture = () async {
+        try {
+          String companyId = selectedcurentcompany?.companyId.toString() ?? '';
+          String empIdStr = setEmpId?.toString() ?? '0';
+          print('==== gettimeLines: Fetching visits for companyId: $companyId, empId: $empIdStr ====');
+          
+          var allVisits = await VisitApis().getVisitList(companyId, '', empIdStr);
+          showVisits.clear();
+          
+          print('==== gettimeLines: Fetched ${allVisits.length} visits total from API ====');
+          
+          for (var visit in allVisits) {
+            String assignTo = visit['VisitAssignTo']?.toString() ?? '';
+            List<String> assignedIds = assignTo.split(',').map((e) => e.trim()).toList();
+            String status = visit['VisitStatus']?.toString() ?? '';
+            String visitTimeStr = visit['VisitTime']?.toString() ?? '';
+            String entryTimeStr = visit['EntryTime']?.toString() ?? '';
+            String normStatus = status.toLowerCase().replaceAll(' ', '').replaceAll('_', '').replaceAll('-', '');
+            
+            bool isDateMatch = visitTimeStr.startsWith(formattedDate) || entryTimeStr.startsWith(formattedDate);
+            bool isAssignMatch = assignedIds.contains(empIdStr.trim());
+            bool isStatusMatch = !(normStatus == 'pending' || normStatus == '' || normStatus == '0');
+            
+            print('VisitId: ${visit['VisitId']} | DateMatch: $isDateMatch | AssignMatch: $isAssignMatch | StatusMatch: $isStatusMatch');
+            
+            if (isDateMatch && isAssignMatch && isStatusMatch) {
+              showVisits.add(visit);
+              print('-> ADDED VisitId: ${visit['VisitId']} to map');
+            }
+          }
+          print('==== gettimeLines: Final count - Added ${showVisits.length} visits to map ====');
+        } catch (e) {
+          print('==== gettimeLines: Error fetching visits - $e ====');
+        }
+      }();
+
+      await Future.wait([timelineFuture, visitsFuture]);
+      
+    } catch (e) { 
+        print('gettimeLines: Exception caught - $e');
     }
   }
 

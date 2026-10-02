@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/page/visit/visit_details_screen.dart';
 import 'dart:developer' as developer;
 import 'package:tax_hrm/models/timeline_event.dart';
 import 'package:tax_hrm/provider/commanDataseta.dart';
@@ -15,6 +17,8 @@ import 'package:tax_hrm/services/smart_timeline_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'package:tax_hrm/page/visit/visit_details_screen.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 
 class SmartTimelineScreen extends StatefulWidget {
   final String userId;
@@ -213,6 +217,23 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
     child: const Icon(Icons.logout_rounded, color: Colors.white, size: 14),
   );
 
+  Widget _visitMarker(bool isSelected, int index) => Container(
+    width: isSelected ? 34 : 28,
+    height: isSelected ? 34 : 28,
+    decoration: BoxDecoration(
+      color: const Color(0xFF6366F1), // Indigo color for visits
+      shape: BoxShape.circle,
+      border: Border.all(color: Colors.white, width: 2.5),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF6366F1).withOpacity(isSelected ? 0.6 : 0.35),
+          blurRadius: isSelected ? 12 : 6,
+        ),
+      ],
+    ),
+    child: const Icon(Icons.groups_rounded, color: Colors.white, size: 14),
+  );
+
   Widget _stayMarker(bool isSelected, int index) => Container(
     width: isSelected ? 32 : 26,
     height: isSelected ? 32 : 26,
@@ -240,6 +261,164 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
       ),
     ),
   );
+
+  Color _getEventColor(TimelineEventType type) {
+    switch (type) {
+      case TimelineEventType.punchIn: return const Color(0xFF22C55E);
+      case TimelineEventType.punchOut: return const Color(0xFFEF4444);
+      case TimelineEventType.stay: return Colors.orange;
+      case TimelineEventType.visit: return const Color(0xFF6366F1);
+    }
+  }
+
+  IconData _getEventIcon(TimelineEventType type) {
+    switch (type) {
+      case TimelineEventType.punchIn: return Icons.login_rounded;
+      case TimelineEventType.punchOut: return Icons.logout_rounded;
+      case TimelineEventType.stay: return Icons.location_pin;
+      case TimelineEventType.visit: return Icons.groups_rounded;
+    }
+  }
+
+  Widget _buildPopupBubble(TimelineEvent ev) {
+    final bgColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final subTextColor = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey.shade600;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
+      children: [
+        // The Tail (Rotated Box)
+        Positioned(
+          bottom: -6,
+          child: Transform.rotate(
+            angle: 3.14159 / 4,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: bgColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 4,
+                    offset: const Offset(2, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Main Bubble Box
+        Container(
+          width: 210,
+          margin: const EdgeInsets.only(bottom: 2),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 8,
+                spreadRadius: 1,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: _getEventColor(ev.type).withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(_getEventIcon(ev.type), size: 14, color: _getEventColor(ev.type)),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      ev.typeLabel,
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                    ),
+                  ),
+                  if (ev.durationText.isNotEmpty)
+                    Text(
+                      ev.durationText,
+                      style: TextStyle(fontSize: 11, color: ColorConst.themeColor, fontWeight: FontWeight.bold),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Time
+              Row(
+                children: [
+                  Icon(Icons.schedule_rounded, size: 12, color: subTextColor),
+                  const SizedBox(width: 6),
+                  Text(ev.formattedTimeLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              // Location
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(Icons.location_on_rounded, size: 12, color: subTextColor),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      ev.address.isNotEmpty ? ev.address : 'Resolving...',
+                      style: TextStyle(fontSize: 11, color: subTextColor),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              // If Visit, show view details button
+              if (ev.type == TimelineEventType.visit && ev.visitUkeyId != null) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 32,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ColorConst.themeColor,
+                      padding: EdgeInsets.zero,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VisitDetailsScreen(
+                            visitUkeyId: ev.visitUkeyId!,
+                            companyId: curentUser['CompanyId']?.toString() ?? '1092',
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('View Details', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ]
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   // ── Stay event tap detail card ─────────────────────────────────────────────
   void _showStayDetail(BuildContext ctx, TimelineEvent event) {
@@ -384,6 +563,7 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
     // Build map markers from processed events
     final List<Marker> markers = [];
     int stopCounter = 1;
+    int visitCounter = 1;
 
     for (int i = 0; i < provider.events.length; i++) {
       final ev = provider.events[i];
@@ -391,39 +571,66 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
       final isSelected = _selectedEventIndex == i;
       final pt = LatLng(ev.latitude, ev.longitude);
 
-      Widget child;
+      Widget markerIcon;
       switch (ev.type) {
         case TimelineEventType.punchIn:
-          child = GestureDetector(
-            onTap: () =>
-                setState(() => _selectedEventIndex = isSelected ? null : i),
-            child: _punchInMarker(isSelected),
-          );
+          markerIcon = _punchInMarker(isSelected);
           break;
         case TimelineEventType.punchOut:
-          child = GestureDetector(
-            onTap: () =>
-                setState(() => _selectedEventIndex = isSelected ? null : i),
-            child: _punchOutMarker(isSelected),
-          );
+          markerIcon = _punchOutMarker(isSelected);
           break;
         case TimelineEventType.stay:
           final idx = stopCounter++;
-          child = GestureDetector(
-            onTap: () {
-              setState(() => _selectedEventIndex = isSelected ? null : i);
-              _showStayDetail(context, ev);
-            },
-            child: _stayMarker(isSelected, idx),
-          );
+          markerIcon = _stayMarker(isSelected, idx);
           break;
+        case TimelineEventType.visit:
+          final idx = visitCounter++;
+          markerIcon = _visitMarker(isSelected, idx);
+          break;
+      }
+
+      Widget child = GestureDetector(
+        onTap: () {
+          if (!isSelected) {
+            _focusOnEvent(ev, i);
+          } else {
+            setState(() => _selectedEventIndex = null);
+          }
+        },
+        child: markerIcon,
+      );
+
+      if (isSelected) {
+        child = SizedBox(
+          width: 250,
+          height: 250,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // Bubble on top
+              Positioned(
+                bottom: 125 + (38 / 2) + 8,
+                child: GestureDetector(
+                  onTap: () {}, // absorb taps so map doesn't close
+                  child: _buildPopupBubble(ev),
+                ),
+              ),
+              // Base marker
+              GestureDetector(
+                onTap: () => setState(() => _selectedEventIndex = null),
+                child: markerIcon,
+              ),
+            ],
+          ),
+        );
       }
 
       markers.add(
         Marker(
           point: pt,
-          width: isSelected ? 38 : 32,
-          height: isSelected ? 38 : 32,
+          width: isSelected ? 250 : 32,
+          height: isSelected ? 250 : 32,
           child: child,
         ),
       );
@@ -630,7 +837,7 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                         () => backScreen(context),
                       ),
                       const SizedBox(width: 10),
-                      // Title
+                      // Title & Compact Stats
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -638,23 +845,19 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                           children: [
                             Row(
                               children: [
-                                Text(
+                                const Text(
                                   'Smart Timeline',
-                                  style: const TextStyle(
-                                    fontSize: 16,
+                                  style: TextStyle(
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                     fontFamily: fontInterSemiBoldString,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                if (provider.isCurrentlyWorkedIn &&
-                                    !provider.isLoading)
+                                if (provider.isCurrentlyWorkedIn && !provider.isLoading)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 7,
-                                      vertical: 2,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF22C55E),
                                       borderRadius: BorderRadius.circular(10),
@@ -663,23 +866,26 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                                       'Live',
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 10,
+                                        fontSize: 9,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                               ],
                             ),
-                            Text(
-                              DateFormat(
-                                'dd MMMM yyyy',
-                              ).format(provider.selectedDate),
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: Colors.white.withOpacity(0.8),
-                                fontFamily: fontInterMediumString,
+                            if (!provider.isLoading && provider.hasData)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 3),
+                                child: Row(
+                                  children: [
+                                    _compactStat(Icons.route_rounded, provider.totalDistanceLabel, ColorConst.themeColor),
+                                    const SizedBox(width: 8),
+                                    _compactStat(Icons.timer_rounded, provider.workingDurationLabel, ColorConst.themeColor),
+                                    const SizedBox(width: 8),
+                                    _compactStat(Icons.stop_circle_rounded, '${provider.stopsCount}', ColorConst.themeColor),
+                                  ],
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -712,15 +918,13 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                               const Icon(
                                 Icons.calendar_month_rounded,
                                 color: Colors.white,
-                                size: 15,
+                                size: 14,
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                DateFormat(
-                                  'dd MMM',
-                                ).format(provider.selectedDate),
+                                DateFormat('dd MMM').format(provider.selectedDate),
                                 style: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11.5,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                   fontFamily: fontInterSemiBoldString,
@@ -730,12 +934,6 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      // Refresh
-                      _headerBtn(
-                        Icons.refresh_rounded,
-                        () => provider.load(empId: widget.userId),
-                      ),
                     ],
                   ),
                 ),
@@ -743,62 +941,7 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
             ),
           ),
 
-          // ── 3. Summary strip (above sheet) ───────────────────────────────────
-          if (!provider.isLoading && provider.hasData)
-            Positioned(
-              bottom: 80,
-              left: 16,
-              right: 16,
-              child: IgnorePointer(
-                ignoring: _isSheetOpen,
-                child: AnimatedOpacity(
-                  opacity: _isSheetOpen ? 0.0 : 1.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: ColorConst.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.10),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _summaryTile(
-                        Icons.route_rounded,
-                        ColorConst.themeColor,
-                        provider.totalDistanceLabel,
-                        'Distance',
-                      ),
-                      _vDivider(),
-                      _summaryTile(
-                        Icons.timer_rounded,
-                        const Color(0xFF22C55E),
-                        provider.workingDurationLabel,
-                        'Duration',
-                      ),
-                      _vDivider(),
-                      _summaryTile(
-                        Icons.pin_drop_rounded,
-                        Colors.orange,
-                        '${provider.stopsCount}',
-                        'Stops',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+
           // ── 4. Draggable bottom sheet ────────────────────────────────────────
           if (_isSheetOpen && !provider.isLoading && provider.events.isNotEmpty)
             DraggableScrollableSheet(
@@ -1000,7 +1143,7 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                   onTap: _openSheet,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
+                      horizontal: 10,
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
@@ -1014,33 +1157,10 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                         ),
                       ],
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.route_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          provider.isLoading
-                              ? 'Processing…'
-                              : 'Timeline (${provider.events.length} events)',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: fontInterSemiBoldString,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(
-                          Icons.keyboard_arrow_up_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ],
+                    child: Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      color: Colors.white,
+                      size: 18,
                     ),
                   ),
                 ),
@@ -1404,22 +1524,27 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
   }) {
     final bool isPunchIn = ev.type == TimelineEventType.punchIn;
     final bool isPunchOut = ev.type == TimelineEventType.punchOut;
+    final bool isVisit = ev.type == TimelineEventType.visit;
     final bool isFocused = _focusedEventIndex == globalIndex;
 
     final Color primaryAccent = ColorConst.themeColor;
     final Color statusColor = isPunchIn
         ? const Color(0xFF10B981)
-        : (isPunchOut ? const Color(0xFFEF4444) : primaryAccent);
+        : (isPunchOut
+            ? const Color(0xFFEF4444)
+            : (isVisit ? const Color(0xFF6366F1) : primaryAccent));
 
     final IconData statusIcon = isPunchIn
         ? Icons.login_rounded
-        : (isPunchOut ? Icons.logout_rounded : Icons.location_pin);
+        : (isPunchOut
+            ? Icons.logout_rounded
+            : (isVisit ? Icons.groups_rounded : Icons.location_pin));
 
     final String displayTitle = isPunchIn
         ? 'Punch In'
         : (isPunchOut
             ? 'Punch Out'
-            : (stopIndex != null ? 'Stop $stopIndex' : 'Stop'));
+            : (isVisit ? 'Visit' : (stopIndex != null ? 'Stop $stopIndex' : 'Stop')));
 
     final bool hasLocation = ev.latitude != 0 || ev.longitude != 0;
 
@@ -1625,6 +1750,54 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                         ],
                       ),
                     ],
+                    if (ev.type == TimelineEventType.visit && ev.visitUkeyId != null && ev.visitUkeyId!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => VisitDetailsScreen(
+                                  visitUkeyId: ev.visitUkeyId!,
+                                  companyId: selectedcurentcompany?.companyId.toString() ?? '',
+                                ),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: statusColor.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Open Visit',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: statusColor,
+                                    fontFamily: fontInterSemiBoldString,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 10,
+                                  color: statusColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1685,34 +1858,23 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
     ),
   );
 
-  Widget _summaryTile(IconData icon, Color color, String value, String label) =>
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: ColorConst.black,
-              fontFamily: fontInterSemiBoldString,
-            ),
+  Widget _compactStat(IconData icon, String text, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 3),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.white.withOpacity(0.9),
+            fontWeight: FontWeight.w600,
           ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: ColorConst.textgrey,
-              fontFamily: fontInterRegularString,
-            ),
-          ),
-        ],
-      );
-
-  Widget _vDivider() =>
-      Container(width: 1, height: 36, color: Colors.grey.shade200);
+        ),
+      ],
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1769,30 +1931,19 @@ class _TimelineSession {
 
 List<_TimelineSession> _groupEventsIntoSessions(List<TimelineEvent> events) {
   List<_TimelineSession> sessions = [];
-  TimelineEvent? currentPunchIn;
+  TimelineEvent? currentStartEvent;
   List<TimelineEvent> currentStops = [];
 
   for (var ev in events) {
-    if (ev.type == TimelineEventType.punchIn) {
-      if (currentPunchIn != null) {
+    if (ev.type == TimelineEventType.punchOut) {
+      if (currentStartEvent != null) {
         sessions.add(_TimelineSession(
           sessionIndex: sessions.length + 1,
-          punchInEvent: currentPunchIn,
-          innerStops: List.from(currentStops),
-          punchOutEvent: null,
-        ));
-        currentStops.clear();
-      }
-      currentPunchIn = ev;
-    } else if (ev.type == TimelineEventType.punchOut) {
-      if (currentPunchIn != null) {
-        sessions.add(_TimelineSession(
-          sessionIndex: sessions.length + 1,
-          punchInEvent: currentPunchIn,
+          punchInEvent: currentStartEvent,
           innerStops: List.from(currentStops),
           punchOutEvent: ev,
         ));
-        currentPunchIn = null;
+        currentStartEvent = null;
         currentStops.clear();
       } else {
         sessions.add(_TimelineSession(
@@ -1803,23 +1954,18 @@ List<_TimelineSession> _groupEventsIntoSessions(List<TimelineEvent> events) {
         ));
       }
     } else {
-      if (currentPunchIn != null) {
-        currentStops.add(ev);
+      if (currentStartEvent == null) {
+        currentStartEvent = ev;
       } else {
-        sessions.add(_TimelineSession(
-          sessionIndex: sessions.length + 1,
-          punchInEvent: ev,
-          innerStops: [],
-          punchOutEvent: null,
-        ));
+        currentStops.add(ev);
       }
     }
   }
 
-  if (currentPunchIn != null) {
+  if (currentStartEvent != null) {
     sessions.add(_TimelineSession(
       sessionIndex: sessions.length + 1,
-      punchInEvent: currentPunchIn,
+      punchInEvent: currentStartEvent,
       innerStops: List.from(currentStops),
       punchOutEvent: null,
     ));

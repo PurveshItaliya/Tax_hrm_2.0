@@ -9,8 +9,12 @@ import 'package:tax_hrm/page/visit/visit_camera_screen.dart' as tax_cam;
 import 'package:tax_hrm/api/visit_api.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/visit/party_list_model.dart';
+import 'dart:convert';
+import 'package:tax_hrm/services/location_batch_service.dart';
+import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/utils/randomcguid.dart';
 import 'package:tax_hrm/api/employeapi.dart';
+import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
 
 class VisitController extends GetxController {
@@ -24,7 +28,7 @@ class VisitController extends GetxController {
   var selectedParty = Rxn<PartyListModel>();
 
   var employeesList = <Employeelists>[].obs;
-  var selectedAssignTo = Rxn<Employeelists>();
+  var selectedAssignTo = <Employeelists>[].obs;
 
   var selectedVisitTime = Rxn<DateTime>();
   var selectedStartTime = Rxn<DateTime>();
@@ -112,14 +116,25 @@ class VisitController extends GetxController {
       String custId = curentUser['CustId'] ?? 'TAY967';
       String companyId = selectedcurentcompany?.companyId.toString() ?? '1092';
       
-      var parties = await _visitApis.getPartyListDropdown(custId, companyId);
-      partyList.assignAll(parties);
-
-      if (curentUser['Role'] == 'Admin') {
-        var employees = await _employeeServices.emppppapi();
-        employeesList.assignAll(employees);
+      try {
+        var parties = await _visitApis.getPartyListDropdown(custId, companyId);
+        partyList.assignAll(parties);
+      } catch (e) {
+        developer.log('Error fetching parties: $e', name: 'VisitController', error: e);
       }
-      developer.log('fetchInitialData completed successfully', name: 'VisitController');
+
+      if (curentUser['Role'] == 'Admin' || curentUser['Role'] == 'admin') {
+        try {
+          var employees = await _employeeServices.emppppapi();
+          if (employees != null) {
+            employeesList.assignAll(employees);
+            developer.log('Fetched ${employees.length} employees', name: 'VisitController');
+          }
+        } catch (e) {
+          developer.log('Error fetching employees: $e', name: 'VisitController', error: e);
+        }
+      }
+      developer.log('fetchInitialData completed', name: 'VisitController');
     } catch (e) {
       developer.log('Error in fetchInitialData: $e', name: 'VisitController', error: e);
       showtoastmessage('Failed to fetch initial data: $e');
@@ -173,7 +188,7 @@ class VisitController extends GetxController {
     visitNameController.clear();
     remarksController.clear();
     selectedParty.value = null;
-    selectedAssignTo.value = null;
+    selectedAssignTo.clear();
     selectedVisitTime.value = null;
     selectedStartTime.value = null;
     selectedEndTime.value = null;
@@ -188,6 +203,87 @@ class VisitController extends GetxController {
     newPartyAdd2Controller.clear();
     newPartyMobileController.clear();
     attachedDocuments.clear();
+  }
+
+  /// Called after any CreateUpdateVisit response.
+  /// If TodayPunch == "No" the server is telling us this user has NO attendance
+  /// punch today. Automatically fire a punch-in using the current user's own
+  /// device so only THEIR attendance is added — not all assigned users.
+  Future<void> _handleTodayPunch(dynamic apiResponse) async {
+    try {
+      final todayPunch = apiResponse?['TodayPunch']?.toString() ?? 'Yes';
+      developer.log('[VisitController] TodayPunch: $todayPunch', name: 'VisitController');
+
+      if (todayPunch.toLowerCase() != 'no') return;
+
+      developer.log('[VisitController] TodayPunch=No → auto punch-in for assigned user', name: 'VisitController');
+
+      final String cguid = generateGuid();
+      final String remarks = 'Auto punch via Visit';
+      final String lat = currentLatitude.value.isNotEmpty ? currentLatitude.value : (apiResponse?['customervisit']?['ImgLatitude']?.toString() ?? '');
+      final String lng = currentLongitude.value.isNotEmpty ? currentLongitude.value : (apiResponse?['customervisit']?['ImgLogitude']?.toString() ?? '');
+      final String location = currentAddress.value.isNotEmpty ? currentAddress.value : '';
+      final String targetEmpId = apiResponse?['customervisit']?['VisitAssignTo']?.toString() ?? curentUser['Id']?.toString() ?? '0';
+
+      developer.log('[VisitController] Auto-punch payload → EmpId: $targetEmpId, Cguid: $cguid', name: 'VisitController');
+
+      final punchResult = await AttendanceApis().callPunch(
+        sendCguid: cguid,
+        setRemarks: remarks,
+        weekoffStatus: false,
+        empId: targetEmpId,
+      );
+
+      developer.log('[VisitController] Auto-punch response: success=${punchResult?.success}, flag=${punchResult?.flag}', name: 'VisitController');
+
+      if (punchResult?.success == true) {
+        final status = punchResult?.attendenceLog?.isNotEmpty == true
+            ? punchResult!.attendenceLog!.last.status ?? ''
+            : '';
+        developer.log('[VisitController] Auto-punch successful, status: $status', name: 'VisitController');
+        
+        // Upload image and location logs to complete the punch (matching normal punch screen behavior)
+        await AttendanceApis().callWithImgPunch(
+          FILES: capturedImage.value,
+          setCguid: cguid,
+          setLongitude: lng,
+          setLatitude: lat,
+          setLocation: location,
+          empId: targetEmpId,
+          listenRes: (val) {
+            developer.log('[VisitController] Auto-punch image upload response: $val', name: 'VisitController');
+          },
+        );
+
+        // ── Explicitly log punch location to timeline batch ────────
+        try {
+          if (lat.isNotEmpty && lng.isNotEmpty) {
+            await LocationBatchStorage.appendLocation(
+              latitude: double.parse(lat),
+              longitude: double.parse(lng),
+              entryTime: DateTime.now(),
+            );
+          }
+          final String userDataStr = await SaveUser().getUserDatas();
+          if (userDataStr.isNotEmpty) {
+            final dynamic userData = jsonDecode(userDataStr);
+            await LocationBatchStorage.uploadPendingBatch(
+              userData: userData,
+              isMapScreen: false,
+              isAppForeground: true,
+            );
+          }
+        } catch (_) {}
+        // ──────────────────────────────────────────────────────────
+        
+        showtoastmessage('Attendance punch added automatically ✓');
+      } else {
+        developer.log('[VisitController] Auto-punch response indicates failure, success=${punchResult?.success}', name: 'VisitController');
+      }
+    } catch (e, stackTrace) {
+      developer.log('[VisitController] Auto-punch failed: $e', name: 'VisitController', error: e, stackTrace: stackTrace);
+      // Don't show error toast — the visit itself succeeded, punch failure is secondary
+    }
   }
 
   Future<void> submitVisit(BuildContext context) async {
@@ -216,8 +312,8 @@ class VisitController extends GetxController {
       showtoastmessage('Please select visit time');
       return;
     }
-    if (curentUser != null && curentUser['Role'] == 'Admin' && selectedAssignTo.value == null) {
-      showtoastmessage('Please assign to an employee');
+    if (curentUser != null && curentUser['Role'] == 'Admin' && selectedAssignTo.isEmpty) {
+      showtoastmessage('Please assign to at least one employee');
       return;
     }
 
@@ -225,7 +321,7 @@ class VisitController extends GetxController {
     try {
       String visitUkeyId = generateGuid();
       String assignTo = curentUser['Role'] == 'Admin' 
-          ? selectedAssignTo.value!.id.toString() 
+          ? selectedAssignTo.map((e) => e.id.toString()).join(',')
           : curentUser['Id'].toString();
 
       Map<String, dynamic> visitData = {
@@ -252,7 +348,9 @@ class VisitController extends GetxController {
         visitData["PartyId"] = selectedParty.value!.partyId;
       }
 
-      await _visitApis.createUpdateVisit(visitData, flag: 'A');
+      developer.log('[VisitController] Submitting new visit…', name: 'VisitController');
+      final dynamic visitResponse = await _visitApis.createUpdateVisit(visitData, flag: 'A');
+      developer.log('[VisitController] createUpdateVisit response: $visitResponse', name: 'VisitController');
 
       if (capturedImage.value != null) {
         await _visitApis.createTaskFileUpload(
@@ -296,6 +394,12 @@ class VisitController extends GetxController {
         assignTo = curentUser != null ? (curentUser['Id'] ?? curentUser['id'] ?? '0').toString() : '0';
       }
 
+      // For update (Flag: U), always use the current user's own EmpId.
+      // The server does not accept comma-separated IDs on update calls.
+      final String selfId = curentUser != null
+          ? (curentUser['Id'] ?? curentUser['id'] ?? '0').toString()
+          : '0';
+
       Map<String, dynamic> updateData = {
         "CompanyId": visitData['CompanyId'],
         "VisitUkeyId": visitUkeyId,
@@ -308,11 +412,15 @@ class VisitController extends GetxController {
         "ImgLogitude": currentLongitude.value.isNotEmpty ? currentLongitude.value : visitData['ImgLogitude'],
         "ImgLatitude": currentLatitude.value.isNotEmpty ? currentLatitude.value : visitData['ImgLatitude'],
         "Remarks": visitData['Remarks'],
-        "VisitAssignTo": assignTo,
+        "VisitAssignTo": selfId,
       };
 
       developer.log('Starting visit: $visitUkeyId', name: 'VisitController');
-      await _visitApis.createUpdateVisit(updateData, flag: 'U');
+      final dynamic startResponse = await _visitApis.createUpdateVisit(updateData, flag: 'U');
+      developer.log('[VisitController] startVisit response: $startResponse', name: 'VisitController');
+
+      // Auto-punch if TodayPunch == "No"
+      await _handleTodayPunch(startResponse);
 
       if (capturedImage.value != null) {
         await _visitApis.createTaskFileUpload(
@@ -326,6 +434,27 @@ class VisitController extends GetxController {
         currentLongitude.value = '';
         currentAddress.value = '';
       }
+
+      // ── Explicitly log and upload visit start location to timeline batch ────────
+      try {
+        if (updateData['ImgLatitude'] != null && updateData['ImgLogitude'] != null && updateData['ImgLatitude'].toString().isNotEmpty && updateData['ImgLogitude'].toString().isNotEmpty) {
+          await LocationBatchStorage.appendLocation(
+            latitude: double.parse(updateData['ImgLatitude'].toString()),
+            longitude: double.parse(updateData['ImgLogitude'].toString()),
+            entryTime: DateTime.now(),
+          );
+        }
+        final String userDataStr = await SaveUser().getUserDatas();
+        if (userDataStr.isNotEmpty) {
+          final dynamic userData = jsonDecode(userDataStr);
+          await LocationBatchStorage.uploadPendingBatch(
+            userData: userData,
+            isMapScreen: false,
+            isAppForeground: true,
+          );
+        }
+      } catch (_) {}
+      // ──────────────────────────────────────────────────────────
 
       showtoastmessage('Visit started successfully');
     } catch (e) {
@@ -358,6 +487,27 @@ class VisitController extends GetxController {
 
       developer.log('Completing visit: $visitUkeyId', name: 'VisitController');
       await _visitApis.createUpdateVisit(updateData, flag: 'U');
+
+      // ── Explicitly log and upload visit complete location to timeline batch ────────
+      try {
+        if (updateData['ImgLatitude'] != null && updateData['ImgLogitude'] != null && updateData['ImgLatitude'].toString().isNotEmpty && updateData['ImgLogitude'].toString().isNotEmpty) {
+          await LocationBatchStorage.appendLocation(
+            latitude: double.parse(updateData['ImgLatitude'].toString()),
+            longitude: double.parse(updateData['ImgLogitude'].toString()),
+            entryTime: DateTime.now(),
+          );
+        }
+        final String userDataStr = await SaveUser().getUserDatas();
+        if (userDataStr.isNotEmpty) {
+          final dynamic userData = jsonDecode(userDataStr);
+          await LocationBatchStorage.uploadPendingBatch(
+            userData: userData,
+            isMapScreen: false,
+            isAppForeground: true,
+          );
+        }
+      } catch (_) {}
+      // ──────────────────────────────────────────────────────────
 
       showtoastmessage('Visit completed successfully');
     } catch (e) {

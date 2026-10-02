@@ -67,14 +67,15 @@ class AttendanceApis{
   
   //---------------------- Create Punch ---------------------------------------\\
   
-  Future callPunch({sendCguid,setRemarks,weekoffStatus}) async {
+  Future callPunch({sendCguid,setRemarks,weekoffStatus, empId}) async {
+    final targetEmpId = empId != null ? '$empId' : '${curentUser['Id']}';
     var bodys = {
       "Flag": "A",
       "IsUser": true,
       "Attendence": {
       "AttendenceDate":DateTime.now().toString(),
         "CompanyId":' ${selectedcurentcompany!.companyId}',
-        "EmpId":'${curentUser['Id']}',
+        "EmpId": targetEmpId,
         "Cguid": "$sendCguid",
         "Present": true,
         "Absent": false,
@@ -82,7 +83,7 @@ class AttendanceApis{
       },
       "AttendenceLog": [
         {
-          "EmpId":'${curentUser['Id']}',
+          "EmpId": targetEmpId,
           "Cguid":"$sendCguid",
           "Remarks":setRemarks,
         }
@@ -109,13 +110,14 @@ class AttendanceApis{
 
   //------------------------------------------  Call Punch with Img ---------------------------------\\
 
-  Future<dynamic> callWithImgPunch({File?  FILES,setCguid,setLongitude,setLatitude,setLocation,required Function(dynamic val) listenRes}) async {
+  Future<dynamic> callWithImgPunch({File?  FILES,setCguid,setLongitude,setLatitude,setLocation, empId, required Function(dynamic val) listenRes}) async {
     var url = Uri.parse('${apibaseurl}api/HRM/AttendenmcelogUploads');
     var header = {'Content-Type' : 'application/json', 'Accept' : '*/*', 'Authorization':'bearer  ${curentUser['token']}'};
+    final targetEmpId = empId != null ? '$empId' : '${curentUser['Id']}';
     try{
       var body = <String, String>{
         "CompanyId": '${selectedcurentcompany!.companyId}',
-        "EmpId": '${curentUser['Id']}',
+        "EmpId": targetEmpId,
         "Cguid": setCguid,
         "Longitude":setLongitude,
         "Latitude":setLatitude,

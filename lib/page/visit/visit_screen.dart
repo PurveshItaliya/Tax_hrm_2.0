@@ -243,19 +243,21 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
                                     ),
                                     // Dynamic Address Logic
                                     ...(() {
+                                      String clean(dynamic val) {
+                                        if (val == null) return '';
+                                        String s = val.toString().trim();
+                                        if (s.toLowerCase() == 'null') return '';
+                                        return s;
+                                      }
                                       List<String> parts = [];
-                                      if (visit['Add1'] != null && visit['Add1'].toString().trim().isNotEmpty) {
-                                        parts.add(visit['Add1'].toString().trim());
-                                      }
-                                      if (visit['Add2'] != null && visit['Add2'].toString().trim().isNotEmpty) {
-                                        parts.add(visit['Add2'].toString().trim());
-                                      }
-                                      String address = parts.join(', ');
-                                      if (address.isEmpty && visit['PartyAddress'] != null && visit['PartyAddress'].toString().trim().isNotEmpty) {
-                                        address = visit['PartyAddress'].toString().trim();
-                                      }
+                                      String a1 = clean(visit['Add1']);
+                                      if (a1.isNotEmpty) parts.add(a1);
+                                      String a2 = clean(visit['Add2']);
+                                      if (a2.isNotEmpty) parts.add(a2);
                                       
-                                      if (address.isEmpty) return [const SizedBox.shrink()];
+                                      String address = parts.join(', ');
+                                      if (address.isEmpty) address = clean(visit['PartyAddress']);
+                                      if (address.isEmpty) return <Widget>[const SizedBox.shrink()];
                                       
                                       return [
                                         const SizedBox(height: 6),

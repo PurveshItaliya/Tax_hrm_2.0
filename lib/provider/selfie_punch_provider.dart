@@ -1322,17 +1322,17 @@ class SelfiePunchProvider extends ChangeNotifier {
           } else if (punchStatus == 'OUT') {
             // Stop tracking when the employee punches out.
             locationTracker.stopTracking();
+          }
 
-            // Final upload
-            final String userDataStr = await SaveUser().getUserDatas();
-            if (userDataStr.isNotEmpty) {
-              final dynamic userData = jsonDecode(userDataStr);
-              await LocationBatchStorage.uploadPendingBatch(
-                userData: userData,
-                isMapScreen: false,
-                isAppForeground: true,
-              );
-            }
+          // Always Final upload to ensure timeline map shows punch immediately
+          final String userDataStr = await SaveUser().getUserDatas();
+          if (userDataStr.isNotEmpty) {
+            final dynamic userData = jsonDecode(userDataStr);
+            await LocationBatchStorage.uploadPendingBatch(
+              userData: userData,
+              isMapScreen: false,
+              isAppForeground: true,
+            );
           }
         }
         // ──────────────────────────────────────────────────────────

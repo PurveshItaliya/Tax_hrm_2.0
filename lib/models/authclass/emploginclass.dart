@@ -78,6 +78,7 @@ class EmpUserLogin {
   bool? isRecords;
   dynamic isFetchLocation;
   String? faceRegisterId;
+  bool? isVisitor;
 
   EmpUserLogin({
     this.id,
@@ -147,6 +148,7 @@ class EmpUserLogin {
     this.isRecords,
     this.isFetchLocation,
     this.faceRegisterId,
+    this.isVisitor,
   });
 
   EmpUserLogin.fromJson(Map<String, dynamic> json) {
@@ -217,6 +219,7 @@ class EmpUserLogin {
     isRecords = json['IsRecords'] ?? true;
     isFetchLocation = json['IsFetchLocation'] ?? json['isFetchLocation'];
     faceRegisterId = json['FaceRegisterId'] ?? "";
+    isVisitor = json['isVisitor'] ?? json['IsVisitor'];
   }
 
   Map<String, dynamic> toJson() {
@@ -288,6 +291,7 @@ class EmpUserLogin {
     data['IsRecords'] = isRecords;
     data['IsFetchLocation'] = isFetchLocation;
     data['FaceRegisterId'] = faceRegisterId;
+    data['isVisitor'] = isVisitor;
     return data;
   }
 }

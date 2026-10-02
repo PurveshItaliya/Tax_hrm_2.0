@@ -44,6 +44,7 @@ class UserLogin {
   dynamic cityName;
   String? registerdate;
   String? faceRegisterId;
+  bool? isVisitor;
 
   UserLogin({
     this.id,
@@ -79,6 +80,7 @@ class UserLogin {
     this.cityName,
     this.registerdate,
     this.faceRegisterId,
+    this.isVisitor,
   });
 
   UserLogin.fromJson(Map<String, dynamic> json) {
@@ -115,6 +117,7 @@ class UserLogin {
     cityName = json['CityName'] ?? "";
     registerdate = json['Registerdate'] ?? "";
     faceRegisterId = json['FaceRegisterId'] ?? "";
+    isVisitor = json['isVisitor'] ?? json['IsVisitor'];
   }
 
   Map<String, dynamic> toJson() {
@@ -152,6 +155,7 @@ class UserLogin {
     data['CityName'] = cityName;
     data['Registerdate'] = registerdate;
     data['FaceRegisterId'] = faceRegisterId;
+    data['isVisitor'] = isVisitor;
 
     return data;
   }

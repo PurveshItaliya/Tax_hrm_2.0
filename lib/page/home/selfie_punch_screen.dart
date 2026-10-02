@@ -44,7 +44,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
 
       if (mounted && !_isFlowRunning && !_permissionsChecked) {
         _initializePage();
-        _checkFaceRegistration();
+        // _checkFaceRegistration();
       }
       // Show punch sync summary dialog if there are unviewed results.
       PunchSyncSummaryDialog.showIfNeeded(context);

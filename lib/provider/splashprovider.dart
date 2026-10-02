@@ -184,13 +184,19 @@ class SplashProvider extends ChangeNotifier {
         CompanyDataApis().getCompanyDataList().then((value) async {
           if (value == 401) {
             if (curentUser['Role'] == 'Admin') {
-              adminLogin(context);
+              adminLogin(context, false);
             } else {
-              empLogin(context);
+              empLogin(context, false);
             }
           } else {
             getAllCompany = value;
             await Provider.of<HomeProvider>(context, listen: false).setcompanyselected();
+            // Silently refresh the user data in the background
+            if (curentUser['Role'] == 'Admin') {
+              adminLogin(context, true);
+            } else {
+              empLogin(context, true);
+            }
           }
         });
 
@@ -235,51 +241,63 @@ class SplashProvider extends ChangeNotifier {
     });
   }
 
-  adminLogin(context) async {
+  adminLogin(context, [bool silentRefresh = false]) async {
     await AuthLoginService()
         .calllogin(curentUser['Username'], curentUser['Password'])
         .then((value) async {
           UserLogin loginReponse = value as UserLogin;
           if (loginReponse.id == 0 && loginReponse.role == null) {
-            await FcmTokenService.instance.handleLogout();
-            SaveUser().saveUserData('');
-            SaveUser().saveselectedcopany('');
-            triggerNextScreen(context, LoginScreen());
+            if (!silentRefresh) {
+              await FcmTokenService.instance.handleLogout();
+              SaveUser().saveUserData('');
+              SaveUser().saveselectedcopany('');
+              triggerNextScreen(context, LoginScreen());
+            }
           } else {
             if (loginReponse.hRM != null) {
               var holdData = value;
               String udata = jsonEncode(value);
               SaveUser().saveUserData(udata);
-              FcmTokenService.instance.handleTokenSync();
-              _setupNotificationsAfterSplash();
-              triggerNextScreen(context, AnimatedBottomBar());
+              if (!silentRefresh) {
+                FcmTokenService.instance.handleTokenSync();
+                _setupNotificationsAfterSplash();
+                triggerNextScreen(context, AnimatedBottomBar());
+              } else {
+                curentUser = jsonDecode(udata);
+              }
             }
           }
         });
   }
 
-  Future empLogin(context) async {
+  Future empLogin(context, [bool silentRefresh = false]) async {
     await AuthLoginService()
         .callEmployeLogin(curentUser['UserName'], curentUser['Password'])
         .then((value) async {
           EmpUserLogin loginReponse = value as EmpUserLogin;
           if (loginReponse.success == false || loginReponse.hRM == false) {
-            await FcmTokenService.instance.handleLogout();
-            SaveUser().saveUserData('');
-            SaveUser().saveselectedcopany('');
-            triggerNextScreen(context, LoginScreen());
+            if (!silentRefresh) {
+              await FcmTokenService.instance.handleLogout();
+              SaveUser().saveUserData('');
+              SaveUser().saveselectedcopany('');
+              triggerNextScreen(context, LoginScreen());
+            }
           } else {
             if (loginReponse.hRM == true) {
               String udata = jsonEncode(loginReponse);
               await SaveUser().saveUserData(udata);
-              await SaveUser().getUserDatas().then((value) async {
-                if (value != '') {
-                  curentUser = jsonDecode(value);
-                  FcmTokenService.instance.handleTokenSync();
-                }
-              });
-              _setupNotificationsAfterSplash();
-              triggerNextScreen(context, AnimatedBottomBar());
+              if (!silentRefresh) {
+                await SaveUser().getUserDatas().then((value) async {
+                  if (value != '') {
+                    curentUser = jsonDecode(value);
+                    FcmTokenService.instance.handleTokenSync();
+                  }
+                });
+                _setupNotificationsAfterSplash();
+                triggerNextScreen(context, AnimatedBottomBar());
+              } else {
+                curentUser = jsonDecode(udata);
+              }
             }
           }
         });

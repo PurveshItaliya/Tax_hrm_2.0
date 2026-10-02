@@ -39,6 +39,7 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
   final DraggableScrollableController _sheetController = DraggableScrollableController();
   LatLng? _lastCenteredPoint;
   int? _selectedIndex;
+  int? _selectedVisitIndex;
   StreamSubscription? _timelineUpdateSub;
   bool _isSheetOpen = false;
 
@@ -280,8 +281,79 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
         );
       }
     }
+    
+    List<LatLng> mapCenterPoints = List.from(pointsList);
+
+    // Add Visit Markers
+    for (int j = 0; j < timeLineServices.showVisits.length; j++) {
+      var visit = timeLineServices.showVisits[j];
+      if (visit['ImgLatitude'] != null && visit['ImgLogitude'] != null &&
+          visit['ImgLatitude'].toString().isNotEmpty && visit['ImgLogitude'].toString().isNotEmpty) {
+        double? lat = double.tryParse(visit['ImgLatitude'].toString());
+        double? lng = double.tryParse(visit['ImgLogitude'].toString());
+        if (lat != null && lng != null) {
+          bool isSelected = _selectedVisitIndex == j;
+          LatLng point = LatLng(lat, lng);
+          
+          mapCenterPoints.add(point);
+          
+          markersList.add(
+            Marker(
+              point: point,
+              width: isSelected ? 160.0 : 36.0,
+              height: isSelected ? 100.0 : 36.0,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (_selectedVisitIndex == j) {
+                      _selectedVisitIndex = null;
+                    } else {
+                      _selectedVisitIndex = j;
+                      _selectedIndex = null;
+                      _mapController.move(point, 16.0);
+                    }
+                  });
+                  _collapseBottomSheet();
+                },
+                child: isSelected 
+                    ? Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.purple, width: 1.5),
+                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0,2))],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(visit['VisitName'] ?? 'Visit', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 4),
+                            Text('Status: ${visit['VisitStatus']}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: visit['VisitStatus'] == 'Complete' ? Colors.green : Colors.orange)),
+                            if (visit['PartyName'] != null) Text('Party: ${visit['PartyName']}', style: const TextStyle(fontSize: 10, color: Colors.black54), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text('Time: ${visit['VisitTime'] != null ? DateFormat('hh:mm a').format(DateTime.parse(visit['VisitTime'])) : ''}', style: const TextStyle(fontSize: 10, color: Colors.black54)),
+                          ],
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          color: Colors.purple,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))],
+                        ),
+                        child: const Icon(Icons.business_center_rounded, color: Colors.white, size: 18),
+                      ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+
     // Auto-center map when points change
-    _centerMapOnPoints(pointsList);
+    _centerMapOnPoints(mapCenterPoints);
 
     return Scaffold(
               backgroundColor: ColorConst.scaffoldColor,
@@ -296,6 +368,7 @@ class _EmployeTimelinesState extends State<EmployeTimelines> {
                               onTap: (tapPosition, point) {
                                 setState(() {
                                   _selectedIndex = null;
+                                  _selectedVisitIndex = null;
                                 });
                                 _collapseBottomSheet();
                               },
