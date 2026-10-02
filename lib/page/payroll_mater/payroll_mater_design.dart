@@ -68,7 +68,7 @@ Widget payrollMasterCardDesign({size,editOntap,deleteOntap,titles,arrorOntap,sal
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: ColorConst.greyOpicityColor,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -76,10 +76,10 @@ Widget payrollMasterCardDesign({size,editOntap,deleteOntap,titles,arrorOntap,sal
                 Expanded(
                   child: Text(
                     netPayableString,
-                    style: TextStyle(fontWeight: FontWeight.w500,fontFamily: fontInterMediumString,fontSize: 15),
+                    style: TextStyle(fontWeight: FontWeight.w500,fontFamily: fontInterMediumString,fontSize: 15, color: ColorConst.black),
                   ),
                 ),
-                Text("₹$nextAmountValue",style: TextStyle(fontWeight: FontWeight.w600,fontFamily: fontInterSemiBoldString,fontSize: 15),),
+                Text("₹$nextAmountValue",style: TextStyle(fontWeight: FontWeight.w600,fontFamily: fontInterSemiBoldString,fontSize: 15, color: ColorConst.black),),
               ],
             ),
           ),
@@ -152,8 +152,9 @@ Widget payrollSummaryTile(BuildContext context, Size size, String title, String 
     onTap: onTap,
     child: Container(
       decoration: BoxDecoration(
-        color: bgColors??ColorConst.greyOpicityColor,
+        color: bgColors ?? ColorConst.greyOpicityColor,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ColorConst.textBorder, width: 1),
       ),
       child: Row(
         children: [
@@ -161,7 +162,10 @@ Widget payrollSummaryTile(BuildContext context, Size size, String title, String 
             width: 4,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                bottomLeft: Radius.circular(8),
+              ),
             ),
           ),
           widthSpacer(size.width * 0.02),
@@ -169,8 +173,8 @@ Widget payrollSummaryTile(BuildContext context, Size size, String title, String 
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(title, style:  TextStyle( fontSize: size.width * 0.035, color: Colors.grey, fontFamily: fontInterMediumString, fontWeight: FontWeight.w500)),
-              Text(value, style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString)),
+              Text(title, style: TextStyle(fontSize: size.width * 0.035, color: ColorConst.textgrey, fontFamily: fontInterMediumString, fontWeight: FontWeight.w500)),
+              Text(value, style: TextStyle(fontSize: size.width * 0.04, color: ColorConst.black, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString)),
             ],
           )
         ],

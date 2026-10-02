@@ -84,7 +84,7 @@ Widget paySlipMasterCardDesign({size,paySlipOntap,deleteOntap,titles,arrorOntap,
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: ColorConst.greyOpicityColor,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -92,10 +92,10 @@ Widget paySlipMasterCardDesign({size,paySlipOntap,deleteOntap,titles,arrorOntap,
                 Expanded(
                   child: Text(
                     netPayableString,
-                    style: TextStyle(fontWeight: FontWeight.w500,fontFamily: fontInterMediumString,fontSize: 15),
+                    style: TextStyle(fontWeight: FontWeight.w500,fontFamily: fontInterMediumString,fontSize: 15, color: ColorConst.black),
                   ),
                 ),
-                Text("₹$nextAmountValue",style: TextStyle(fontWeight: FontWeight.w600,fontFamily: fontInterSemiBoldString,fontSize: 15),),
+                Text("₹$nextAmountValue",style: TextStyle(fontWeight: FontWeight.w600,fontFamily: fontInterSemiBoldString,fontSize: 15, color: ColorConst.black),),
               ],
             ),
           ),

@@ -583,49 +583,58 @@ Widget addEmployeeSalaryShimmer(Size size) {
         heightSpacer(size.height*0.01),
         shimmerBox(height: 20, width: 100),
         heightSpacer(size.height*0.01),
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 1.9,
-          padding: EdgeInsets.symmetric(vertical: size.height * 0.015),
-          children: [
-            shimmerBox(),
-            shimmerBox(),
-            shimmerBox(),
-            shimmerBox(),
-            shimmerBox(),
-            shimmerBox(),
-          ],
-        ),
-        heightSpacer(size.height * 0.001),
-        shimmerBox(height: size.height*0.08,width: size.width),
-        heightSpacer(size.height * 0.02),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(child: shimmerBox(height: 25),),
-            widthSpacer(size.width*0.01),
-            Expanded(child: shimmerBox(height: 25),),
-            widthSpacer(size.width*0.01),
-            Expanded(child: shimmerBox(height: 25),),
-            widthSpacer(size.width*0.01),
-            Expanded(child: shimmerBox(height: 25),),
-          ],
-        ),
-        heightSpacer(size.height * 0.005),
         Expanded(
-          child: ListView.separated(
-            itemCount: 20,
-            padding: EdgeInsets.only(bottom: size.height*0.09),
-            separatorBuilder: (context, index) {return heightSpacer(size.height * 0.015);},
-            itemBuilder: (context, index) {
-              return shimmerBox(
-                height: size.height *0.06,
-              );
-            },
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1.9,
+                  padding: EdgeInsets.symmetric(vertical: size.height * 0.015),
+                  children: [
+                    shimmerBox(),
+                    shimmerBox(),
+                    shimmerBox(),
+                    shimmerBox(),
+                    shimmerBox(),
+                    shimmerBox(),
+                  ],
+                ),
+                heightSpacer(size.height * 0.001),
+                shimmerBox(height: size.height*0.08,width: size.width),
+                heightSpacer(size.height * 0.02),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: shimmerBox(height: 25),),
+                    widthSpacer(size.width*0.01),
+                    Expanded(child: shimmerBox(height: 25),),
+                    widthSpacer(size.width*0.01),
+                    Expanded(child: shimmerBox(height: 25),),
+                    widthSpacer(size.width*0.01),
+                    Expanded(child: shimmerBox(height: 25),),
+                  ],
+                ),
+                heightSpacer(size.height * 0.005),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: 20,
+                  padding: EdgeInsets.only(bottom: size.height*0.09),
+                  separatorBuilder: (context, index) {return heightSpacer(size.height * 0.015);},
+                  itemBuilder: (context, index) {
+                    return shimmerBox(
+                      height: size.height *0.06,
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ],

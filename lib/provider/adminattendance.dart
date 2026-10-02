@@ -957,24 +957,47 @@ class AdminAttenDanceServices extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future applyLeaveData(context, AllEmployeAttendance selectedEmp) async {
+  Future applyLeaveData(
+    context,
+    AllEmployeAttendance selectedEmp, {
+    String? overrideDate,
+  }) async {
     if (selectedLeaveTypes != null) {
       String setGuid = generateCustomUuid();
+      String rawDate = overrideDate ?? selectedEmp.attendenceDate.toString();
+      String finalDate = rawDate;
+      try {
+        finalDate = DateFormat('yyyy-MM-dd').format(DateTime.parse(rawDate));
+      } catch (_) {}
+      double calculatedDuration = 1;
+      try {
+        DateTime startDate = DateTime.parse(finalDate);
+        DateTime endDate = DateTime.parse(finalDate);
+        int totalDays = endDate.difference(startDate).inDays + 1;
+        calculatedDuration = totalDays.toDouble();
+      } catch (e) {
+        calculatedDuration = 1;
+      }
       try {
         await Provider.of<LeaveMastServices>(context, listen: false)
             .applyLeave(
               setleaveTypeCguids: selectedLeaveTypes!.cguid,
               setEmpid: selectedEmp.empId,
-              setDayTypes: 'Full Day',
+              setDayType: 'Full Day',
               setCguid: setGuid,
-              setFromDate: selectedEmp.attendenceDate.toString(),
+              setFromDate: finalDate,
               setLeaveTypeId: selectedLeaveTypes!.leaveTypeId,
               setLeaveYears: DateTime.now().year,
-              todate: selectedEmp.attendenceDate.toString(),
-              setLeavedes: 1,
-              setRemarks: '',
+              todate: finalDate,
+              setLeavedes: calculatedDuration % 1 == 0
+                  ? calculatedDuration.toInt()
+                  : calculatedDuration,
+              setRemarks: 'Leave Added From Attendance Dashboard [APP Admin]',
               showToastmessages: false,
               setLeavestatuss: 'A',
+              setLeaveDuration: calculatedDuration % 1 == 0
+                  ? calculatedDuration.toInt().toString()
+                  : calculatedDuration.toString(),
             )
             .then((value) async {
               if (value != null && value.success == true) {
@@ -1018,7 +1041,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
               }
               Navigator.pop(context);
               leaveEditTypeSet(context, selectedEmp);
-              toDayDateAttendance(currentMonth);
+              toDayDateAttendance(finalDate);
             });
       } catch (e) {
         /* ignored */

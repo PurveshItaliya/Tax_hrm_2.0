@@ -640,7 +640,7 @@ class LeaveUserProvider extends ChangeNotifier {
               sendCguid: setGuid,
               todate: selectedToDate.toString(),
               leaveStatusSet: _selectedLeaveStatusKey,
-              dayTypes: dayType,
+              dayType: dayType,
             )
             .then((value) async {
               if (value.success == true) {
@@ -756,7 +756,7 @@ class LeaveUserProvider extends ChangeNotifier {
               remarks: txtReason.text,
               todate: selectedToDate.toString(),
               leaveStatus: _selectedLeaveStatusKey,
-              dayTypes: dayType,
+              dayType: dayType,
             )
             .then((value) async {
               if (value.success == true) {

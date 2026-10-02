@@ -484,7 +484,7 @@ class LeaveMastServices extends ChangeNotifier {
       showToastmessages: true,
       setleaveTypeCguids: selectedLeaveType!.cguid,
       setEmpid: curentUser['Id'],
-      setDayTypes: selectedOption == 'Full Day'
+      setDayType: selectedOption == 'Full Day'
           ? 'Full Day'
           : selecteHalfDayType!.keys,
       setCguid: setGuid,
@@ -594,9 +594,10 @@ class LeaveMastServices extends ChangeNotifier {
     setCguid,
     todate,
     setLeavestatuss,
-    setDayTypes,
+    setDayType,
     setleaveTypeCguids,
     showToastmessages,
+    setLeaveDuration,
   }) async {
     setloading(true);
     dynamic returnData;
@@ -612,7 +613,8 @@ class LeaveMastServices extends ChangeNotifier {
           sendCguid: setCguid,
           todate: todate,
           leaveStatusSet: setLeavestatuss,
-          dayTypes: setDayTypes,
+          dayType: setDayType,
+          setLeaveDuration: setLeaveDuration,
         )
         .then((value) {
           LeaveApply responseData = value as LeaveApply;

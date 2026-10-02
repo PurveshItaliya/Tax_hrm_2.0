@@ -51,7 +51,7 @@ class _PayrollMaterScreenState extends State<PayrollMaterScreen> {
     
     await AttendancePerformanceLogger.instance.track(
       'PayRollProviders.loadingData [orchestrator]',
-      () => Provider.of<PayRollProviders>(context,listen: false).loadingData(0,true)
+      () => Provider.of<PayRollProviders>(context,listen: false).loadingData(0,true, forceRefresh: true)
     );
     
     await AttendancePerformanceLogger.instance.track(
@@ -149,7 +149,17 @@ class _PayrollMaterScreenState extends State<PayrollMaterScreen> {
                       ),
                       heightSpacer(size.height*0.012),
                       payRollProviders.getSalaryList.isEmpty
-                        ? Expanded(child: SingleChildScrollView(physics: const AlwaysScrollableScrollPhysics(),child: SizedBox(width: size.width,height: size.height*0.65,child: noDataFoundsDesign(size, noDataFoundsString,nodataFoundsImagString)))) 
+                        ? Expanded(
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Container(
+                                width: size.width,
+                                constraints: BoxConstraints(minHeight: size.height * 0.6),
+                                alignment: Alignment.center,
+                                child: noDataFoundsDesign(size, noDataFoundsString, nodataFoundsImagString),
+                              ),
+                            ),
+                          ) 
                         : Expanded(
                           child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(),
                             itemCount: payRollProviders.getSalaryList.length,

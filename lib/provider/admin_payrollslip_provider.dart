@@ -30,7 +30,7 @@ class AdminPayrollslipProvider extends ChangeNotifier {
   bool islodering = false;
   bool get isloderings => islodering;
 
-  DateTime addPaySummarycurrentMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime addPaySummarycurrentMonth = DateTime(DateTime.now().year, DateTime.now().month - 1);
   Employeelists? selectedAddEmployeeList;
 
   double showTotalHoursView = 0;
@@ -247,8 +247,6 @@ class AdminPayrollslipProvider extends ChangeNotifier {
     // Track attendance dates to avoid double counting
     final attendancePresentDates = <String>{};
     final attendanceLeaveDates = <String, String>{};
-    
-    int attendanceWeekOffCount = 0;
     
     for (final element in attendanceData) {
       final attendanceDate = _parsePayrollDate(element.attendenceDate);

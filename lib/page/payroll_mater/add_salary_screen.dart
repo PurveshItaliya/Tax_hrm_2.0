@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously, strict_top_level_inference
 
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:flutter/material.dart';
+import 'package:tax_hrm/widigets/app_searchable_dropdown.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
@@ -96,25 +96,17 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
                       Expanded(
                         child: IgnorePointer(
                           ignoring: !widget.addEditFlag || (curentUser != null && curentUser['Role'] != 'Admin'),
-                          child: CustomDropdown<Employeelists>.searchRequest(
-                            decoration: CustomDropdownDecoration(
-                              expandedBorder: Border.all(color: ColorConst.textBorder),
-                              closedBorder: Border.all(color: ColorConst.textBorder),
-                              closedBorderRadius: BorderRadius.circular(4.0),
-                              expandedBorderRadius: BorderRadius.circular(4.0),
-                              closedFillColor: ColorConst.transparent,
-                              expandedFillColor: ColorConst.white,
-                            ),
+                          child: AppSearchableDropdown<Employeelists>(
+                            dropdownKey: ValueKey(payRollProviders.selectedAddEmployeeList),
                             initialItem: payRollProviders.selectedAddEmployeeList,
                             hintText: selectEmployeeNameString,
-                            futureRequest:  Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,items: employeMastServices.emplists,
-                            listItemBuilder: (context, item, isSelected, onItemSelect) {
-                              return Text("${item.firstName.toString()} ${item.lastName.toString()}");
-                            },
+                            futureRequest: Provider.of<EmployeMastServices>(context,listen: false).getFilterEmployeeList,
+                            items: employeMastServices.emplists,
+                            itemAsString: (item) => "${item.firstName.toString()} ${item.lastName.toString()}",
                             headerBuilder: (context, selectedItem, enabled) {
                               return payRollProviders.selectedAddEmployeeList == null?Text(selectEmployeeNameString):Row(
                                 children: [
-                                  Expanded(child: Text("${payRollProviders.selectedAddEmployeeList!.firstName.toString()} ${payRollProviders.selectedAddEmployeeList!.lastName.toString()}")),
+                                  Expanded(child: Text("${payRollProviders.selectedAddEmployeeList!.firstName.toString()} ${payRollProviders.selectedAddEmployeeList!.lastName.toString()}", style: TextStyle(color: ColorConst.black))),
                                   widthSpacer(size.width*0.02),
                                   if (curentUser == null || curentUser['Role'] == 'Admin')
                                     InkWell(onTap: (){
@@ -166,46 +158,16 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
                               childAspectRatio: 1.9,
                               padding: EdgeInsets.symmetric(vertical: size.height * 0.015),
                               children: [
-                                payrollSummaryTile(context, size, presentString, payRollProviders.totalPresnts.toString(), Color(0xff15A04E),bgColors: ColorConst.white),
-                                payrollSummaryTile(context, size, totalTimeString, formatTime(payRollProviders.showUserTotalHours).toString(), ColorConst.transparent,bgColors: ColorConst.white),
-                                payrollSummaryTile(context, size, totalBreakString, formatTime(payRollProviders.showMainBreak).toString(), ColorConst.transparent,bgColors: ColorConst.white), 
-                                payrollSummaryTile(context, size, lwpString, payRollProviders.usedlwp.toString(), ColorConst.blueColor,bgColors: ColorConst.white,),
-                                payrollSummaryTile(context, size, plString, payRollProviders.paidLeave.toString(), ColorConst.paidLeaveColor,bgColors: ColorConst.white), 
-                                payrollSummaryTile(context, size, weekOffString, payRollProviders.setWeekOffCount.toString(), ColorConst.greyColor,bgColors: ColorConst.white),
-                              ],
-                            ),
-                            heightSpacer(size.height * 0.001),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    height: size.height * 0.08,
-                                    decoration: BoxDecoration(color: ColorConst.white, borderRadius: BorderRadius.circular(4)),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Text(totalHolidaysString, style: TextStyle(fontSize: size.width * 0.04, color: Colors.grey, fontFamily: fontInterMediumString, fontWeight: FontWeight.w500)),
-                                        Text(payRollProviders.totalHolidayCount.toInt().toString(), style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                widthSpacer(size.width * 0.02),
-                                Expanded(
-                                  child: Container(
-                                    height: size.height * 0.08,
-                                    decoration: BoxDecoration(color: ColorConst.white, borderRadius: BorderRadius.circular(4)),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Text(totalHoursString, style: TextStyle(fontSize: size.width * 0.04, color: Colors.grey, fontFamily: fontInterMediumString, fontWeight: FontWeight.w500)),
-                                        Text(formatTime(payRollProviders.holdworkingHours).toString(), style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w700, fontFamily: fontInterBoldString)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                payrollSummaryTile(context, size, "P.Days", payRollProviders.totalPresnts.toString(), const Color(0xff15A04E), bgColors: null),
+                                payrollSummaryTile(context, size, "W.Hrs", payRollProviders.getTotalWorkingHours(), ColorConst.themeColor, bgColors: null),
+                                payrollSummaryTile(context, size, "Break", payRollProviders.getTotalBreakTime(), Colors.brown, bgColors: null), 
+                                payrollSummaryTile(context, size, "P.L.Hrs", payRollProviders.getFormattedPaidLeaveHours(), Colors.purpleAccent, bgColors: null),
+                                payrollSummaryTile(context, size, "P.H.Hrs", payRollProviders.getFormattedPaidHolidayHours(), Colors.orangeAccent, bgColors: null),
+                                payrollSummaryTile(context, size, "T.Hrs", payRollProviders.getFormattedTotalHours(), ColorConst.darkBlueColor, bgColors: null),
+                                payrollSummaryTile(context, size, "P.L", payRollProviders.formattedPaidLeave, ColorConst.paidLeaveColor, bgColors: null), 
+                                payrollSummaryTile(context, size, "H.P.L", payRollProviders.totalHolidayCount.toInt().toString(), ColorConst.holidayColor, bgColors: null), 
+                                payrollSummaryTile(context, size, "L.W.P", payRollProviders.formattedUnpaidLeave, ColorConst.blueColor, bgColors: null),
+                                payrollSummaryTile(context, size, "W.Off", payRollProviders.setWeekOffCount.toInt().toString(), ColorConst.redDarkColors, bgColors: null),
                               ],
                             ),
                             heightSpacer(size.height * 0.02),
@@ -260,7 +222,7 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
                                     displayWorkHours = '${workHrs.toString().padLeft(2, '0')}:${workMins.toString().padLeft(2, '0')}';
                                   }
                                 }
-                                if (attendanceData['isWeekOff'] == true) {
+                                if (attendanceData['isWeekOff'] == true && (attendanceData['inTime'] == '--:-- --' || attendanceData['inTime'] == '-' || attendanceData['inTime'].isEmpty)) {
                                   statusText = 'Week Off';
                                   displayInTime = '-';
                                   displayOutTime = 'Week Off';
@@ -291,7 +253,7 @@ class _AddSalaryScreenState extends State<AddSalaryScreen> {
                                               
                                 return attendanceInOutDesign(
                                   size: size,
-                                  date: DateFormat('dd/MM/yyyy').format(attendanceData['date']),
+                                  date: DateFormat('dd EEE').format(attendanceData['date']),
                                   inTimePunch: displayInTime,
                                   outTimepuchOut: displayOutTime,
                                   breakHours: displayBreak,

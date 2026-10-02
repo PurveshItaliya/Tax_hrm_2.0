@@ -1557,8 +1557,21 @@ Future<void> showDayDetails(
             currentDataLog.attendence!.attendenceDate.toString(),
           ) ==
           asusedData) {
-        leaveTypesShow = element.leaveTypeFName.toString();
-        leaveResons = element.remarks.toString();
+        leaveTypesShow = element.leaveTypeFName?.toString();
+        leaveResons = element.remarks?.toString();
+        
+        // Compute duration based on dates if leaveDuration is not directly available, but here we can just use leaveDuration. 
+        leaveDurationTypesShow = element.leaveDuration != null 
+          ? '${element.leaveDuration}' 
+          : '1.0'; // Default to 1.0 day since it's a single day view
+          
+        if (element.dayType != null && element.dayType!.toString().isNotEmpty) {
+           leaveDurationTypesShow = '$leaveDurationTypesShow - ${element.dayType}';
+        } else {
+           leaveDurationTypesShow = '$leaveDurationTypesShow - Full Day';
+        }
+
+        leaveStatusShow = element.status?.toString();
       }
     });
     attendanceEmp.attendanceCalculate(context);
@@ -1615,6 +1628,7 @@ Future<void> showDayDetails(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          Text("data", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,color: ColorConst.white),),
                           heightSpacer(size.height * 0.02),
                           Padding(
                             padding: EdgeInsets.only(
@@ -1816,19 +1830,19 @@ Future<void> showDayDetails(
                                       : ColorConst.blueColor,
                                 ),
                                 if (leaveDurationTypesShow != null &&
-                                    leaveDurationTypesShow.isNotEmpty)
+                                    leaveDurationTypesShow!.isNotEmpty)
                                   AttendancTypeContainer(
                                     size,
-                                    leaveDurationTypesShow,
+                                    leaveDurationTypesShow!,
                                     selectedDatTypes == 4
                                         ? ColorConst.paidLeaveColor
                                         : ColorConst.blueColor,
                                   ),
                                 if (leaveStatusShow != null &&
-                                    leaveStatusShow.isNotEmpty)
+                                    leaveStatusShow!.isNotEmpty)
                                   AttendancTypeContainer(
                                     size,
-                                    leaveStatusShow,
+                                    leaveStatusShow!,
                                     leaveStatusShow == 'Approved'
                                         ? Colors.green
                                         : leaveStatusShow == 'Pending'
@@ -1975,19 +1989,19 @@ Future<void> showDayDetails(
                                       : ColorConst.blueColor,
                                 ),
                                 if (leaveDurationTypesShow != null &&
-                                    leaveDurationTypesShow.isNotEmpty)
+                                    leaveDurationTypesShow!.isNotEmpty)
                                   AttendancTypeContainer(
                                     size,
-                                    leaveDurationTypesShow,
+                                    leaveDurationTypesShow!,
                                     selectedDatTypes == 4
                                         ? ColorConst.paidLeaveColor
                                         : ColorConst.blueColor,
                                   ),
                                 if (leaveStatusShow != null &&
-                                    leaveStatusShow.isNotEmpty)
+                                    leaveStatusShow!.isNotEmpty)
                                   AttendancTypeContainer(
                                     size,
-                                    leaveStatusShow,
+                                    leaveStatusShow!,
                                     leaveStatusShow == 'Approved'
                                         ? Colors.green
                                         : leaveStatusShow == 'Pending'
@@ -2138,13 +2152,10 @@ Future<void> showDayDetails(
                                           () {
                                             adminAttenDanceServices
                                                 .setAbsentEmployes(
-                                                  attendanceDate: attendence
-                                                      ?.attendenceDate,
+                                                  attendanceDate: attendence?.attendenceDate ?? showdate.toString(),
                                                   context: context,
-                                                  setEmpid:
-                                                      currentEmpData!.empId,
-                                                  setattendanceCguid:
-                                                      currentEmpData!.cguid,
+                                                  setEmpid: currentEmpData!.empId,
+                                                  setattendanceCguid: currentEmpData!.cguid,
                                                 )
                                                 .then((value) {
                                                   attendanceEmp.onMonthChanged(
@@ -2201,6 +2212,7 @@ Future<void> showDayDetails(
                                                     .applyLeaveData(
                                                       context,
                                                       currentEmpData!,
+                                                      overrideDate: showdate.toString(),
                                                     )
                                                     .then((_) {
                                                       attendanceEmp
@@ -2307,11 +2319,11 @@ Future<void> showDayDetails(
                                               ),
                                               if (leaveDurationTypesShow !=
                                                       null &&
-                                                  leaveDurationTypesShow
+                                                  leaveDurationTypesShow!
                                                       .isNotEmpty)
                                                 AttendancTypeContainer(
                                                   size,
-                                                  leaveDurationTypesShow,
+                                                  leaveDurationTypesShow!,
                                                   (leaveTypesShow
                                                                   ?.toUpperCase() ==
                                                               'PAID LEAVE' ||
@@ -2326,10 +2338,10 @@ Future<void> showDayDetails(
                                                       : ColorConst.blueColor,
                                                 ),
                                               if (leaveStatusShow != null &&
-                                                  leaveStatusShow.isNotEmpty)
+                                                  leaveStatusShow!.isNotEmpty)
                                                 AttendancTypeContainer(
                                                   size,
-                                                  leaveStatusShow,
+                                                  leaveStatusShow!,
                                                   leaveStatusShow == 'Approved'
                                                       ? Colors.green
                                                       : leaveStatusShow ==

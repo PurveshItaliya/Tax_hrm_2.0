@@ -243,6 +243,18 @@ class AdminLeaveProvider extends ChangeNotifier {
   Future<void> updateLeaveStatus(LeaveListData leave, String status) async {
     setloading(true);
     try {
+      double durationCounts = double.tryParse(leave.leaveDuration?.toString() ?? '0') ?? 0;
+      DateTime? fromDate = DateTime.tryParse(leave.fromDate?.toString() ?? '');
+      DateTime? toDate = DateTime.tryParse(leave.toDate?.toString() ?? '');
+
+      if (fromDate != null && toDate != null) {
+        DateTime f = DateTime(fromDate.year, fromDate.month, fromDate.day);
+        DateTime t = DateTime(toDate.year, toDate.month, toDate.day);
+        int totalDays = t.difference(f).inDays + 1;
+        bool isFullDay = (leave.dayType?.toString() ?? 'Full Day') == 'Full Day';
+        durationCounts = isFullDay ? totalDays.toDouble() : (totalDays == 1 ? 0.5 : totalDays / 2);
+      }
+
       await LeaveMasterApiService().updateLeave(
         leaveId: leave.empLeaveId,
         sendCguid: leave.cguid,
@@ -251,11 +263,11 @@ class AdminLeaveProvider extends ChangeNotifier {
         fromdate: leave.fromDate.toString(),
         leaveTypeid: leave.leaveTypeId,
         leaveYears: leave.leaveYear ?? DateTime.now().year,
-        leavedec: leave.leaveDuration,
+        leavedec: durationCounts,
         remarks: leave.remarks,
         todate: leave.toDate,
         leaveStatus: status,
-        dayTypes: leave.dayType,
+        dayType: leave.dayType,
       ).then((value) async {
         if (value.success == true) {
           // Trigger push notification after successful update

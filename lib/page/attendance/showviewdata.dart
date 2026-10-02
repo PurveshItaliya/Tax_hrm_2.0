@@ -659,7 +659,6 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     );
     final empMastProviders = Provider.of<EmployeMastServices>(
       context,
-      listen: false,
     );
     List<dynamic> allEmpList = empMastProviders.mainEmployeList;
     if (allEmpList.isEmpty) allEmpList = empMastProviders.emplists;

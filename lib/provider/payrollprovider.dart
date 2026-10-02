@@ -53,7 +53,7 @@ class PayRollProviders extends ChangeNotifier {
   List<Salarys> holdMainSalaryList = [];
   List<Salarys> getSalaryList = [];
   Employeelists? selectedEmployeeList;
-  DateTime payRollcurrentMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime payRollcurrentMonth = DateTime(DateTime.now().year, DateTime.now().month - 1);
 
   bool _hasLoadedPayrollThisSession = false;
 
@@ -61,7 +61,8 @@ class PayRollProviders extends ChangeNotifier {
     try {
       if (refreshValue) {
         selectedEmployeeList = null;
-        payRollcurrentMonth = DateTime(DateTime.now().year, DateTime.now().month == 1 ? 12 : DateTime.now().month - 1);
+        final now = DateTime.now();
+        payRollcurrentMonth = DateTime(now.year, now.month - 1);
       }
       
       final cacheKey = '${LocalCacheService.keyMasterData}_payroll_${usetEmpid}_${payRollcurrentMonth.month}_${payRollcurrentMonth.year}';
@@ -140,7 +141,7 @@ class PayRollProviders extends ChangeNotifier {
   employessontap(value) {
     selectedEmployeeList = value;
     notifyListeners();
-    loadingData(selectedEmployeeList!.id, false);
+    loadingData(selectedEmployeeList!.id, false, forceRefresh: true);
   }
 
   arrorHandleSubmit(listIndexs) {
@@ -151,13 +152,13 @@ class PayRollProviders extends ChangeNotifier {
   iconOntap() {
     selectedEmployeeList = null;
     notifyListeners();
-    loadingData(0, true);
+    loadingData(0, true, forceRefresh: true);
   }
 
   void updateMonth(DateTime month, BuildContext context) {
     payRollcurrentMonth = month;
     notifyListeners();
-    loadingData(selectedEmployeeList == null ? 0 : selectedEmployeeList!.id, false);
+    loadingData(selectedEmployeeList == null ? 0 : selectedEmployeeList!.id, false, forceRefresh: true);
   }
 
   deletePayrollSalaryMaster(context, {setRecuritmentid}) async {
@@ -169,7 +170,7 @@ class PayRollProviders extends ChangeNotifier {
         SalaryDeleteClass setResponse = value as SalaryDeleteClass;
         if (setResponse.success == true) {
           if (setResponse.data == "Success") {
-            await loadingData(0, false);
+            await loadingData(selectedEmployeeList == null ? 0 : selectedEmployeeList!.id, false, forceRefresh: true);
           }
         }
         setloading(false);
@@ -226,6 +227,29 @@ class PayRollProviders extends ChangeNotifier {
   String get formattedFullDayPL => totalFullDayLeave.toInt().toString();
   String get formattedHalfDayLWP => totalHalfDayLWP.toInt().toString();
   String get formattedFullDayLWP => totalFullDayLWP.toInt().toString();
+
+  String getFormattedTotalHours() {
+    int totalHoursMinutes = actualWorkingMinutes 
+                          - totalMainBreak.toInt() 
+                          + (paidLeave * shiftworkingTime).toInt() 
+                          + (totalHolidayCount * shiftworkingTime).toInt();
+    if (totalHoursMinutes < 0) totalHoursMinutes = 0;
+    return _formatMinutes(totalHoursMinutes);
+  }
+
+  String getTotalBreakTime() => showMainBreak;
+
+  String getTotalWorkingHours() {
+    return _formatMinutes(actualWorkingMinutes);
+  }
+
+  String getFormattedPaidLeaveHours() {
+    return _formatMinutes((paidLeave * shiftworkingTime).toInt());
+  }
+
+  String getFormattedPaidHolidayHours() {
+    return _formatMinutes((totalHolidayCount * shiftworkingTime).toInt());
+  }
 
   // Dynamic attendance list getters
   int get attendanceListCount {
@@ -472,6 +496,7 @@ class PayRollProviders extends ChangeNotifier {
   bool alrdayDataAdd = false;
   List<GetHolidayViews> curentMonthHoliday = [];
   GetShiftMasterData? selectedUserShift;
+  int actualWorkingMinutes = 0;
 
   int currentSelection = 0;
   Map<int, Widget> options = {
@@ -558,6 +583,7 @@ class PayRollProviders extends ChangeNotifier {
       double localTotalFullDayLWP = 0;
 
       double localTotalHolidayCount = 0;
+      int localActualWorkingMinutes = 0;
 
       final now = DateTime.now();
       for (final element in curentMonthHoliday) {
@@ -586,10 +612,13 @@ class PayRollProviders extends ChangeNotifier {
           if (leaveDuration == 0.5) localTotalHalfDayLeave += 1;
           else localTotalFullDayLeave += 1;
         }
-        localUseTotalMinuts += int.tryParse(element.totalMinute?.toString() ?? '') ?? 0;
+        final totalMin = int.tryParse(element.totalMinute?.toString() ?? '') ?? 0;
+        localUseTotalMinuts += totalMin;
+        localActualWorkingMinutes += totalMin;
       }
 
       useTotalMinuts = localUseTotalMinuts.toInt();
+      actualWorkingMinutes = localActualWorkingMinutes;
       paidLeave = localPaidLeave;
       usedlwp = localUsedlwp;
       totalPresnts = localTotalPresnts;
@@ -642,11 +671,44 @@ class PayRollProviders extends ChangeNotifier {
 
 
   void _calculateWeekOffCount() {
+    setWeekOffCount = 0;
     if (selectedUserShift == null) return;
     final lastDayOfMonth = DateTime(addPayRollcurrentMonth.year, addPayRollcurrentMonth.month + 1, 0);
+    
     for (var i = 1; i <= lastDayOfMonth.day; i++) {
-      final dayCode = DateFormat('EEE').format(DateTime(addPayRollcurrentMonth.year, addPayRollcurrentMonth.month, i)).toLowerCase();
-      if (_isWeekOffDay(dayCode)) setWeekOffCount += 1;
+      final date = DateTime(addPayRollcurrentMonth.year, addPayRollcurrentMonth.month, i);
+      final dayCode = DateFormat('EEE').format(date).toLowerCase();
+      
+      bool isWeekOff = _isWeekOffDay(dayCode);
+      bool hasAttendance = false;
+      
+      for (final element in currentMonthAttendance) {
+        try {
+          DateTime attendDate = DateTime.parse(element.attendenceDate.toString());
+          if (attendDate.year == date.year && attendDate.month == date.month && attendDate.day == date.day) {
+            final inTimeStr = element.inTime?.toString().toLowerCase().trim() ?? 'null';
+            final outTimeStr = element.outTime?.toString().toLowerCase().trim() ?? 'null';
+            
+            if (element.weekOff == true || element.weekOff?.toString().toLowerCase() == 'true') {
+              isWeekOff = true;
+            }
+            
+            if (inTimeStr != 'null' && inTimeStr.isNotEmpty && inTimeStr != 'false') {
+              hasAttendance = true;
+            }
+            if (outTimeStr != 'null' && outTimeStr.isNotEmpty && outTimeStr != 'false') {
+              hasAttendance = true;
+            }
+            if (element.present == true) {
+              hasAttendance = true;
+            }
+          }
+        } catch (_) {}
+      }
+      
+      if (isWeekOff && !hasAttendance) {
+        setWeekOffCount += 1;
+      }
     }
   }
 
@@ -707,6 +769,7 @@ class PayRollProviders extends ChangeNotifier {
   clearAddPayrollData() {
     showTotalHoursView = 0;
     useTotalMinuts = 0;
+    actualWorkingMinutes = 0;
     totalPresnts = 0;
     paidLeave = 0;
     usedlwp = 0;
@@ -753,7 +816,7 @@ class PayRollProviders extends ChangeNotifier {
   TextEditingController professionalTaxController = TextEditingController();
   TextEditingController tdsController = TextEditingController();
   TextEditingController otherDeductionController = TextEditingController();
-  TextEditingController txtEffectiveDateController = TextEditingController();
+  TextEditingController txtEffectiveDateController = TextEditingController(text: dateFormatdate(DateTime.now()));
   
   DateTime effectiveDate = DateTime.now();
   double finalCountSalaryAmount = 0;
@@ -785,7 +848,8 @@ class PayRollProviders extends ChangeNotifier {
     professionalTaxController.clear();
     tdsController.clear();
     otherDeductionController.clear();
-    txtEffectiveDateController.clear();
+    effectiveDate = DateTime.now();
+    txtEffectiveDateController.text = dateFormatdate(effectiveDate);
     showFinalAmountPay = '0.0';
     amountPay = '0.0';
     finalCountSalaryAmount = 0;
