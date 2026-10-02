@@ -240,6 +240,25 @@ class AttendanceApis{
     return attendanceLogUpdateFromJson(response.body);
   }
 
+  // Future saveMultipleAdminLogs(Map<String, dynamic> payload) async {
+  //   var url = Uri.parse("${apibaseurl}api/HRM/NewNewAdminlog");
+  //   var response = await http.post(
+  //     url, 
+  //     body: jsonEncode(payload), 
+  //     headers: {
+  //       'Authorization': 'bearer ${curentUser['token']}',
+  //       'Content-Type': 'application/json',
+  //     }
+  //   );
+  //   try {
+  //     final data = jsonDecode(response.body);
+  //     return data;
+  //   } catch (e) {
+  //     log('Error parsing response: $e');
+  //   }
+  // }
+
+
   //----------------   Delete Attendance Log -----------------------\\
   Future  deleteAttendanceLog({attendanceId,setEmpid,setLogId,setStatus})async{
     var deletebody = {
@@ -364,6 +383,48 @@ class AttendanceApis{
       return hrmTopListReportFromJson(response.body);
     } else {
       return response.statusCode;
+    }
+  }
+
+  Future<dynamic> saveMultipleAdminLogs(Map<String, dynamic> payload) async {
+    var url = Uri.parse("${apibaseurl}api/HRM/NewNewAdminlog");
+    try {
+      var response = await http.post(
+        url, 
+        body: jsonEncode(payload), 
+        headers: {
+          'Authorization': 'bearer ${curentUser['token']}',
+          'Content-Type': 'application/json',
+        }
+      );
+      try {
+        return jsonDecode(response.body);
+      } catch(e) {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<dynamic> addNewPunchLog(Map<String, dynamic> payload) async {
+    var url = Uri.parse("${apibaseurl}api/HRM/NewNewCreateAttendence");
+    try {
+      var response = await http.post(
+        url, 
+        body: jsonEncode(payload), 
+        headers: {
+          'Authorization': 'bearer ${curentUser['token']}',
+          'Content-Type': 'application/json',
+        }
+      );
+      try {
+        return jsonDecode(response.body);
+      } catch(e) {
+        return null;
+      }
+    } catch (e) {
+      return null;
     }
   }
 }

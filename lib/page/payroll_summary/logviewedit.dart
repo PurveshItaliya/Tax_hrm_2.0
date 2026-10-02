@@ -1,19 +1,30 @@
 // ignore_for_file: use_build_context_synchronously
 
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'package:tax_hrm/widigets/toastmessage.dart';
 
 // Main Add Punch Dialog
-Future<void> showAddPunchDialog(BuildContext context, Size size, DateTime currentDate, String setCguid, String setAttendanceIds, employeeId) async {
+Future<bool?> showAddPunchDialog(BuildContext context, Size size, DateTime currentDate, String setCguid, String setAttendanceIds, employeeId) async {
   final dateTitle = DateFormat('dd/MM/yyyy').format(currentDate);
   final formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
   
+  bool isInitialized = false;
+  bool hasCommittedChanges = false;
+  List<dynamic> localLogs = [];
+  int? attendanceId;
+  String attendanceCguid = setCguid;
+  Set<dynamic> editedLogs = {};
+  Set<dynamic> deletedLogs = {};
+
   // Fetch punch logs when dialog opens
   WidgetsBinding.instance.addPostFrameCallback((_) {
     Provider.of<AttendanceEmp>(context, listen: false).getDateBloges(formattedDate, employeeId);
@@ -49,7 +60,7 @@ Future<void> showAddPunchDialog(BuildContext context, Size size, DateTime curren
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildHeader(size, context),
+                  _buildHeader(size, context, () => Navigator.pop(context, hasCommittedChanges)),
                   Padding(
                     padding: EdgeInsets.all(size.width * 0.04),
                     child: Column(
@@ -78,8 +89,16 @@ Future<void> showAddPunchDialog(BuildContext context, Size size, DateTime curren
                                         return const Center(child: CircularProgressIndicator());
                                       }
 
-                                      final logs = attendanceEmp.selectedDateLog?.attendenceLog ?? [];
-                                      if (logs.isEmpty) {
+                                      if (!isInitialized) {
+                                        localLogs = List.from(attendanceEmp.selectedDateLog?.attendenceLog ?? []);
+                                        attendanceId = attendanceEmp.selectedDateLog?.attendence?.attendenceID;
+                                        if (attendanceEmp.selectedDateLog?.attendence?.cguid != null) {
+                                          attendanceCguid = attendanceEmp.selectedDateLog!.attendence!.cguid.toString();
+                                        }
+                                        isInitialized = true;
+                                      }
+
+                                      if (localLogs.isEmpty) {
                                         return Center(
                                           child: Text(
                                             noPunchesFoundForThisDateString,
@@ -89,22 +108,60 @@ Future<void> showAddPunchDialog(BuildContext context, Size size, DateTime curren
                                       }
 
                                       return ListView.builder(
-                                        itemCount: logs.length,
+                                        itemCount: localLogs.length,
                                         itemBuilder: (context, index) {
-                                          final log = logs[index];
+                                          final log = localLogs[index];
+                                          if (deletedLogs.contains(log)) return const SizedBox.shrink();
+
                                           String timeStr = '';
                                           if (log.time != null) {
                                             try {
                                               timeStr = DateFormat('hh:mm a').format(DateTime.parse(log.time.toString()));
                                             } catch (e) {
-                                              timeStr = log.time.toString();
+                                              try {
+                                                timeStr = DateFormat('hh:mm a').format(DateFormat("HH:mm").parse(log.time.toString().replaceAll("T", "")));
+                                              } catch (e2) {
+                                                timeStr = log.time.toString();
+                                              }
                                             }
                                           }
                                           final isIn = log.status == 'IN';
                                           final isOut = log.status == 'OUT';
-                                          final attendanceId = attendanceEmp.selectedDateLog?.attendence?.attendenceID;
 
-                                          return _buildPunchRow(size, timeStr, isIn, isOut, false, context, log, attendanceId);
+                                          return _buildPunchRow(
+                                            size: size, 
+                                            time: timeStr, 
+                                            isInChecked: isIn, 
+                                            isOutChecked: isOut, 
+                                            isDeleted: false, 
+                                            context: context, 
+                                            log: log, 
+                                            attendanceId: attendanceId,
+                                            currentDate: currentDate,
+                                            onUpdateLog: (newTime) {
+                                              setState(() {
+                                                try {
+                                                  final parsedTime = DateFormat('h:mm a').parse(newTime);
+                                                  final dateObj = DateTime(currentDate.year, currentDate.month, currentDate.day, parsedTime.hour, parsedTime.minute);
+                                                  log.time = dateObj.toString();
+                                                } catch (e) {
+                                                  log.time = newTime;
+                                                }
+                                                editedLogs.add(log);
+                                              });
+                                            },
+                                            onUpdateStatus: (newStatus) {
+                                              setState(() {
+                                                log.status = newStatus;
+                                                editedLogs.add(log);
+                                              });
+                                            },
+                                            onDelete: () {
+                                              setState(() {
+                                                deletedLogs.add(log);
+                                              });
+                                            }
+                                          );
                                         },
                                       );
                                     },
@@ -115,9 +172,14 @@ Future<void> showAddPunchDialog(BuildContext context, Size size, DateTime curren
                           ),
                         ),
                         SizedBox(height: size.height * 0.02),
-                        _buildAddTimeButton(size, context, currentDate, employeeId, setCguid),
+                        _buildAddTimeButton(size, context, currentDate, employeeId, attendanceCguid, () {
+                           setState(() {
+                             isInitialized = false;
+                             hasCommittedChanges = true;
+                           });
+                        }),
                         SizedBox(height: size.height * 0.02),
-                        _buildActionButtons(context, size),
+                        _buildActionButtons(context, size, employeeId, attendanceCguid, attendanceId, formattedDate, localLogs, editedLogs, deletedLogs, () => Navigator.pop(context, hasCommittedChanges)),
                       ],
                     ),
                   ),
@@ -481,7 +543,7 @@ TimeOfDay _parseTimeString(String timeString) {
 
 // Rest of the widgets remain the same...
 
-Widget _buildHeader(Size size, BuildContext context) {
+Widget _buildHeader(Size size, BuildContext context, VoidCallback onClose) {
   return Container(
     padding: EdgeInsets.all(size.width * 0.04),
     decoration: BoxDecoration(
@@ -537,7 +599,7 @@ Widget _buildHeader(Size size, BuildContext context) {
           ),
         ),
         GestureDetector(
-          onTap: () => Navigator.pop(context),
+          onTap: onClose,
           child: Container(
             padding: EdgeInsets.all(size.width * 0.015),
             decoration: BoxDecoration(
@@ -676,7 +738,20 @@ Widget _buildTableHeader(Size size) {
   );
 }
 
-Widget _buildPunchRow(Size size, String time, bool isInChecked, bool isOutChecked, bool isDeleted, context, dynamic log, int? attendanceId) {
+Widget _buildPunchRow({
+  required Size size, 
+  required String time, 
+  required bool isInChecked, 
+  required bool isOutChecked, 
+  required bool isDeleted, 
+  required BuildContext context, 
+  required dynamic log, 
+  required int? attendanceId,
+  required DateTime currentDate,
+  required Function(String) onUpdateLog,
+  required Function(String) onUpdateStatus,
+  required VoidCallback onDelete
+}) {
   return Container(
     padding: EdgeInsets.symmetric(horizontal: size.width * 0.01, vertical: size.height * 0.01),
     child: Row(
@@ -699,7 +774,9 @@ Widget _buildPunchRow(Size size, String time, bool isInChecked, bool isOutChecke
               scale: 0.9,
               child: Checkbox(
                 value: isInChecked,
-                onChanged: (bool? value) {},
+                onChanged: (bool? value) {
+                  if (value == true) onUpdateStatus('IN');
+                },
                 activeColor: ColorConst.themeColor,
                 checkColor: Colors.white,
                 shape: RoundedRectangleBorder(
@@ -716,7 +793,9 @@ Widget _buildPunchRow(Size size, String time, bool isInChecked, bool isOutChecke
               scale: 0.9,
               child: Checkbox(
                 value: isOutChecked,
-                onChanged: (bool? value) {},
+                onChanged: (bool? value) {
+                  if (value == true) onUpdateStatus('OUT');
+                },
                 activeColor: ColorConst.themeColor,
                 checkColor: Colors.white,
                 shape: RoundedRectangleBorder(
@@ -733,16 +812,10 @@ Widget _buildPunchRow(Size size, String time, bool isInChecked, bool isOutChecke
             children: [
               GestureDetector(
                 onTap: () async {
-                  await showAddTimeDialog(context, size, existingTime: time);
-                  // if (result != null) {
-                  //   ScaffoldMessenger.of(context).showSnackBar(
-                  //     SnackBar(
-                  //       content: Text('Punch entry at $time updated'),
-                  //       backgroundColor: Colors.green,
-                  //       duration: Duration(seconds: 2),
-                  //     ),
-                  //   );
-                  // }
+                  final result = await showAddTimeDialog(context, size, existingTime: time);
+                  if (result != null) {
+                    onUpdateLog(result['time']);
+                  }
                 },
                 child: Container(
                   padding: EdgeInsets.all(size.width * 0.012),
@@ -764,7 +837,7 @@ Widget _buildPunchRow(Size size, String time, bool isInChecked, bool isOutChecke
               SizedBox(width: size.width * 0.015),
               GestureDetector(
                 onTap: () {
-                  _showDeleteConfirmationDialog(context, size, time, log, attendanceId);
+                  _showDeleteConfirmationDialog(context, size, time, log, attendanceId, currentDate, onDelete);
                 },
                 child: Container(
                   padding: EdgeInsets.all(size.width * 0.012),
@@ -791,7 +864,7 @@ Widget _buildPunchRow(Size size, String time, bool isInChecked, bool isOutChecke
   );
 }
 
-void _showDeleteConfirmationDialog(BuildContext context, Size size, String time, dynamic log, int? attendanceId) {
+void _showDeleteConfirmationDialog(BuildContext context, Size size, String time, dynamic log, int? attendanceId, DateTime currentDate, VoidCallback onDelete) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -822,33 +895,10 @@ void _showDeleteConfirmationDialog(BuildContext context, Size size, String time,
             ),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(context);
               if (log != null && attendanceId != null) {
-                // Call API
-                await Provider.of<AdminAttenDanceServices>(context, listen: false).deletePunchlog(
-                  attendanceId: attendanceId,
-                  setEmpid: log.empId,
-                  setLogId: log.logId,
-                  setStatus: log.status
-                );
-                
-                // Refresh list
-                String formattedDate = '';
-                try {
-                  formattedDate = DateFormat('yyyy-MM-dd').format(DateTime.parse(log.time.toString()));
-                } catch(e) {
-                  formattedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
-                }
-                Provider.of<AttendanceEmp>(context, listen: false).getDateBloges(formattedDate, log.empId);
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$punchEntryDeletedString $time $deletedString'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                onDelete();
               }
             },
             style: ElevatedButton.styleFrom(
@@ -869,52 +919,66 @@ void _showDeleteConfirmationDialog(BuildContext context, Size size, String time,
   );
 }
 
-Widget _buildAddTimeButton(Size size, BuildContext context, DateTime currentDate, employeeId, String setCguid) {
+Widget _buildAddTimeButton(Size size, BuildContext context, DateTime currentDate, dynamic employeeId, String setCguid, VoidCallback onRefresh) {
   return GestureDetector(
     onTap: () async {
       final result = await showAddTimeDialog(context, size);
       if (result != null) {
         try {
           final timeStr = result['time'].toString();
-          
           showDialog(context: context, barrierDismissible: false, builder: (c) => const Center(child: CircularProgressIndicator()));
           
-          final formattedDateStr = DateFormat('yyyy-MM-dd HH:mm:ss.SSS').format(currentDate);
-          
-          final response = await AttendanceApis().attendanceAddAdmin(
-             attendanceDate: formattedDateStr,
-             setInTime: timeStr,
-             setEmpid: employeeId,
-             setCguid: setCguid,
-             setRemarks: "Added by admin",
-             setweekoff: currentDate.weekday == DateTime.sunday
-          );
-          
+          final formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
+          final parsedTime = DateFormat('h:mm a').parse(timeStr);
+          final dateObj = DateTime(currentDate.year, currentDate.month, currentDate.day, parsedTime.hour, parsedTime.minute);
+          final fullApiTime = DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(dateObj);
+
+          var payload = {
+            "IsUser": false,
+            "Attendence": {
+              "CompanyId": selectedcurentcompany?.companyId ?? 0,
+              "EmpId": int.tryParse(employeeId.toString()) ?? 0,
+              "Cguid": setCguid,
+              "IsOnLeave": false,
+              "AttendenceDate": formattedDate,
+              "InTime": fullApiTime,
+              "LateBy": 1,
+              "EarlyBy": 1,
+              "LeaveType": "",
+              "Holiday": false,
+              "LeaveId": 1,
+              "ShiftId": 1,
+              "OutTime": fullApiTime,
+              "Present": true,
+              "Absent": false
+            },
+            "AttendenceLog": [
+              {
+                "EmpId": int.tryParse(employeeId.toString()) ?? 0,
+                "LeaveType": "",
+                "LeaveId": 1,
+                "AttendenceDate": formattedDate,
+                "Time": fullApiTime,
+                "ShiftId": 1,
+                "Remarks": "",
+                "Cguid": setCguid
+              }
+            ]
+          };
+
+          final response = await AttendanceApis().addNewPunchLog(payload);
           Navigator.pop(context); // close loader
           
-          if (response != null && response.success == true) {
-            final formattedDate = DateFormat('yyyy-MM-dd').format(currentDate);
+          if (response != null && (response['success'] == true || response['Success'] == true)) {
             Provider.of<AttendanceEmp>(context, listen: false).getDateBloges(formattedDate, employeeId);
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$addedNewPunchAtString $timeStr'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
-            );
+            onRefresh();
+            showtoastmessage('$addedNewPunchAtString $timeStr');
           } else {
-            final errorMsg = response?.flag ?? 'Server rejected the request';
+            String errorMsg = response != null ? (response['Flag'] ?? response['flag'] ?? "Failed to add punch") : "Failed to connect to server";
             throw Exception(errorMsg);
           }
         } catch (e) {
-          Navigator.pop(context); // close loader on error
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$failedToAddPunchString: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          Navigator.pop(context); // close loader
         }
       }
     },
@@ -958,12 +1022,12 @@ Widget _buildAddTimeButton(Size size, BuildContext context, DateTime currentDate
   );
 }
 
-Widget _buildActionButtons(BuildContext context, Size size) {
+Widget _buildActionButtons(BuildContext context, Size size, dynamic employeeId, String attendanceCguid, int? attendanceId, String formattedDate, List<dynamic> localLogs, Set<dynamic> editedLogs, Set<dynamic> deletedLogs, VoidCallback onCancel) {
   return Row(
     children: [
       Expanded(
         child: OutlinedButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: onCancel,
           style: OutlinedButton.styleFrom(
             side: BorderSide(color: ColorConst.themeColor, width: 1.5),
             shape: RoundedRectangleBorder(
@@ -984,15 +1048,96 @@ Widget _buildActionButtons(BuildContext context, Size size) {
       SizedBox(width: size.width * 0.02),
       Expanded(
         child: ElevatedButton(
-          onPressed: () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(punchEntriesSavedSuccessfullyString),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
+          onPressed: () async {
+            if (editedLogs.isEmpty && deletedLogs.isEmpty) {
+              onCancel();
+              return;
+            }
+
+            showDialog(context: context, barrierDismissible: false, builder: (c) => const Center(child: CircularProgressIndicator()));
+            
+            try {
+              bool hasChanges = false;
+              bool editSuccess = true;
+
+              if (deletedLogs.isNotEmpty) {
+                hasChanges = true;
+                for (var delLog in deletedLogs) {
+                  await Provider.of<AdminAttenDanceServices>(context, listen: false).deletePunchlog(
+                    attendanceId: attendanceId,
+                    setEmpid: int.tryParse(employeeId.toString()) ?? 0,
+                    setLogId: int.tryParse(delLog.logId.toString()) ?? 0,
+                    setStatus: delLog.status
+                  );
+                }
+              }
+
+              List<Map<String, dynamic>> attendenceLogArray = [];
+              for (int i = 0; i < localLogs.length; i++) {
+                var log = localLogs[i];
+                if (!editedLogs.contains(log) || deletedLogs.contains(log)) continue;
+                
+                String apiTime = '';
+                try {
+                  String timeStr = log.time.toString();
+                  DateTime parsed;
+                  if (timeStr.startsWith('T')) {
+                    final timePart = timeStr.substring(1);
+                    final timeObj = DateFormat("HH:mm").parse(timePart);
+                    final dateObj = DateTime.parse(formattedDate);
+                    parsed = DateTime(dateObj.year, dateObj.month, dateObj.day, timeObj.hour, timeObj.minute);
+                  } else {
+                    parsed = DateTime.parse(timeStr);
+                  }
+                  apiTime = DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(parsed);
+                } catch (e) {
+                  apiTime = log.time.toString();
+                }
+
+                attendenceLogArray.add({
+                  "LogId": log.logId ?? 0,
+                  "Status": log.status,
+                  "AttendenceDate": formattedDate,
+                  "Time": apiTime,
+                  "Cguid": attendanceCguid,
+                  "Remarks": log.remarks ?? ""
+                });
+              }
+
+              if (attendenceLogArray.isNotEmpty) {
+                hasChanges = true;
+                var payload = {
+                  "IsUser": false,
+                  "Attendence": {
+                    "AttendenceID": attendanceId ?? 0,
+                    "EMPID": int.tryParse(employeeId.toString()) ?? 0,
+                    "CGUID": attendanceCguid
+                  },
+                  "AttendenceLog": attendenceLogArray
+                };
+                
+                final response = await AttendanceApis().saveMultipleAdminLogs(payload);
+                if (response == null || (response['success'] != true && response['Success'] != true)) {
+                  editSuccess = false;
+                  String errorMsg = response != null ? (response['Flag'] ?? response['flag'] ?? "Failed to save punch entries") : "Failed to connect to server";
+                  throw Exception(errorMsg);
+                }
+              }
+
+              Navigator.pop(context); // close loader
+              
+              if (hasChanges && editSuccess) {
+                Navigator.pop(context, true); // close dialog on success
+                showtoastmessage(punchEntriesSavedSuccessfullyString);
+              } else if (!hasChanges) {
+                Navigator.pop(context, false);
+              }
+            } catch (e) {
+               // loader is popped on success, but if exception happens we need to close loader.
+               // wait, we didn't pop loader inside the try if it throws!
+               Navigator.pop(context); // close loader on failure
+               // do not close the dialog so the user can see their edits.
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: ColorConst.themeColor,

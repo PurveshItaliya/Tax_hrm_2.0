@@ -287,9 +287,11 @@ class _PayrollSummaryScreenState extends State<PayrollSummaryScreen> {
                                 final attendanceId = '';
                                 return GestureDetector(
                                   onTap: () {
-                                    showAddPunchDialog(context, size, currentDate,attendanceCguid,attendanceId,employeeId,).then((_) {
-                                      payrollAdminProvider.updatePayrollData(context);
-                                      setState(() {});
+                                    showAddPunchDialog(context, size, currentDate,attendanceCguid,attendanceId,employeeId,).then((result) {
+                                      if (result == true) {
+                                        payrollAdminProvider.updatePayrollData(context);
+                                        setState(() {});
+                                      }
                                     });
                                   },
                                   child: attendanceInOutDesign(

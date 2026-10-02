@@ -5,7 +5,6 @@ import 'package:tax_hrm/controllers/visit_controller.dart';
 import 'package:tax_hrm/models/visit/party_list_model.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 
