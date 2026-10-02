@@ -81,19 +81,50 @@ class _OtpVerificationOfLoginState extends State<OtpVerificationOfLogin> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Pinput(
-                                  length: 6,
-                                  readOnly: otpverificationprovider.textFormReadOnly,
-                                  controller: otpverificationprovider.setOtpController,
-                                  obscureText: otpverificationprovider.isOtpHidden,
-                                  obscuringCharacter: '*',
-                                  onChanged: (value) {},
-                                  onCompleted: (value) async {
-                                    await otpverificationprovider.otphandleSubmit(context, widget.authType, widget.userDatas);
-                                  },
-                                  defaultPinTheme: PinTheme(width: size.width * 0.12,height: size.width * 0.12,textStyle: const TextStyle(fontSize: 14),decoration: BoxDecoration(borderRadius: BorderRadius.circular(9),border: Border.all(color: ColorConst.themeColor,width: 1),),),
-                                  focusedPinTheme: PinTheme(width: size.width * 0.12,height: size.width * 0.12,textStyle: const TextStyle(fontSize: 14),decoration: BoxDecoration(borderRadius: BorderRadius.circular(9),border: Border.all(color: ColorConst.themeColor,width: 1),),),
-                                  submittedPinTheme: PinTheme(width: size.width * 0.12,height: size.width * 0.12,textStyle: const TextStyle(fontSize: 14),decoration: BoxDecoration(borderRadius: BorderRadius.circular(9),border: Border.all(color: ColorConst.themeColor,width: 1),),),
+                                Flexible(
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: List.generate(6, (index) {
+                                          String char = '';
+                                          if (otpverificationprovider.setOtpController.text.length > index) {
+                                            char = otpverificationprovider.isOtpHidden ? '*' : otpverificationprovider.setOtpController.text[index];
+                                          }
+                                          return Container(
+                                            width: size.width * 0.11,
+                                            height: size.width * 0.11,
+                                            margin: EdgeInsets.symmetric(horizontal: size.width * 0.01),
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(9),
+                                              border: Border.all(color: ColorConst.themeColor, width: 1),
+                                            ),
+                                            child: Text(char, style: const TextStyle(fontSize: 14)),
+                                          );
+                                        }),
+                                      ),
+                                      Positioned.fill(
+                                        child: TextField(
+                                          controller: otpverificationprovider.setOtpController,
+                                          maxLength: 6,
+                                          keyboardType: TextInputType.number,
+                                          readOnly: otpverificationprovider.textFormReadOnly,
+                                          showCursor: false,
+                                          autofocus: true,
+                                          style: const TextStyle(color: Colors.transparent, fontSize: 1),
+                                          decoration: const InputDecoration(counterText: '', border: InputBorder.none),
+                                          onChanged: (value) {
+                                            setState(() {});
+                                            if (value.length == 6) {
+                                              otpverificationprovider.otphandleSubmit(context, widget.authType, widget.userDatas);
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                                 SizedBox(width: size.width * 0.03),
                                 GestureDetector(onTap: otpverificationprovider.passordHideShowSelect,child: Icon(otpverificationprovider.isOtpHidden ? Icons.visibility_off : Icons.visibility,color: ColorConst.themeColor,),),
