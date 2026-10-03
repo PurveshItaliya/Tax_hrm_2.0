@@ -56,6 +56,13 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     try {
       final empId = curentUser?['Id']?.toString() ?? '';
       if (empId.isNotEmpty) {
+        // Update local user instantly
+        if (curentUser != null) {
+          curentUser!['FaceRegisterId'] = faceTemplate;
+          final String freshJson = jsonEncode(curentUser);
+          await SaveUser().saveUserData(freshJson);
+        }
+
         await Employeeclass().updateEmployes(
           seteid: empId,
           firstname: curentUser?['FirstName'] ?? '',
@@ -111,16 +118,16 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
             username,
             password,
           );
-          if (loginResult is EmpUserLogin &&
-              loginResult.success != false &&
-              loginResult.hRM == true) {
+          if (loginResult is EmpUserLogin && loginResult.success != false) {
             final String freshJson = jsonEncode(loginResult.toJson());
             await SaveUser().saveUserData(freshJson);
             curentUser = jsonDecode(freshJson);
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Ignored
+    }
     if (mounted) {
       Navigator.pop(context, _provider.registeredFaceTemplate ?? true);
     }

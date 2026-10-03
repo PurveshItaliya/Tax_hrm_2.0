@@ -341,7 +341,7 @@ class Employeeclass {
 
     var response = await http.get(
       url,
-      headers: {'Authorization': "bearer ${curentUser!.token}"},
+      headers: {'Authorization': "bearer ${curentUser['token']}"},
     );
 
     return employeByidFromJson(response.body);
