@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
 import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:tax_hrm/page/visit/visit_camera_screen.dart' as tax_cam;
@@ -123,16 +124,27 @@ class VisitController extends GetxController {
         developer.log('Error fetching parties: $e', name: 'VisitController', error: e);
       }
 
-      if (curentUser['Role'] == 'Admin' || curentUser['Role'] == 'admin') {
+      developer.log('curentUser details: $curentUser', name: 'VisitController_AssignTo_Debug');
+      final userRole = curentUser['Role'] ?? curentUser['role'] ?? 'UNKNOWN';
+      developer.log('User Role is: $userRole', name: 'VisitController_AssignTo_Debug');
+
+      if (userRole.toString().trim().toLowerCase() == 'admin' || userRole.toString().trim().toLowerCase() == 'superadmin') {
+        developer.log('Role is Admin. Attempting to fetch employees list...', name: 'VisitController_AssignTo_Debug');
         try {
           var employees = await _employeeServices.emppppapi();
+          developer.log('Raw employees response: $employees', name: 'VisitController_AssignTo_Debug');
+          
           if (employees != null) {
             employeesList.assignAll(employees);
-            developer.log('Fetched ${employees.length} employees', name: 'VisitController');
+            developer.log('Successfully added ${employees.length} employees to employeesList.', name: 'VisitController_AssignTo_Debug');
+          } else {
+            developer.log('employees response is NULL.', name: 'VisitController_AssignTo_Debug');
           }
-        } catch (e) {
-          developer.log('Error fetching employees: $e', name: 'VisitController', error: e);
+        } catch (e, stacktrace) {
+          developer.log('Error fetching employees: $e', name: 'VisitController_AssignTo_Debug', error: e, stackTrace: stacktrace);
         }
+      } else {
+        developer.log('Role is NOT admin. Skipping employee fetch.', name: 'VisitController_AssignTo_Debug');
       }
       developer.log('fetchInitialData completed', name: 'VisitController');
     } catch (e) {
@@ -435,6 +447,15 @@ class VisitController extends GetxController {
         currentAddress.value = '';
       }
 
+      // ── Save Active Visit for Auto-Close Background Logic ────────
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('active_visit_data', jsonEncode(updateData));
+        await prefs.setDouble('active_visit_lat', double.tryParse(updateData['ImgLatitude']?.toString() ?? '') ?? 0.0);
+        await prefs.setDouble('active_visit_lng', double.tryParse(updateData['ImgLogitude']?.toString() ?? '') ?? 0.0);
+      } catch (_) {}
+      // ─────────────────────────────────────────────────────────────
+
       // ── Explicitly log and upload visit start location to timeline batch ────────
       try {
         if (updateData['ImgLatitude'] != null && updateData['ImgLogitude'] != null && updateData['ImgLatitude'].toString().isNotEmpty && updateData['ImgLogitude'].toString().isNotEmpty) {
@@ -487,6 +508,15 @@ class VisitController extends GetxController {
 
       developer.log('Completing visit: $visitUkeyId', name: 'VisitController');
       await _visitApis.createUpdateVisit(updateData, flag: 'U');
+
+      // ── Clear Active Visit from Auto-Close Logic ────────
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('active_visit_data');
+        await prefs.remove('active_visit_lat');
+        await prefs.remove('active_visit_lng');
+      } catch (_) {}
+      // ────────────────────────────────────────────────────
 
       // ── Explicitly log and upload visit complete location to timeline batch ────────
       try {

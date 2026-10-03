@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
+import 'package:tax_hrm/widigets/permission_dialog_widget.dart';
 
 class VisitCameraScreen extends StatefulWidget {
   const VisitCameraScreen({super.key});
@@ -60,6 +61,7 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() => _currentAddress = 'Location services are disabled.');
+        _showLocationRequiredDialog('Location services are disabled. Please turn on GPS.', isGps: true);
         return;
       }
 
@@ -68,12 +70,14 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           setState(() => _currentAddress = 'Location permissions denied.');
+          _showLocationRequiredDialog('Location permission is required to start a visit.');
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
         setState(() => _currentAddress = 'Location permissions permanently denied.');
+        _showLocationRequiredDialog('Location permission is permanently denied. Please enable it in settings.');
         return;
       }
 
@@ -96,10 +100,44 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => _currentAddress = 'Error getting location');
+      _showLocationRequiredDialog('Error getting location. Please make sure GPS is working.', isGps: true);
     }
   }
 
+  void _showLocationRequiredDialog(String message, {bool isGps = false}) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PermissionDialogWidget(
+        icon: isGps ? Icons.location_disabled : Icons.lock_outline,
+        iconColor: Colors.orange,
+        title: 'Location Required',
+        message: message,
+        primaryButtonText: isGps ? 'GPS Settings' : 'Open Settings',
+        secondaryButtonText: 'Cancel',
+        onPrimaryPressed: () {
+          Navigator.pop(context);
+          if (isGps) {
+            Geolocator.openLocationSettings();
+          } else {
+            Geolocator.openAppSettings();
+          }
+        },
+        onSecondaryPressed: () {
+          Navigator.pop(context);
+          Navigator.pop(context); // Go back from camera screen
+        },
+      ),
+    );
+  }
+
   Future<void> _takePicture() async {
+    if (_currentLatitude.isEmpty || _currentLongitude.isEmpty) {
+      _showLocationRequiredDialog('Location is mandatory to start a visit. Please wait while we fetch location, or enable GPS/Permissions.');
+      return;
+    }
+
     if (_cameraController == null || !_cameraController!.value.isInitialized || _isTakingPicture) {
       return;
     }

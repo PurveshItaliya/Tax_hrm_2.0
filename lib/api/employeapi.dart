@@ -14,14 +14,25 @@ class Employeeclass {
   //==================== Get Employee Data =======================\\
 
   Future emppppapi() async {
-    var url = Uri.parse(
-      "${apibaseurl}api/Master/GetEmpList?CustId=${curentUser['CustId']}&CompanyId=${selectedcurentcompany!.companyId}",
-    );
-    var response = await http.get(
-      url,
-      headers: {'Authorization': "bearer ${curentUser['token']}"},
-    );
-    return employeelistsFromJson(response.body);
+    try {
+      if (curentUser == null || selectedcurentcompany == null) {
+        return null;
+      }
+      var url = Uri.parse(
+        "${apibaseurl}api/Master/GetEmpList?CustId=${curentUser['CustId']}&CompanyId=${selectedcurentcompany!.companyId}",
+      );
+      var response = await http.get(
+        url,
+        headers: {'Authorization': "bearer ${curentUser['token']}"},
+      );
+      if (response.statusCode == 200) {
+        return employeelistsFromJson(response.body);
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
   }
 
   //==================== Delete Employee Data =======================\\

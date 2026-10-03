@@ -80,11 +80,9 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
           employees: controller.employeesList,
           selectedEmployees: controller.selectedAssignTo,
           onSelected: (employee) {
-            if (controller.selectedAssignTo.contains(employee)) {
-              controller.selectedAssignTo.remove(employee);
-            } else {
-              controller.selectedAssignTo.add(employee);
-            }
+            controller.selectedAssignTo.clear();
+            controller.selectedAssignTo.add(employee);
+            Navigator.pop(ctx);
           },
           isDark: isDark,
         );
@@ -439,7 +437,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                             child: Obx(() {
                               if (controller.selectedAssignTo.isEmpty) {
                                 return Text(
-                                  'Select Employees',
+                                  'Select Employee',
                                   style: TextStyle(
                                     color: isDark ? Colors.grey[500] : Colors.grey[500],
                                     fontSize: 13.5,
@@ -850,7 +848,7 @@ class _EmployeeSearchSheetState extends State<_EmployeeSearchSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Select Employees',
+                  'Select Employee',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 IconButton(
@@ -939,26 +937,7 @@ class _EmployeeSearchSheetState extends State<_EmployeeSearchSheet> {
                       },
                     ),
             ),
-            
-            const SizedBox(height: 8),
-
-            // Done Button
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ColorConst.themeColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  elevation: 0,
-                ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Done',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
-                ),
-              ),
-            ),
+            // Done button removed since it auto-closes on single selection
           ],
         ),
       ),

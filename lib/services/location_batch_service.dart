@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:tax_hrm/utils/background_logger.dart';
 
+import '../utils/saveData/savelocaldata.dart';
+
 class LocationBatchStorage {
   static const String _kPendingLocationsKey = 'pending_locations_batch';
   static const String _kUploadLockKey = 'batch_upload_lock';
@@ -128,6 +130,64 @@ class LocationBatchStorage {
         '[LOCATION_ADDED_LOCAL] lat=$latitude lng=$longitude distance=${distance.toStringAsFixed(1)}m entryTime=${newItem['EntryTime']} pendingCount=${pending.length}',
         name: 'LocationBatchStorage'
       );
+
+      // ── Auto Visit Close Logic (200m movement) ──────────────────────────
+      final activeVisitStr = prefs.getString('active_visit_data');
+      if (activeVisitStr != null && activeVisitStr.isNotEmpty) {
+        final activeVisitLat = prefs.getDouble('active_visit_lat') ?? 0.0;
+        final activeVisitLng = prefs.getDouble('active_visit_lng') ?? 0.0;
+        
+        if (activeVisitLat != 0.0 && activeVisitLng != 0.0) {
+          final distanceToVisitStart = Geolocator.distanceBetween(activeVisitLat, activeVisitLng, latitude, longitude);
+          if (distanceToVisitStart >= 200.0) {
+            BackgroundLogger.log(
+              '[AUTO_VISIT_CLOSE] Moved ${distanceToVisitStart.toStringAsFixed(1)}m from visit start. Auto-closing visit...',
+              name: 'LocationBatchStorage'
+            );
+             
+            try {
+              final visitData = jsonDecode(activeVisitStr);
+              visitData['EndTime'] = DateTime.now().toIso8601String();
+              visitData['VisitStatus'] = 'Complete';
+               
+              final String userDataStr = await SaveUser().getUserDatas();
+              if (userDataStr.isNotEmpty) {
+                final dynamic userData = jsonDecode(userDataStr);
+                final String token = userData['token'] ?? '';
+                 
+                final body = {
+                  "FLAG": "U",
+                  "customervisit": visitData
+                };
+                 
+                final response = await http.post(
+                  Uri.parse('${_kApiBaseUrl}api/hrm/CreateUpdateVisit'),
+                  body: jsonEncode(body),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*',
+                    'Authorization': 'bearer $token',
+                  }
+                ).timeout(const Duration(seconds: 30));
+                 
+                if (response.statusCode == 200) {
+                  BackgroundLogger.log('[AUTO_VISIT_CLOSE] API Success.', name: 'LocationBatchStorage');
+                } else {
+                  BackgroundLogger.log('[AUTO_VISIT_CLOSE] API Failed: ${response.statusCode}', name: 'LocationBatchStorage');
+                }
+              }
+            } catch (e) {
+              BackgroundLogger.log('[AUTO_VISIT_CLOSE] Error: $e', name: 'LocationBatchStorage', error: e);
+            } finally {
+              await prefs.remove('active_visit_data');
+              await prefs.remove('active_visit_lat');
+              await prefs.remove('active_visit_lng');
+            }
+          }
+        }
+      }
+      // ──────────────────────────────────────────────────────────────────────
+
     } catch (e, stacktrace) {
       BackgroundLogger.log(
         '[LOCATION_BATCH_STORAGE] ERROR appending location: $e',
