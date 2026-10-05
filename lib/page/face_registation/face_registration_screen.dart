@@ -162,7 +162,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       case FaceErrorReason.straightenFace:
         return straightenFaceString;
       case FaceErrorReason.alignFace:
-        return "Please align your face within the circular frame";
+        return alignFaceString;
       case FaceErrorReason.cameraDenied:
         return cameraPermissionDeniedString;
       case FaceErrorReason.cameraUnavailable:
@@ -171,7 +171,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
         return modelInitFailedString;
       case FaceErrorReason.spoofDetected:
       case FaceErrorReason.livenessFailed:
-        return "Fake or non-live face detected";
+        return fakeFaceDetectedString;
       default:
         return "";
     }
@@ -300,9 +300,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              const Text(
-                                'Saving face data...',
-                                style: TextStyle(
+                              Text(
+                                savingFaceDataString,
+                                style: const TextStyle(
                                   color: Colors.white54,
                                   fontSize: 13,
                                 ),
@@ -479,9 +479,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                       provider.initCamera(forEnrollment: true);
                     },
                     icon: const Icon(Icons.refresh_rounded),
-                    label: const Text(
-                      "Try Again",
-                      style: TextStyle(
+                    label: Text(
+                      tryAgainString,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),

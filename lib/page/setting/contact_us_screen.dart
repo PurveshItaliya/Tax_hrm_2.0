@@ -46,7 +46,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
       await launchUrl(launchUri);
     } else {
       if (mounted) {
-        _showCopySnackBar('Could not launch phone dialer. Number copied to clipboard!', phoneNumber);
+        _showCopySnackBar(couldNotLaunchPhoneDialerString, phoneNumber);
       }
     }
   }
@@ -57,7 +57,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
-        _showCopySnackBar('Could not open browser. Website copied to clipboard!', urlString);
+        _showCopySnackBar(couldNotOpenBrowserString, urlString);
       }
     }
   }
@@ -72,12 +72,12 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
         await launchUrl(geoUrl);
       } else {
         if (mounted) {
-          _showCopySnackBar('Could not open maps. Address copied to clipboard!', address);
+          _showCopySnackBar(couldNotOpenMapsString, address);
         }
       }
     } catch (e) {
       if (mounted) {
-        _showCopySnackBar('Could not open maps. Address copied to clipboard!', address);
+        _showCopySnackBar(couldNotOpenMapsString, address);
       }
     }
   }
@@ -134,7 +134,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Select Number to Call',
+                  selectNumberToCallString,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -153,7 +153,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                     child: Icon(Icons.call_rounded, color: ColorConst.themeColor, size: 22),
                   ),
                   title: Text(
-                    '95100 56789',
+                    contactNumber1String,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -163,7 +163,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
                   onTap: () {
                     Navigator.pop(ctx);
-                    _makePhoneCall('9510056789');
+                    _makePhoneCall(contactNumber1String);
                   },
                 ),
                 Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
@@ -178,7 +178,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                     child: Icon(Icons.call_rounded, color: ColorConst.themeColor, size: 22),
                   ),
                   title: Text(
-                    '95101 56789',
+                    contactNumber2String,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -188,7 +188,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
                   onTap: () {
                     Navigator.pop(ctx);
-                    _makePhoneCall('9510156789');
+                    _makePhoneCall(contactNumber2String);
                   },
                 ),
                 Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
@@ -203,7 +203,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                     child: Icon(Icons.copy_rounded, color: ColorConst.themeColor, size: 22),
                   ),
                   title: Text(
-                    'Copy Both Numbers',
+                    copyBothNumbersString,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -212,7 +212,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                   ),
                   onTap: () {
                     Navigator.pop(ctx);
-                    _showCopySnackBar('Numbers copied to clipboard!', '95100 56789 / 95101 56789');
+                    _showCopySnackBar(numbersCopiedString, contactNumbersBothString);
                   },
                 ),
               ],
@@ -283,10 +283,10 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                         isDark: isDark,
                         badgeColor: ColorConst.themeColor,
                         icon: Icons.phone_rounded,
-                        title: 'Contact Number',
-                        value: '95100 56789  /  95101 56789',
+                        title: contactNumberString,
+                        value: contactNumbersBothString,
                         onTap: () => _showNumberActionSheet(context, isDark),
-                        onLongPress: () => _showCopySnackBar('Contact numbers copied to clipboard!', '95100 56789 / 95101 56789'),
+                        onLongPress: () => _showCopySnackBar(contactNumbersBothCopiedString, contactNumbersBothString),
                       ),
 
                       const SizedBox(height: 14),
@@ -296,10 +296,10 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                         isDark: isDark,
                         badgeColor: ColorConst.themeColor,
                         icon: Icons.language_rounded,
-                        title: 'Website',
-                        value: 'www.i-tax.in',
-                        onTap: () => _openWebsite('www.i-tax.in'),
-                        onLongPress: () => _showCopySnackBar('Website copied to clipboard!', 'www.i-tax.in'),
+                        title: websiteString,
+                        value: websiteUrlString,
+                        onTap: () => _openWebsite(websiteUrlString),
+                        onLongPress: () => _showCopySnackBar(websiteCopiedString, websiteUrlString),
                       ),
 
                       const SizedBox(height: 14),
@@ -309,10 +309,10 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
                         isDark: isDark,
                         badgeColor: ColorConst.themeColor,
                         icon: Icons.location_on_rounded,
-                        title: 'Location',
-                        value: '601-602, SUBH SQUARE, opp. Modh Patni wadi, Lal Darwaja, Surat, Gujarat 395003',
-                        onTap: () => _openLocationMap('601-602, SUBH SQUARE, opp. Modh Patni wadi, Lal Darwaja, Surat, Gujarat 395003'),
-                        onLongPress: () => _showCopySnackBar('Address copied to clipboard!', '601-602, SUBH SQUARE, opp. Modh Patni wadi, Lal Darwaja, Surat, Gujarat 395003'),
+                        title: locationString,
+                        value: companyAddressString,
+                        onTap: () => _openLocationMap(companyAddressString),
+                        onLongPress: () => _showCopySnackBar(addressCopiedString, companyAddressString),
                       ),
 
                       const SizedBox(height: 32),

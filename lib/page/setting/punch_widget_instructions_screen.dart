@@ -151,9 +151,9 @@ class _CompactWidgetPreviewSection extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  "PUNCH",
-                  style: TextStyle(
+                Text(
+                  punchUpperString,
+                  style: const TextStyle(
                     fontFamily: fontInterBoldString,
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
@@ -163,7 +163,7 @@ class _CompactWidgetPreviewSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Tap to open app",
+                  tapToOpenAppString,
                   style: TextStyle(
                     fontFamily: fontInterMediumString,
                     fontSize: 14,
@@ -175,7 +175,7 @@ class _CompactWidgetPreviewSection extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            "Add this widget to your Home Screen for a quick shortcut. Tapping it will instantly open the app directly to the Punch screen.",
+            addWidgetShortcutDescString,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: fontInterRegularString,
@@ -206,7 +206,7 @@ class _PlatformStepsList extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 2, bottom: 10),
           child: Text(
-            isIos ? "How to add on iPhone" : "How to add on Android",
+            isIos ? howToAddOnIphoneString : howToAddOnAndroidString,
             style: TextStyle(
               fontFamily: fontInterBoldString,
               fontSize: 15,
@@ -312,38 +312,38 @@ class _PlatformStepsList extends StatelessWidget {
     return [
       _StepModel(
         number: "01",
-        title: "Open Home Screen",
-        description: "Long-press an empty area on your phone's Home Screen.",
+        title: openHomeScreenString,
+        description: longPressEmptyAreaString,
         icon: Icons.touch_app_rounded,
       ),
       _StepModel(
         number: "02",
-        title: "Open Widgets",
-        description: "Tap Widgets from the bottom menu options.",
+        title: openWidgetsString,
+        description: tapWidgetsBottomMenuString,
         icon: Icons.widgets_rounded,
       ),
       _StepModel(
         number: "03",
-        title: "Search TAX HRM",
-        description: "Find TAX HRM and select the Punch Widget.",
+        title: searchTaxHrmString,
+        description: findTaxHrmSelectPunchWidgetString,
         icon: Icons.search_rounded,
       ),
       _StepModel(
         number: "04",
-        title: "Add Widget",
-        description: "Tap Add Widget or drag it to your Home Screen.",
+        title: addWidgetString,
+        description: tapAddWidgetOrDragString,
         icon: Icons.add_to_home_screen_rounded,
       ),
       _StepModel(
         number: "05",
-        title: "Position & Resize",
-        description: "Move or resize the widget according to your choice.",
+        title: positionAndResizeString,
+        description: moveOrResizeWidgetString,
         icon: Icons.open_with_rounded,
       ),
       _StepModel(
         number: "06",
-        title: "Start Punching",
-        description: "Tap the widget anytime to open the app directly to the Punch screen.",
+        title: startPunchingString,
+        description: tapWidgetAnytimeString,
         icon: Icons.fingerprint_rounded,
       ),
     ];
@@ -353,38 +353,38 @@ class _PlatformStepsList extends StatelessWidget {
     return [
       _StepModel(
         number: "01",
-        title: "Open Home Screen",
-        description: "Touch and hold an empty space on your Home Screen.",
+        title: openHomeScreenString,
+        description: touchAndHoldEmptySpaceString,
         icon: Icons.touch_app_rounded,
       ),
       _StepModel(
         number: "02",
-        title: "Tap + Button",
-        description: "Tap the + button in the upper-left corner.",
+        title: tapPlusButtonString,
+        description: tapPlusButtonUpperLeftString,
         icon: Icons.add_circle_outline_rounded,
       ),
       _StepModel(
         number: "03",
-        title: "Search TAX HRM",
-        description: "Search for TAX HRM and select the Punch Widget.",
+        title: searchTaxHrmString,
+        description: searchForTaxHrmSelectPunchWidgetString,
         icon: Icons.search_rounded,
       ),
       _StepModel(
         number: "04",
-        title: "Add Widget",
-        description: "Tap Add Widget at the bottom to place it on screen.",
+        title: addWidgetString,
+        description: tapAddWidgetAtBottomString,
         icon: Icons.add_to_home_screen_rounded,
       ),
       _StepModel(
         number: "05",
-        title: "Organize & Done",
-        description: "Move the widget to your desired spot and tap Done.",
+        title: organizeAndDoneString,
+        description: moveWidgetToDesiredSpotString,
         icon: Icons.space_dashboard_rounded,
       ),
       _StepModel(
         number: "06",
-        title: "Start Punching",
-        description: "Tap the widget anytime to open the app directly to the Punch screen.",
+        title: startPunchingString,
+        description: tapWidgetAnytimeString,
         icon: Icons.fingerprint_rounded,
       ),
     ];
@@ -449,9 +449,9 @@ class _CompactBottomCTA extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  "Got it",
-                  style: TextStyle(
+                child: Text(
+                  gotItString,
+                  style: const TextStyle(
                     fontFamily: fontInterBoldString,
                     fontSize: 15,
                     fontWeight: FontWeight.bold,

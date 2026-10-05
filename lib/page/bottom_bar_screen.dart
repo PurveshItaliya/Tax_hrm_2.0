@@ -239,13 +239,13 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
   double _pillWidth = 0;
 
   // ── Tab definitions (not const — strings are runtime values) ───────────────
-  static final List<_TabData> _adminTabs = [
+  List<_TabData> get _adminTabs => [
     _TabData(asset: homeImageString, title: homeString),
     _TabData(asset: attendanceImageString, title: attendanceString),
     _TabData(asset: leaveImageString, title: leaveString),
     _TabData(asset: settingImageString, title: settingString),
   ];
-  static final List<_TabData> _employeeTabs = [
+  List<_TabData> get _employeeTabs => [
     _TabData(asset: homeImageString, title: homeString),
     _TabData(asset: attendanceImageString, title: attendanceString),
     _TabData(asset: leaveImageString, title: leaveString),

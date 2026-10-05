@@ -466,6 +466,9 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
 
   // ── Settings List Builder ──────────────────────────────────────────────────
   List<Widget> _buildSettingsList(Size size, SettingProvider settingProvider) {
+    // Re-evaluate the menu list here so translated strings update dynamically on language change
+    settingProvider.settingMenuGet(context);
+    
     final List<Widget> list = [];
 
     // Dark Theme Toggle Tile

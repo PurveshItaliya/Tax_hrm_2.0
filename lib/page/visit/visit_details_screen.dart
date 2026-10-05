@@ -1,5 +1,4 @@
 import 'dart:developer' as developer;
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -14,7 +13,7 @@ import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geocoding/geocoding.dart';
-
+import 'package:tax_hrm/utils/titlesfile.dart';
 class VisitDetailsScreen extends StatefulWidget {
   final String visitUkeyId;
   final String companyId;
@@ -35,7 +34,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   bool _isDeleting = false;
   VisitDetailModel? _visitData;
   String? _errorMessage;
-  String _visitorAddress = 'Locating...';
+  late String _visitorAddress = locatingString;
 
   @override
   void initState() {
@@ -78,7 +77,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           if (mounted) {
             setState(() {
               _visitorAddress = '${place.street ?? ''}, ${place.subLocality ?? ''}, ${place.locality ?? ''}, ${place.postalCode ?? ''}'.replaceAll(RegExp(r',\s*,'), ',').replaceAll(RegExp(r'^,\s*|\s*,\s*$'), '');
-              if (_visitorAddress.isEmpty) _visitorAddress = 'Address not fully found';
+              if (_visitorAddress.isEmpty) _visitorAddress = addressNotFullyFoundString;
             });
           }
         }
@@ -95,18 +94,18 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Delete Visit'),
+            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(deleteVisitString),
           ],
         ),
-        content: const Text('Are you sure you want to permanently delete this visit record?'),
+        content: Text(deleteVisitConfirmString),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(cancelString),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -115,7 +114,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(deleteString),
           ),
         ],
       ),
@@ -126,10 +125,10 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     setState(() { _isDeleting = true; });
     try {
       await _visitApis.deleteVisit(widget.visitUkeyId);
-      showtoastmessage('Visit deleted successfully');
+      showtoastmessage(visitDeletedSuccessString);
       if (mounted) Navigator.pop(context, true); // Return true to refresh list
     } catch (e) {
-      showtoastmessage('Failed to delete visit');
+      showtoastmessage(failedToDeleteVisitString);
       if (mounted) setState(() { _isDeleting = false; });
     }
   }
@@ -146,11 +145,11 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text('Add Attachment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+              child: Text(addAttachmentString, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt_rounded, color: Colors.blue),
-              title: const Text('Camera'),
+              title: Text(cameraString),
               onTap: () async {
                 Navigator.pop(ctx);
                 final XFile? photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
@@ -159,7 +158,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_rounded, color: Colors.purple),
-              title: const Text('Gallery'),
+              title: Text(galleryString),
               onTap: () async {
                 Navigator.pop(ctx);
                 final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
@@ -168,7 +167,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.insert_drive_file_rounded, color: Colors.orange),
-              title: const Text('Document / File'),
+              title: Text(documentFileString),
               onTap: () async {
                 Navigator.pop(ctx);
                 FilePickerResult? result = await FilePicker.pickFiles();
@@ -193,16 +192,16 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         partyId: _visitData?.partyId?.toString() ?? '0',
         category: 'VisitDoc',
       );
-      showtoastmessage('Document uploaded successfully');
+      showtoastmessage(documentUploadedSuccessString);
       _fetchVisitDetails();
     } catch (e) {
-      showtoastmessage('Upload failed');
+      showtoastmessage(uploadFailedString);
       setState(() => _isLoading = false);
     }
   }
 
   String _formatDate(String? rawDate) {
-    if (rawDate == null || rawDate.isEmpty || rawDate == 'null') return 'N/A';
+    if (rawDate == null || rawDate.isEmpty || rawDate == 'null') return naString;
     try {
       DateTime parsed = DateTime.parse(rawDate);
       return DateFormat('dd MMM yyyy, hh:mm a').format(parsed);
@@ -250,7 +249,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           appBar: AppBar(
             backgroundColor: Colors.black,
             iconTheme: const IconThemeData(color: Colors.white),
-            title: const Text('View Image', style: TextStyle(color: Colors.white, fontSize: 17)),
+            title: Text(viewImageString, style: const TextStyle(color: Colors.white, fontSize: 17)),
             elevation: 0,
           ),
           body: Center(
@@ -263,12 +262,12 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Column(
+                  errorBuilder: (_, __, ___) => Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.broken_image_outlined, color: Colors.white54, size: 64),
                       SizedBox(height: 12),
-                      Text('Unable to load image', style: TextStyle(color: Colors.white70)),
+                      Text(unableToLoadImageString, style: TextStyle(color: Colors.white70)),
                     ],
                   ),
                   loadingBuilder: (_, child, progress) {
@@ -290,15 +289,15 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        showtoastmessage('Could not open document.');
+        showtoastmessage(couldNotOpenDocumentString);
       }
     } catch (e) {
-      showtoastmessage('Error opening document.');
+      showtoastmessage(errorOpeningDocumentString);
     }
   }
 
   String _formatStartEndTime(String? startStr, String? endStr, String? schedStr) {
-    if (startStr == null || startStr.isEmpty || startStr == 'null') return 'N/A';
+    if (startStr == null || startStr.isEmpty || startStr == 'null') return naString;
     try {
       DateTime start = DateTime.parse(startStr);
       DateTime? end = (endStr != null && endStr.isNotEmpty && endStr != 'null') ? DateTime.parse(endStr) : null;
@@ -393,7 +392,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           children: [
             Expanded(
               child: Text(
-                _visitData?.visitName ?? 'Visit Detail',
+                _visitData?.visitName ?? visitDetailString,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Theme.of(context).textTheme.bodyLarge?.color),
               ),
             ),
@@ -417,7 +416,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    status?.toUpperCase() ?? 'PENDING',
+                    status?.toUpperCase() ?? pendingUpperString,
                     style: TextStyle(
                       color: isDark ? Colors.white : Colors.black87,
                       fontWeight: FontWeight.bold,
@@ -434,7 +433,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         Row(
           children: [
             Text(
-              'Scheduled Date : ${_formatDate(_visitData?.visitTime)}',
+              '$scheduledDateString${_formatDate(_visitData?.visitTime)}',
               style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ],
@@ -469,14 +468,14 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('All Documents', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                  Text(allDocumentsString, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
                   TextButton.icon(
                     onPressed: () {
                       Navigator.pop(ctx);
                       _addAttachment();
                     },
                     icon: Icon(Icons.add, color: ColorConst.themeColor, size: 18),
-                    label: Text('Add New', style: TextStyle(color: ColorConst.themeColor, fontWeight: FontWeight.bold)),
+                    label: Text(addNewString, style: TextStyle(color: ColorConst.themeColor, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -491,7 +490,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                   var doc = allDocs[i];
                   String ext = doc.fileName?.split('.').last.toLowerCase() ?? '';
                   String url = doc.documentUrl ?? '';
-                  String name = doc.originalFileName ?? doc.fileName ?? 'Document ${i + 1}';
+                  String name = doc.originalFileName ?? doc.fileName ?? '$documentTextString${i + 1}';
                   bool isImage = ['jpg', 'jpeg', 'png', 'gif'].contains(ext);
                   bool isVideo = ['mp4', 'mov'].contains(ext);
                   
@@ -603,7 +602,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Attachments'),
+        _buildSectionTitle(attachmentsString),
         LayoutBuilder(
           builder: (context, constraints) {
             double spacing = 12;
@@ -644,7 +643,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          ((_visitData?.remarks ?? '').trim().isEmpty) ? 'Add Remark' : 'Edit Remark',
+          ((_visitData?.remarks ?? '').trim().isEmpty) ? addRemarkString : editRemarkString,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
         ),
         content: TextField(
@@ -652,7 +651,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           maxLines: 4,
           style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color),
           decoration: InputDecoration(
-            hintText: 'Enter your remark here...',
+            hintText: enterRemarkHintString,
             hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade400, fontSize: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -672,7 +671,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
+            child: Text(cancelString, style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -684,7 +683,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
               Navigator.pop(ctx);
               await _updateRemark(remarkController.text.trim());
             },
-            child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(saveString, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -720,12 +719,12 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
       await VisitApis().createUpdateVisit(payload, flag: 'U');
       
       developer.log('Remark update successful!', name: 'VisitDetails');
-      showtoastmessage('Remark saved successfully');
+      showtoastmessage(remarkSavedSuccessString);
       await _fetchVisitDetails();
     } catch (e, stackTrace) {
       developer.log('Exception in _updateRemark: $e', name: 'VisitDetails', error: e, stackTrace: stackTrace);
       setState(() => _isLoading = false);
-      showtoastmessage('Failed to save remark: $e');
+      showtoastmessage('$failedToSaveRemarkString$e');
     }
   }
 
@@ -752,7 +751,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Visitor Punch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                Text(visitorPunchString, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color)),
                 if (_visitorAddress.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Row(
@@ -782,7 +781,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Visit Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(visitDetailsString, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: ColorConst.themeColor,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -808,7 +807,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                       children: [
                         const Icon(Icons.error_outline_rounded, color: Colors.red, size: 48),
                         const SizedBox(height: 12),
-                        Text('Failed to load visit details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                        Text(failedToLoadVisitDetailsString, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color)),
                         const SizedBox(height: 6),
                         Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                         const SizedBox(height: 16),
@@ -816,14 +815,14 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                           style: ElevatedButton.styleFrom(backgroundColor: ColorConst.themeColor, foregroundColor: Colors.white),
                           onPressed: _fetchVisitDetails,
                           icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text('Retry'),
+                          label: Text(retryString),
                         ),
                       ],
                     ),
                   ),
                 )
               : _visitData == null
-                  ? Center(child: Text('No details found', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)))
+                  ? Center(child: Text(noDetailsFoundString, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)))
                   : RefreshIndicator(
                       onRefresh: _fetchVisitDetails,
                       color: ColorConst.themeColor,
@@ -835,18 +834,18 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                           
                           _buildVisitorPunchClean(context),
                           
-                          _buildSectionTitle('Party Information'),
-                          _buildCleanRow('Name', _visitData?.partyName ?? 'N/A'),
+                          _buildSectionTitle(partyInformationString),
+                          _buildCleanRow(nameString, _visitData?.partyName ?? naString),
                           if ((_visitData?.mobile1 != null && _visitData!.mobile1!.isNotEmpty) || (_visitData?.mobile2 != null && _visitData!.mobile2!.isNotEmpty))
-                            _buildCleanRow('Mobile No', [
+                            _buildCleanRow(mobileNoString, [
                               if (_visitData?.mobile1 != null && _visitData!.mobile1!.isNotEmpty) _visitData?.mobile1,
                               if (_visitData?.mobile2 != null && _visitData!.mobile2!.isNotEmpty) _visitData?.mobile2
                             ].join(', ')),
                           if (_visitData?.partyAddress != null && _visitData!.partyAddress!.trim().isNotEmpty && _visitData!.partyAddress!.toLowerCase() != 'null')
-                            _buildCleanRow('Address', _visitData!.partyAddress!),
+                            _buildCleanRow(addressString, _visitData!.partyAddress!),
                           
-                          _buildSectionTitle('Visitor Details'),
-                          _buildCleanRow('Assigned To', _visitData?.assigntoName ?? 'N/A'),
+                          _buildSectionTitle(visitorDetailsString),
+                          _buildCleanRow(assignedToString, _visitData?.assigntoName ?? naString),
                           
                           if (hasStartTime || hasEndTime) ...[
                             Padding(
@@ -856,7 +855,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                                 children: [
                                   SizedBox(
                                     width: 100,
-                                    child: Text('Time', style: TextStyle(fontSize: 13, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                                    child: Text(timeString, style: TextStyle(fontSize: 13, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
                                   ),
                                   const Padding(
                                     padding: EdgeInsets.only(right: 12),
@@ -873,7 +872,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                                         if (_calculateDuration(_visitData?.startTime, _visitData?.endTime).isNotEmpty) ...[
                                           const SizedBox(height: 4),
                                           Text(
-                                            'Duration: ${_calculateDuration(_visitData?.startTime, _visitData?.endTime)}',
+                                            '$durationTextString${_calculateDuration(_visitData?.startTime, _visitData?.endTime)}',
                                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade600),
                                           ),
                                         ]
@@ -895,10 +894,10 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                                 children: [
                                   Expanded(
                                     child: ((_visitData?.remarks ?? '').toString().trim().isNotEmpty)
-                                        ? _buildCleanRow('Remarks', _visitData!.remarks!)
+                                        ? _buildCleanRow(remarksString, _visitData!.remarks!)
                                         : Padding(
                                             padding: const EdgeInsets.only(bottom: 12),
-                                            child: Text('No remarks added. Tap to add.', style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic, fontSize: 13.5)),
+                                            child: Text(noRemarksAddedString, style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic, fontSize: 13.5)),
                                           ),
                                   ),
                                   IconButton(
@@ -909,7 +908,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                                     ),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    tooltip: ((_visitData?.remarks ?? '').toString().trim().isNotEmpty) ? 'Edit Remark' : 'Add Remark',
+                                    tooltip: ((_visitData?.remarks ?? '').toString().trim().isNotEmpty) ? editRemarkString : addRemarkString,
                                     onPressed: _showAddRemarkDialog,
                                   ),
                                 ],
@@ -971,11 +970,11 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('View Video', style: TextStyle(color: Colors.white, fontSize: 17)),
+        title: Text(viewVideoString, style: const TextStyle(color: Colors.white, fontSize: 17)),
       ),
       body: Center(
         child: _hasError
-            ? const Text('Error loading video', style: TextStyle(color: Colors.white))
+            ? Text(errorLoadingVideoString, style: const TextStyle(color: Colors.white))
             : _isInitialized
                 ? AspectRatio(
                     aspectRatio: _controller.value.aspectRatio,
