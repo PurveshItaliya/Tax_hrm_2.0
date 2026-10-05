@@ -1,7 +1,6 @@
 // ignore_for_file: file_names, must_be_immutable, deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
-import 'package:pinput/pinput.dart';
 import 'package:provider/provider.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';

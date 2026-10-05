@@ -48,7 +48,6 @@ class AdminAttenDanceServices extends ChangeNotifier {
   final TextEditingController searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedDepartment = 'ALL';
-  List<dynamic> _filteredEmployeeList = [];
 
   String get searchQuery => _searchQuery;
   set searchQuery(String value) {
@@ -62,47 +61,8 @@ class AdminAttenDanceServices extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<dynamic> get filteredEmployeeList => _filteredEmployeeList;
-  set filteredEmployeeList(List<dynamic> list) {
-    _filteredEmployeeList = list;
-    notifyListeners();
-  }
-
   void filterEmployees(List<dynamic> allEmpList) {
-    if (_searchQuery.isEmpty && _selectedDepartment == 'ALL') {
-      _filteredEmployeeList = List.from(empAttendanceList);
-    } else {
-      _filteredEmployeeList = empAttendanceList.where((employee) {
-        // 1. Search Query
-        bool matchesSearch = true;
-        if (_searchQuery.isNotEmpty) {
-          final fullName = '${employee.firstName} ${employee.lastName}'
-              .toLowerCase();
-          final firstName = employee.firstName?.toLowerCase() ?? '';
-          final lastName = employee.lastName?.toLowerCase() ?? '';
-          matchesSearch =
-              fullName.contains(_searchQuery) ||
-              firstName.contains(_searchQuery) ||
-              lastName.contains(_searchQuery);
-        }
-
-        // 2. Department Filter
-        bool matchesDepartment = true;
-        if (_selectedDepartment != 'ALL') {
-          String deptName = '-';
-          for (var emp in allEmpList) {
-            if (emp.id == employee.empId) {
-              deptName = emp.departmentName ?? '-';
-              if (deptName.trim().isEmpty) deptName = '-';
-              break;
-            }
-          }
-          matchesDepartment = deptName == _selectedDepartment;
-        }
-
-        return matchesSearch && matchesDepartment;
-      }).toList();
-    }
+    // UI now handles filtering dynamically based on searchQuery and selectedDepartment
     notifyListeners();
   }
 
@@ -110,7 +70,6 @@ class AdminAttenDanceServices extends ChangeNotifier {
     searchController.clear();
     _searchQuery = '';
     _selectedDepartment = 'ALL';
-    _filteredEmployeeList = List.from(empAttendanceList);
     notifyListeners();
   }
 
@@ -157,13 +116,45 @@ class AdminAttenDanceServices extends ChangeNotifier {
 
   List<AllEmployeAttendance> mainHoldEmpList = [];
   List<AllEmployeAttendance> empAttendanceList = [];
+  String activeFilter = 'All'; // Can be 'All', 'Present', 'Absent', 'Leave'
 
   void setEmpAttendanceList(List<AllEmployeAttendance> list) {
     empAttendanceList = list;
+    activeFilter = 'All';
     notifyListeners();
   }
 
-  Future<void> toDayDateAttendance(setDate, {bool isBackground = false}) async {
+  void applyCurrentFilter() {
+    if (activeFilter == 'All') {
+      empAttendanceList = List.from(mainHoldEmpList);
+    } else if (activeFilter == 'Present') {
+      filtersList.clear();
+      for (var element in mainHoldEmpList) {
+        if (element.inTime != null && element.absent == false) {
+          filtersList.add(element);
+        }
+      }
+      empAttendanceList = List.from(filtersList);
+    } else if (activeFilter == 'Absent') {
+      filtersList.clear();
+      for (var element in mainHoldEmpList) {
+        if (element.absent == true && element.isOnLeave != true) {
+          filtersList.add(element);
+        }
+      }
+      empAttendanceList = List.from(filtersList);
+    } else if (activeFilter == 'Leave') {
+      filtersList.clear();
+      for (var element in mainHoldEmpList) {
+        if (element.isOnLeave == true) {
+          filtersList.add(element);
+        }
+      }
+      empAttendanceList = List.from(filtersList);
+    }
+  }
+
+  Future<void> toDayDateAttendance(setDate, {bool isBackground = false, bool forceRefresh = false}) async {
     try {
       DateTime inputDatetime;
       if (setDate is DateTime) {
@@ -191,17 +182,17 @@ class AdminAttenDanceServices extends ChangeNotifier {
 
       bool loadedFromCache = false;
       // 1. Try in-memory cache first
-      if (!isBackground && _attendanceCache.containsKey(formattedDate)) {
+      if (!isBackground && !forceRefresh && _attendanceCache.containsKey(formattedDate)) {
         final cached = _attendanceCache[formattedDate]!;
         mainHoldEmpList = List.from(cached);
-        empAttendanceList = List.from(cached);
+        applyCurrentFilter();
         loadedFromCache = true;
         setCounters(notify: false);
         setloading(false);
         notifyListeners();
       }
       // 2. Try SharedPreferences cache
-      else if (!isBackground && mainHoldEmpList.isEmpty) {
+      else if (!isBackground && !forceRefresh && mainHoldEmpList.isEmpty) {
         try {
           final prefs = await SharedPreferences.getInstance();
           final localKey = 'admin_attendance_cache_$formattedDate';
@@ -210,7 +201,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
             if (cachedStr != null && cachedStr.isNotEmpty) {
               final cachedList = allEmployeAttendanceFromJson(cachedStr);
               mainHoldEmpList = List.from(cachedList);
-              empAttendanceList = List.from(cachedList);
+              applyCurrentFilter();
               _attendanceCache[formattedDate] = cachedList;
               loadedFromCache = true;
               setCounters(notify: false);
@@ -248,14 +239,14 @@ class AdminAttenDanceServices extends ChangeNotifier {
           // ignore cache write error
         }
 
-        if (isChanged) {
+        if (isChanged || forceRefresh) {
           mainHoldEmpList = response;
-          empAttendanceList = response;
+          applyCurrentFilter();
           setCounters(notify: false);
           notifyListeners();
         }
       } else {
-        if (mainHoldEmpList.isNotEmpty) {
+        if (mainHoldEmpList.isNotEmpty || forceRefresh) {
           mainHoldEmpList = [];
           empAttendanceList = [];
           _attendanceCache[formattedDate] = [];
@@ -286,18 +277,17 @@ class AdminAttenDanceServices extends ChangeNotifier {
 
     for (var element in mainHoldEmpList) {
       // Count Present
-      if (element.present == true) {
+      if (element.inTime != null && element.absent == false) {
         totalPresents++;
       }
 
       // Count On Leave
-      if (element.isOnLeave == true && element.leaveCguid != null) {
+      if (element.isOnLeave == true) {
         totalIsOnLeave++;
       }
 
-      // Count Absent (not present and not on leave)
-      if ((element.present == false || element.present == null) &&
-          (element.isOnLeave == false || element.isOnLeave == null)) {
+      // Count Absent
+      if (element.absent == true && element.isOnLeave != true) {
         totalAbsent++;
       }
     }
@@ -346,14 +336,9 @@ class AdminAttenDanceServices extends ChangeNotifier {
 
   filterIsONleave() {
     setloading(true);
+    activeFilter = 'Leave';
     try {
-      filtersList.clear();
-      for (var element in mainHoldEmpList) {
-        if (element.isOnLeave == true) {
-          filtersList.add(element);
-        }
-      }
-      empAttendanceList = filtersList;
+      applyCurrentFilter();
     } catch (e) {
       /* ignored */
     } finally {
@@ -364,25 +349,9 @@ class AdminAttenDanceServices extends ChangeNotifier {
 
   filtersOntapData(bool presentmood) {
     setloading(true);
+    activeFilter = presentmood ? 'Present' : 'Absent';
     try {
-      filtersList.clear();
-
-      if (presentmood == true) {
-        for (var element in mainHoldEmpList) {
-          if (element.present == true) {
-            filtersList.add(element);
-          }
-        }
-        empAttendanceList = filtersList;
-      } else {
-        for (var element in mainHoldEmpList) {
-          if (element.absent == null ||
-              element.absent == true && element.isOnLeave != true) {
-            filtersList.add(element);
-          }
-        }
-        empAttendanceList = filtersList;
-      }
+      applyCurrentFilter();
     } catch (e) {
       /* ignored */
     } finally {
@@ -811,8 +780,8 @@ class AdminAttenDanceServices extends ChangeNotifier {
             setEmpid: setEmployeId,
             setCguid: setGuid,
           )
-          .then((value) {
-            toDayDateAttendance(attendanceDateEmp);
+          .then((value) async {
+            await toDayDateAttendance(attendanceDateEmp, forceRefresh: true);
           });
     } catch (e) {
       /* ignored */
@@ -838,8 +807,8 @@ class AdminAttenDanceServices extends ChangeNotifier {
             updateInMood: updateInMood,
             setCguid: setGuidsss,
           )
-          .then((value) {
-            toDayDateAttendance(attendanceDate);
+          .then((value) async {
+            await toDayDateAttendance(attendanceDate, forceRefresh: true);
           });
     } catch (e) {
       /* ignored */
@@ -872,11 +841,11 @@ class AdminAttenDanceServices extends ChangeNotifier {
             logid: setlogid,
             remarks: setremarks,
           )
-          .then((value) {
+          .then((value) async {
             AttendanceLogUpdate setresponse = value as AttendanceLogUpdate;
 
             if (setresponse.success == true) {
-              toDayDateAttendance(setattendancedate);
+              await toDayDateAttendance(setattendancedate, forceRefresh: true);
               Navigator.pop(context);
               Navigator.pop(context);
             }
@@ -897,10 +866,10 @@ class AdminAttenDanceServices extends ChangeNotifier {
             setLogId: setLogId,
             setStatus: setStatus,
           )
-          .then((value) {
+          .then((value) async {
             AttendanceLogDelete setResponse = value as AttendanceLogDelete;
             if (setResponse.success == true) {
-              // Success, no action needed
+              await toDayDateAttendance(currentMonth, forceRefresh: true);
             }
           });
     } catch (e) {
@@ -1039,9 +1008,8 @@ class AdminAttenDanceServices extends ChangeNotifier {
                   topicTitleOverride: titleName,
                 );
               }
-              Navigator.pop(context);
               leaveEditTypeSet(context, selectedEmp);
-              toDayDateAttendance(finalDate);
+              await toDayDateAttendance(finalDate, forceRefresh: true);
             });
       } catch (e) {
         /* ignored */
@@ -1064,10 +1032,9 @@ class AdminAttenDanceServices extends ChangeNotifier {
             setEmpid: setEmpid,
             attendanceCguid: setattendanceCguid,
           )
-          .then((value) {
-            Navigator.pop(context);
+          .then((value) async {
             setCounters();
-            toDayDateAttendance(attendanceDate);
+            await toDayDateAttendance(attendanceDate, forceRefresh: true);
           });
     } catch (e) {
       /* ignored */

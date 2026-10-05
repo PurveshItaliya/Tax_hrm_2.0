@@ -12,6 +12,9 @@ class LeaveRequestCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onReject;
   final VoidCallback onApprove;
+  final String duration;
+  final String leaveType;
+  final Color leaveTypeColor;
 
   const LeaveRequestCard({
     super.key,
@@ -23,6 +26,9 @@ class LeaveRequestCard extends StatelessWidget {
     required this.onDelete,
     required this.onReject,
     required this.onApprove,
+    this.duration = '',
+    required this.leaveType,
+    required this.leaveTypeColor,
   });
 
   @override
@@ -80,33 +86,54 @@ class LeaveRequestCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
-                      // Status Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isPending ? Colors.orange.shade50 : Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isPending ? Colors.orange.shade200 : Colors.green.shade200),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isPending ? Icons.pending_actions : Icons.check_circle,
-                              size: 12,
-                              color: isPending ? Colors.orange.shade700 : Colors.green.shade700,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isPending ? Colors.orange.shade50 : Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: isPending ? Colors.orange.shade200 : Colors.green.shade200),
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              status,
-                              style: TextStyle(
-                                color: isPending ? Colors.orange.shade700 : Colors.green.shade700,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isPending ? Icons.pending_actions : Icons.check_circle,
+                                  size: 12,
+                                  color: isPending ? Colors.orange.shade700 : Colors.green.shade700,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  status,
+                                  style: TextStyle(
+                                    color: isPending ? Colors.orange.shade700 : Colors.green.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (duration.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: ColorConst.themeColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                duration,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: ColorConst.themeColor,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -136,6 +163,12 @@ class LeaveRequestCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                ),
+                const SizedBox(width: 12),
+                _buildBadge(
+                  leaveType,
+                  leaveTypeColor.withOpacity(0.1),
+                  leaveTypeColor,
                 ),
               ],
             ),
@@ -224,6 +257,40 @@ class LeaveRequestCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, size: 18, color: color),
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text, Color defaultBgColor, Color defaultTextColor) {
+    Color textColor = defaultTextColor;
+    Color bgColor = defaultBgColor;
+    Color borderColor = defaultTextColor;
+
+    final type = text.toLowerCase();
+    if (type.contains('unpaid')) {
+      textColor = Colors.orange;
+      bgColor = Colors.orange.withOpacity(0.1);
+      borderColor = Colors.orange;
+    } else if (type.contains('paid')) {
+      textColor = Colors.green;
+      bgColor = Colors.green.withOpacity(0.1);
+      borderColor = Colors.green;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
       ),
     );
   }

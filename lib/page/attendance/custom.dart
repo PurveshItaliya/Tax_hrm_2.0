@@ -24,6 +24,7 @@ class CustomDialog extends StatefulWidget {
 
 class _CustomDialogState extends State<CustomDialog> {
   late AdminAttenDanceServices adminAttendanceProvider;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -154,7 +155,8 @@ class _CustomDialogState extends State<CustomDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: ColorConst.themeColor,
           ),
-          onPressed: (){
+          onPressed: isLoading ? null : (){
+            setState(() { isLoading = true; });
             Provider.of<AdminAttenDanceServices>(context,listen: false).updateLogsData(setattendanceGuid: widget.mainattendancecguid,
               setattendanceTime: adminAttendanceProvider.dialogIntimeDateTime.toString(),
               setattendancedate: DateTime(adminAttendanceProvider.dialogIntimeDateTime.year,adminAttendanceProvider.dialogIntimeDateTime.month,adminAttendanceProvider.dialogIntimeDateTime.day).toString(),
@@ -163,8 +165,12 @@ class _CustomDialogState extends State<CustomDialog> {
               setlogCjuid: widget.setDatas!.cguid,
               setlogStatus: widget.setDatas!.status,
               setlogid: widget.setDatas!.logId,
-              setremarks: adminAttendanceProvider.dialogNotesController.text,context: context);
-          }, child: Text(saveString,style: TextStyle(color: ColorConst.white),))
+              setremarks: adminAttendanceProvider.dialogNotesController.text,context: context).then((_) {
+                if (mounted) setState(() { isLoading = false; });
+              }).catchError((e) {
+                if (mounted) setState(() { isLoading = false; });
+              });
+          }, child: isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text(saveString,style: TextStyle(color: ColorConst.white),))
       ],
     );
   }
@@ -184,6 +190,7 @@ class AddPunchFromAdmin extends StatefulWidget {
 
 class _AddPunchFromAdminState extends State<AddPunchFromAdmin> {
   late AdminAttenDanceServices adminAttendanceProvider;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -538,7 +545,8 @@ class _AddPunchFromAdminState extends State<AddPunchFromAdmin> {
                         padding: EdgeInsets.symmetric(vertical: size.height * 0.016),
                         elevation: 2,
                       ),
-                      onPressed: () {
+                      onPressed: isLoading ? null : () {
+                        setState(() { isLoading = true; });
                         final DateTime selectedDate = DateTime.parse(widget.selectedDate.toString());
                         final String attendanceDateOnly = DateTime(
                           selectedDate.year,
@@ -560,14 +568,20 @@ class _AddPunchFromAdminState extends State<AddPunchFromAdmin> {
                           attendanceDateEmp: attendanceDateOnly,
                           attendanceTime: attendanceDateTime,
                         ).then((value) {
+                          if (mounted) setState(() { isLoading = false; });
                           showtoastmessage('Punch recorded successfully');
-                          Navigator.pop(context);
-                          Navigator.pop(context);
-                          Provider.of<AdminAttenDanceServices>(context, listen: false)
-                              .toDayDateAttendance(widget.selectedEmp.attendenceDate);
+                          Navigator.pop(context, true);
+                        }).catchError((e) {
+                          if (mounted) setState(() { isLoading = false; });
                         });
                       },
-                      child: Row(
+                      child: isLoading
+                        ? SizedBox(
+                            width: size.width * 0.05,
+                            height: size.width * 0.05,
+                            child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(

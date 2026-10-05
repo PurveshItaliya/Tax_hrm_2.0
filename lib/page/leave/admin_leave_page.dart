@@ -33,7 +33,10 @@ class _AdminLeavePageState extends State<AdminLeavePage>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final adminLeaveProvider = Provider.of<AdminLeaveProvider>(context, listen: false);
+      final adminLeaveProvider = Provider.of<AdminLeaveProvider>(
+        context,
+        listen: false,
+      );
       adminLeaveProvider.initializeData();
     });
   }
@@ -51,258 +54,458 @@ class _AdminLeavePageState extends State<AdminLeavePage>
     final leaveAdminProvider = Provider.of<AdminLeaveProvider>(context);
     Provider.of<LanguageProvider>(context);
     return Scaffold(
-        backgroundColor: ColorConst.scaffoldColor,
-        appBar: showBottomAppBar(
-          adminLeavePage,
-          size,
-          centerTitles: false,
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: leaveAdminProvider.islodering ? SizedBox() : Padding(
-          padding: EdgeInsets.only(bottom: size.height * 0.08),
-          child: iconWithTextBtnDesign(size,applyNewLeaveString,isIcon: false,onTap: () {
-            LeaveMastServices().resetLeaveForm();
-            LeaveMastServices().leaveHandleSubmit(context,false, leaveData: null, onthenValue: (val) async {
-              await leaveAdminProvider.initializeData(forceRefresh: true);
-            });
-          },isgradient: true,isImage: false,),
-        ),
-        body: leaveAdminProvider.islodering ? buildShimmerContent(size) : Column(
-            children: [
-              /// TAB BAR
-              Container(
-                color: ColorConst.white,
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: Colors.green,
-                  labelColor: ColorConst.black,
-                  unselectedLabelColor: Colors.grey,
-                  tabs: [
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(pendingString),
-                          if(leaveAdminProvider.pendingLeaves.isNotEmpty) ...[
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                leaveAdminProvider.pendingLeaves.length.toString(),
-                                style: TextStyle(color: Colors.white,fontSize: 11,fontWeight: FontWeight.bold,),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(approveString),
-                          if(leaveAdminProvider.approvedLeaves.isNotEmpty) ...[
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${leaveAdminProvider.approvedLeaves.length}',
-                                style: TextStyle(color: Colors.white,fontSize: 11,fontWeight: FontWeight.bold,),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(rejectString),
-                          if(leaveAdminProvider.rejectedLeaves.isNotEmpty) ...[
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${leaveAdminProvider.rejectedLeaves.length}',
-                                style: TextStyle(color: Colors.white,fontSize: 11,fontWeight: FontWeight.bold,),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+      backgroundColor: ColorConst.scaffoldColor,
+      appBar: showBottomAppBar(adminLeavePage, size, centerTitles: false),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: leaveAdminProvider.islodering
+          ? SizedBox()
+          : Padding(
+              padding: EdgeInsets.only(bottom: size.height * 0.08),
+              child: iconWithTextBtnDesign(
+                size,
+                applyNewLeaveString,
+                isIcon: false,
+                onTap: () {
+                  LeaveMastServices().resetLeaveForm();
+                  LeaveMastServices().leaveHandleSubmit(
+                    context,
+                    false,
+                    leaveData: null,
+                    onthenValue: (val) async {
+                      await leaveAdminProvider.initializeData(
+                        forceRefresh: true,
+                      );
+                    },
+                  );
+                },
+                isgradient: true,
+                isImage: false,
               ),
+            ),
+      body: leaveAdminProvider.islodering
+          ? buildShimmerContent(size)
+          : Column(
+              children: [
+                /// TAB BAR
+                Container(
+                  color: ColorConst.white,
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorColor: Colors.green,
+                    labelColor: ColorConst.black,
+                    unselectedLabelColor: Colors.grey,
+                    tabs: [
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(pendingString),
+                            if (leaveAdminProvider
+                                .pendingLeaves
+                                .isNotEmpty) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  leaveAdminProvider.pendingLeaves.length
+                                      .toString(),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(approveString),
+                            if (leaveAdminProvider
+                                .approvedLeaves
+                                .isNotEmpty) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${leaveAdminProvider.approvedLeaves.length}',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(rejectString),
+                            if (leaveAdminProvider
+                                .rejectedLeaves
+                                .isNotEmpty) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${leaveAdminProvider.rejectedLeaves.length}',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
-              /// TAB VIEW
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                  /// Pending Tab
-                  RefreshIndicator(
-                    color: ColorConst.themeColor,
-                    onRefresh: () => leaveAdminProvider.initializeData(forceRefresh: true),
-                    child: leaveAdminProvider.pendingLeaves.isEmpty ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(
-                          height: size.height * 0.65,
-                          child: noDataFoundsDesign(size, noDataFoundsString,nodataFoundsImagString),
+                /// TAB VIEW
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      /// Pending Tab
+                      RefreshIndicator(
+                        color: ColorConst.themeColor,
+                        onRefresh: () => leaveAdminProvider.initializeData(
+                          forceRefresh: true,
                         ),
-                      ],
-                    ) : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: size.height * 0.22),
-                    itemCount: leaveAdminProvider.pendingLeaves.length,
-                    itemBuilder: (context, index) {
-                      return  Padding(
-                        padding: const EdgeInsets.only(left: 10,right: 10,top: 5),
-                        child: LeaveRequestCard(
-                          name: "${leaveAdminProvider.pendingLeaves[index].firstName} ${leaveAdminProvider.pendingLeaves[index].lastName}",
-                          reason: leaveAdminProvider.pendingLeaves[index].remarks ?? "N/A",
-                          date: "${dateFormatdate(DateTime.parse(leaveAdminProvider.pendingLeaves[index].fromDate.toString()))} to ${dateFormatdate(DateTime.parse(leaveAdminProvider.pendingLeaves[index].toDate.toString()))}",
-                          status: "Pending".toUpperCase(),
-                          onEdit: () {
-                            LeaveMastServices().resetLeaveForm();
-                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.pendingLeaves[index], onthenValue: (val) async {
-                              await leaveAdminProvider.initializeData(forceRefresh: true);
-                            });
-                          },
-                          onDelete: () {
-                            showDeleteDialog(context,size,yesOntap: () {
-                              Navigator.pop(context);
-                              LeaveMastServices().deleteleave(leaveAdminProvider.pendingLeaves[index].cguid.toString(),context,).then((value) async {
-                                await leaveAdminProvider.initializeData(forceRefresh: true);
-                              });
-                            },noOnTap: (){Navigator.pop(context);});
-                          },
-                          onReject: () {
-                            leaveAdminProvider.rejectLeaveRequest(
-                              context,
-                              leaveAdminProvider.pendingLeaves[index],
-                            );
-                          },
-                          onApprove: () {
-                            leaveAdminProvider.approveLeaveRequest(
-                              context,
-                              leaveAdminProvider.pendingLeaves[index],
-                            );
-                          },
+                        child: leaveAdminProvider.pendingLeaves.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  SizedBox(
+                                    height: size.height * 0.65,
+                                    child: noDataFoundsDesign(
+                                      size,
+                                      noDataFoundsString,
+                                      nodataFoundsImagString,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.only(
+                                  bottom: size.height * 0.22,
+                                ),
+                                itemCount:
+                                    leaveAdminProvider.pendingLeaves.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 10,
+                                      right: 10,
+                                      top: 5,
+                                    ),
+                                    child: LeaveRequestCard(
+                                      name:
+                                          "${leaveAdminProvider.pendingLeaves[index].firstName} ${leaveAdminProvider.pendingLeaves[index].lastName}",
+                                      reason:
+                                          leaveAdminProvider
+                                              .pendingLeaves[index]
+                                              .remarks ??
+                                          "N/A",
+                                      date:
+                                          "${dateFormatdate(DateTime.parse(leaveAdminProvider.pendingLeaves[index].fromDate.toString()))} to ${dateFormatdate(DateTime.parse(leaveAdminProvider.pendingLeaves[index].toDate.toString()))}",
+                                      status: "Pending".toUpperCase(),
+                                      duration: "${leaveAdminProvider.pendingLeaves[index].leaveDuration ?? ''} Days - ${leaveAdminProvider.pendingLeaves[index].dayType ?? ''}",
+                                      leaveType: leaveAdminProvider.pendingLeaves[index].leaveTypeFName.toString(),
+                                      leaveTypeColor: ColorConst.addNoteImageColors,
+                                      onEdit: () {
+                                        LeaveMastServices().resetLeaveForm();
+                                        LeaveMastServices().leaveHandleSubmit(
+                                          context,
+                                          true,
+                                          leaveData: leaveAdminProvider
+                                              .pendingLeaves[index],
+                                          onthenValue: (val) async {
+                                            await leaveAdminProvider
+                                                .initializeData(
+                                                  forceRefresh: true,
+                                                );
+                                          },
+                                        );
+                                      },
+                                      onDelete: () {
+                                        showDeleteDialog(
+                                          context,
+                                          size,
+                                          yesOntap: () {
+                                            Navigator.pop(context);
+                                            LeaveMastServices()
+                                                .deleteleave(
+                                                  leaveAdminProvider
+                                                      .pendingLeaves[index]
+                                                      .cguid
+                                                      .toString(),
+                                                  context,
+                                                )
+                                                .then((value) async {
+                                                  await leaveAdminProvider
+                                                      .initializeData(
+                                                        forceRefresh: true,
+                                                      );
+                                                });
+                                          },
+                                          noOnTap: () {
+                                            Navigator.pop(context);
+                                          },
+                                        );
+                                      },
+                                      onReject: () {
+                                        leaveAdminProvider.rejectLeaveRequest(
+                                          context,
+                                          leaveAdminProvider
+                                              .pendingLeaves[index],
+                                        );
+                                      },
+                                      onApprove: () {
+                                        leaveAdminProvider.approveLeaveRequest(
+                                          context,
+                                          leaveAdminProvider
+                                              .pendingLeaves[index],
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+
+                      /// Approve Tab
+                      RefreshIndicator(
+                        color: ColorConst.themeColor,
+                        onRefresh: () => leaveAdminProvider.initializeData(
+                          forceRefresh: true,
                         ),
-                      );
-                    },
-                  ),
-                  ),
-                  
-                  /// Approve Tab
-                  RefreshIndicator(
-                    color: ColorConst.themeColor,
-                    onRefresh: () => leaveAdminProvider.initializeData(forceRefresh: true),
-                    child: leaveAdminProvider.approvedLeaves.isEmpty ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(
-                          height: size.height * 0.65,
-                          child: noDataFoundsDesign(size, noDataFoundsString,nodataFoundsImagString),
+                        child: leaveAdminProvider.approvedLeaves.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  SizedBox(
+                                    height: size.height * 0.65,
+                                    child: noDataFoundsDesign(
+                                      size,
+                                      noDataFoundsString,
+                                      nodataFoundsImagString,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.only(
+                                  bottom: size.height * 0.22,
+                                ),
+                                itemCount:
+                                    leaveAdminProvider.approvedLeaves.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 10,
+                                      right: 10,
+                                      top: 5,
+                                    ),
+                                    child: LeaveApproveCard(
+                                      name:
+                                          "${leaveAdminProvider.approvedLeaves[index].firstName} ${leaveAdminProvider.approvedLeaves[index].lastName}",
+                                      reason:
+                                          leaveAdminProvider
+                                              .approvedLeaves[index]
+                                              .remarks ??
+                                          "N/A",
+                                      date:
+                                          "${dateFormatdate(DateTime.parse(leaveAdminProvider.approvedLeaves[index].fromDate.toString()))} to ${dateFormatdate(DateTime.parse(leaveAdminProvider.approvedLeaves[index].toDate.toString()))}",
+                                      status: "Approved".toUpperCase(),
+                                      onEdit: () {
+                                        LeaveMastServices().resetLeaveForm();
+                                        LeaveMastServices().leaveHandleSubmit(
+                                          context,
+                                          true,
+                                          leaveData: leaveAdminProvider
+                                              .approvedLeaves[index],
+                                          onthenValue: (val) async {
+                                            await leaveAdminProvider
+                                                .initializeData(
+                                                  forceRefresh: true,
+                                                );
+                                          },
+                                        );
+                                      },
+                                      onDelete: () {
+                                        showDeleteDialog(
+                                          context,
+                                          size,
+                                          yesOntap: () {
+                                            Navigator.pop(context);
+                                            LeaveMastServices()
+                                                .deleteleave(
+                                                  leaveAdminProvider
+                                                      .approvedLeaves[index]
+                                                      .cguid
+                                                      .toString(),
+                                                  context,
+                                                )
+                                                .then((value) async {
+                                                  await leaveAdminProvider
+                                                      .initializeData(
+                                                        forceRefresh: true,
+                                                      );
+                                                });
+                                          },
+                                          noOnTap: () {
+                                            Navigator.pop(context);
+                                          },
+                                        );
+                                      },
+                                      leaveTypeColor:
+                                          ColorConst.addNoteImageColors,
+                                      duration: "${leaveAdminProvider.approvedLeaves[index].leaveDuration ?? ''} Days - ${leaveAdminProvider.approvedLeaves[index].dayType ?? ''}",
+                                      leaveType: leaveAdminProvider
+                                          .approvedLeaves[index]
+                                          .leaveTypeFName
+                                          .toString(),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+
+                      /// Reject Tab
+                      RefreshIndicator(
+                        color: ColorConst.themeColor,
+                        onRefresh: () => leaveAdminProvider.initializeData(
+                          forceRefresh: true,
                         ),
-                      ],
-                    ) : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: size.height * 0.22),
-                    itemCount: leaveAdminProvider.approvedLeaves.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 10,right: 10,top: 5),
-                        child: LeaveApproveCard(
-                          name: "${leaveAdminProvider.approvedLeaves[index].firstName} ${leaveAdminProvider.approvedLeaves[index].lastName}",
-                          reason: leaveAdminProvider.approvedLeaves[index].remarks ?? "N/A",
-                          date: "${dateFormatdate(DateTime.parse(leaveAdminProvider.approvedLeaves[index].fromDate.toString()))} to ${dateFormatdate(DateTime.parse(leaveAdminProvider.approvedLeaves[index].toDate.toString()))}",
-                          status: "Approved".toUpperCase(),
-                          onEdit: () {
-                            LeaveMastServices().resetLeaveForm();
-                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.approvedLeaves[index], onthenValue: (val) async {
-                              await leaveAdminProvider.initializeData(forceRefresh: true);
-                            });
-                          },
-                          onDelete: () {
-                            showDeleteDialog(context,size,yesOntap: () {
-                              Navigator.pop(context);
-                              LeaveMastServices().deleteleave(leaveAdminProvider.approvedLeaves[index].cguid.toString(),context,).then((value) async {
-                                await leaveAdminProvider.initializeData(forceRefresh: true);
-                              });
-                            },noOnTap: (){Navigator.pop(context);});
-                          }, leaveTypeColor: ColorConst.addNoteImageColors, duration: '', leaveType: leaveAdminProvider.approvedLeaves[index].leaveTypeFName.toString(),
-                        ),
-                      );
-                    },
+                        child: leaveAdminProvider.rejectedLeaves.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  SizedBox(
+                                    height: size.height * 0.65,
+                                    child: noDataFoundsDesign(
+                                      size,
+                                      noDataFoundsString,
+                                      nodataFoundsImagString,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.only(
+                                  bottom: size.height * 0.22,
+                                ),
+                                itemCount:
+                                    leaveAdminProvider.rejectedLeaves.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 10,
+                                      right: 10,
+                                      top: 5,
+                                    ),
+                                    child: LeaveRejectCard(
+                                      name:
+                                          "${leaveAdminProvider.rejectedLeaves[index].firstName} ${leaveAdminProvider.rejectedLeaves[index].lastName}",
+                                      reason:
+                                          leaveAdminProvider
+                                              .rejectedLeaves[index]
+                                              .remarks ??
+                                          "N/A",
+                                      date:
+                                          "${dateFormatdate(DateTime.parse(leaveAdminProvider.rejectedLeaves[index].fromDate.toString()))} to ${dateFormatdate(DateTime.parse(leaveAdminProvider.rejectedLeaves[index].toDate.toString()))}",
+                                      status: "Rejected".toUpperCase(),
+                                      duration: "${leaveAdminProvider.rejectedLeaves[index].leaveDuration ?? ''} Days - ${leaveAdminProvider.rejectedLeaves[index].dayType ?? ''}",
+                                      leaveType: leaveAdminProvider.rejectedLeaves[index].leaveTypeFName.toString(),
+                                      leaveTypeColor: ColorConst.addNoteImageColors,
+                                      onEdit: () {
+                                        LeaveMastServices().resetLeaveForm();
+                                        LeaveMastServices().leaveHandleSubmit(
+                                          context,
+                                          true,
+                                          leaveData: leaveAdminProvider
+                                              .rejectedLeaves[index],
+                                          onthenValue: (val) async {
+                                            await leaveAdminProvider
+                                                .initializeData(
+                                                  forceRefresh: true,
+                                                );
+                                          },
+                                        );
+                                      },
+                                      onDelete: () {
+                                        showDeleteDialog(
+                                          context,
+                                          size,
+                                          yesOntap: () {
+                                            Navigator.pop(context);
+                                            LeaveMastServices()
+                                                .deleteleave(
+                                                  leaveAdminProvider
+                                                      .rejectedLeaves[index]
+                                                      .cguid
+                                                      .toString(),
+                                                  context,
+                                                )
+                                                .then((value) async {
+                                                  await leaveAdminProvider
+                                                      .initializeData(
+                                                        forceRefresh: true,
+                                                      );
+                                                });
+                                          },
+                                          noOnTap: () {
+                                            Navigator.pop(context);
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
                   ),
-                  ),
-                  
-                  /// Reject Tab
-                  RefreshIndicator(
-                    color: ColorConst.themeColor,
-                    onRefresh: () => leaveAdminProvider.initializeData(forceRefresh: true),
-                    child: leaveAdminProvider.rejectedLeaves.isEmpty ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(
-                          height: size.height * 0.65,
-                          child: noDataFoundsDesign(size, noDataFoundsString,nodataFoundsImagString),
-                        ),
-                      ],
-                    ) : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: size.height * 0.22),
-                    itemCount: leaveAdminProvider.rejectedLeaves.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 10,right: 10,top: 5),
-                        child: LeaveRejectCard(
-                          name: "${leaveAdminProvider.rejectedLeaves[index].firstName} ${leaveAdminProvider.rejectedLeaves[index].lastName}",
-                          reason: leaveAdminProvider.rejectedLeaves[index].remarks ?? "N/A",
-                          date: "${dateFormatdate(DateTime.parse(leaveAdminProvider.rejectedLeaves[index].fromDate.toString()))} to ${dateFormatdate(DateTime.parse(leaveAdminProvider.rejectedLeaves[index].toDate.toString()))}",
-                          status: "Rejected".toUpperCase(),
-                          onEdit: () {
-                            LeaveMastServices().resetLeaveForm();
-                            LeaveMastServices().leaveHandleSubmit(context,true, leaveData: leaveAdminProvider.rejectedLeaves[index], onthenValue: (val) async {
-                              await leaveAdminProvider.initializeData(forceRefresh: true);
-                            });
-                          },
-                          onDelete: () {
-                            showDeleteDialog(context,size,yesOntap: () {
-                              Navigator.pop(context);
-                              LeaveMastServices().deleteleave(leaveAdminProvider.rejectedLeaves[index].cguid.toString(),context,).then((value) async {
-                                await leaveAdminProvider.initializeData(forceRefresh: true);
-                              });
-                            },noOnTap: (){Navigator.pop(context);});
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                  ),
-                  ],
                 ),
-              ),
-              
-            ],
-        ),
-      );
+              ],
+            ),
+    );
   }
 
   Color getLeaveTypeColor(String leaveType) {

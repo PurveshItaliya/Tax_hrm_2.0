@@ -69,16 +69,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     ).format(attendanceProviders.currentMonth);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Update filtered list when data changes
-    if (attendanceProviders.filteredEmployeeList.isEmpty &&
-        attendanceProviders.searchQuery.isEmpty &&
-        attendanceProviders.selectedDepartment == 'ALL') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        attendanceProviders.filteredEmployeeList = List.from(
-          attendanceProviders.empAttendanceList,
-        );
-      });
-    }
+    // We no longer need the postFrameCallback hack here as displayList is computed dynamically in _buildEmployeeListSection
 
     return RefreshIndicator(
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : ColorConst.white,
@@ -1120,13 +1111,47 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     Size size,
     AdminAttenDanceServices attendanceProviders,
   ) {
-    // Use filtered list if search is active or department is selected, otherwise use original list
+    // Dynamically compute the filtered list
+    final empMastProviders = Provider.of<EmployeMastServices>(context, listen: false);
+    List<dynamic> allEmpList = empMastProviders.mainEmployeList;
+    if (allEmpList.isEmpty) allEmpList = empMastProviders.emplists;
+    if (allEmpList.isEmpty) allEmpList = empMastProviders.allemployes;
+
     final bool isFiltered =
         attendanceProviders.searchQuery.isNotEmpty ||
         attendanceProviders.selectedDepartment != 'ALL';
-    final displayList = isFiltered
-        ? attendanceProviders.filteredEmployeeList
-        : attendanceProviders.empAttendanceList;
+        
+    List<dynamic> displayList = attendanceProviders.empAttendanceList;
+    
+    if (isFiltered) {
+      displayList = displayList.where((employee) {
+        bool matchesSearch = true;
+        if (attendanceProviders.searchQuery.isNotEmpty) {
+          final fullName = '${employee.firstName} ${employee.lastName}'.toLowerCase();
+          final firstName = employee.firstName?.toLowerCase() ?? '';
+          final lastName = employee.lastName?.toLowerCase() ?? '';
+          final query = attendanceProviders.searchQuery;
+          matchesSearch = fullName.contains(query) ||
+                          firstName.contains(query) ||
+                          lastName.contains(query);
+        }
+
+        bool matchesDepartment = true;
+        if (attendanceProviders.selectedDepartment != 'ALL') {
+          String deptName = '-';
+          for (var emp in allEmpList) {
+            if (emp.id == employee.empId) {
+              deptName = emp.departmentName ?? '-';
+              if (deptName.trim().isEmpty) deptName = '-';
+              break;
+            }
+          }
+          matchesDepartment = deptName == attendanceProviders.selectedDepartment;
+        }
+
+        return matchesSearch && matchesDepartment;
+      }).toList();
+    }
     return displayList.isEmpty
         ? isFiltered
               ? _buildNoSearchResults(attendanceProviders)

@@ -10,6 +10,9 @@ class LeaveRejectCard extends StatelessWidget {
 
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final String duration;
+  final String leaveType;
+  final Color leaveTypeColor;
 
   const LeaveRejectCard({
     super.key,
@@ -19,6 +22,9 @@ class LeaveRejectCard extends StatelessWidget {
     this.status = "Rejected",
     required this.onEdit,
     required this.onDelete,
+    this.duration = '',
+    required this.leaveType,
+    required this.leaveTypeColor,
   });
 
   @override
@@ -74,33 +80,54 @@ class LeaveRejectCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
-                      // Status Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.cancel,
-                              size: 12,
-                              color: Colors.red.shade700,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red.shade200),
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              status,
-                              style: TextStyle(
-                                color: Colors.red.shade700,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.cancel,
+                                  size: 12,
+                                  color: Colors.red.shade700,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  status,
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (duration.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: ColorConst.themeColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                duration,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: ColorConst.themeColor,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -130,6 +157,12 @@ class LeaveRejectCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                ),
+                const SizedBox(width: 12),
+                _buildBadge(
+                  leaveType,
+                  leaveTypeColor.withOpacity(0.1),
+                  leaveTypeColor,
                 ),
               ],
             ),
@@ -185,6 +218,40 @@ class LeaveRejectCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, size: 18, color: color),
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text, Color defaultBgColor, Color defaultTextColor) {
+    Color textColor = defaultTextColor;
+    Color bgColor = defaultBgColor;
+    Color borderColor = defaultTextColor;
+
+    final type = text.toLowerCase();
+    if (type.contains('unpaid')) {
+      textColor = Colors.orange;
+      bgColor = Colors.orange.withOpacity(0.1);
+      borderColor = Colors.orange;
+    } else if (type.contains('paid')) {
+      textColor = Colors.green;
+      bgColor = Colors.green.withOpacity(0.1);
+      borderColor = Colors.green;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
       ),
     );
   }

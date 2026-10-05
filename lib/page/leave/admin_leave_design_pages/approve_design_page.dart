@@ -63,7 +63,23 @@ class LeaveApproveCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-
+                if (duration.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: ColorConst.themeColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      duration,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: ColorConst.themeColor,
+                      ),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -154,12 +170,28 @@ class LeaveApproveCard extends StatelessWidget {
   }
 
   /// Helper: Reusable Badge for Leave Type and Duration
-  Widget _buildBadge(String text, Color bgColor, Color textColor) {
+  Widget _buildBadge(String text, Color defaultBgColor, Color defaultTextColor) {
+    Color textColor = defaultTextColor;
+    Color bgColor = defaultBgColor;
+    Color borderColor = defaultTextColor;
+
+    final type = text.toLowerCase();
+    if (type.contains('unpaid')) {
+      textColor = Colors.orange;
+      bgColor = Colors.orange.withOpacity(0.1);
+      borderColor = Colors.orange;
+    } else if (type.contains('paid')) {
+      textColor = Colors.green;
+      bgColor = Colors.green.withOpacity(0.1);
+      borderColor = Colors.green;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
       ),
       child: Text(
         text,

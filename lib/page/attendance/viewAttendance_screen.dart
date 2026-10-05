@@ -1292,6 +1292,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             leaveStatusShow: leaveStatusShow,
             leaveResons: leaveResons,
             fetchFuture: fetchTask,
+            onUpdate: () {
+              if (mounted) {
+                setState(() {
+                  _monthViewKey = GlobalKey<MonthViewState>();
+                });
+              }
+            },
           );
         } else {
           String timestampString = date.toString();
@@ -1334,6 +1341,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               leaveStatusShow: leaveStatusShow,
               leaveResons: leaveResons,
               fetchFuture: fetchTask,
+              onUpdate: () {
+                if (mounted) {
+                  setState(() {
+                    _monthViewKey = GlobalKey<MonthViewState>();
+                  });
+                }
+              },
             );
           } else {
             // Check for leaves
@@ -1385,6 +1399,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               leaveStatusShow: leaveStatusShow,
               leaveResons: leaveResons,
               fetchFuture: fetchTask,
+              onUpdate: () {
+                if (mounted) {
+                  setState(() {
+                    _monthViewKey = GlobalKey<MonthViewState>();
+                  });
+                }
+              },
             );
           }
         }
@@ -1543,6 +1564,7 @@ Future<void> showDayDetails(
   String? leaveStatusShow,
   String? leaveResons,
   Future<void>? fetchFuture,
+  VoidCallback? onUpdate,
 }) async {
   attendanceEmp.totalHour = '';
   attendanceEmp.totalWorkHour = '';
@@ -2110,29 +2132,37 @@ Future<void> showDayDetails(
                                                     showdate.toString(),
                                                   ),
                                             ).then((value) {
-                                              String timestampString =
-                                                  DateTime.parse(
-                                                    showdate.toString(),
-                                                  ).toString();
-                                              String formattedTimestampString =
-                                                  timestampString.replaceAll(
-                                                    'Z',
-                                                    '',
-                                                  );
+                                              if (value != null) {
+                                                Navigator.pop(context);
+                                                attendanceEmp.setloading(true);
+                                                String timestampString =
+                                                    DateTime.parse(
+                                                      showdate.toString(),
+                                                    ).toString();
+                                                String formattedTimestampString =
+                                                    timestampString.replaceAll(
+                                                      'Z',
+                                                      '',
+                                                    );
 
-                                              attendanceEmp.getDateBloges(
-                                                formattedTimestampString,
-                                                currentEmpData!.empId,
-                                              );
-                                              attendanceEmp.onMonthChanged(
-                                                attendanceEmp.currentMonth,
-                                                currentEmpData,
-                                                context,
-                                              );
-                                              attendanceEmp.getDuration(
-                                                context,
-                                                currentEmpData,
-                                              );
+                                                attendanceEmp.getDateBloges(
+                                                  formattedTimestampString,
+                                                  currentEmpData!.empId,
+                                                );
+                                                attendanceEmp.onMonthChanged(
+                                                  attendanceEmp.currentMonth,
+                                                  currentEmpData,
+                                                  context,
+                                                ).then((_) {
+                                                  if (onUpdate != null) {
+                                                    onUpdate();
+                                                  }
+                                                });
+                                                attendanceEmp.getDuration(
+                                                  context,
+                                                  currentEmpData,
+                                                );
+                                              }
                                             });
                                           },
                                         ),
@@ -2150,6 +2180,8 @@ Future<void> showDayDetails(
                                               ? ColorConst.white
                                               : Colors.red,
                                           () {
+                                            Navigator.pop(context);
+                                            attendanceEmp.setloading(true);
                                             adminAttenDanceServices
                                                 .setAbsentEmployes(
                                                   attendanceDate: attendence?.attendenceDate ?? showdate.toString(),
@@ -2162,12 +2194,15 @@ Future<void> showDayDetails(
                                                     attendanceEmp.currentMonth,
                                                     currentEmpData,
                                                     context,
-                                                  );
+                                                  ).then((_) {
+                                                    if (onUpdate != null) {
+                                                      onUpdate();
+                                                    }
+                                                  });
                                                   attendanceEmp.getDuration(
                                                     context,
                                                     currentEmpData,
                                                   );
-                                                  Navigator.pop(context);
                                                 });
                                           },
                                         ),
@@ -2208,6 +2243,8 @@ Future<void> showDayDetails(
                                               () {
                                                 adminAttenDanceServices
                                                     .toggleLeaveType(item);
+                                                Navigator.pop(context);
+                                                attendanceEmp.setloading(true);
                                                 adminAttenDanceServices
                                                     .applyLeaveData(
                                                       context,
@@ -2221,13 +2258,16 @@ Future<void> showDayDetails(
                                                                 .currentMonth,
                                                             currentEmpData,
                                                             context,
-                                                          );
+                                                          ).then((_) {
+                                                            if (onUpdate != null) {
+                                                              onUpdate();
+                                                            }
+                                                          });
                                                       attendanceEmp.getDuration(
                                                         context,
                                                         currentEmpData,
                                                       );
                                                     });
-                                                Navigator.pop(context);
                                               },
                                             );
                                           }).toList(),
@@ -2834,24 +2874,32 @@ Future<void> showDayDetails(
                                         showdate.toString(),
                                       ),
                                     ).then((value) async {
-                                      String timestampString = DateTime.parse(
-                                        showdate.toString(),
-                                      ).toString();
-                                      String formattedTimestampString =
-                                          timestampString.replaceAll('Z', '');
-                                      attendanceEmp.getDateBloges(
-                                        formattedTimestampString,
-                                        currentEmpData!.empId,
-                                      );
-                                      attendanceEmp.onMonthChanged(
-                                        attendanceEmp.currentMonth,
-                                        currentEmpData,
-                                        context,
-                                      );
-                                      attendanceEmp.getDuration(
-                                        context,
-                                        currentEmpData,
-                                      );
+                                      if (value != null) {
+                                        Navigator.pop(context);
+                                        attendanceEmp.setloading(true);
+                                        String timestampString = DateTime.parse(
+                                          showdate.toString(),
+                                        ).toString();
+                                        String formattedTimestampString =
+                                            timestampString.replaceAll('Z', '');
+                                        attendanceEmp.getDateBloges(
+                                          formattedTimestampString,
+                                          currentEmpData!.empId,
+                                        );
+                                        attendanceEmp.onMonthChanged(
+                                          attendanceEmp.currentMonth,
+                                          currentEmpData,
+                                          context,
+                                        ).then((_) {
+                                          if (onUpdate != null) {
+                                            onUpdate();
+                                          }
+                                        });
+                                        attendanceEmp.getDuration(
+                                          context,
+                                          currentEmpData,
+                                        );
+                                      }
                                     });
                                   },
                                   child: Column(

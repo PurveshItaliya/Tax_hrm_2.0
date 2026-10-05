@@ -17,8 +17,6 @@ import 'package:tax_hrm/services/smart_timeline_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
-import 'package:tax_hrm/page/visit/visit_details_screen.dart';
-import 'package:tax_hrm/models/fixeddat.dart';
 
 class SmartTimelineScreen extends StatefulWidget {
   final String userId;
