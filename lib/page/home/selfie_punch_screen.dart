@@ -30,7 +30,7 @@ class SelfiePunchScreen extends StatefulWidget {
 
 class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     with WidgetsBindingObserver {
-  // ── Guards ─────────────────────────────────────────────────────────────────
+  // ── Guards ────────────────────────────────────────────────────────────────
   bool _isFlowRunning = false; // true while PermissionFlowService is active
   bool _permissionsChecked = false;
   bool _wentToSettings = false;
