@@ -273,38 +273,33 @@ class SelfiePunchProvider extends ChangeNotifier {
           debugPrint("Could not set screen brightness: $e");
         }
 
-        // Check environment brightness safely using a short-lived image stream
-        int frameCount = 0;
-        bool streamStopped = false;
+        // Safely check environment brightness using a continuous throttled stream
+        // This avoids the native crash caused by rapidly stopping the stream.
+        Stopwatch brightnessStopwatch = Stopwatch()..start();
         try {
           cameraController!.startImageStream((image) {
-            if (streamStopped) return;
-            frameCount++;
-            if (frameCount < 5) return; 
-            streamStopped = true;
+            // Smartly handle strobe effect: do not check brightness while flash is active
+            if (showFlashOverlay) return;
+            if (brightnessStopwatch.elapsedMilliseconds < 500) return;
+            brightnessStopwatch.reset();
             
             if (image.planes.isNotEmpty) {
               final bytes = image.planes[0].bytes;
               int total = 0, count = 0;
               for (int i = 0; i < bytes.length; i += 50) { total += bytes[i]; count++; }
-              if (count > 0 && (total / count) < 60) {
-                 isDarkEnvironment = true;
-                 debugPrint("Punch Screen: Dark environment detected.");
-              } else {
-                 isDarkEnvironment = false;
+              if (count > 0) {
+                 bool isDark = (total / count) < 60;
+                 if (isDark != isDarkEnvironment) {
+                   isDarkEnvironment = isDark;
+                   debugPrint("Punch Screen: Dark environment status changed: $isDarkEnvironment");
+                 }
               }
-              notifyListeners();
             }
           });
-          
-          // Stop stream safely outside the callback to avoid concurrent modification issues
-          Future.delayed(const Duration(milliseconds: 1000), () async {
-            if (cameraController != null && cameraController!.value.isStreamingImages) {
-              try { await cameraController!.stopImageStream(); } catch (_) {}
-            }
-          });
+          // Note: We intentionally DO NOT stop the image stream here.
+          // Stopping it while the camera is warming up causes native crashes on Android.
         } catch (e) {
-          debugPrint("Failed to check brightness: $e");
+          debugPrint("Failed to start brightness stream: $e");
         }
 
       } catch (e) {
@@ -1266,7 +1261,7 @@ class SelfiePunchProvider extends ChangeNotifier {
             'punch_widget/open',
           ).invokeMethod('move_to_background');
         } catch (_) {}
-        SystemNavigator.pop();
+        SystemNavigator.pop(); // Restored because offline doesn't need to wait for API
       } else {
         final navigator = Navigator.of(context);
         navigator.pop();
@@ -1357,7 +1352,7 @@ class SelfiePunchProvider extends ChangeNotifier {
               'punch_widget/open',
             ).invokeMethod('move_to_background');
           } catch (_) {}
-          SystemNavigator.pop();
+          // SystemNavigator.pop(); // Removed to allow background image upload
         } else {
           navigator.pop();
           navigator.push(
@@ -1373,17 +1368,36 @@ class SelfiePunchProvider extends ChangeNotifier {
       showtoastmessage(errorOccurredString);
     }
 
-    await AttendanceApis().callWithImgPunch(
-      listenRes: (val) {},
-      FILES: userImages,
-      setCguid: setGuid,
-      setLatitude: usersetLatitude,
-      setLocation: setUsreLoaction,
-      setLongitude: usersetLongitude,
-    );
+    if (isFromWidget) {
+      debugPrint("🟠 [WidgetDebug] App is now in background. Starting image upload...");
+    }
+    try {
+      await AttendanceApis().callWithImgPunch(
+        listenRes: (val) {},
+        FILES: userImages,
+        setCguid: setGuid,
+        setLatitude: usersetLatitude,
+        setLocation: setUsreLoaction,
+        setLongitude: usersetLongitude,
+      );
+      if (isFromWidget) {
+        debugPrint("🟠 [WidgetDebug] Image upload in background COMPLETED successfully.");
+      }
+    } catch (e) {
+      if (isFromWidget) {
+        debugPrint("🟠 [WidgetDebug] Image upload in background FAILED: $e");
+      }
+    }
 
     setPunchBoxOnTapStart(false);
     setPunchLoader(false);
+
+    // After the image successfully uploads in the background, safely kill the app
+    // so it doesn't stay stuck on a blank camera screen when reopened.
+    if (isFromWidget) {
+      debugPrint("🟠 [WidgetDebug] Safely closing the app memory via SystemNavigator.pop()");
+      SystemNavigator.pop();
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1721,6 +1735,14 @@ class SelfiePunchProvider extends ChangeNotifier {
         try {
           // ensure preview is running
           await cameraController!.resumePreview();
+        } catch (_) {}
+      }
+
+      // Stop the image stream safely BEFORE taking a picture.
+      // On Android, takePicture() will crash if the image stream is still active.
+      if (cameraController != null && cameraController!.value.isStreamingImages) {
+        try {
+          await cameraController!.stopImageStream();
         } catch (_) {}
       }
 

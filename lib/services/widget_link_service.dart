@@ -10,6 +10,7 @@ import 'package:tax_hrm/utils/navigation.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';
+import 'package:tax_hrm/provider/internetcheck.dart';
 
 class WidgetLinkService {
   static final WidgetLinkService instance = WidgetLinkService._internal();
@@ -104,8 +105,24 @@ class WidgetLinkService {
 
 /// A thin wrapper that shows the punch screen immediately.
 /// Has a back action that exits to the home bottom bar.
-class WidgetPunchWrapper extends StatelessWidget {
+class WidgetPunchWrapper extends StatefulWidget {
   const WidgetPunchWrapper({super.key});
+
+  @override
+  State<WidgetPunchWrapper> createState() => _WidgetPunchWrapperState();
+}
+
+class _WidgetPunchWrapperState extends State<WidgetPunchWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // Wake up the internet provider specifically for the widget fast path
+    // so it accurately displays the offline badge if there is no connection.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<InternetConnectionProvider>(context, listen: false)
+          .getConnectivityType();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

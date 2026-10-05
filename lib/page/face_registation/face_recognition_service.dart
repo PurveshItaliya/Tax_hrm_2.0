@@ -137,28 +137,29 @@ class FaceRecognitionService {
     double actualWidth = isRotated ? image.height.toDouble() : image.width.toDouble();
     double actualHeight = isRotated ? image.width.toDouble() : image.height.toDouble();
 
-    // Check face size (e.g. > 20% of image height)
-    if (face.boundingBox.height < actualHeight * 0.2) {
+    // Check face size (e.g. > 20% of image height) - Relaxed slightly to 15%
+    if (face.boundingBox.height < actualHeight * 0.15) {
       return 'moveCloser';
     }
 
-    // Check face tilt (yaw, pitch, roll)
+    // Check face tilt (yaw, pitch, roll) - Relaxed from 15 degrees to 25 degrees
     if (face.headEulerAngleY != null &&
-        (face.headEulerAngleY! > 15 || face.headEulerAngleY! < -15)) {
+        (face.headEulerAngleY! > 25 || face.headEulerAngleY! < -25)) {
       return 'straightenFace';
     }
     if (face.headEulerAngleZ != null &&
-        (face.headEulerAngleZ! > 15 || face.headEulerAngleZ! < -15)) {
+        (face.headEulerAngleZ! > 25 || face.headEulerAngleZ! < -25)) {
       return 'straightenFace';
     }
 
     // Check if the entire face bounding box is within the central circular frame area.
     // We define a strict central region based on the camera image dimensions.
+    // Relaxed by expanding the allowed area slightly so users don't have to be perfectly centered.
     double centerX = actualWidth / 2;
     double centerY = actualHeight / 2;
     
-    double allowedRadiusX = actualWidth * 0.35;
-    double allowedRadiusY = actualHeight * 0.25;
+    double allowedRadiusX = actualWidth * 0.45; // Increased from 0.35
+    double allowedRadiusY = actualHeight * 0.35; // Increased from 0.25
     
     bool isOutsideFrame = face.boundingBox.left < (centerX - allowedRadiusX) ||
                           face.boundingBox.right > (centerX + allowedRadiusX) ||

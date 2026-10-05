@@ -46,7 +46,7 @@ class FaceVerificationProvider extends ChangeNotifier {
 
   // Constants
   static const double THRESHOLD =
-      0.65; // Cosine similarity threshold for MobileFaceNet
+      0.60; // Cosine similarity threshold for MobileFaceNet
   final String templateKeyPrefix = 'face_template_v2_'; // Append empId
 
   // Logs
@@ -709,13 +709,13 @@ class FaceVerificationProvider extends ChangeNotifier {
            
            bool isLive = await recognitionService.checkLiveness(image, faces.first, controller.description);
            if (!isLive) {
-              if (!completer.isCompleted) completer.complete(false);
+              // Continuous scan: Ignore this frame and wait for the next one
               return;
            }
            
            final liveEmbedding = await recognitionService.generateFaceEmbedding(image, faces.first, controller.description);
            if (liveEmbedding == null) {
-              if (!completer.isCompleted) completer.complete(false);
+              // Continuous scan: Ignore this frame and wait for the next one
               return;
            }
            
@@ -728,8 +728,8 @@ class FaceVerificationProvider extends ChangeNotifier {
            if (maxSimilarity >= THRESHOLD) {
               if (!completer.isCompleted) completer.complete(true);
            } else {
-              // Wait for 3 consecutive mismatches maybe? Or just fail immediately
-              if (!completer.isCompleted) completer.complete(false); 
+              // Continuous scan: Do NOT instantly fail. Let it scan the next frame.
+              // It will automatically timeout and fail if 15 seconds pass without a match.
            }
         } catch (e) {
            log("Live stream verification frame error: $e");
