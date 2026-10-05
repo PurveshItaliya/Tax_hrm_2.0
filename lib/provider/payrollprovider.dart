@@ -308,19 +308,10 @@ class PayRollProviders extends ChangeNotifier {
         }
       }
       
-      if (alrdayDataAdd == true) {
-        for (final element in getPayRollAttendanceData) {
-          DateTime breakDate = DateTime.parse(element.attendenceDate.toString());
-          if (breakDate.day == i && breakDate.month == month && breakDate.year == year) {
-            totalBreaks = double.tryParse(element.totalBreak ?? '0') ?? 0;
-          }
-        }
-      } else {
-        for (final element in getAllMonthsBreak) {
-          DateTime breakDate = DateTime.parse(element.attendenceDate.toString());
-          if (breakDate.day == i && breakDate.month == month && breakDate.year == year) {
-            totalBreaks = double.tryParse(element.totalOutMinutes.toString()) ?? 0;
-          }
+      for (final element in getAllMonthsBreak) {
+        DateTime breakDate = DateTime.parse(element.attendenceDate.toString());
+        if (breakDate.day == i && breakDate.month == month && breakDate.year == year) {
+          totalBreaks = double.tryParse(element.totalOutMinutes.toString()) ?? 0;
         }
       }
       
@@ -728,17 +719,10 @@ class PayRollProviders extends ChangeNotifier {
 
   void _calculateBreakAndWorkingHours() {
     showMainBreaksValues = 0;
-    if (alrdayDataAdd == true) {
-      for (final element in getPayRollAttendanceData) {
-        showMainBreaksValues += double.tryParse(element.totalBreak ?? '0') ?? 0;
-      }
-      totalMainBreak += showMainBreaksValues;
-    } else {
-      for (final element in getAllMonthsBreak) {
-        showMainBreaksValues += double.tryParse(element.totalOutMinutes.toString()) ?? 0;
-      }
-      totalMainBreak += showMainBreaksValues;
+    for (final element in getAllMonthsBreak) {
+      showMainBreaksValues += double.tryParse(element.totalOutMinutes.toString()) ?? 0;
     }
+    totalMainBreak += showMainBreaksValues;
     
     if (selectedUserShift?.break1 == true) totalMainBreak += shiftBreakTime1 * totalPresnts;
     if (selectedUserShift?.break2 == true) totalMainBreak += shiftBreakTime2 * totalPresnts;

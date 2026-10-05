@@ -135,6 +135,205 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     });
   }
 
+  void _showLegendDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final attendanceProvider = Provider.of<AttendanceEmp>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          titlePadding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
+          contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          actionsPadding: EdgeInsets.zero,
+          title: Row(
+            children: [
+              Icon(Icons.info_outline, color: ColorConst.themeColor, size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Attendance Info', 
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: () => Navigator.of(context).pop(),
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 22,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.80,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Color Legend', 
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 2),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade800 : ColorConst.greyOpicityColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLegendItem(ColorConst.themeColor, 'Total Hours / Present', isDark),
+                      _buildLegendItem(ColorConst.red, 'Total Break / Absent', isDark),
+                      _buildLegendItem(ColorConst.paidLeaveColor, 'Paid Leave', isDark),
+                      _buildLegendItem(ColorConst.holidayColor, 'Holiday', isDark),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200, thickness: 1),
+                const SizedBox(height: 5),
+                Text(
+                  'Calculation Formula', 
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                ),
+                const SizedBox(height: 5),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade800 : ColorConst.greyOpicityColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total Hours (${attendanceProvider.totalPresent} Days)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                          Row(
+                            children: [
+                              Text('${attendanceProvider.grossTotalHours.isEmpty ? '0:0' : attendanceProvider.grossTotalHours} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(width: 8),
+                              Text('(+)', style: TextStyle(color: ColorConst.themeColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Break Hours', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                          Row(
+                            children: [
+                              Text('${attendanceProvider.totalBreakHours.isEmpty ? '0:0' : attendanceProvider.totalBreakHours} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(width: 8),
+                              Text('(-)', style: TextStyle(color: ColorConst.red, fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Paid Leave (${attendanceProvider.totalPaidLeave % 1 == 0 ? attendanceProvider.totalPaidLeave.toInt() : attendanceProvider.totalPaidLeave} Days)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                          Row(
+                            children: [
+                              Text('${attendanceProvider.paidLeaveHours.isEmpty ? '0:0' : attendanceProvider.paidLeaveHours} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(width: 8),
+                              Text('(+)', style: TextStyle(color: ColorConst.paidLeaveColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Holiday (${attendanceProvider.totalHoliday % 1 == 0 ? attendanceProvider.totalHoliday.toInt() : attendanceProvider.totalHoliday} Days)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                          Row(
+                            children: [
+                              Text('${attendanceProvider.holidayHoursCount.isEmpty ? '0:0' : attendanceProvider.holidayHoursCount} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(width: 8),
+                              Text('(+)', style: TextStyle(color: ColorConst.holidayColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, thickness: 1, height: 1),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Working Hours', style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 14)),
+                          Row(
+                            children: [
+                              Text('${attendanceProvider.showUserTotalHours.isEmpty ? '0:0' : attendanceProvider.showUserTotalHours} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 8),
+                              Text('(=)', style: TextStyle(color: ColorConst.themeColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String label, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 14, 
+            height: 14, 
+            decoration: BoxDecoration(
+              color: color, 
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label, 
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.grey.shade300 : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     int setindexs = 0;
@@ -181,7 +380,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               : '${_currentEmpData!.firstName} ${_currentEmpData!.lastName}',
           size,
           centerTitles: false,
-          actions: const <Widget>[],
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () {
+                _showLegendDialog(context);
+              },
+            ),
+          ],
         ),
         body: viewCalenderShimmer(size),
       );
@@ -195,7 +401,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             : '${_currentEmpData!.firstName} ${_currentEmpData!.lastName}',
         size,
         centerTitles: false,
-        actions: const <Widget>[],
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              _showLegendDialog(context);
+            },
+          ),
+        ],
       ),
       body: refreshIndicatorDesign(
         onRefreshOntap: () async {
@@ -619,119 +832,103 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             padding: EdgeInsets.only(
                               bottom: size.height * 0.01,
                             ),
-                            child: Row(
-                              children: List.generate(7, (index) {
-                                if (index.isOdd)
-                                  return const SizedBox(width: 8);
-                                return Expanded(
-                                  child: Shimmer(
-                                    child: Container(
-                                      height: size.height * 0.055,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade300,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }),
+                            child: Shimmer(
+                              child: Container(
+                                height: size.height * 0.08,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
                             ),
                           );
                         }
 
-                        String adminTotal =
-                            attendanceEmp.selectedEmploye?.totalhours
-                                ?.toString() ??
-                            '0';
-                        String userTotal =
-                            curentUser['Totalhours']?.toString() ?? '0';
-                        String dynamicTotal = (curentUser['Role'] == 'Admin'
-                            ? adminTotal
-                            : userTotal);
-                        if (dynamicTotal == '0' ||
-                            dynamicTotal == '0.0' ||
-                            dynamicTotal == '0:0' ||
-                            dynamicTotal == '') {
-                          dynamicTotal =
-                              attendanceEmp.expectedTotalHours.isEmpty
-                              ? '0'
-                              : attendanceEmp.expectedTotalHours;
+                        String formatTimeStr(String val) {
+                          if (val.isEmpty || val == 'null') return '0.00';
+                          final parts = val.split(':');
+                          if (parts.length == 2) {
+                            return '${parts[0].trim().padLeft(2, '0')}.${parts[1].trim().padLeft(2, '0')}';
+                          }
+                          return val;
                         }
 
-                        final totalHoursVal =
-                            '${attendanceEmp.showUserTotalHours} / $dynamicTotal';
-                        final totalBreakVal =
-                            attendanceEmp.totalBreakHours.isEmpty
-                            ? '0 : 0'
-                            : attendanceEmp.totalBreakHours;
-                        final paidLeaveVal =
-                            attendanceEmp.paidLeaveHours.isEmpty
-                            ? '0 : 0'
-                            : attendanceEmp.paidLeaveHours;
-                        final holidayVal =
-                            attendanceEmp.holidayHoursCount.isEmpty
-                            ? '0 : 0'
-                            : attendanceEmp.holidayHoursCount;
+                        final totalHoursVal = formatTimeStr(attendanceEmp.grossTotalHours);
+                        final totalBreakVal = formatTimeStr(attendanceEmp.totalBreakHours);
+                        final paidLeaveVal = formatTimeStr(attendanceEmp.paidLeaveHours);
+                        final holidayVal = formatTimeStr(attendanceEmp.holidayHoursCount);
+                        final totalWorkingVal = formatTimeStr(attendanceEmp.showUserTotalHours);
+
+                        final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+
+                        Widget buildBoxItem(String title, String value, Color valColor) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDarkTheme ? const Color(0xFF2C2C2C) : ColorConst.greyOpicityColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: isDarkTheme ? Colors.grey.shade800 : Colors.grey.shade200),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isDarkTheme ? Colors.grey.shade400 : Colors.grey.shade600,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  value,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: valColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        bool isZeroTime(String val) {
+                          return val == '0.00' || val == '00.00' || val == '0';
+                        }
 
                         final activeWidgets = <Widget>[];
 
-                        if (!_isZeroValue(totalHoursVal)) {
-                          activeWidgets.add(
-                            _compactSummaryTile(
-                              context,
-                              size,
-                              totalHoursString,
-                              totalHoursVal,
-                              ColorConst.themeColor,
-                            ),
-                          );
-                        }
-                        if (!_isZeroValue(totalBreakVal)) {
-                          activeWidgets.add(
-                            _compactSummaryTile(
-                              context,
-                              size,
-                              totalBreakString,
-                              totalBreakVal,
-                              ColorConst.red,
-                            ),
-                          );
-                        }
-                        if (!_isZeroValue(paidLeaveVal)) {
-                          activeWidgets.add(
-                            _compactSummaryTile(
-                              context,
-                              size,
-                              paidLeaveHrsString,
-                              paidLeaveVal,
-                              ColorConst.paidLeaveColor,
-                            ),
-                          );
-                        }
-                        if (!_isZeroValue(holidayVal)) {
-                          activeWidgets.add(
-                            _compactSummaryTile(
-                              context,
-                              size,
-                              holidayHrsString,
-                              holidayVal,
-                              ColorConst.holidayColor,
-                            ),
-                          );
+                        activeWidgets.add(buildBoxItem('Total', totalHoursVal, ColorConst.themeColor));
+
+                        if (!isZeroTime(totalBreakVal)) {
+                          activeWidgets.add(buildBoxItem('Break', totalBreakVal, ColorConst.red));
                         }
 
-                        if (activeWidgets.isEmpty) {
-                          return const SizedBox.shrink();
+                        if (!isZeroTime(paidLeaveVal)) {
+                          activeWidgets.add(buildBoxItem('Leave', paidLeaveVal, ColorConst.paidLeaveColor));
                         }
 
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: size.height * 0.01),
+                        if (!isZeroTime(holidayVal)) {
+                          activeWidgets.add(buildBoxItem('Holiday', holidayVal, ColorConst.holidayColor));
+                        }
+
+                        activeWidgets.add(buildBoxItem('Working', totalWorkingVal, ColorConst.themeColor));
+
+                        return Container(
+                          margin: EdgeInsets.only(bottom: size.height * 0.01),
                           child: Row(
                             children: List.generate(
                               activeWidgets.length * 2 - 1,
                               (index) {
                                 if (index.isOdd) {
-                                  return const SizedBox(width: 8);
+                                  return const SizedBox(width: 6);
                                 }
                                 return Expanded(
                                   child: activeWidgets[index ~/ 2],

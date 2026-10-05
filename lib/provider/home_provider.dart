@@ -96,19 +96,13 @@ class HomeProvider extends ChangeNotifier {
   homepageMenuGet(context) {
     bool isVisitor = false;
     if (curentUser != null) {
-      print("----- DEBUG isVisitor -----");
-      print("curentUser Data: $curentUser");
       var val = curentUser['isVisitor'] ?? curentUser['IsVisitor'];
-      print("Raw isVisitor value: $val, type: ${val?.runtimeType}");
       if (val is bool) {
         isVisitor = val;
       } else if (val != null) {
         isVisitor = val.toString().toLowerCase() == 'true';
       }
-      print("Parsed isVisitor value: $isVisitor");
-      print("---------------------------");
     } else {
-      print("----- DEBUG isVisitor: curentUser is null -----");
     }
 
     homeGridOptionList = curentUser['Role'] == 'Admin' ? [
@@ -626,18 +620,12 @@ class HomeProvider extends ChangeNotifier {
       );
       if (!context.mounted) return;
 
-      // Calculate break minutes
-      if (payrollProvider.getPayRollAttendanceData.isEmpty) {
-        payrollProvider.getAllMonthsBreak.forEach((element) {
+      // Calculate break minutes strictly using TotalDaywiseBreak API
+      payrollProvider.getAllMonthsBreak.forEach((element) {
+        if (element.totalOutMinutes != null) {
           premOutMinuts += double.parse(element.totalOutMinutes.toString());
-        });
-      } else {
-        payrollProvider.getPayRollAttendanceData.forEach((element) {
-          if (element.totalBreak != null) {
-            premOutMinuts += double.parse(element.totalBreak.toString());
-          }
-        });
-      }
+        }
+      });
 
       // Calculate day total minutes from shift duration
       DateFormat dateFormat = DateFormat("dd/MM/yyyy HH:mm:ss");

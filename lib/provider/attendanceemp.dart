@@ -759,6 +759,7 @@ class AttendanceEmp extends ChangeNotifier {
   String paidLeaveHours = '';
   String totalBreakHours = '';
   String expectedTotalHours = '';
+  String grossTotalHours = '';
 
   Future calculateTime(context, empData, int fetchMonth, int fetchYear) async {
     try {
@@ -771,16 +772,8 @@ class AttendanceEmp extends ChangeNotifier {
       final payrollProvider = Provider.of<PayRollProviders>(context, listen: false);
       final holidayProvider = Provider.of<HolidayeMastServices>(context, listen: false);
 
-      if (payrollProvider.getPayRollAttendanceData.isEmpty) {
-        for (final element in payrollProvider.getAllMonthsBreak) {
-          premOutMinuts += double.parse(element.totalOutMinutes.toString());
-        }
-      } else {
-        for (final element in payrollProvider.getPayRollAttendanceData) {
-          if (element.totalBreak != null) {
-            premOutMinuts += double.parse(element.totalBreak.toString());
-          }
-        }
+      for (final element in payrollProvider.getAllMonthsBreak) {
+        premOutMinuts += double.tryParse(element.totalOutMinutes?.toString() ?? '0') ?? 0;
       }
 
       final breakTotalMinutes = premOutMinuts.toInt();
@@ -811,6 +804,11 @@ class AttendanceEmp extends ChangeNotifier {
           localPaidLeave += 1;
         }
       }
+
+      final grossMinutes = localUseTotalMinuts.toInt();
+      final gHours = grossMinutes ~/ 60;
+      final gMins = grossMinutes % 60;
+      grossTotalHours = "$gHours : $gMins";
 
       final dateFormat = DateFormat("dd/MM/yyyy HH:mm:ss");
       final parsedDateTime = dateFormat.parse(getUserShift!.shiftDuration ?? '');

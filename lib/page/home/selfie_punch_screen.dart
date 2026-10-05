@@ -1,6 +1,5 @@
 // ignore_for_file: invalid_return_type_for_catch_error, deprecated_member_use, strict_top_level_inference, use_build_context_synchronously
 
-import 'dart:developer';
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -221,12 +220,6 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
 
     final faceId = curentUser?["FaceRegisterId"];
     final alternativeFaceId = curentUser?["FaceRegisterId "];
-    
-    log("=== FACE REGISTRATION DEBUG ===");
-    log("CurrentUser Keys: ${curentUser?.keys.toList()}");
-    log("FaceRegisterId value: '$faceId'");
-    log("FaceRegisterId  value: '$alternativeFaceId'");
-    log("===============================");
 
     if ((faceId == null || faceId.toString().isEmpty) && 
         (alternativeFaceId == null || alternativeFaceId.toString().isEmpty)) {

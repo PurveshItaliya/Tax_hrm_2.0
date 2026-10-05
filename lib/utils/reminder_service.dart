@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -13,8 +12,6 @@ import 'package:tax_hrm/api/employeapi.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/services/notifications/notification_logger_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
-
-import '../services/notifications/notification_generator_service.dart';
 
 
 class ReminderNotificationService {
@@ -155,25 +152,25 @@ class ReminderNotificationService {
     // await updateHolidaysAndLeaves();
 
     // 3. Generate and schedule notifications
-    final now = DateTime.now();
-    final items = NotificationGeneratorService.generateAll(
-      employees: employees,
-      holidays: holidays,
-      currentUserId: userId,
-      now: now,
-    );
+    // final now = DateTime.now();
+    // final items = NotificationGeneratorService.generateAll(
+    //   employees: employees,
+    //   holidays: holidays,
+    //   currentUserId: userId,
+    //   now: now,
+    // );
 
-    final scheduledIds = await NotificationGeneratorService.scheduleItems(items);
-    await NotificationStorageService.saveScheduleMetadata(
-      companyId: companyId,
-      userId: userId,
-      scheduledIds: scheduledIds,
-    );
+    // final scheduledIds = await NotificationGeneratorService.scheduleItems(items);
+    // await NotificationStorageService.saveScheduleMetadata(
+    //   companyId: companyId,
+    //   userId: userId,
+    //   scheduledIds: scheduledIds,
+    // );
 
     // 4. Run shift reminders
     await scheduleReminders();
 
-    NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS COMPLETE (Refreshed: ${scheduledIds.length} events scheduled) ---');
+    // NotificationLoggerService.scheduling('--- SCHEDULE ALL NOTIFICATIONS COMPLETE (Refreshed: ${scheduledIds.length} events scheduled) ---');
   }
 
   static Future<String> scheduleReminders() async {

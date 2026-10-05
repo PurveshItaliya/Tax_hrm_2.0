@@ -2,8 +2,6 @@
 import 'package:timezone/timezone.dart' as tz;
 import 'package:tax_hrm/services/notifications/notification_logger_service.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
-import 'package:tax_hrm/models/employes/getemployes.dart';
-import 'package:tax_hrm/models/Holidays/getholiday.dart';
 
 class NotificationScheduleItem {
   final int id;
@@ -30,10 +28,6 @@ class NotificationGeneratorService {
     return (typePrefix * 100000000) + (safeEntityId * 1000) + (dayOfYear % 1000);
   }
 
-  static bool _isLeapYear(int year) {
-    return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
-  }
-
   static String getOrdinalSuffix(int number) {
     if (number >= 11 && number <= 13) {
       return 'th';
@@ -53,153 +47,153 @@ class NotificationGeneratorService {
 
   
   
-  static List<NotificationScheduleItem> generateAll({
-    required List<Employeelists> employees,
-    required List<GetHolidayViews> holidays,
-    required int currentUserId,
-    required DateTime now,
-  }) {
-    final List<NotificationScheduleItem> items = [];
-    final DateTime windowEnd = now.add(const Duration(days: 7, hours: 23, minutes: 59));
+  // static List<NotificationScheduleItem> generateAll({
+  //   required List<Employeelists> employees,
+  //   required List<GetHolidayViews> holidays,
+  //   required int currentUserId,
+  //   required DateTime now,
+  // }) {
+  //   final List<NotificationScheduleItem> items = [];
+  //   final DateTime windowEnd = now.add(const Duration(days: 7, hours: 23, minutes: 59));
 
-    // NotificationLoggerService.scheduling('Generating notifications for window: ${now.toString()} to ${windowEnd.toString()}');
+  //   // NotificationLoggerService.scheduling('Generating notifications for window: ${now.toString()} to ${windowEnd.toString()}');
 
-    // 1. Process Employee Birthdays and Anniversaries
-        for (final emp in employees) {
-          if (emp.isActive == false) {
-            continue;
-          }
+  //   // 1. Process Employee Birthdays and Anniversaries
+  //       for (final emp in employees) {
+  //         if (emp.isActive == false) {
+  //           continue;
+  //         }
 
-          final String empName = '${emp.firstName ?? ''} ${emp.lastName ?? ''}'.trim();
-          final String displayName = empName.isEmpty ? 'Employee' : empName;
-          final int empId = emp.id ?? 0;
-          final bool isCurrentUser = (empId != 0 && empId == currentUserId);
+  //         final String empName = '${emp.firstName ?? ''} ${emp.lastName ?? ''}'.trim();
+  //         final String displayName = empName.isEmpty ? 'Employee' : empName;
+  //         final int empId = emp.id ?? 0;
+  //         final bool isCurrentUser = (empId != 0 && empId == currentUserId);
 
-          // --- BIRTHDAY CHECK ---
-          if (emp.dOB != null && emp.dOB.toString().trim().isNotEmpty) {
-            final DateTime? dob = DateTime.tryParse(emp.dOB.toString().trim());
-            if (dob != null) {
-              for (int d = 0; d < 7; d++) {
-                final targetDate = now.add(Duration(days: d));
+  //         // --- BIRTHDAY CHECK ---
+  //         if (emp.dOB != null && emp.dOB.toString().trim().isNotEmpty) {
+  //           final DateTime? dob = DateTime.tryParse(emp.dOB.toString().trim());
+  //           if (dob != null) {
+  //             for (int d = 0; d < 7; d++) {
+  //               final targetDate = now.add(Duration(days: d));
             
-                bool isBirthdayToday = false;
-                if (targetDate.month == dob.month && targetDate.day == dob.day) {
-                  isBirthdayToday = true;
-                } else if (dob.month == 2 && dob.day == 29 && !_isLeapYear(targetDate.year)) {
-                  // Leap year baby celebrating on non-leap year -> celebrate Feb 28
-                  if (targetDate.month == 2 && targetDate.day == 28) {
-                    isBirthdayToday = true;
-                  }
-                }
+  //               bool isBirthdayToday = false;
+  //               if (targetDate.month == dob.month && targetDate.day == dob.day) {
+  //                 isBirthdayToday = true;
+  //               } else if (dob.month == 2 && dob.day == 29 && !_isLeapYear(targetDate.year)) {
+  //                 // Leap year baby celebrating on non-leap year -> celebrate Feb 28
+  //                 if (targetDate.month == 2 && targetDate.day == 28) {
+  //                   isBirthdayToday = true;
+  //                 }
+  //               }
 
-                if (isBirthdayToday) {
-                  final scheduledTime = DateTime(targetDate.year, targetDate.month, targetDate.day, 10, 30);
-                  if (scheduledTime.isAfter(now)) {
-                    final int notifId = generateDeterministicId(1, empId, targetDate);
-                    final String title = isCurrentUser ? 'Ã°Å¸Å½â€° Happy Birthday!' : 'Ã°Å¸Å½â€š Employee Birthday';
-                    final String body = isCurrentUser
-                        ? 'Ã°Å¸Å½â€° Happy Birthday, $displayName! Have an amazing day and a wonderful year ahead!'
-                        : 'Ã°Å¸Å½â€š It\'s $displayName\'s birthday today. Don\'t forget to send your best wishes!';
+  //               if (isBirthdayToday) {
+  //                 final scheduledTime = DateTime(targetDate.year, targetDate.month, targetDate.day, 10, 30);
+  //                 if (scheduledTime.isAfter(now)) {
+  //                   final int notifId = generateDeterministicId(1, empId, targetDate);
+  //                   final String title = isCurrentUser ? 'Ã°Å¸Å½â€° Happy Birthday!' : 'Ã°Å¸Å½â€š Employee Birthday';
+  //                   final String body = isCurrentUser
+  //                       ? 'Ã°Å¸Å½â€° Happy Birthday, $displayName! Have an amazing day and a wonderful year ahead!'
+  //                       : 'Ã°Å¸Å½â€š It\'s $displayName\'s birthday today. Don\'t forget to send your best wishes!';
 
-                    items.add(NotificationScheduleItem(
-                      id: notifId,
-                      title: title,
-                      body: body,
-                      scheduledTime: scheduledTime,
-                      type: 'birthday',
-                    ));
-                    // NotificationLoggerService.scheduling('   Ã°Å¸Å½â€š Birthday scheduled for $displayName on ${scheduledTime.toString()} (ID: $notifId)');
-                  } else {
-                    // NotificationLoggerService.scheduling('   Ã¢ÂÅ’ Skipped Birthday for $displayName: Time ${scheduledTime.toString()} has already passed.');
-                  }
-                  break;
-                }
-              }
-            }
+  //                   items.add(NotificationScheduleItem(
+  //                     id: notifId,
+  //                     title: title,
+  //                     body: body,
+  //                     scheduledTime: scheduledTime,
+  //                     type: 'birthday',
+  //                   ));
+  //                   // NotificationLoggerService.scheduling('   Ã°Å¸Å½â€š Birthday scheduled for $displayName on ${scheduledTime.toString()} (ID: $notifId)');
+  //                 } else {
+  //                   // NotificationLoggerService.scheduling('   Ã¢ÂÅ’ Skipped Birthday for $displayName: Time ${scheduledTime.toString()} has already passed.');
+  //                 }
+  //                 break;
+  //               }
+  //             }
+  //           }
 
 
-          }
+  //         }
 
-          // --- WORK ANNIVERSARY CHECK ---
-          if (emp.dOJ != null && emp.dOJ.toString().trim().isNotEmpty) {
-            final DateTime? doj = DateTime.tryParse(emp.dOJ.toString().trim());
-            if (doj != null) {
-              for (int d = 0; d < 7; d++) {
-                final targetDate = now.add(Duration(days: d));
+  //         // --- WORK ANNIVERSARY CHECK ---
+  //         if (emp.dOJ != null && emp.dOJ.toString().trim().isNotEmpty) {
+  //           final DateTime? doj = DateTime.tryParse(emp.dOJ.toString().trim());
+  //           if (doj != null) {
+  //             for (int d = 0; d < 7; d++) {
+  //               final targetDate = now.add(Duration(days: d));
             
-                // Only celebrate if at least 1 year has passed since joining
-                if (targetDate.year > doj.year && targetDate.month == doj.month && targetDate.day == doj.day) {
-                  final int completedYears = targetDate.year - doj.year;
-                  final scheduledTime = DateTime(targetDate.year, targetDate.month, targetDate.day, 10, 30);
-                  if (scheduledTime.isAfter(now)) {
-                    final int notifId = generateDeterministicId(2, empId, targetDate);
-                    final String title = isCurrentUser ? 'Ã°Å¸Å½Å  Happy Work Anniversary!' : 'Ã°Å¸Å½Å  Work Anniversary';
-                    final String body = isCurrentUser
-                      ? 'Ã°Å¸Å½â€° Happy $completedYears${getOrdinalSuffix(completedYears)} Work Anniversary, $displayName! Congratulations on completing $completedYears wonderful year${completedYears > 1 ? 's' : ''} with us. Wishing you continued success and many more milestones ahead!'
-                      : 'Ã°Å¸Å½Å  Today is $displayName\'s $completedYears${getOrdinalSuffix(completedYears)} Work Anniversary! Congratulations on completing $completedYears year${completedYears > 1 ? 's' : ''} with us. Wishing you continued success and happiness!';
+  //               // Only celebrate if at least 1 year has passed since joining
+  //               if (targetDate.year > doj.year && targetDate.month == doj.month && targetDate.day == doj.day) {
+  //                 final int completedYears = targetDate.year - doj.year;
+  //                 final scheduledTime = DateTime(targetDate.year, targetDate.month, targetDate.day, 10, 30);
+  //                 if (scheduledTime.isAfter(now)) {
+  //                   final int notifId = generateDeterministicId(2, empId, targetDate);
+  //                   final String title = isCurrentUser ? 'Ã°Å¸Å½Å  Happy Work Anniversary!' : 'Ã°Å¸Å½Å  Work Anniversary';
+  //                   final String body = isCurrentUser
+  //                     ? 'Ã°Å¸Å½â€° Happy $completedYears${getOrdinalSuffix(completedYears)} Work Anniversary, $displayName! Congratulations on completing $completedYears wonderful year${completedYears > 1 ? 's' : ''} with us. Wishing you continued success and many more milestones ahead!'
+  //                     : 'Ã°Å¸Å½Å  Today is $displayName\'s $completedYears${getOrdinalSuffix(completedYears)} Work Anniversary! Congratulations on completing $completedYears year${completedYears > 1 ? 's' : ''} with us. Wishing you continued success and happiness!';
 
-                    items.add(NotificationScheduleItem(
-                      id: notifId,
-                      title: title,
-                      body: body,
-                      scheduledTime: scheduledTime,
-                      type: 'anniversary',
-                    ));
-                    // NotificationLoggerService.scheduling('   Ã°Å¸Å½Å  Anniversary scheduled for $displayName on ${scheduledTime.toString()} (ID: $notifId)');
-                  } else {
-                    // NotificationLoggerService.scheduling('   Ã¢ÂÅ’ Skipped Anniversary for $displayName: Time ${scheduledTime.toString()} has already passed.');
-                  }
-                  break;
-                }
-              }
-            }
-          }
-        }
+  //                   items.add(NotificationScheduleItem(
+  //                     id: notifId,
+  //                     title: title,
+  //                     body: body,
+  //                     scheduledTime: scheduledTime,
+  //                     type: 'anniversary',
+  //                   ));
+  //                   // NotificationLoggerService.scheduling('   Ã°Å¸Å½Å  Anniversary scheduled for $displayName on ${scheduledTime.toString()} (ID: $notifId)');
+  //                 } else {
+  //                   // NotificationLoggerService.scheduling('   Ã¢ÂÅ’ Skipped Anniversary for $displayName: Time ${scheduledTime.toString()} has already passed.');
+  //                 }
+  //                 break;
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
 
     
 
-        // 2. Process Company Holidays
-        final Set<String> scheduledHolidayDates = {};
-        for (final holiday in holidays) {
-          if (holiday.holidayDate == null || holiday.holidayDate!.trim().isEmpty) {
-            continue;
-          }
+  //       // 2. Process Company Holidays
+  //       final Set<String> scheduledHolidayDates = {};
+  //       for (final holiday in holidays) {
+  //         if (holiday.holidayDate == null || holiday.holidayDate!.trim().isEmpty) {
+  //           continue;
+  //         }
 
-          final DateTime? hDate = DateTime.tryParse(holiday.holidayDate!.trim());
-          if (hDate == null) continue;
+  //         final DateTime? hDate = DateTime.tryParse(holiday.holidayDate!.trim());
+  //         if (hDate == null) continue;
 
-          final String dateKey = '${hDate.year}-${hDate.month}-${hDate.day}';
-          if (scheduledHolidayDates.contains(dateKey)) {
-            // NotificationLoggerService.duplicatePrevention('Skipped duplicate holiday on $dateKey (${holiday.holidayName})');
-            continue;
-          }
+  //         final String dateKey = '${hDate.year}-${hDate.month}-${hDate.day}';
+  //         if (scheduledHolidayDates.contains(dateKey)) {
+  //           // NotificationLoggerService.duplicatePrevention('Skipped duplicate holiday on $dateKey (${holiday.holidayName})');
+  //           continue;
+  //         }
 
-          // Reminder is scheduled 1 day before the holiday at 4:00 PM (16:00)
-          final DateTime reminderDate = hDate.subtract(const Duration(days: 1));
-          final DateTime scheduledTime = DateTime(reminderDate.year, reminderDate.month, reminderDate.day, 16, 00);
+  //         // Reminder is scheduled 1 day before the holiday at 4:00 PM (16:00)
+  //         final DateTime reminderDate = hDate.subtract(const Duration(days: 1));
+  //         final DateTime scheduledTime = DateTime(reminderDate.year, reminderDate.month, reminderDate.day, 16, 00);
 
-          // Check if scheduledTime falls within our upcoming 7-day window
-          if (scheduledTime.isAfter(now) && !scheduledTime.isAfter(windowEnd)) {
-            scheduledHolidayDates.add(dateKey);
-            final int holidayId = holiday.holidayId ?? holiday.masterCguid?.hashCode.abs() ?? hDate.day;
-            final int notifId = generateDeterministicId(3, holidayId, scheduledTime);
-            final String holidayName = holiday.holidayName?.trim().isNotEmpty == true ? holiday.holidayName!.trim() : 'Holiday';
+  //         // Check if scheduledTime falls within our upcoming 7-day window
+  //         if (scheduledTime.isAfter(now) && !scheduledTime.isAfter(windowEnd)) {
+  //           scheduledHolidayDates.add(dateKey);
+  //           final int holidayId = holiday.holidayId ?? holiday.masterCguid?.hashCode.abs() ?? hDate.day;
+  //           final int notifId = generateDeterministicId(3, holidayId, scheduledTime);
+  //           final String holidayName = holiday.holidayName?.trim().isNotEmpty == true ? holiday.holidayName!.trim() : 'Holiday';
 
-            items.add(NotificationScheduleItem(
-              id: notifId,
-              title: 'Ã°Å¸â€œâ€¦ Upcoming Holiday Tomorrow',
-              body: 'Tomorrow is $holidayName. Plan your work accordingly and enjoy your holiday.',
-              scheduledTime: scheduledTime,
-              type: 'holiday',
-            ));
-            // NotificationLoggerService.scheduling('   Ã°Å¸â€œâ€¦ Holiday reminder scheduled for "$holidayName" on ${scheduledTime.toString()} (ID: $notifId)');
-          } else if (scheduledTime.isBefore(now)) {
-            // NotificationLoggerService.scheduling('   Ã¢ÂÅ’ Skipped Holiday reminder for "${holiday.holidayName}": Time ${scheduledTime.toString()} has already passed.');
-          }
-        }
+  //           items.add(NotificationScheduleItem(
+  //             id: notifId,
+  //             title: 'Ã°Å¸â€œâ€¦ Upcoming Holiday Tomorrow',
+  //             body: 'Tomorrow is $holidayName. Plan your work accordingly and enjoy your holiday.',
+  //             scheduledTime: scheduledTime,
+  //             type: 'holiday',
+  //           ));
+  //           // NotificationLoggerService.scheduling('   Ã°Å¸â€œâ€¦ Holiday reminder scheduled for "$holidayName" on ${scheduledTime.toString()} (ID: $notifId)');
+  //         } else if (scheduledTime.isBefore(now)) {
+  //           // NotificationLoggerService.scheduling('   Ã¢ÂÅ’ Skipped Holiday reminder for "${holiday.holidayName}": Time ${scheduledTime.toString()} has already passed.');
+  //         }
+  //       }
 
-    return items;
-  }
+  //   return items;
+  // }
 
   /// Schedules all generated items using timezone-aware notifications in flutter_local_notifications.
   static Future<List<int>> scheduleItems(List<NotificationScheduleItem> items) async {

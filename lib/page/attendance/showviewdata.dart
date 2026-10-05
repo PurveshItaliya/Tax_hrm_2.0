@@ -43,6 +43,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       listen: false,
     );
 
+    // Clear any previous search query when the page is first called
+    provider.clearSearch();
+
     // Check if data is already cached for today
     bool hasDataForToday =
         provider.empAttendanceList.isNotEmpty &&
@@ -648,9 +651,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       context,
       listen: false,
     );
-    final empMastProviders = Provider.of<EmployeMastServices>(
-      context,
-    );
+    final empMastProviders = Provider.of<EmployeMastServices>(context);
     List<dynamic> allEmpList = empMastProviders.mainEmployeList;
     if (allEmpList.isEmpty) allEmpList = empMastProviders.emplists;
     if (allEmpList.isEmpty) allEmpList = empMastProviders.allemployes;
@@ -1112,7 +1113,10 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     AdminAttenDanceServices attendanceProviders,
   ) {
     // Dynamically compute the filtered list
-    final empMastProviders = Provider.of<EmployeMastServices>(context, listen: false);
+    final empMastProviders = Provider.of<EmployeMastServices>(
+      context,
+      listen: false,
+    );
     List<dynamic> allEmpList = empMastProviders.mainEmployeList;
     if (allEmpList.isEmpty) allEmpList = empMastProviders.emplists;
     if (allEmpList.isEmpty) allEmpList = empMastProviders.allemployes;
@@ -1120,20 +1124,22 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     final bool isFiltered =
         attendanceProviders.searchQuery.isNotEmpty ||
         attendanceProviders.selectedDepartment != 'ALL';
-        
+
     List<dynamic> displayList = attendanceProviders.empAttendanceList;
-    
+
     if (isFiltered) {
       displayList = displayList.where((employee) {
         bool matchesSearch = true;
         if (attendanceProviders.searchQuery.isNotEmpty) {
-          final fullName = '${employee.firstName} ${employee.lastName}'.toLowerCase();
+          final fullName = '${employee.firstName} ${employee.lastName}'
+              .toLowerCase();
           final firstName = employee.firstName?.toLowerCase() ?? '';
           final lastName = employee.lastName?.toLowerCase() ?? '';
           final query = attendanceProviders.searchQuery;
-          matchesSearch = fullName.contains(query) ||
-                          firstName.contains(query) ||
-                          lastName.contains(query);
+          matchesSearch =
+              fullName.contains(query) ||
+              firstName.contains(query) ||
+              lastName.contains(query);
         }
 
         bool matchesDepartment = true;
@@ -1146,7 +1152,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               break;
             }
           }
-          matchesDepartment = deptName == attendanceProviders.selectedDepartment;
+          matchesDepartment =
+              deptName == attendanceProviders.selectedDepartment;
         }
 
         return matchesSearch && matchesDepartment;
@@ -1309,10 +1316,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
       child: InkWell(
         onTap: () {
           FocusManager.instance.primaryFocus?.unfocus();
-          nextScreen(
-            context,
-            AttendanceScreen(empData: employee),
-          );
+          nextScreen(context, AttendanceScreen(empData: employee));
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

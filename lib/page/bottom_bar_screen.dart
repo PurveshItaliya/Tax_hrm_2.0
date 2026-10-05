@@ -7,7 +7,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 import 'package:provider/provider.dart';
-
 import 'package:tax_hrm/controllers/main_bottom_bar_controller.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/splash/common_splash_ad.dart';
@@ -139,6 +138,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
         // Using the same Flutter-drawn _LiquidNavBar on iOS and Android
         // for a consistent glass pill appearance on all iOS versions.
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           backgroundColor: ColorConst.scaffoldColor,
           extendBody: true,
           body: LiquidGlassView(

@@ -55,10 +55,8 @@ class TimeLineServices with ChangeNotifier {
   }
 
   gettimeLines({setEmpId}) async {
-    print('==== gettimeLines: Started for EmpId: $setEmpId ====');
     try {
       String formattedDate = dateTimers.DateFormat('yyyy-MM-dd').format(setDates);
-      print('gettimeLines: Formatted Date: $formattedDate');
       
       // 1. Fetch Timeline Points
       Future<void> timelineFuture = LocationTimeLineClass().getUserTimeLine(selectedDate: formattedDate, setUserId: setEmpId).then((value) {
@@ -87,7 +85,6 @@ class TimeLineServices with ChangeNotifier {
           }
         });
       }).catchError((error) {
-        print('gettimeLines: Error inside LocationTimeLineClass call - $error');
       });
 
       // 2. Fetch Visits
@@ -95,12 +92,10 @@ class TimeLineServices with ChangeNotifier {
         try {
           String companyId = selectedcurentcompany?.companyId.toString() ?? '';
           String empIdStr = setEmpId?.toString() ?? '0';
-          print('==== gettimeLines: Fetching visits for companyId: $companyId, empId: $empIdStr ====');
           
           var allVisits = await VisitApis().getVisitList(companyId, '', empIdStr);
           showVisits.clear();
           
-          print('==== gettimeLines: Fetched ${allVisits.length} visits total from API ====');
           
           for (var visit in allVisits) {
             String assignTo = visit['VisitAssignTo']?.toString() ?? '';
@@ -114,23 +109,18 @@ class TimeLineServices with ChangeNotifier {
             bool isAssignMatch = assignedIds.contains(empIdStr.trim());
             bool isStatusMatch = !(normStatus == 'pending' || normStatus == '' || normStatus == '0');
             
-            print('VisitId: ${visit['VisitId']} | DateMatch: $isDateMatch | AssignMatch: $isAssignMatch | StatusMatch: $isStatusMatch');
             
             if (isDateMatch && isAssignMatch && isStatusMatch) {
               showVisits.add(visit);
-              print('-> ADDED VisitId: ${visit['VisitId']} to map');
             }
           }
-          print('==== gettimeLines: Final count - Added ${showVisits.length} visits to map ====');
         } catch (e) {
-          print('==== gettimeLines: Error fetching visits - $e ====');
         }
       }();
 
       await Future.wait([timelineFuture, visitsFuture]);
       
     } catch (e) { 
-        print('gettimeLines: Exception caught - $e');
     }
   }
 

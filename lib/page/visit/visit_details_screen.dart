@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -225,20 +226,6 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     }
   }
 
-  IconData _statusIcon(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'complete':
-      case 'completed':
-        return Icons.check_circle_rounded;
-      case 'in progress':
-      case 'inprogress':
-        return Icons.timelapse_rounded;
-      case 'pending':
-        return Icons.schedule_rounded;
-      default:
-        return Icons.info_outline_rounded;
-    }
-  }
 
   void _openFullScreenImage(BuildContext context, String imageUrl) {
     Navigator.push(
@@ -695,9 +682,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     
     setState(() => _isLoading = true);
     try {
-      developer.log('--- Start _updateRemark ---', name: 'VisitDetails');
       Map<String, dynamic> updateData = _visitData!.toJson();
-      developer.log('Base _visitData toJson: $updateData', name: 'VisitDetails');
       
       Map<String, dynamic> payload = {
         "CompanyId": updateData['CompanyId'] ?? widget.companyId,
@@ -715,14 +700,12 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         "PartyName": updateData['PartyName'],
       };
 
-      developer.log('Payload being sent for remark update: $payload', name: 'VisitDetails');
       await VisitApis().createUpdateVisit(payload, flag: 'U');
       
       developer.log('Remark update successful!', name: 'VisitDetails');
-      showtoastmessage(remarkSavedSuccessString);
+      showtoastmessage('Remark saved successfully');
       await _fetchVisitDetails();
-    } catch (e, stackTrace) {
-      developer.log('Exception in _updateRemark: $e', name: 'VisitDetails', error: e, stackTrace: stackTrace);
+    } catch (e) {
       setState(() => _isLoading = false);
       showtoastmessage('$failedToSaveRemarkString$e');
     }
