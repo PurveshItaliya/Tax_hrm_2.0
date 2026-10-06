@@ -762,4 +762,11 @@ final Map<String, String> guTranslations = {
   'locationString': 'સ્થાન',
   'companyAddressString': '601-602, શુભ સ્ક્વેર, મોઢ પટણી વાડી સામે, લાલ દરવાજા, સુરત, ગુજરાત 395003',
   'addressCopiedString': 'સરનામું ક્લિપબોર્ડ પર કોપી થયું!',
+
+  // Settings Menu Extra Strings
+  'personalInfoString': 'વ્યક્તિગત માહિતી',
+  'whatsNewString': 'નવું શું છે',
+  'shareString': 'શેર કરો',
+  'rateString': 'અમને રેટ કરો',
+  'exitString': 'બહાર નીકળો',
 };

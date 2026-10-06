@@ -758,4 +758,11 @@ final Map<String, String> enTranslations = {
   'locationString': 'Location',
   'companyAddressString': '601-602, SUBH SQUARE, opp. Modh Patni wadi, Lal Darwaja, Surat, Gujarat 395003',
   'addressCopiedString': 'Address copied to clipboard!',
+
+  // Settings Menu Extra Strings
+  'personalInfoString': 'Personal info',
+  'whatsNewString': 'What’s New',
+  'shareString': 'Share',
+  'rateString': 'Rate Us',
+  'exitString': 'Exit',
 };

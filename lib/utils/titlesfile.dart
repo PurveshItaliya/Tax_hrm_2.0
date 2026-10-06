@@ -151,12 +151,12 @@ String get hraString => LanguageProvider.translate("HRA", "HRA");
 String get payoutAmtString => LanguageProvider.translate("Payout Amount", "Payout Amount");
 String get downloadSlipString => LanguageProvider.translate("Download Slip", "Download Slip");
 String get viewSlipString => LanguageProvider.translate("View Slip", "View Slip");
-String get personalInfoString => LanguageProvider.translate("Personal info", "Personal info");
-String get whatsNewString => LanguageProvider.translate("What’s New", "What’s New");
-String get shareString => LanguageProvider.translate("Share", "Share");
-String get rateString => LanguageProvider.translate("Rate Us", "Rate Us");     
-String get contactUsString => LanguageProvider.translate("Contact Us", "Contact Us");
-String get exitString => LanguageProvider.translate("Exit", "Exit");
+String get personalInfoString => LanguageProvider.translate("personalInfoString", "Personal info");
+String get whatsNewString => LanguageProvider.translate("whatsNewString", "What’s New");
+String get shareString => LanguageProvider.translate("shareString", "Share");
+String get rateString => LanguageProvider.translate("rateString", "Rate Us");     
+String get contactUsString => LanguageProvider.translate("contactUsString", "Contact Us");
+String get exitString => LanguageProvider.translate("exitString", "Exit");
 
 // user profile title
 String get departmentNameString => LanguageProvider.translate("Department Name", "Department Name");

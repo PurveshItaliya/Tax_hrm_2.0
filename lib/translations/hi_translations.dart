@@ -761,4 +761,11 @@ final Map<String, String> hiTranslations = {
   'locationString': 'स्थान',
   'companyAddressString': '601-602, शुभ स्क्वायर, मोध पटनी वाड़ी के सामने, लाल दरवाजा, सूरत, गुजरात 395003',
   'addressCopiedString': 'पता क्लिपबोर्ड पर कॉपी हो गया!',
+
+  // Settings Menu Extra Strings
+  'personalInfoString': 'व्यक्तिगत जानकारी',
+  'whatsNewString': 'नया क्या है',
+  'shareString': 'साझा करें',
+  'rateString': 'हमें रेट करें',
+  'exitString': 'बाहर निकलें',
 };
