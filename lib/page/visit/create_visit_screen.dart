@@ -366,7 +366,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    _buildLabel('Address 1', context),
+                    _buildLabel('Address 1', context, isRequired: true),
                     TextField(
                       controller: controller.newPartyAdd1Controller,
                       style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.5),
@@ -504,7 +504,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                 ),
                 const SizedBox(height: 12),
                 // Attached Documents
-                _buildLabel('Attached Documents (Max 3)', context),
+                _buildLabel('Attached Documents (Max 3, Max 10MB each)', context),
                 Obx(() {
                   bool isDark = Theme.of(context).brightness == Brightness.dark;
                   int maxDisplay = 3;

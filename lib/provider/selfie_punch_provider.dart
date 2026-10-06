@@ -973,11 +973,14 @@ class SelfiePunchProvider extends ChangeNotifier {
           Platform.isAndroid &&
           BackgroundLocationRepository.isFetchLocationEnabled();
 
+      final bool todayVisitAllowed = checkStatus?.todayVisit == true;
+
       final bool needOfficeRangeCheck = _isStaticCompany
           ? (curentUser['WorkType'] != null &&
                 !workFromHome &&
-                !isFetchLocation)
-          : (_hasCompanyLocation && !workFromHome && !isFetchLocation);
+                !isFetchLocation &&
+                !todayVisitAllowed)
+          : (_hasCompanyLocation && !workFromHome && !isFetchLocation && !todayVisitAllowed);
 
       if (needOfficeRangeCheck) {
         final bool locationSuccess = await checkAndPunch(context);

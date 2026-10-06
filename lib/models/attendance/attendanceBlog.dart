@@ -15,6 +15,7 @@ String attendanceDayBlogToJson(AttendanceDayBlog data) =>
 class AttendanceDayBlog {
   dynamic flag;
   bool? success;
+  bool? todayVisit;
   Attendence? attendence;
   List<AttendenceLog>? attendenceLog;
   dynamic holiday;
@@ -35,6 +36,7 @@ class AttendanceDayBlog {
   AttendanceDayBlog({
     this.flag,
     this.success,
+    this.todayVisit,
     this.attendence,
     this.attendenceLog,
     this.holiday,
@@ -56,6 +58,7 @@ class AttendanceDayBlog {
   AttendanceDayBlog.fromJson(Map<String, dynamic> json) {
     flag = json['Flag'] ?? "";
     success = json['Success'] ?? false;
+    todayVisit = json['Todayvisit'] ?? false;
     attendence = json['Attendence'] != null
         ? Attendence.fromJson(json['Attendence'])
         : null;
@@ -81,6 +84,7 @@ class AttendanceDayBlog {
     final Map<String, dynamic> data = Map<String, dynamic>();
     data['Flag'] = flag;
     data['Success'] = success;
+    data['Todayvisit'] = todayVisit;
     if (attendence != null) {
       data['Attendence'] = attendence!.toJson();
     }

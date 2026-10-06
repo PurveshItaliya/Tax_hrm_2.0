@@ -690,7 +690,8 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       );
     }
 
-    final bool inRange = provider.distance <= provider.allowedRadius;
+    final bool isTodayVisit = provider.checkStatus?.todayVisit == true;
+    final bool inRange = provider.distance <= provider.allowedRadius || isTodayVisit;
     final color = inRange ? Colors.green : Colors.red;
 
     String distanceText;
@@ -702,7 +703,9 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       distanceText = '${provider.distance.toStringAsFixed(1)}m';
     }
 
-    final text = inRange ? inRangeString : '$outOfRangeString ($distanceText)';
+    final text = isTodayVisit 
+        ? 'In Range (Visit)' 
+        : (inRange ? inRangeString : '$outOfRangeString ($distanceText)');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

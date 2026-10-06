@@ -14,6 +14,10 @@ import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'dart:io';
+import 'package:get/get.dart';
+import 'package:tax_hrm/controllers/visit_controller.dart';
+import 'package:tax_hrm/page/visit/visit_camera_screen.dart';
 class VisitDetailsScreen extends StatefulWidget {
   final String visitUkeyId;
   final String companyId;
@@ -30,6 +34,7 @@ class VisitDetailsScreen extends StatefulWidget {
 
 class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   final VisitApis _visitApis = VisitApis();
+  final VisitController _visitController = Get.put(VisitController());
   bool _isLoading = true;
   bool _isDeleting = false;
   VisitDetailModel? _visitData;
@@ -753,6 +758,114 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     );
   }
 
+  Future<void> _startVisit() async {
+    if (_visitData == null) return;
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(builder: (context) => const VisitCameraScreen()),
+    );
+    if (result == null || !mounted) return;
+
+    File? capturedFile = result['file'] as File?;
+    String latitude = result['latitude']?.toString() ?? '';
+    String longitude = result['longitude']?.toString() ?? '';
+
+    if (capturedFile == null) {
+      showtoastmessage('No image captured. Visit not started.');
+      return;
+    }
+
+    _visitController.capturedImage.value = capturedFile;
+    _visitController.currentLatitude.value = latitude;
+    _visitController.currentLongitude.value = longitude;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    await _visitController.startVisit(context, _visitData!.toJson());
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    _fetchVisitDetails();
+  }
+
+  Future<void> _completeVisit() async {
+    if (_visitData == null) return;
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Mark as Complete'),
+        content: const Text('Are you sure you want to mark this visit as complete?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Complete'),
+          ),
+        ],
+      ),
+    ) ?? false;
+    if (!confirm) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    await _visitController.completeVisit(context, _visitData!.toJson());
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    _fetchVisitDetails();
+  }
+
+  Widget? _buildBottomNavigationBar() {
+    if (_isLoading || _visitData == null) return null;
+
+    String status = (_visitData?.visitStatus ?? 'Pending').toLowerCase().replaceAll(' ', '').replaceAll('_', '').replaceAll('-', '');
+    
+    bool isPending = status == 'pending' || status == '' || status == '0';
+    bool isInProgress = status == 'inprogress' || status == 'started' || status == 'start' || status == 'ongoing';
+
+    if (!isPending && !isInProgress) return null;
+
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom > 0 ? MediaQuery.of(context).padding.bottom : 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black45 : Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isPending ? ColorConst.themeColor : Colors.green,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          onPressed: isPending ? _startVisit : _completeVisit,
+          icon: Icon(isPending ? Icons.play_arrow_rounded : Icons.check_circle_rounded, color: Colors.white),
+          label: Text(
+            isPending ? 'START VISIT' : 'COMPLETE VISIT',
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     safeAreaBgAndTextColor(context, safeAreaBgColor: ColorConst.themeColor);
@@ -902,6 +1015,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                         ],
                       ),
                     ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 }

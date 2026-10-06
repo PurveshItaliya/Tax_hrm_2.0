@@ -722,34 +722,29 @@ class _SmartTimelineScreenState extends State<SmartTimelineScreen>
                         final focusLng = focusedEv.longitude;
                         final LatLng focusPt = LatLng(focusLat, focusLng);
 
-                        // Collect all route points near the focused event (within ~500m window)
-                        final List<LatLng> highlightPts = [];
+                        // Find the specific route segment that is closest to this event
+                        List<LatLng>? bestSeg;
+                        double bestDist = double.infinity;
+
                         for (final seg in provider.routeSegments) {
-                          for (int ri = 0; ri < seg.length; ri++) {
-                            final pt = seg[ri];
-                            final distM = const Distance().as(
-                              LengthUnit.Meter,
-                              pt,
-                              focusPt,
-                            );
-                            if (distM < 800) highlightPts.add(pt);
+                          for (final pt in seg) {
+                            final distM = const Distance().as(LengthUnit.Meter, pt, focusPt);
+                            if (distM < bestDist) {
+                              bestDist = distM;
+                              bestSeg = seg;
+                            }
                           }
                         }
-                        if (highlightPts.length < 2) {
-                          // Just draw a two-point stub at the focus point
-                          highlightPts.insert(0, focusPt);
-                        }
-                        final Color highlightColor = focusedEv.type == TimelineEventType.punchIn
-                            ? const Color(0xFF22C55E)
-                            : focusedEv.type == TimelineEventType.punchOut
-                                ? const Color(0xFFEF4444)
-                                : Colors.orange;
+
+                        final List<LatLng> highlightPts = (bestDist < 800 && bestSeg != null && bestSeg.isNotEmpty)
+                            ? bestSeg
+                            : [focusPt, focusPt];
                         return PolylineLayer(
                           polylines: [
                             Polyline(
                               points: highlightPts,
-                              strokeWidth: 5.5,
-                              color: highlightColor.withOpacity(0.90),
+                              strokeWidth: 6.0,
+                              color: ColorConst.themeColor.withOpacity(1.0),
                               strokeCap: StrokeCap.round,
                             ),
                           ],

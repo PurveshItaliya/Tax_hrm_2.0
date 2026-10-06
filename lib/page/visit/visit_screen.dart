@@ -22,6 +22,7 @@ class VisitScreen extends StatefulWidget {
 
 class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStateMixin {
   bool _isLoading = false;
+  bool _isFirstLoad = true;
   List<dynamic> _visits = [];
   final VisitApis _visitApis = VisitApis();
   final VisitController _visitController = Get.put(VisitController());
@@ -54,6 +55,16 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
       if (mounted) {
         setState(() {
           _visits = response;
+          if (_isFirstLoad) {
+            _isFirstLoad = false;
+            bool hasInProgress = _visits.any((v) {
+              String status = (v['VisitStatus']?.toString() ?? '').toLowerCase().replaceAll(' ', '').replaceAll('_', '').replaceAll('-', '');
+              return status == 'inprogress' || status == 'started' || status == 'start' || status == 'ongoing';
+            });
+            if (hasInProgress) {
+              _tabController.index = 1;
+            }
+          }
         });
       }
     } catch (e) {

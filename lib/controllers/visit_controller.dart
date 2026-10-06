@@ -57,6 +57,18 @@ class VisitController extends GetxController {
   Future<void> pickAttachment(BuildContext context) async {
     final ImagePicker picker = ImagePicker();
     
+    void addFile(File file) {
+      if (attachedDocuments.length >= 3) {
+        showtoastmessage('Maximum 3 items allowed');
+        return;
+      }
+      if (file.lengthSync() > 10 * 1024 * 1024) {
+        showtoastmessage('Maximum file size is 10MB');
+        return;
+      }
+      attachedDocuments.add(file);
+    }
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -74,7 +86,7 @@ class VisitController extends GetxController {
               onTap: () async {
                 Navigator.pop(ctx);
                 final XFile? photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
-                if (photo != null) attachedDocuments.add(File(photo.path));
+                if (photo != null) addFile(File(photo.path));
               },
             ),
             ListTile(
@@ -83,7 +95,7 @@ class VisitController extends GetxController {
               onTap: () async {
                 Navigator.pop(ctx);
                 final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                if (image != null) attachedDocuments.add(File(image.path));
+                if (image != null) addFile(File(image.path));
               },
             ),
             ListTile(
@@ -94,7 +106,7 @@ class VisitController extends GetxController {
                 FilePickerResult? result = await FilePicker.pickFiles(allowMultiple: true);
                 if (result != null) {
                   for (var file in result.files) {
-                    if (file.path != null) attachedDocuments.add(File(file.path!));
+                    if (file.path != null) addFile(File(file.path!));
                   }
                 }
               },
@@ -311,6 +323,10 @@ class VisitController extends GetxController {
       }
       if (newPartyMobileController.text.trim().isEmpty) {
         showtoastmessage('Please enter party mobile number');
+        return;
+      }
+      if (newPartyAdd1Controller.text.trim().isEmpty) {
+        showtoastmessage('Please enter address 1');
         return;
       }
     } else {
