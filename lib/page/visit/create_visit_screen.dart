@@ -24,6 +24,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
   void initState() {
     super.initState();
     controller.resetForm();
+    controller.fetchInitialData();
   }
 
   InputDecoration _commonInputDecoration(String hint, BuildContext context) {
@@ -70,6 +71,12 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
 
   void _showEmployeeSearchSheet(BuildContext context) {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final filteredEmployees = controller.employeesList.where((emp) {
+      bool active = emp.isActive == true || emp.isActive?.toString().toLowerCase() == 'true' || emp.isActive?.toString() == '1';
+      bool visitor = emp.isVisitor == true || emp.isVisitor?.toString().toLowerCase() == 'true' || emp.isVisitor?.toString() == '1';
+      return active && visitor;
+    }).toList();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -79,7 +86,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
       ),
       builder: (ctx) {
         return _EmployeeSearchSheet(
-          employees: controller.employeesList,
+          employees: filteredEmployees,
           selectedEmployees: controller.selectedAssignTo,
           onSelected: (employee) {
             controller.selectedAssignTo.clear();
