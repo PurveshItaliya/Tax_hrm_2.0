@@ -643,26 +643,45 @@ class OfflinePunchSyncService {
     final int companyId = record.companyId;
     final String empId = record.empId.toString();
 
-    // Build the same body as AttendanceApis.callPunch.
+    final DateTime punchDateTime = DateTime.parse(record.punchTimestamp);
+    final String attendenceDateStr = DateFormat('yyyy-MM-dd').format(punchDateTime);
+    final String timeStr = DateFormat("yyyy-MM-dd'T'HH:mm").format(punchDateTime);
+    final bool isPunchIn = record.punchStatus.toUpperCase() == 'IN';
+    final int parsedEmpId = int.tryParse(empId) ?? 0;
+
+    // Build the payload matching the required structure
     final body = jsonEncode({
-      'Flag': 'A',
-      'IsUser': true,
-      'Attendence': {
-        'AttendenceDate': DateTime.parse(record.punchTimestamp).toString(),
-        'CompanyId': ' $companyId',
-        'EmpId': empId,
-        'Cguid': record.cguid,
-        'Present': true,
-        'Absent': false,
-        'WeekOff': record.weekOff ? true : null,
+      "IsUser": false,
+      "Attendence": {
+        "CompanyId": companyId,
+        "EmpId": parsedEmpId,
+        "Cguid": record.cguid,
+        "IsOnLeave": false,
+        "AttendenceDate": attendenceDateStr,
+        "InTime": isPunchIn ? timeStr : "",
+        "LateBy": 1,
+        "EarlyBy": 1,
+        "LeaveType": "",
+        "Holiday": false,
+        "LeaveId": 1,
+        "ShiftId": 1,
+        "OutTime": !isPunchIn ? timeStr : "",
+        "Present": true,
+        "Absent": false,
+        "WeekOff": record.weekOff ? true : false,
       },
-      'AttendenceLog': [
+      "AttendenceLog": [
         {
-          'EmpId': empId,
-          'Cguid': record.cguid,
-          'Remarks': record.remarks ?? '',
+          "EmpId": parsedEmpId,
+          "LeaveType": "",
+          "LeaveId": 1,
+          "AttendenceDate": attendenceDateStr,
+          "Time": timeStr,
+          "ShiftId": 1,
+          "Remarks": record.remarks ?? "",
+          "Cguid": record.cguid
         }
-      ],
+      ]
     });
 
     final url = Uri.parse('${apibaseurl}api/HRM/NewNewCreateAttendence');
@@ -744,25 +763,44 @@ class OfflinePunchSyncService {
     final int companyId = record.companyId;
     final String empId = record.empId.toString();
 
+    final DateTime punchDateTime = DateTime.parse(record.punchTimestamp);
+    final String attendenceDateStr = DateFormat('yyyy-MM-dd').format(punchDateTime);
+    final String timeStr = DateFormat("yyyy-MM-dd'T'HH:mm").format(punchDateTime);
+    final bool isPunchIn = record.punchStatus.toUpperCase() == 'IN';
+    final int parsedEmpId = int.tryParse(empId) ?? 0;
+
     final body = jsonEncode({
-      'Flag': 'A',
-      'IsUser': true,
-      'Attendence': {
-        'AttendenceDate': DateTime.parse(record.punchTimestamp).toString(),
-        'CompanyId': ' $companyId',
-        'EmpId': empId,
-        'Cguid': record.cguid,
-        'Present': true,
-        'Absent': false,
-        'WeekOff': record.weekOff ? true : null,
+      "IsUser": false,
+      "Attendence": {
+        "CompanyId": companyId,
+        "EmpId": parsedEmpId,
+        "Cguid": record.cguid,
+        "IsOnLeave": false,
+        "AttendenceDate": attendenceDateStr,
+        "InTime": isPunchIn ? timeStr : "",
+        "LateBy": 1,
+        "EarlyBy": 1,
+        "LeaveType": "",
+        "Holiday": false,
+        "LeaveId": 1,
+        "ShiftId": 1,
+        "OutTime": !isPunchIn ? timeStr : "",
+        "Present": true,
+        "Absent": false,
+        "WeekOff": record.weekOff ? true : false,
       },
-      'AttendenceLog': [
+      "AttendenceLog": [
         {
-          'EmpId': empId,
-          'Cguid': record.cguid,
-          'Remarks': record.remarks ?? '',
+          "EmpId": parsedEmpId,
+          "LeaveType": "",
+          "LeaveId": 1,
+          "AttendenceDate": attendenceDateStr,
+          "Time": timeStr,
+          "ShiftId": 1,
+          "Remarks": record.remarks ?? "",
+          "Cguid": record.cguid
         }
-      ],
+      ]
     });
 
     final url = Uri.parse('${apibaseurl}api/HRM/NewNewCreateAttendence');

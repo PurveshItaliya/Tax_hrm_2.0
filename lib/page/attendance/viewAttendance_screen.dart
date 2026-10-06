@@ -154,7 +154,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Attendance Info', 
+                  attendanceInfoString, 
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -184,7 +184,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Color Legend', 
+                  colorLegendString, 
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                 ),
                 const SizedBox(height: 8),
@@ -199,10 +199,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLegendItem(ColorConst.themeColor, 'Total Hours / Present', isDark),
-                      _buildLegendItem(ColorConst.red, 'Total Break / Absent', isDark),
-                      _buildLegendItem(ColorConst.paidLeaveColor, 'Paid Leave', isDark),
-                      _buildLegendItem(ColorConst.holidayColor, 'Holiday', isDark),
+                      _buildLegendItem(ColorConst.themeColor, totalHoursPresentString, isDark),
+                      _buildLegendItem(ColorConst.red, totalBreakAbsentString, isDark),
+                      _buildLegendItem(ColorConst.paidLeaveColor, paidLeaveString, isDark),
+                      _buildLegendItem(ColorConst.holidayColor, holidayString, isDark),
                     ],
                   ),
                 ),
@@ -210,7 +210,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200, thickness: 1),
                 const SizedBox(height: 5),
                 Text(
-                  'Calculation Formula', 
+                  calculationFormulaString, 
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                 ),
                 const SizedBox(height: 5),
@@ -227,10 +227,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Total Hours (${attendanceProvider.totalPresent} Days)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                          Text('$totalHoursString (${attendanceProvider.totalPresent}$daysString)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
                           Row(
                             children: [
-                              Text('${attendanceProvider.grossTotalHours.isEmpty ? '0:0' : attendanceProvider.grossTotalHours} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                              Text('${attendanceProvider.grossTotalHours.isEmpty ? '0:0' : attendanceProvider.grossTotalHours}$hrsString', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
                               const SizedBox(width: 8),
                               Text('(+)', style: TextStyle(color: ColorConst.themeColor, fontWeight: FontWeight.bold, fontSize: 14)),
                             ],
@@ -241,10 +241,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Break Hours', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                          Text(breakHoursString, style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
                           Row(
                             children: [
-                              Text('${attendanceProvider.totalBreakHours.isEmpty ? '0:0' : attendanceProvider.totalBreakHours} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                              Text('${attendanceProvider.totalBreakHours.isEmpty ? '0:0' : attendanceProvider.totalBreakHours}$hrsString', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
                               const SizedBox(width: 8),
                               Text('(-)', style: TextStyle(color: ColorConst.red, fontWeight: FontWeight.bold, fontSize: 14)),
                             ],
@@ -255,10 +255,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Paid Leave (${attendanceProvider.totalPaidLeave % 1 == 0 ? attendanceProvider.totalPaidLeave.toInt() : attendanceProvider.totalPaidLeave} Days)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                          Text('$paidLeaveString (${attendanceProvider.totalPaidLeave % 1 == 0 ? attendanceProvider.totalPaidLeave.toInt() : attendanceProvider.totalPaidLeave}$daysString)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
                           Row(
                             children: [
-                              Text('${attendanceProvider.paidLeaveHours.isEmpty ? '0:0' : attendanceProvider.paidLeaveHours} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                              Text('${attendanceProvider.paidLeaveHours.isEmpty ? '0:0' : attendanceProvider.paidLeaveHours}$hrsString', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
                               const SizedBox(width: 8),
                               Text('(+)', style: TextStyle(color: ColorConst.paidLeaveColor, fontWeight: FontWeight.bold, fontSize: 14)),
                             ],
@@ -269,10 +269,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Holiday (${attendanceProvider.totalHoliday % 1 == 0 ? attendanceProvider.totalHoliday.toInt() : attendanceProvider.totalHoliday} Days)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                          Text('$holidayString (${attendanceProvider.totalHoliday % 1 == 0 ? attendanceProvider.totalHoliday.toInt() : attendanceProvider.totalHoliday}$daysString)', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
                           Row(
                             children: [
-                              Text('${attendanceProvider.holidayHoursCount.isEmpty ? '0:0' : attendanceProvider.holidayHoursCount} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
+                              Text('${attendanceProvider.holidayHoursCount.isEmpty ? '0:0' : attendanceProvider.holidayHoursCount}$hrsString', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500)),
                               const SizedBox(width: 8),
                               Text('(+)', style: TextStyle(color: ColorConst.holidayColor, fontWeight: FontWeight.bold, fontSize: 14)),
                             ],
@@ -285,10 +285,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Working Hours', style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(workingHoursString, style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 14)),
                           Row(
                             children: [
-                              Text('${attendanceProvider.showUserTotalHours.isEmpty ? '0:0' : attendanceProvider.showUserTotalHours} hrs', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.bold)),
+                              Text('${attendanceProvider.showUserTotalHours.isEmpty ? '0:0' : attendanceProvider.showUserTotalHours}$hrsString', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.bold)),
                               const SizedBox(width: 8),
                               Text('(=)', style: TextStyle(color: ColorConst.themeColor, fontWeight: FontWeight.bold, fontSize: 14)),
                             ],
@@ -905,21 +905,21 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
                         final activeWidgets = <Widget>[];
 
-                        activeWidgets.add(buildBoxItem('Total', totalHoursVal, ColorConst.themeColor));
+                        activeWidgets.add(buildBoxItem(totalString, totalHoursVal, ColorConst.themeColor));
 
                         if (!isZeroTime(totalBreakVal)) {
-                          activeWidgets.add(buildBoxItem('Break', totalBreakVal, ColorConst.red));
+                          activeWidgets.add(buildBoxItem(breakString, totalBreakVal, ColorConst.red));
                         }
 
                         if (!isZeroTime(paidLeaveVal)) {
-                          activeWidgets.add(buildBoxItem('Leave', paidLeaveVal, ColorConst.paidLeaveColor));
+                          activeWidgets.add(buildBoxItem(leaveString, paidLeaveVal, ColorConst.paidLeaveColor));
                         }
 
                         if (!isZeroTime(holidayVal)) {
-                          activeWidgets.add(buildBoxItem('Holiday', holidayVal, ColorConst.holidayColor));
+                          activeWidgets.add(buildBoxItem(holidayString, holidayVal, ColorConst.holidayColor));
                         }
 
-                        activeWidgets.add(buildBoxItem('Working', totalWorkingVal, ColorConst.themeColor));
+                        activeWidgets.add(buildBoxItem(workingString, totalWorkingVal, ColorConst.themeColor));
 
                         return Container(
                           margin: EdgeInsets.only(bottom: size.height * 0.01),
@@ -1359,14 +1359,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             checkDate.isAtSameMomentAs(tDateOnly) ||
             (checkDate.isAfter(fDateOnly) && checkDate.isBefore(tDateOnly))) {
           leaveDurationTypesShow = element.leaveDuration == '0.5'
-              ? 'Half Day'
+              ? halfDayString
               : '';
           leaveStatusShow = element.approveStatus == 'A'
-              ? 'Approved'
+              ? approvedString
               : element.approveStatus == 'P'
-              ? 'Pending'
+              ? pendingString
               : element.approveStatus == 'R'
-              ? 'Rejected'
+              ? rejectedString
               : '';
           leaveResons = element.remarks;
         }
@@ -1376,14 +1376,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             setDate.month == date.month &&
             setDate.year == date.year) {
           leaveDurationTypesShow = element.leaveDuration == '0.5'
-              ? 'Half Day'
+              ? halfDayString
               : '';
           leaveStatusShow = element.approveStatus == 'A'
-              ? 'Approved'
+              ? approvedString
               : element.approveStatus == 'P'
-              ? 'Pending'
+              ? pendingString
               : element.approveStatus == 'R'
-              ? 'Rejected'
+              ? rejectedString
               : '';
           leaveResons = element.remarks;
         }
@@ -1787,7 +1787,7 @@ Future<void> showDayDetails(
         if (element.dayType != null && element.dayType!.toString().isNotEmpty) {
            leaveDurationTypesShow = '$leaveDurationTypesShow - ${element.dayType}';
         } else {
-           leaveDurationTypesShow = '$leaveDurationTypesShow - Full Day';
+           leaveDurationTypesShow = '$leaveDurationTypesShow - $fullDayString';
         }
 
         leaveStatusShow = element.status?.toString();
@@ -1876,7 +1876,7 @@ Future<void> showDayDetails(
                             ),
                             child: AttendancTypeContainer(
                               size,
-                              'Absent',
+                              absentString,
                               ColorConst.red,
                             ),
                           ),
@@ -1958,7 +1958,7 @@ Future<void> showDayDetails(
                             ),
                             child: AttendancTypeContainer(
                               size,
-                              'Holiday',
+                              holidayString,
                               ColorConst.holidayColor,
                             ),
                           ),
@@ -1969,7 +1969,7 @@ Future<void> showDayDetails(
                               right: size.width * 0.02,
                             ),
                             child: Text(
-                              'Holiday Name :-  ${Provider.of<AttendanceEmp>(context, listen: false).curentMonthHoliday[setindexs].holidayName}',
+                              '$holidayNamePrefixString ${Provider.of<AttendanceEmp>(context, listen: false).curentMonthHoliday[setindexs].holidayName}',
                               style: normalHeadingText(size),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1983,7 +1983,7 @@ Future<void> showDayDetails(
                               top: size.height * 0.01,
                             ),
                             child: Text(
-                              'Description :- ${Provider.of<AttendanceEmp>(context, listen: false).curentMonthHoliday[setindexs].description}',
+                              '$descriptionPrefixString${Provider.of<AttendanceEmp>(context, listen: false).curentMonthHoliday[setindexs].description}',
                               style: customeHeadingTextsize(
                                 size,
                                 size.height * 0.017,
@@ -2032,7 +2032,7 @@ Future<void> showDayDetails(
                               children: [
                                 AttendancTypeContainer(
                                   size,
-                                  'On Leave',
+                                  onLeaveString,
                                   Colors.red.shade400,
                                 ),
                                 AttendancTypeContainer(
@@ -2042,8 +2042,8 @@ Future<void> showDayDetails(
                                           leaveTypesShow!.isNotEmpty)
                                       ? '$leaveTypesShow'
                                       : (selectedDatTypes == 4
-                                            ? 'Paid Leave'
-                                            : 'Unpaid Leave'),
+                                            ? paidLeaveString
+                                            : unpaidLeaveString),
                                   selectedDatTypes == 4
                                       ? ColorConst.paidLeaveColor
                                       : ColorConst.blueColor,
@@ -2062,9 +2062,9 @@ Future<void> showDayDetails(
                                   AttendancTypeContainer(
                                     size,
                                     leaveStatusShow!,
-                                    leaveStatusShow == 'Approved'
+                                    leaveStatusShow == approvedString
                                         ? Colors.green
-                                        : leaveStatusShow == 'Pending'
+                                        : leaveStatusShow == pendingString
                                         ? Colors.orange
                                         : Colors.red,
                                   ),
@@ -2161,7 +2161,7 @@ Future<void> showDayDetails(
                             ),
                             child: AttendancTypeContainer(
                               size,
-                              'Holiday',
+                              holidayString,
                               ColorConst.holidayColor,
                             ),
                           ),
@@ -2172,7 +2172,7 @@ Future<void> showDayDetails(
                               top: size.height * 0.01,
                             ),
                             child: Text(
-                              'Holiday Name :-  ${Provider.of<AttendanceEmp>(context, listen: false).curentMonthHoliday[setindexs].holidayName}',
+                              '$holidayNamePrefixString ${Provider.of<AttendanceEmp>(context, listen: false).curentMonthHoliday[setindexs].holidayName}',
                               style: normalHeadingText(size),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -2191,7 +2191,7 @@ Future<void> showDayDetails(
                               children: [
                                 AttendancTypeContainer(
                                   size,
-                                  'On Leave',
+                                  onLeaveString,
                                   Colors.red.shade400,
                                 ),
                                 AttendancTypeContainer(
@@ -2201,8 +2201,8 @@ Future<void> showDayDetails(
                                           leaveTypesShow!.isNotEmpty)
                                       ? '$leaveTypesShow'
                                       : (selectedDatTypes == 4
-                                            ? 'Paid Leave'
-                                            : 'Unpaid Leave'),
+                                            ? paidLeaveString
+                                            : unpaidLeaveString),
                                   selectedDatTypes == 4
                                       ? ColorConst.paidLeaveColor
                                       : ColorConst.blueColor,
@@ -2221,9 +2221,9 @@ Future<void> showDayDetails(
                                   AttendancTypeContainer(
                                     size,
                                     leaveStatusShow!,
-                                    leaveStatusShow == 'Approved'
+                                    leaveStatusShow == approvedString
                                         ? Colors.green
-                                        : leaveStatusShow == 'Pending'
+                                        : leaveStatusShow == pendingString
                                         ? Colors.orange
                                         : Colors.red,
                                   ),
@@ -2236,20 +2236,20 @@ Future<void> showDayDetails(
                           builder: (context, attEmp, child) {
                             String formattedTotalHours =
                                 attEmp.totalHour.isEmpty
-                                ? '0 Hr'
-                                : (attEmp.totalHour.contains('Hr')
+                                ? '0$hrString'
+                                : (attEmp.totalHour.contains('Hr') || attEmp.totalHour.contains(hrString.trim())
                                       ? attEmp.totalHour
-                                      : '${attEmp.totalHour} Hr');
+                                      : '${attEmp.totalHour}$hrString');
                             String formattedBreakHours =
                                 (attEmp.totalbreaks == null ||
                                     attEmp.totalbreaks == '' ||
                                     attEmp.totalbreaks == 0 ||
                                     attEmp.totalbreaks == '0')
-                                ? '0 Min'
+                                ? '0$minString'
                                 : attEmp.totalbreaks.toString();
                             String formattedWorkHours =
                                 attEmp.totalWorkHour.isEmpty
-                                ? '0 Min'
+                                ? '0$minString'
                                 : attEmp.totalWorkHour;
 
                             return Padding(
@@ -2263,7 +2263,7 @@ Future<void> showDayDetails(
                                     child: _compactSummaryTile(
                                       context,
                                       size,
-                                      'Total Hours',
+                                      totalHoursString,
                                       formattedTotalHours,
                                       ColorConst.themeColor,
                                     ),
@@ -2273,7 +2273,7 @@ Future<void> showDayDetails(
                                     child: _compactSummaryTile(
                                       context,
                                       size,
-                                      'Break Hours',
+                                      breakHoursString,
                                       formattedBreakHours,
                                       ColorConst.red,
                                     ),
@@ -2283,7 +2283,7 @@ Future<void> showDayDetails(
                                     child: _compactSummaryTile(
                                       context,
                                       size,
-                                      'Working Hours',
+                                      workingHoursString,
                                       formattedWorkHours,
                                       ColorConst.greenColor,
                                     ),
@@ -2497,7 +2497,7 @@ Future<void> showDayDetails(
                                                 attendenceLog.isNotEmpty)))
                                       AttendancTypeContainer(
                                         size,
-                                        'Present',
+                                        presentString,
                                         ColorConst.themeColor,
                                       ),
                                   ],
@@ -2532,7 +2532,7 @@ Future<void> showDayDetails(
                                             children: [
                                               AttendancTypeContainer(
                                                 size,
-                                                'On Leave',
+                                                onLeaveString,
                                                 Colors.red.shade400,
                                               ),
                                               AttendancTypeContainer(
@@ -2543,7 +2543,7 @@ Future<void> showDayDetails(
                                                         leaveTypesShow!
                                                             .isNotEmpty)
                                                     ? '$leaveTypesShow'
-                                                    : 'Paid Leave',
+                                                    : paidLeaveString,
                                                 (leaveTypesShow?.toUpperCase() ==
                                                             'PAID LEAVE' ||
                                                         leaveTypesShow ==
@@ -2579,10 +2579,10 @@ Future<void> showDayDetails(
                                                 AttendancTypeContainer(
                                                   size,
                                                   leaveStatusShow!,
-                                                  leaveStatusShow == 'Approved'
+                                                  leaveStatusShow == approvedString
                                                       ? Colors.green
                                                       : leaveStatusShow ==
-                                                            'Pending'
+                                                            pendingString
                                                       ? Colors.orange
                                                       : Colors.red,
                                                 ),
@@ -2594,7 +2594,7 @@ Future<void> showDayDetails(
                                               leaveResons != 'null' &&
                                               leaveResons!.isNotEmpty)
                                             Text(
-                                              'Reason : $leaveResons',
+                                              '$reasonPrefixString$leaveResons',
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -2611,7 +2611,7 @@ Future<void> showDayDetails(
                                       ),
                                       child: AttendancTypeContainer(
                                         size,
-                                        'Absent',
+                                        absentString,
                                         Colors.red.shade400,
                                       ),
                                     )
@@ -2826,7 +2826,7 @@ Future<void> showDayDetails(
                                                         ),
                                                         SizedBox(width: 4),
                                                         Text(
-                                                          'Offline',
+                                                          offlineString,
                                                           style: TextStyle(
                                                             color:
                                                                 Colors.orange,
@@ -2877,7 +2877,7 @@ Future<void> showDayDetails(
                                                                   currentEmpData!
                                                                       .attendenceID)
                                                               .toString(),
-                                                          'Log Update',
+                                                          logUpdateString,
                                                           false,
                                                         ),
                                                       ).then((value) {

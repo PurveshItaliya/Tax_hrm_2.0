@@ -12,6 +12,7 @@ import 'package:tax_hrm/page/visit/visit_details_screen.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 
 class VisitScreen extends StatefulWidget {
   const VisitScreen({super.key});
@@ -68,7 +69,7 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
         });
       }
     } catch (e) {
-      showtoastmessage('Failed to refresh visit list');
+      showtoastmessage(failedToRefreshVisitsString);
     } finally {
       if (mounted) setState(() { _isLoading = false; });
     }
@@ -86,7 +87,7 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
     String longitude = result['longitude']?.toString() ?? '';
 
     if (capturedFile == null) {
-      showtoastmessage('No image captured. Visit not started.');
+      showtoastmessage(noImageCapturedString);
       return;
     }
 
@@ -111,14 +112,14 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Mark as Complete'),
-        content: const Text('Are you sure you want to mark this visit as complete?'),
+        title: Text(markAsCompleteString),
+        content: Text(confirmCompleteVisitString),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(cancelString)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Complete'),
+            child: Text(completeButtonString),
           ),
         ],
       ),
@@ -137,7 +138,7 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
   }
 
   String _formatDate(String? rawDate) {
-    if (rawDate == null || rawDate.isEmpty || rawDate == 'null') return 'N/A';
+    if (rawDate == null || rawDate.isEmpty || rawDate == 'null') return notAvailableString;
     try {
       DateTime parsed = DateTime.parse(rawDate);
       return DateFormat('dd MMM, hh:mm a').format(parsed);
@@ -147,6 +148,11 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
   }
 
   Widget _buildVisitList(List<dynamic> list, String tabType) {
+    String emptyText = '';
+    if (tabType == 'Pending') emptyText = noPendingVisitsString;
+    else if (tabType == 'In Progress') emptyText = noInProgressVisitsString;
+    else emptyText = noCompletedVisitsString;
+
     return RefreshIndicator(
       onRefresh: _fetchVisits,
       color: ColorConst.themeColor,
@@ -160,7 +166,7 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
                     children: [
                       Icon(Icons.assignment_outlined, size: 70, color: Colors.grey.withOpacity(0.3)),
                       const SizedBox(height: 16),
-                      Text('No $tabType Visits', style: TextStyle(fontSize: 16, color: Colors.grey.withOpacity(0.8), fontWeight: FontWeight.bold)),
+                      Text(emptyText, style: TextStyle(fontSize: 16, color: Colors.grey.withOpacity(0.8), fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -206,7 +212,7 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
                             children: [
                               Expanded(
                                 child: Text(
-                                  visit['VisitName'] ?? 'Unknown',
+                                  visit['VisitName'] ?? unknownVisitString,
                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 0.2, color: Theme.of(context).textTheme.bodyLarge?.color),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -244,7 +250,7 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
                                         const SizedBox(width: 6),
                                         Expanded(
                                           child: Text(
-                                            visit['PartyName'] ?? 'No Party Assigned',
+                                            visit['PartyName'] ?? noPartyAssignedString,
                                             style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -299,7 +305,7 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
                                 Padding(
                                   padding: const EdgeInsets.only(left: 8.0),
                                   child: _actionButton(
-                                    label: 'Start Visit',
+                                    label: startVisitString,
                                     icon: Icons.play_arrow_rounded,
                                     color: ColorConst.themeColor,
                                     onTap: () => _startVisit(visit),
@@ -309,7 +315,7 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
                                 Padding(
                                   padding: const EdgeInsets.only(left: 8.0),
                                   child: _actionButton(
-                                    label: 'Complete',
+                                    label: completeButtonString,
                                     icon: Icons.check_circle_rounded,
                                     color: ColorConst.themeColor,
                                     onTap: () => _completeVisit(visit),
@@ -366,12 +372,12 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
     return Scaffold(
       backgroundColor: ColorConst.scaffoldColor,
       appBar: AppBar(
-        title: const Text('Visits', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(visitsTitleString, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: ColorConst.themeColor,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), tooltip: 'Refresh', onPressed: _fetchVisits),
+          IconButton(icon: const Icon(Icons.refresh), tooltip: refreshString, onPressed: _fetchVisits),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -380,10 +386,10 @@ class _VisitScreenState extends State<VisitScreen> with SingleTickerProviderStat
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          tabs: const [
-            Tab(text: 'Pending'),
-            Tab(text: 'In Progress'),
-            Tab(text: 'Completed'),
+          tabs: [
+            Tab(text: pendingString),
+            Tab(text: inProgressString),
+            Tab(text: completedString),
           ],
         ),
       ),

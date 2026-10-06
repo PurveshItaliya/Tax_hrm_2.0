@@ -1444,7 +1444,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     icon: Icons.history_rounded,
                     color: ColorConst.themeColor,
                     isDark: isDark,
-                    tooltip: 'View Timeline',
+                    tooltip: viewTimelineString,
                   ),
                   const SizedBox(width: 6),
                   _buildSmallActionButton(
@@ -1457,7 +1457,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     image: whatsappImgString,
                     color: ColorConst.greenColor,
                     isDark: isDark,
-                    tooltip: 'WhatsApp Message',
+                    tooltip: whatsappMessageString,
                   ),
                   const SizedBox(width: 6),
                   _buildSmallActionButton(
@@ -1497,7 +1497,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                     color: ColorConst.blueColor,
                     imageColor: isDark ? Colors.white : ColorConst.blueColor,
                     isDark: isDark,
-                    tooltip: 'Day Attendance Log',
+                    tooltip: dayAttendanceLogString,
                   ),
                 ],
               ),

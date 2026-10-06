@@ -792,3 +792,101 @@ String get websiteUrlString => LanguageProvider.translate("websiteUrlString", "w
 String get websiteCopiedString => LanguageProvider.translate("websiteCopiedString", "Website copied to clipboard!");
 String get companyAddressString => LanguageProvider.translate("companyAddressString", "601-602, SUBH SQUARE, opp. Modh Patni wadi, Lal Darwaja, Surat, Gujarat 395003");
 String get addressCopiedString => LanguageProvider.translate("addressCopiedString", "Address copied to clipboard!");
+
+// Create Visit Screen Strings
+String get createVisitString => LanguageProvider.translate("createVisitString", "Create Visit");
+String get loadingPartiesString => LanguageProvider.translate("loadingPartiesString", "Loading parties...");
+String get visitNameString => LanguageProvider.translate("visitNameString", "Visit Name");
+String get enterVisitTitleString => LanguageProvider.translate("enterVisitTitleString", "Enter visit title / name");
+String get selectPartyOptionString => LanguageProvider.translate("selectPartyOptionString", "Select Party Option");
+String get existingPartyString => LanguageProvider.translate("existingPartyString", "Existing Party");
+String get newPartyString => LanguageProvider.translate("newPartyString", "+ New Party");
+String get selectPartyNameString => LanguageProvider.translate("selectPartyNameString", "Select Party Name");
+String get partyNameString => LanguageProvider.translate("partyNameString", "Party Name");
+String get enterNewPartyNameString => LanguageProvider.translate("enterNewPartyNameString", "Enter new party name");
+String get mobileNumberString => LanguageProvider.translate("mobileNumberString", "Mobile Number");
+String get enterMobileNumberString => LanguageProvider.translate("enterMobileNumberString", "Enter mobile number");
+String get enterAddressLine1String => LanguageProvider.translate("enterAddressLine1String", "Enter address line 1");
+String get enterAddressLine2String => LanguageProvider.translate("enterAddressLine2String", "Enter address line 2 (optional)");
+String get visitDateTimeString => LanguageProvider.translate("visitDateTimeString", "Visit Date & Time");
+String get selectVisitDateTimeString => LanguageProvider.translate("selectVisitDateTimeString", "Select Visit Date & Time");
+String get assignToEmployeeString => LanguageProvider.translate("assignToEmployeeString", "Assign To Employee");
+String get employeeHashString => LanguageProvider.translate("employeeHashString", "Employee #");
+String get remarksNotesString => LanguageProvider.translate("remarksNotesString", "Remarks / Notes");
+String get enterVisitRemarksString => LanguageProvider.translate("enterVisitRemarksString", "Enter visit remarks or notes (optional)...");
+String get attachedDocumentsMax3String => LanguageProvider.translate("attachedDocumentsMax3String", "Attached Documents (Max 3)");
+String get createString => LanguageProvider.translate("createString", "CREATE");
+String get selectPartyString => LanguageProvider.translate("selectPartyString", "Select Party");
+String get searchPartyByNameString => LanguageProvider.translate("searchPartyByNameString", "Search party by name...");
+String get noPartiesFoundString => LanguageProvider.translate("noPartiesFoundString", "No parties found");
+String get unknownPartyString => LanguageProvider.translate("unknownPartyString", "Unknown Party");
+String get addOtherNewPartyString => LanguageProvider.translate("addOtherNewPartyString", "+ Add Other / New Party");
+String get searchEmployeeByNameString => LanguageProvider.translate("searchEmployeeByNameString", "Search employee by name...");
+
+// Visit Camera Screen Strings
+String get fetchingLocationString => LanguageProvider.translate("fetchingLocationString", "Fetching location...");
+String get errorInitializingCameraString => LanguageProvider.translate("errorInitializingCameraString", "Error initializing camera: ");
+String get locationServicesDisabledTurnOnGpsString => LanguageProvider.translate("locationServicesDisabledTurnOnGpsString", "Location services are disabled. Please turn on GPS.");
+String get locationPermissionsDeniedString => LanguageProvider.translate("locationPermissionsDeniedString", "Location permissions denied.");
+String get locationPermissionRequiredVisitString => LanguageProvider.translate("locationPermissionRequiredVisitString", "Location permission is required to start a visit.");
+String get locationPermissionsPermanentlyDeniedString => LanguageProvider.translate("locationPermissionsPermanentlyDeniedString", "Location permissions permanently denied.");
+String get locationPermissionPermanentlyDeniedSettingsString => LanguageProvider.translate("locationPermissionPermanentlyDeniedSettingsString", "Location permission is permanently denied. Please enable it in settings.");
+String get addressNotFoundString => LanguageProvider.translate("addressNotFoundString", "Address not found");
+String get errorGettingLocationString => LanguageProvider.translate("errorGettingLocationString", "Error getting location");
+String get errorGettingLocationGpsString => LanguageProvider.translate("errorGettingLocationGpsString", "Error getting location. Please make sure GPS is working.");
+String get locationRequiredString => LanguageProvider.translate("locationRequiredString", "Location Required");
+String get gpsSettingsString => LanguageProvider.translate("gpsSettingsString", "GPS Settings");
+String get locationMandatoryStartVisitString => LanguageProvider.translate("locationMandatoryStartVisitString", "Location is mandatory to start a visit. Please wait while we fetch location, or enable GPS/Permissions.");
+String get errorTakingPictureString => LanguageProvider.translate("errorTakingPictureString", "Error taking picture: ");
+String get latString => LanguageProvider.translate("latString", "Lat: ");
+String get lngString => LanguageProvider.translate("lngString", " | Lng: ");
+
+// View Attendance Screen Strings
+String get attendanceInfoString => LanguageProvider.translate("attendanceInfoString", "Attendance Info");
+String get colorLegendString => LanguageProvider.translate("colorLegendString", "Color Legend");
+String get totalHoursPresentString => LanguageProvider.translate("totalHoursPresentString", "Total Hours / Present");
+String get totalBreakAbsentString => LanguageProvider.translate("totalBreakAbsentString", "Total Break / Absent");
+String get calculationFormulaString => LanguageProvider.translate("calculationFormulaString", "Calculation Formula");
+String get hrString => LanguageProvider.translate("hrString", " Hr");
+String get minString => LanguageProvider.translate("minString", " Min");
+String get halfDayString => LanguageProvider.translate("halfDayString", "Half Day");
+String get fullDayString => LanguageProvider.translate("fullDayString", "Full Day");
+String get holidayNamePrefixString => LanguageProvider.translate("holidayNamePrefixString", "Holiday Name :- ");
+String get descriptionPrefixString => LanguageProvider.translate("descriptionPrefixString", "Description :- ");
+String get unpaidLeaveString => LanguageProvider.translate("unpaidLeaveString", "Unpaid Leave");
+String get reasonPrefixString => LanguageProvider.translate("reasonPrefixString", "Reason : ");
+String get logUpdateString => LanguageProvider.translate("logUpdateString", "Log Update");
+String get workingString => LanguageProvider.translate("workingString", "Working");
+String get offlineString => LanguageProvider.translate("offlineString", "Offline");
+String get addNewPunchString => LanguageProvider.translate("addNewPunchString", "Add New Punch");
+String get leaveAttendanceString => LanguageProvider.translate("leaveString", "Leave");
+
+// Visit Screen Strings
+String get failedToRefreshVisitsString => LanguageProvider.translate("failedToRefreshVisitsString", "Failed to refresh visit list");
+String get noImageCapturedString => LanguageProvider.translate("noImageCapturedString", "No image captured. Visit not started.");
+String get markAsCompleteString => LanguageProvider.translate("markAsCompleteString", "Mark as Complete");
+String get confirmCompleteVisitString => LanguageProvider.translate("confirmCompleteVisitString", "Are you sure you want to mark this visit as complete?");
+String get completeButtonString => LanguageProvider.translate("completeButtonString", "Complete");
+String get notAvailableString => LanguageProvider.translate("notAvailableString", "N/A");
+String get noPendingVisitsString => LanguageProvider.translate("noPendingVisitsString", "No Pending Visits");
+String get noInProgressVisitsString => LanguageProvider.translate("noInProgressVisitsString", "No In Progress Visits");
+String get noCompletedVisitsString => LanguageProvider.translate("noCompletedVisitsString", "No Completed Visits");
+String get unknownVisitString => LanguageProvider.translate("unknownVisitString", "Unknown");
+String get noPartyAssignedString => LanguageProvider.translate("noPartyAssignedString", "No Party Assigned");
+String get startVisitString => LanguageProvider.translate("startVisitString", "Start Visit");
+String get inProgressString => LanguageProvider.translate("inProgressString", "In Progress");
+String get refreshString => LanguageProvider.translate("refreshString", "Refresh");
+String get visitsTitleString => LanguageProvider.translate("visitsTitleString", "Visits");
+
+// Show Attendance Data Strings
+String get attendanceDashboardString => LanguageProvider.translate("attendanceDashboardString", "Attendance Dashboard");
+String get datePrefixString => LanguageProvider.translate("datePrefixString", "Date:");
+String get metricString => LanguageProvider.translate("metricString", "Metric");
+String get countString => LanguageProvider.translate("countString", "Count");
+String get designationPrefixString => LanguageProvider.translate("designationPrefixString", "Designation: ");
+String get storagePermissionRequiredString => LanguageProvider.translate("storagePermissionRequiredString", "Storage permission required to download Excel");
+String get excelDownloadedSuccessfullyString => LanguageProvider.translate("excelDownloadedSuccessfullyString", "Excel Downloaded Successfully! Saved in Download/TAX HRM 2.0");
+String get failedToDownloadExcelString => LanguageProvider.translate("failedToDownloadExcelString", "Failed to download Excel. Please try again.");
+String get viewTimelineString => LanguageProvider.translate("viewTimelineString", "View Timeline");
+String get whatsappMessageString => LanguageProvider.translate("whatsappMessageString", "WhatsApp Message");
+String get dayAttendanceLogString => LanguageProvider.translate("dayAttendanceLogString", "Day Attendance Log");

@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:tax_hrm/widigets/permission_dialog_widget.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 
 class VisitCameraScreen extends StatefulWidget {
   const VisitCameraScreen({super.key});
@@ -18,7 +19,7 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   bool _isCameraReady = false;
-  String _currentAddress = 'Fetching location...';
+  String _currentAddress = fetchingLocationString;
   String _currentLatitude = '';
   String _currentLongitude = '';
   bool _isTakingPicture = false;
@@ -50,7 +51,7 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
         }
       }
     } catch (e) {
-      showtoastmessage('Error initializing camera: $e');
+      showtoastmessage('$errorInitializingCameraString$e');
     }
 
     _fetchLocation();
@@ -60,8 +61,8 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        setState(() => _currentAddress = 'Location services are disabled.');
-        _showLocationRequiredDialog('Location services are disabled. Please turn on GPS.', isGps: true);
+        setState(() => _currentAddress = locationServicesDisabledString);
+        _showLocationRequiredDialog(locationServicesDisabledTurnOnGpsString, isGps: true);
         return;
       }
 
@@ -69,15 +70,15 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          setState(() => _currentAddress = 'Location permissions denied.');
-          _showLocationRequiredDialog('Location permission is required to start a visit.');
+          setState(() => _currentAddress = locationPermissionsDeniedString);
+          _showLocationRequiredDialog(locationPermissionRequiredVisitString);
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        setState(() => _currentAddress = 'Location permissions permanently denied.');
-        _showLocationRequiredDialog('Location permission is permanently denied. Please enable it in settings.');
+        setState(() => _currentAddress = locationPermissionsPermanentlyDeniedString);
+        _showLocationRequiredDialog(locationPermissionPermanentlyDeniedSettingsString);
         return;
       }
 
@@ -96,11 +97,11 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
           }
         }
       } catch (e) {
-        if (mounted) setState(() => _currentAddress = 'Address not found');
+        if (mounted) setState(() => _currentAddress = addressNotFoundString);
       }
     } catch (e) {
-      if (mounted) setState(() => _currentAddress = 'Error getting location');
-      _showLocationRequiredDialog('Error getting location. Please make sure GPS is working.', isGps: true);
+      if (mounted) setState(() => _currentAddress = errorGettingLocationString);
+      _showLocationRequiredDialog(errorGettingLocationGpsString, isGps: true);
     }
   }
 
@@ -112,10 +113,10 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
       builder: (context) => PermissionDialogWidget(
         icon: isGps ? Icons.location_disabled : Icons.lock_outline,
         iconColor: Colors.orange,
-        title: 'Location Required',
+        title: locationRequiredString,
         message: message,
-        primaryButtonText: isGps ? 'GPS Settings' : 'Open Settings',
-        secondaryButtonText: 'Cancel',
+        primaryButtonText: isGps ? gpsSettingsString : openSettingsString,
+        secondaryButtonText: cancelString,
         onPrimaryPressed: () {
           Navigator.pop(context);
           if (isGps) {
@@ -134,7 +135,7 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
 
   Future<void> _takePicture() async {
     if (_currentLatitude.isEmpty || _currentLongitude.isEmpty) {
-      _showLocationRequiredDialog('Location is mandatory to start a visit. Please wait while we fetch location, or enable GPS/Permissions.');
+      _showLocationRequiredDialog(locationMandatoryStartVisitString);
       return;
     }
 
@@ -154,7 +155,7 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
         });
       }
     } catch (e) {
-      showtoastmessage('Error taking picture: $e');
+      showtoastmessage('$errorTakingPictureString$e');
     } finally {
       if (mounted) setState(() => _isTakingPicture = false);
     }
@@ -223,7 +224,7 @@ class _VisitCameraScreenState extends State<VisitCameraScreen> {
                   if (_currentLatitude.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Lat: $_currentLatitude | Lng: $_currentLongitude',
+                      '$latString$_currentLatitude$lngString$_currentLongitude',
                       style: const TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],

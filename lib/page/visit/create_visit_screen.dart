@@ -9,6 +9,7 @@ import 'package:tax_hrm/models/employes/getemployes.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
+import 'package:tax_hrm/utils/titlesfile.dart';
 
 class CreateVisitScreen extends StatefulWidget {
   const CreateVisitScreen({super.key});
@@ -135,7 +136,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
     return Scaffold(
       backgroundColor: ColorConst.scaffoldColor,
       appBar: AppBar(
-        title: const Text('Create Visit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(createVisitString, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: ColorConst.themeColor,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -148,7 +149,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
               children: [
                 CircularProgressIndicator(color: ColorConst.themeColor),
                 const SizedBox(height: 16),
-                const Text('Loading parties...', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                Text(loadingPartiesString, style: const TextStyle(color: Colors.grey, fontSize: 13)),
               ],
             ),
           );
@@ -161,16 +162,16 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
                 // Visit Name
-                _buildLabel('Visit Name', context, isRequired: true),
+                _buildLabel(visitNameString, context, isRequired: true),
                 TextField(
                   controller: controller.visitNameController,
                   style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 14),
-                  decoration: _commonInputDecoration('Enter visit title / name', context),
+                  decoration: _commonInputDecoration(enterVisitTitleString, context),
                 ),
                 const SizedBox(height: 12),
 
               // Smooth Animated Tab Bar Header
-              _buildLabel('Select Party Option', context, isRequired: true),
+              _buildLabel(selectPartyOptionString, context, isRequired: true),
               Container(
                 height: 44,
                 padding: const EdgeInsets.all(3),
@@ -214,7 +215,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'Existing Party',
+                                existingPartyString,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
@@ -262,7 +263,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                '+ New Party',
+                                newPartyString,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
@@ -307,7 +308,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                controller.selectedParty.value?.partyName ?? 'Select Party Name',
+                                controller.selectedParty.value?.partyName ?? selectPartyNameString,
                                 style: TextStyle(
                                   color: controller.selectedParty.value != null
                                       ? Theme.of(context).textTheme.bodyLarge?.color
@@ -349,36 +350,36 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                 secondChild: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildLabel('Party Name', context, isRequired: true),
+                    _buildLabel(partyNameString, context, isRequired: true),
                     TextField(
                       controller: controller.newPartyNameController,
                       style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.5),
-                      decoration: _commonInputDecoration('Enter new party name', context),
+                      decoration: _commonInputDecoration(enterNewPartyNameString, context),
                     ),
                     const SizedBox(height: 12),
 
-                    _buildLabel('Mobile Number', context, isRequired: true),
+                    _buildLabel(mobileNumberString, context, isRequired: true),
                     TextField(
                       controller: controller.newPartyMobileController,
                       keyboardType: TextInputType.phone,
                       style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.5),
-                      decoration: _commonInputDecoration('Enter mobile number', context),
+                      decoration: _commonInputDecoration(enterMobileNumberString, context),
                     ),
                     const SizedBox(height: 12),
 
-                    _buildLabel('Address 1', context, isRequired: true),
+                    _buildLabel(address1String, context),
                     TextField(
                       controller: controller.newPartyAdd1Controller,
                       style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.5),
-                      decoration: _commonInputDecoration('Enter address line 1', context),
+                      decoration: _commonInputDecoration(enterAddressLine1String, context),
                     ),
                     const SizedBox(height: 12),
 
-                    _buildLabel('Address 2', context),
+                    _buildLabel(address2String, context),
                     TextField(
                       controller: controller.newPartyAdd2Controller,
                       style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.5),
-                      decoration: _commonInputDecoration('Enter address line 2 (optional)', context),
+                      decoration: _commonInputDecoration(enterAddressLine2String, context),
                     ),
                   ],
                 ),
@@ -386,7 +387,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
               const SizedBox(height: 12),
 
                 // Visit Time
-                _buildLabel('Visit Date & Time', context, isRequired: true),
+                _buildLabel(visitDateTimeString, context, isRequired: true),
                 InkWell(
                   onTap: () => controller.selectDateTime(context, controller.selectedVisitTime),
                   borderRadius: BorderRadius.circular(10),
@@ -406,7 +407,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                           child: Text(
                             controller.selectedVisitTime.value != null
                                 ? DateFormat('dd MMM yyyy, hh:mm a').format(controller.selectedVisitTime.value!)
-                                : 'Select Visit Date & Time',
+                                : selectVisitDateTimeString,
                             style: TextStyle(
                               color: controller.selectedVisitTime.value != null
                                   ? Theme.of(context).textTheme.bodyLarge?.color
@@ -426,7 +427,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
 
                 // Assign To (Admin only)
                 if (curentUser != null && curentUser['Role'] == 'Admin') ...[
-                  _buildLabel('Assign To Employee', context, isRequired: true),
+                  _buildLabel(assignToEmployeeString, context, isRequired: true),
                   InkWell(
                     onTap: () => _showEmployeeSearchSheet(context),
                     borderRadius: BorderRadius.circular(10),
@@ -446,7 +447,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                             child: Obx(() {
                               if (controller.selectedAssignTo.isEmpty) {
                                 return Text(
-                                  'Select Employee',
+                                  selectEmployeeString,
                                   style: TextStyle(
                                     color: isDark ? Colors.grey[500] : Colors.grey[500],
                                     fontSize: 13.5,
@@ -458,7 +459,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                                 runSpacing: 6.0,
                                 children: controller.selectedAssignTo.map((emp) {
                                   String empName = '${emp.firstName ?? ''} ${emp.lastName ?? ''}'.trim();
-                                  if (empName.isEmpty) empName = 'Employee #${emp.id}';
+                                  if (empName.isEmpty) empName = '$employeeHashString${emp.id}';
                                   return Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
@@ -495,16 +496,17 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                 ],
 
                 // Remarks
-                _buildLabel('Remarks / Notes', context),
+                _buildLabel(remarksNotesString, context),
                 TextField(
                   controller: controller.remarksController,
                   maxLines: 3,
                   style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.5),
-                  decoration: _commonInputDecoration('Enter visit remarks or notes (optional)...', context),
+                  decoration: _commonInputDecoration(enterVisitRemarksString, context),
                 ),
                 const SizedBox(height: 12),
                 // Attached Documents
-                _buildLabel('Attached Documents (Max 3, Max 10MB each)', context),
+
+                _buildLabel(attachedDocumentsMax3String, context),
                 Obx(() {
                   bool isDark = Theme.of(context).brightness == Brightness.dark;
                   int maxDisplay = 3;
@@ -585,7 +587,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                                       children: [
                                         Icon(Icons.add_photo_alternate_rounded, color: ColorConst.themeColor, size: 30),
                                         const SizedBox(height: 6),
-                                        Text('Add File', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ColorConst.themeColor)),
+                                        Text(addFileString, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ColorConst.themeColor)),
                                       ],
                                     ),
                                   ),
@@ -626,7 +628,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
             onPressed: controller.isSubmitting.value ? null : () => controller.submitVisit(context),
             child: controller.isSubmitting.value
                 ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('CREATE', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                : Text(createString, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           ),
         ),
       )),
@@ -689,9 +691,9 @@ class _PartySearchSheetState extends State<_PartySearchSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Select Party',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                Text(
+                  selectPartyString,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
@@ -710,7 +712,7 @@ class _PartySearchSheetState extends State<_PartySearchSheet> {
               autofocus: true,
               style: TextStyle(fontSize: 13.5, color: Theme.of(context).textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                hintText: 'Search party by name...',
+                hintText: searchPartyByNameString,
                 hintStyle: TextStyle(fontSize: 13, color: widget.isDark ? Colors.grey[400] : Colors.grey[500]),
                 prefixIcon: Icon(Icons.search, size: 20, color: ColorConst.themeColor),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -736,8 +738,8 @@ class _PartySearchSheetState extends State<_PartySearchSheet> {
             // Filtered Party List
             Expanded(
               child: filteredParties.isEmpty
-                  ? const Center(
-                      child: Text('No parties found', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ? Center(
+                      child: Text(noPartiesFoundString, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                     )
                   : ListView.separated(
                       itemCount: filteredParties.length,
@@ -761,7 +763,7 @@ class _PartySearchSheetState extends State<_PartySearchSheet> {
                             ),
                           ),
                           title: Text(
-                            party.partyName ?? 'Unknown Party',
+                            party.partyName ?? unknownPartyString,
                             style: TextStyle(
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                               fontSize: 13.5,
@@ -791,9 +793,9 @@ class _PartySearchSheetState extends State<_PartySearchSheet> {
                 ),
                 onPressed: widget.onAddNewParty,
                 icon: const Icon(Icons.add_circle_outline, size: 18),
-                label: const Text(
-                  '+ Add Other / New Party',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                label: Text(
+                  addOtherNewPartyString,
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -856,9 +858,9 @@ class _EmployeeSearchSheetState extends State<_EmployeeSearchSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Select Employee',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                Text(
+                  selectEmployeeString,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
@@ -877,7 +879,7 @@ class _EmployeeSearchSheetState extends State<_EmployeeSearchSheet> {
               autofocus: true,
               style: TextStyle(fontSize: 13.5, color: Theme.of(context).textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                hintText: 'Search employee by name...',
+                hintText: searchEmployeeByNameString,
                 hintStyle: TextStyle(fontSize: 13, color: widget.isDark ? Colors.grey[400] : Colors.grey[500]),
                 prefixIcon: Icon(Icons.search, size: 20, color: ColorConst.themeColor),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -903,8 +905,8 @@ class _EmployeeSearchSheetState extends State<_EmployeeSearchSheet> {
             // Filtered Employee List
             Expanded(
               child: filteredEmployees.isEmpty
-                  ? const Center(
-                      child: Text('No employees found', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ? Center(
+                      child: Text(noEmployeesFoundString, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                     )
                   : ListView.separated(
                       itemCount: filteredEmployees.length,
@@ -930,7 +932,7 @@ class _EmployeeSearchSheetState extends State<_EmployeeSearchSheet> {
                               ),
                             ),
                             title: Text(
-                              empName.isNotEmpty ? empName : 'Employee #${emp.id}',
+                              empName.isNotEmpty ? empName : '$employeeHashString${emp.id}',
                               style: TextStyle(
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                 fontSize: 13.5,
