@@ -1,7 +1,6 @@
 // ignore_for_file: empty_catches, strict_top_level_inference, non_constant_identifier_names, unused_local_variable
 
 import 'dart:async';
-import 'dart:developer' as developer;
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -44,14 +43,9 @@ class AttendanceApis{
 
   Future  getDateBlogEmp(setDate,employeid,setCompanyid,)async{
     var url = Uri.parse('${apibaseurl}api/HRM/GetAttendenceListById?CompanyID=$setCompanyid&EmpId=$employeid&AttendenceDate=$setDate');
-    print('=============================================');
-    print('API Request URL (GetAttendenceListById): $url');
     var response = await http.get(url, headers: {
       'Authorization': 'bearer ${curentUser['token']}',
     });
-    print('API Response Status (GetAttendenceListById): ${response.statusCode}');
-    print('API Response Body (GetAttendenceListById): ${response.body}');
-    print('=============================================');
     try {
       final data = jsonDecode(response.body);
       if (data != null && data['AttendenceLog'] != null) {

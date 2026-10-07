@@ -44,7 +44,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     );
 
     // Clear any previous search query when the page is first called
-    provider.clearSearch();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      provider.clearSearch();
+    });
 
     // Check if data is already cached for today
     bool hasDataForToday =
@@ -90,7 +92,42 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
           backgroundColor: isDark
               ? const Color(0xFF121212)
               : ColorConst.scaffoldColor,
-          appBar: showBottomAppBar(attendanceString, size, centerTitles: false),
+          appBar: showBottomAppBar(
+            attendanceString,
+            size,
+            centerTitles: false,
+            actions: [
+              PopupMenuButton<String>(
+                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                icon: Icon(Icons.filter_alt_outlined, color: isDark ? Colors.white : Colors.black,),
+                onSelected: (String result) {
+                  attendanceProviders.filterType = result;
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'Department',
+                    child: Text(
+                      departmentWiseString,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontFamily: fontInterMediumString,
+                      ),
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'Role Right',
+                    child: Text(
+                      roleRightWiseString,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontFamily: fontInterMediumString,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
           body: attendanceProviders.isloderings
               ? attendanceAllEmployeeShimmer(size)
               : SingleChildScrollView(
@@ -659,6 +696,9 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
     List<String> departments = attendanceProviders.getUniqueDepartments(
       allEmpList,
     );
+    List<String> roles = attendanceProviders.getUniqueRoles(allEmpList);
+    bool isDepartment = attendanceProviders.filterType == 'Department';
+    List<String> filterList = isDepartment ? departments : roles;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -668,20 +708,30 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
             height: 36,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: departments.length,
+              itemCount: filterList.length,
               separatorBuilder: (context, index) => const SizedBox(width: 5),
               itemBuilder: (context, index) {
-                final dept = departments[index];
-                final isSelected =
-                    dept ==
-                    (departments.contains(
-                          attendanceProviders.selectedDepartment,
-                        )
-                        ? attendanceProviders.selectedDepartment
-                        : 'ALL');
+                final item = filterList[index];
+                final isSelected = isDepartment
+                    ? item ==
+                        (departments.contains(
+                              attendanceProviders.selectedDepartment,
+                            )
+                            ? attendanceProviders.selectedDepartment
+                            : 'ALL')
+                    : item ==
+                        (roles.contains(
+                              attendanceProviders.selectedRole,
+                            )
+                            ? attendanceProviders.selectedRole
+                            : 'ALL');
                 return GestureDetector(
                   onTap: () {
-                    attendanceProviders.selectedDepartment = dept;
+                    if (isDepartment) {
+                      attendanceProviders.selectedDepartment = item;
+                    } else {
+                      attendanceProviders.selectedRole = item;
+                    }
                     attendanceProviders.filterEmployees(allEmpList);
                   },
                   child: Container(
@@ -712,7 +762,7 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
                       ],
                     ),
                     child: Text(
-                      dept,
+                      item,
                       style: TextStyle(
                         color: isSelected
                             ? Colors.white
@@ -1123,7 +1173,8 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
 
     final bool isFiltered =
         attendanceProviders.searchQuery.isNotEmpty ||
-        attendanceProviders.selectedDepartment != 'ALL';
+        attendanceProviders.selectedDepartment != 'ALL' ||
+        attendanceProviders.selectedRole != 'ALL';
 
     List<dynamic> displayList = attendanceProviders.empAttendanceList;
 
@@ -1156,7 +1207,20 @@ class _ShowAttenDanceEmployeDataState extends State<ShowAttenDanceEmployeData> {
               deptName == attendanceProviders.selectedDepartment;
         }
 
-        return matchesSearch && matchesDepartment;
+        bool matchesRole = true;
+        if (attendanceProviders.selectedRole != 'ALL') {
+          String roleName = '-';
+          for (var emp in allEmpList) {
+            if (emp.id == employee.empId) {
+              roleName = emp.role ?? '-';
+              if (roleName.trim().isEmpty) roleName = '-';
+              break;
+            }
+          }
+          matchesRole = roleName == attendanceProviders.selectedRole;
+        }
+
+        return matchesSearch && matchesDepartment && matchesRole;
       }).toList();
     }
     return displayList.isEmpty

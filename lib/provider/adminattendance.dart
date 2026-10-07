@@ -48,6 +48,8 @@ class AdminAttenDanceServices extends ChangeNotifier {
   final TextEditingController searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedDepartment = 'ALL';
+  String _selectedRole = 'ALL';
+  String _filterType = 'Department';
 
   String get searchQuery => _searchQuery;
   set searchQuery(String value) {
@@ -61,6 +63,20 @@ class AdminAttenDanceServices extends ChangeNotifier {
     notifyListeners();
   }
 
+  String get selectedRole => _selectedRole;
+  set selectedRole(String value) {
+    _selectedRole = value;
+    notifyListeners();
+  }
+
+  String get filterType => _filterType;
+  set filterType(String value) {
+    _filterType = value;
+    _selectedDepartment = 'ALL';
+    _selectedRole = 'ALL';
+    notifyListeners();
+  }
+
   void filterEmployees(List<dynamic> allEmpList) {
     // UI now handles filtering dynamically based on searchQuery and selectedDepartment
     notifyListeners();
@@ -70,6 +86,7 @@ class AdminAttenDanceServices extends ChangeNotifier {
     searchController.clear();
     _searchQuery = '';
     _selectedDepartment = 'ALL';
+    _selectedRole = 'ALL';
     notifyListeners();
   }
 
@@ -92,6 +109,27 @@ class AdminAttenDanceServices extends ChangeNotifier {
     departments.sort();
     departments.insert(0, 'ALL');
     return departments;
+  }
+
+  List<String> getUniqueRoles(List<dynamic> allEmpList) {
+    Set<String> rolesSet = {};
+    for (var employee in empAttendanceList) {
+      String roleName = '-';
+      for (var emp in allEmpList) {
+        if (emp.id == employee.empId) {
+          roleName = emp.role ?? '-';
+          if (roleName.trim().isEmpty) roleName = '-';
+          break;
+        }
+      }
+      if (roleName != '-') {
+        rolesSet.add(roleName);
+      }
+    }
+    List<String> roles = rolesSet.toList();
+    roles.sort();
+    roles.insert(0, 'ALL');
+    return roles;
   }
   // ===============================================================
 

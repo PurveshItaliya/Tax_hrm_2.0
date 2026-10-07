@@ -1490,11 +1490,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             leaveResons: leaveResons,
             fetchFuture: fetchTask,
             onUpdate: () {
-              if (mounted) {
-                setState(() {
-                  _monthViewKey = GlobalKey<MonthViewState>();
-                });
-              }
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _monthViewKey = GlobalKey<MonthViewState>();
+                  });
+                }
+              });
             },
           );
         } else {
@@ -1539,11 +1541,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               leaveResons: leaveResons,
               fetchFuture: fetchTask,
               onUpdate: () {
-                if (mounted) {
-                  setState(() {
-                    _monthViewKey = GlobalKey<MonthViewState>();
-                  });
-                }
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _monthViewKey = GlobalKey<MonthViewState>();
+                    });
+                  }
+                });
               },
             );
           } else {
@@ -1597,11 +1601,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               leaveResons: leaveResons,
               fetchFuture: fetchTask,
               onUpdate: () {
-                if (mounted) {
-                  setState(() {
-                    _monthViewKey = GlobalKey<MonthViewState>();
-                  });
-                }
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _monthViewKey = GlobalKey<MonthViewState>();
+                    });
+                  }
+                });
               },
             );
           }
