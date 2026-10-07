@@ -17,6 +17,8 @@ import 'package:tax_hrm/utils/randomcguid.dart';
 import 'package:tax_hrm/api/employeapi.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/models/employes/getemployes.dart';
+import 'package:tax_hrm/api/eventsapi.dart';
+import 'package:intl/intl.dart';
 
 class VisitController extends GetxController {
   final VisitApis _visitApis = VisitApis();
@@ -399,6 +401,51 @@ class VisitController extends GetxController {
         );
       }
 
+      if (curentUser != null) {
+        try {
+          String custIdBase = curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '';
+          String companyId = selectedcurentcompany?.companyId?.toString() ?? '';
+          
+          String pName = isNewParty.value ? newPartyNameController.text.trim() : (selectedParty.value?.partyName ?? '');
+          String vName = visitNameController.text.trim();
+          String vDate = DateFormat('dd/MM/yyyy').format(selectedVisitTime.value!);
+          String vTime = DateFormat('hh:mm a').format(selectedVisitTime.value!);
+
+          if (curentUser['Role'] == 'Admin' && selectedAssignTo.isNotEmpty) {
+            for (var emp in selectedAssignTo) {
+              String targetTopic = '${custIdBase}_${companyId}_${emp.id}';
+              String titleName = 'USER ${emp.firstName ?? ''} ${emp.lastName ?? ''}'.trim().toUpperCase();
+              
+              await EventsApiClass().sendPushNotification(
+                title: 'Visit Assigned to You',
+                description: 'A new visit has been assigned to you for $pName ($vName) on $vDate at $vTime.',
+                topicOverride: targetTopic,
+                custIdOverride: custIdBase,
+                topicTitleOverride: titleName,
+              );
+            }
+          } else if (curentUser['Role'] != 'Admin') {
+            String fName = curentUser['FirstName']?.toString() ?? '';
+            String lName = curentUser['LastName']?.toString() ?? '';
+            String userName = '$fName $lName'.trim().toUpperCase();
+            
+            String targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
+            String fullCompanyName = selectedcurentcompany?.companyName?.toString() ?? 'COMPANY';
+            String titleName = fullCompanyName.trim().split(' ').first;
+
+            await EventsApiClass().sendPushNotification(
+              title: 'New Visit Created by User',
+              description: '$userName has created a new visit for $pName ($vName) scheduled on $vDate at $vTime. Please review the visit details.',
+              topicOverride: targetTopic,
+              custIdOverride: custIdBase,
+              topicTitleOverride: titleName,
+            );
+          }
+        } catch (e) {
+          developer.log('[VisitController] Failed to send push notification: $e', name: 'VisitController');
+        }
+      }
+
       resetForm();
       showtoastmessage('Visit created successfully');
       if (context.mounted) {
@@ -493,6 +540,37 @@ class VisitController extends GetxController {
       } catch (_) {}
       // ──────────────────────────────────────────────────────────
 
+      try {
+        if (curentUser != null) {
+          String custIdBase = curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '';
+          String companyId = visitData['CompanyId']?.toString() ?? selectedcurentcompany?.companyId.toString() ?? '';
+          
+          String fName = curentUser['FirstName']?.toString() ?? '';
+          String lName = curentUser['LastName']?.toString() ?? '';
+          String userName = '$fName $lName'.trim().toUpperCase();
+
+          String pName = visitData['PartyName']?.toString() ?? '';
+          String vName = visitData['VisitName']?.toString() ?? '';
+          
+          DateTime now = DateTime.now();
+          String vTime = DateFormat('hh:mm a').format(now);
+
+          String targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
+          String fullCompanyName = selectedcurentcompany?.companyName?.toString() ?? 'COMPANY';
+          String titleName = fullCompanyName.trim().split(' ').first;
+
+          await EventsApiClass().sendPushNotification(
+            title: 'Visit Started',
+            description: '$userName has started the visit for $pName ($vName) at $vTime.',
+            topicOverride: targetTopic,
+            custIdOverride: custIdBase,
+            topicTitleOverride: titleName,
+          );
+        }
+      } catch (e) {
+        developer.log('[VisitController] Failed to send start push notification: $e', name: 'VisitController');
+      }
+
       showtoastmessage('Visit started successfully');
     } catch (e) {
       developer.log('Error starting visit: $e', name: 'VisitController', error: e);
@@ -554,6 +632,38 @@ class VisitController extends GetxController {
         }
       } catch (_) {}
       // ──────────────────────────────────────────────────────────
+
+      try {
+        if (curentUser != null) {
+          String custIdBase = curentUser['CustId']?.toString() ?? curentUser['custid']?.toString() ?? '';
+          String companyId = visitData['CompanyId']?.toString() ?? selectedcurentcompany?.companyId.toString() ?? '';
+          
+          String fName = curentUser['FirstName']?.toString() ?? '';
+          String lName = curentUser['LastName']?.toString() ?? '';
+          String userName = '$fName $lName'.trim().toUpperCase();
+
+          String pName = visitData['PartyName']?.toString() ?? '';
+          String vName = visitData['VisitName']?.toString() ?? '';
+          
+          DateTime now = DateTime.now();
+          String vDate = DateFormat('dd/MM/yyyy').format(now);
+          String vTime = DateFormat('hh:mm a').format(now);
+
+          String targetTopic = 'ALL_ADMIN_${custIdBase}_$companyId';
+          String fullCompanyName = selectedcurentcompany?.companyName?.toString() ?? 'COMPANY';
+          String titleName = fullCompanyName.trim().split(' ').first;
+
+          await EventsApiClass().sendPushNotification(
+            title: 'Visit Completed Successfully',
+            description: '$userName has successfully completed the visit for $pName ($vName) on $vDate at $vTime.',
+            topicOverride: targetTopic,
+            custIdOverride: custIdBase,
+            topicTitleOverride: titleName,
+          );
+        }
+      } catch (e) {
+        developer.log('[VisitController] Failed to send complete push notification: $e', name: 'VisitController');
+      }
 
       showtoastmessage('Visit completed successfully');
     } catch (e) {

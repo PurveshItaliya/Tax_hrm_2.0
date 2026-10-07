@@ -496,7 +496,7 @@ class FcmTokenService {
       topics.add(_sanitize('COMPANY_${custId}_$companyId'));
 
       // 2. Role-based topics: ALL_ADMIN_{custId}_{companyId} or ALL_EMPLOYEE_{custId}_{companyId}
-      if (role == 'Admin' || role == 'Owner' || role == 'Sub-Admin') {
+      if (role == 'Admin' || role == 'Owner') {
         topics.add(_sanitize('ALL_ADMIN_${custId}_$companyId'));
       } else {
         topics.add(_sanitize('ALL_EMPLOYEE_${custId}_$companyId'));
