@@ -53,11 +53,7 @@ class OfflinePunchSyncService {
 
   // ── Logging helper ────────────────────────────────────────────────────────
   static void _log(String message) {
-    // In release builds this prints nothing (dart tree-shaking removes it).
-    assert(() {
-      print('[OfflineSync] $message');
-      return true;
-    }());
+    print('[OfflineSync] $message');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -654,7 +650,7 @@ class OfflinePunchSyncService {
     final body = jsonEncode({
       "IsUser": false,
       "Attendence": {
-        "CompanyId": companyId,
+        "CompanyId": companyId.toString(),
         "EmpId": parsedEmpId,
         "Cguid": record.cguid,
         "IsOnLeave": false,
@@ -685,7 +681,7 @@ class OfflinePunchSyncService {
       ]
     });
 
-    log('📡 [Offline Punch] Payload for NewNewCreateAttendence: $body');
+    print('📡 [Offline Punch] Payload for NewNewCreateAttendence: $body');
 
     final url = Uri.parse('${apibaseurl}api/HRM/NewNewCreateAttendence');
     final response = await http.post(
@@ -697,8 +693,8 @@ class OfflinePunchSyncService {
       },
     ).timeout(const Duration(seconds: 20));
 
-    log('📡 [Offline Punch] Response status: ${response.statusCode}');
-    log('📡 [Offline Punch] Response body: ${response.body}');
+    print('📡 [Offline Punch] Response status: ${response.statusCode}');
+    print('📡 [Offline Punch] Response body: ${response.body}');
 
     bool apiSuccess = false;
     try {
@@ -778,7 +774,7 @@ class OfflinePunchSyncService {
     final body = jsonEncode({
       "IsUser": false,
       "Attendence": {
-        "CompanyId": companyId,
+        "CompanyId": companyId.toString(),
         "EmpId": parsedEmpId,
         "Cguid": record.cguid,
         "IsOnLeave": false,
@@ -809,7 +805,7 @@ class OfflinePunchSyncService {
       ]
     });
 
-    _log('[BG] 📡 Payload for NewNewCreateAttendence: $body');
+    print('[BG] 📡 Payload for NewNewCreateAttendence: $body');
 
     final url = Uri.parse('${apibaseurl}api/HRM/NewNewCreateAttendence');
     final response = await http.post(
@@ -821,8 +817,8 @@ class OfflinePunchSyncService {
       },
     ).timeout(const Duration(seconds: 20));
 
-    _log('[BG] 📡 Response status: ${response.statusCode}');
-    _log('[BG] 📡 Response body: ${response.body}');
+    print('[BG] 📡 Response status: ${response.statusCode}');
+    print('[BG] 📡 Response body: ${response.body}');
 
     bool apiSuccess = false;
     try {
