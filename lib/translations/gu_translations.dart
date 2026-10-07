@@ -791,7 +791,7 @@ final Map<String, String> guTranslations = {
   'employeeHashString': 'કર્મચારી #',
   'remarksNotesString': 'નોંધો / ટિપ્પણીઓ',
   'enterVisitRemarksString': 'મુલાકાતની નોંધો અથવા ટિપ્પણીઓ દાખલ કરો (વૈકલ્પિક)...',
-  'attachedDocumentsMax3String': 'જોડાયેલ દસ્તાવેજો (મહત્તમ 3)',
+  'attachedDocumentsMax3String': 'જોડાયેલ દસ્તાવેજો (વધુમાં વધુ 3, દરેક વધુમાં વધુ 10 MB)',
   'createString': 'બનાવો',
   'selectPartyString': 'પાર્ટી પસંદ કરો',
   'searchPartyByNameString': 'નામ દ્વારા પાર્ટી શોધો...',

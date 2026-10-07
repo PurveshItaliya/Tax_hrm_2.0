@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print, empty_catches
 
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
@@ -684,6 +685,8 @@ class OfflinePunchSyncService {
       ]
     });
 
+    log('📡 [Offline Punch] Payload for NewNewCreateAttendence: $body');
+
     final url = Uri.parse('${apibaseurl}api/HRM/NewNewCreateAttendence');
     final response = await http.post(
       url,
@@ -693,6 +696,9 @@ class OfflinePunchSyncService {
         'Content-Type': 'application/json',
       },
     ).timeout(const Duration(seconds: 20));
+
+    log('📡 [Offline Punch] Response status: ${response.statusCode}');
+    log('📡 [Offline Punch] Response body: ${response.body}');
 
     bool apiSuccess = false;
     try {
@@ -803,6 +809,8 @@ class OfflinePunchSyncService {
       ]
     });
 
+    _log('[BG] 📡 Payload for NewNewCreateAttendence: $body');
+
     final url = Uri.parse('${apibaseurl}api/HRM/NewNewCreateAttendence');
     final response = await http.post(
       url,
@@ -812,6 +820,9 @@ class OfflinePunchSyncService {
         'Content-Type': 'application/json',
       },
     ).timeout(const Duration(seconds: 20));
+
+    _log('[BG] 📡 Response status: ${response.statusCode}');
+    _log('[BG] 📡 Response body: ${response.body}');
 
     bool apiSuccess = false;
     try {

@@ -787,7 +787,7 @@ final Map<String, String> enTranslations = {
   'employeeHashString': 'Employee #',
   'remarksNotesString': 'Remarks / Notes',
   'enterVisitRemarksString': 'Enter visit remarks or notes (optional)...',
-  'attachedDocumentsMax3String': 'Attached Documents (Max 3)',
+  'attachedDocumentsMax3String': 'Attached Documents (Max 3, Max 10MB each)',
   'createString': 'CREATE',
   'selectPartyString': 'Select Party',
   'searchPartyByNameString': 'Search party by name...',

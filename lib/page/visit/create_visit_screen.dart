@@ -367,7 +367,7 @@ class _CreateVisitScreenState extends State<CreateVisitScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    _buildLabel(address1String, context),
+                    _buildLabel(address1String, context, isRequired: true),
                     TextField(
                       controller: controller.newPartyAdd1Controller,
                       style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.5),

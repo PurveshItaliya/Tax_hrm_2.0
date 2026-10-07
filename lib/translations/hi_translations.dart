@@ -790,7 +790,7 @@ final Map<String, String> hiTranslations = {
   'employeeHashString': 'कर्मचारी #',
   'remarksNotesString': 'टिप्पणियाँ / नोट्स',
   'enterVisitRemarksString': 'विज़िट की टिप्पणियाँ या नोट्स दर्ज करें (वैकल्पिक)...',
-  'attachedDocumentsMax3String': 'संलग्न दस्तावेज़ (अधिकतम 3)',
+  'attachedDocumentsMax3String': 'संलग्न दस्तावेज़ (अधिकतम 3, प्रत्येक अधिकतम 10 MB)',
   'createString': 'बनाएँ',
   'selectPartyString': 'पार्टी चुनें',
   'searchPartyByNameString': 'नाम से पार्टी खोजें...',
