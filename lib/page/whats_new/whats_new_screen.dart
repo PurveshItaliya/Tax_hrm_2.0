@@ -47,9 +47,12 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version106 = 'v1.0.6';
     String versionName106 = 'Punch Widget & Enhancements';
 
+    String version107 = 'v1.0.7';
+    String versionName107 = 'Visit Module & Face Punch';
+
     versions = Platform.isAndroid 
-        ? ['All', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
-        : ['All', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
+        ? ['All', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        : ['All', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -552,6 +555,53 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
             'Minor performance improvements and bug fixes',
           ],
         ),
+      // --- v1.0.7 New Features Added ---
+      ReleaseNoteItem(
+        id: 31,
+        title: 'Visit Module',
+        description: 'Added Visit management for both Admin and Users with location-based tracking and management.',
+        version: version107,
+        versionName: versionName107,
+        date: 'October 08, 2026',
+        category: 'Both',
+        icon: Icons.location_on,
+        bgColor: const Color(0xFFE91E63), // Pink
+        features: [
+          'Visit management for Admin and Users',
+          'Location-based tracking and management',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 32,
+        title: 'Face Punch',
+        description: 'Added face verification for secure and faster Punch In/Out.',
+        version: version107,
+        versionName: versionName107,
+        date: 'October 08, 2026',
+        category: 'Employee App',
+        icon: Icons.face,
+        bgColor: const Color(0xFF2196F3), // Blue
+        features: [
+          'Face verification for secure Punch In/Out',
+          'Faster and more accurate attendance',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 33,
+        title: 'Timeline & Performance Improvements',
+        description: 'Improved Timeline UI and overall app performance, along with bug fixes for a smoother experience.',
+        version: version107,
+        versionName: versionName107,
+        date: 'October 08, 2026',
+        category: 'Both',
+        icon: Icons.speed,
+        bgColor: const Color(0xFF4CAF50), // Green
+        features: [
+          'Improved Timeline UI for a clearer activity experience',
+          'Improved overall app performance and responsiveness',
+          'Fixed issues and made general improvements',
+        ],
+      ),
     ];
 
     _animationController = AnimationController(

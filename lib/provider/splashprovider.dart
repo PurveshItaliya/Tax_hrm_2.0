@@ -21,6 +21,7 @@ import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
+import 'package:tax_hrm/services/analytics_service.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
 
@@ -165,6 +166,8 @@ class SplashProvider extends ChangeNotifier {
     SaveUser().getUserDatas().then((value) async {
       if (value != '') {
         curentUser = jsonDecode(value);
+        // ── Analytics: identify user right after loading from storage ──
+        _identifyUser();
         FcmTokenService.instance.initialize();
 
         _updateAllDataForReminders(context);
@@ -264,6 +267,8 @@ class SplashProvider extends ChangeNotifier {
                 triggerNextScreen(context, AnimatedBottomBar());
               } else {
                 curentUser = jsonDecode(udata);
+                // ── Analytics: re-identify after silent refresh ──
+                _identifyUser();
               }
             }
           }
@@ -290,6 +295,8 @@ class SplashProvider extends ChangeNotifier {
                 await SaveUser().getUserDatas().then((value) async {
                   if (value != '') {
                     curentUser = jsonDecode(value);
+                    // ── Analytics: identify after emp login ──
+                    _identifyUser();
                     FcmTokenService.instance.handleTokenSync();
                   }
                 });
@@ -301,5 +308,29 @@ class SplashProvider extends ChangeNotifier {
             }
           }
         });
+  }
+
+  /// Reads curentUser global and sends structured data to AnalyticsService.
+  void _identifyUser() {
+    try {
+      if (curentUser == null) return;
+      final userId = curentUser['Id']?.toString() ?? '';
+      if (userId.isEmpty) return;
+
+      final firstName = curentUser['FirstName']?.toString() ?? '';
+      final lastName  = curentUser['LastName']?.toString() ?? '';
+      final fullName  = '$firstName $lastName'.trim();
+
+      AnalyticsService.to.setUserId(
+        userId,
+        userName:    curentUser['UserName']?.toString() ?? curentUser['Username']?.toString(),
+        fullName:    fullName.isEmpty ? null : fullName,
+        role:        curentUser['Role']?.toString(),
+        companyId:   (selectedcurentcompany?.companyId ?? curentUser['CompanyId'])?.toString(),
+        companyName: selectedcurentcompany?.companyName?.toString(),
+        email:       curentUser['Email']?.toString(),
+        phone:       curentUser['MobileNo']?.toString() ?? curentUser['Mobile']?.toString(),
+      );
+    } catch (_) {}
   }
 }

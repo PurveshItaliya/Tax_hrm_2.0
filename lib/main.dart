@@ -22,7 +22,9 @@ import 'package:tax_hrm/provider/theme_provider.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:get/get.dart';
 import 'package:tax_hrm/firebase_options.dart';
+import 'package:tax_hrm/services/analytics_service.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -111,6 +113,10 @@ Future<void> main() async {
     return true;
   };
   await ReminderNotificationService.initialize();
+  
+  // Initialize AnalyticsService
+  Get.put(AnalyticsService());
+  
   // Note: clearSavedSettings removed — it was preventing the dialog from triggering
   // await Upgrader.clearSavedSettings();
   SystemChrome.setEnabledSystemUIMode(
@@ -216,6 +222,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         builder: (context, themeProvider, languageProvider, child) {
           return MaterialApp(
             navigatorKey: FcmTokenService.navigatorKey,
+            navigatorObservers: [
+              AnalyticsRouteObserver(),
+            ],
             title: appNameString,
             themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             theme: ThemeData(
