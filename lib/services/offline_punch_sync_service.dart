@@ -386,8 +386,7 @@ class OfflinePunchSyncService {
       current = current.copyWith(
         syncStatus: OfflineSyncStatus.duplicateDetected,
         syncResultMessage:
-            'This offline punch already exists in your server punch history, '
-            'so it was not submitted again.',
+            'An identical punch was already recorded on the server within 5 minutes of this offline punch.',
         syncedAt: DateTime.now().toIso8601String(),
         resultViewed: false,
       );
@@ -500,8 +499,7 @@ class OfflinePunchSyncService {
       return record.copyWith(
         syncStatus: OfflineSyncStatus.duplicateDetected,
         syncResultMessage:
-            'This offline punch already exists in your server punch history, '
-            'so it was not submitted again.',
+            'An identical punch was already recorded on the server within 5 minutes of this offline punch.',
         syncedAt: DateTime.now().toIso8601String(),
         resultViewed: false,
       );
@@ -609,15 +607,22 @@ class OfflinePunchSyncService {
   ) {
     if (serverLogs.isEmpty) return null;
 
-    final String lastServerStatus =
-        (serverLogs.last.status ?? '').toUpperCase();
+    final lastLog = serverLogs.last;
+    final String lastServerStatus = (lastLog.status ?? '').toUpperCase();
+    final String currentStatus = record.punchStatus.toUpperCase();
 
-    // If the server already has a Punch IN as its most recent log AND this
-    // offline record is also a Punch IN → likely duplicate beyond time window.
-    if (lastServerStatus == 'IN' &&
-        record.punchStatus.toUpperCase() == 'IN') {
-      return 'Server already recorded a Punch In. '
-          'This offline Punch In was not submitted again to avoid duplication.';
+    // If the server already has the same punch status as its most recent log
+    // → likely duplicate beyond time window (e.g. punching IN twice).
+    if (lastServerStatus == currentStatus) {
+      final serverTimeRaw = (lastLog.time ?? '').toString();
+      final String serverDisplayTime = serverTimeRaw.isNotEmpty
+          ? formatDisplayTime(serverTimeRaw)
+          : 'an unknown time';
+      final String offlineDisplayTime = formatDisplayTime(record.punchTimestamp);
+      final String action = currentStatus == 'IN' ? 'Punch In' : 'Punch Out';
+
+      return 'Your $serverDisplayTime $action is already in your punch history. '
+          'Would you like to add your $offlineDisplayTime offline $action anyway?';
     }
 
     return null;
@@ -650,22 +655,22 @@ class OfflinePunchSyncService {
     final body = jsonEncode({
       "IsUser": false,
       "Attendence": {
-        "CompanyId": companyId.toString(),
-        "EmpId": parsedEmpId,
-        "Cguid": record.cguid,
-        "IsOnLeave": false,
-        "AttendenceDate": attendenceDateStr,
-        "InTime": isPunchIn ? timeStr : "",
-        "LateBy": 1,
-        "EarlyBy": 1,
-        "LeaveType": "",
-        "Holiday": false,
-        "LeaveId": 1,
-        "ShiftId": 1,
-        "OutTime": !isPunchIn ? timeStr : "",
-        "Present": true,
-        "Absent": false,
-        "WeekOff": record.weekOff ? true : false,
+      "CompanyId": companyId.toString(),
+      "EmpId": parsedEmpId,
+      "Cguid": record.cguid,
+      "IsOnLeave": false,
+      "AttendenceDate": attendenceDateStr,
+      "InTime": isPunchIn ? timeStr : "",
+      "LateBy": 1,
+      "EarlyBy": 1,
+      "LeaveType": "",
+      "Holiday": false,
+      "LeaveId": 1,
+      "ShiftId": 1,
+      "OutTime": !isPunchIn ? timeStr : "",
+      "Present": true,
+      "Absent": false,
+      "WeekOff": record.weekOff ? true : false,
       },
       "AttendenceLog": [
         {
@@ -716,7 +721,7 @@ class OfflinePunchSyncService {
             'Content-Type': 'application/json',
             'Accept': '*/*',
             'Authorization': 'bearer $token',
-          });
+            });
           req.fields.addAll({
             'CompanyId': companyId.toString(),
             'EmpId': empId,
@@ -774,22 +779,22 @@ class OfflinePunchSyncService {
     final body = jsonEncode({
       "IsUser": false,
       "Attendence": {
-        "CompanyId": companyId.toString(),
-        "EmpId": parsedEmpId,
-        "Cguid": record.cguid,
-        "IsOnLeave": false,
-        "AttendenceDate": attendenceDateStr,
-        "InTime": isPunchIn ? timeStr : "",
-        "LateBy": 1,
-        "EarlyBy": 1,
-        "LeaveType": "",
-        "Holiday": false,
-        "LeaveId": 1,
-        "ShiftId": 1,
-        "OutTime": !isPunchIn ? timeStr : "",
-        "Present": true,
-        "Absent": false,
-        "WeekOff": record.weekOff ? true : false,
+      "CompanyId": companyId.toString(),
+      "EmpId": parsedEmpId,
+      "Cguid": record.cguid,
+      "IsOnLeave": false,
+      "AttendenceDate": attendenceDateStr,
+      "InTime": isPunchIn ? timeStr : "",
+      "LateBy": 1,
+      "EarlyBy": 1,
+      "LeaveType": "",
+      "Holiday": false,
+      "LeaveId": 1,
+      "ShiftId": 1,
+      "OutTime": !isPunchIn ? timeStr : "",
+      "Present": true,
+      "Absent": false,
+      "WeekOff": record.weekOff ? true : false,
       },
       "AttendenceLog": [
         {
