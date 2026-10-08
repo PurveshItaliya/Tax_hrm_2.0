@@ -182,12 +182,23 @@ class FaceRecognitionService {
 
     img.Image convertedImage;
     if (cameraImage.format.group == ImageFormatGroup.bgra8888) {
-      convertedImage = img.Image.fromBytes(
-        width: width,
-        height: height,
-        bytes: cameraImage.planes[0].bytes.buffer,
-        order: img.ChannelOrder.bgra,
-      );
+      convertedImage = img.Image(width: width, height: height);
+      final bytes = cameraImage.planes[0].bytes;
+      final int rowStride = cameraImage.planes[0].bytesPerRow;
+      final int pixelStride = cameraImage.planes[0].bytesPerPixel ?? 4;
+      
+      for (int y = 0; y < height; y++) {
+        int rowOffset = y * rowStride;
+        for (int x = 0; x < width; x++) {
+          int offset = rowOffset + (x * pixelStride);
+          if (offset + 2 < bytes.length) {
+            int b = bytes[offset];
+            int g = bytes[offset + 1];
+            int r = bytes[offset + 2];
+            convertedImage.setPixelRgb(x, y, r, g, b);
+          }
+        }
+      }
     } else if (cameraImage.planes.length == 1) {
       // NV21 packed in a single plane
       final bytes = cameraImage.planes[0].bytes;

@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer';
 import 'dart:isolate';
 import 'package:camera/camera.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -164,7 +165,7 @@ class SelfiePunchProvider extends ChangeNotifier {
   XFile? picture;
 
   Future<void> startCamera(int setDirection) async {
-    debugPrint(
+    log(
       "STARTCAMERA: 1. startCamera called with direction $setDirection",
     );
     final sessionId = ++_cameraSessionId;
@@ -174,40 +175,40 @@ class SelfiePunchProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint("STARTCAMERA: 2. Checking permission status");
+      log("STARTCAMERA: 2. Checking permission status");
       try {
         camerapermissionStatus = await Permission.camera.status.timeout(
           const Duration(seconds: 2),
         );
-        debugPrint("STARTCAMERA: 3. Status is $camerapermissionStatus");
+        log("STARTCAMERA: 3. Status is $camerapermissionStatus");
         if (camerapermissionStatus != PermissionStatus.granted) {
-          debugPrint("STARTCAMERA: 4. Requesting permission");
+          log("STARTCAMERA: 4. Requesting permission");
           camerapermissionStatus = await Permission.camera.request().timeout(
             const Duration(seconds: 3),
           );
-          debugPrint(
+          log(
             "STARTCAMERA: 5. Request result is $camerapermissionStatus",
           );
         }
       } catch (e) {
-        debugPrint("STARTCAMERA: Permission check timed out or failed: $e");
+        log("STARTCAMERA: Permission check timed out or failed: $e");
         camerapermissionStatus = PermissionStatus.denied;
       }
 
       if (camerapermissionStatus != PermissionStatus.granted) {
-        debugPrint("STARTCAMERA: 6. Permission not granted, returning");
+        log("STARTCAMERA: 6. Permission not granted, returning");
         readyCameraPreviewshow = false;
         cameraisLoading = false;
         notifyListeners();
         return;
       }
 
-      debugPrint("STARTCAMERA: 7. Getting available cameras");
+      log("STARTCAMERA: 7. Getting available cameras");
       try {
         cameras = await availableCameras().timeout(const Duration(seconds: 3));
-        debugPrint("STARTCAMERA: 8. Got ${cameras?.length} cameras");
+        log("STARTCAMERA: 8. Got ${cameras?.length} cameras");
       } catch (e) {
-        debugPrint("STARTCAMERA: availableCameras timeout or error: $e");
+        log("STARTCAMERA: availableCameras timeout or error: $e");
         readyCameraPreviewshow = false;
         cameraisLoading = false;
         notifyListeners();
@@ -215,7 +216,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       if (cameras == null || cameras!.isEmpty) {
-        debugPrint("STARTCAMERA: 9. No cameras found, returning");
+        log("STARTCAMERA: 9. No cameras found, returning");
         readyCameraPreviewshow = false;
         cameraisLoading = false;
         notifyListeners();
@@ -228,28 +229,28 @@ class SelfiePunchProvider extends ChangeNotifier {
             : camera.lensDirection == CameraLensDirection.back,
       );
 
-      debugPrint("STARTCAMERA: 10. Disposing old controller");
+      log("STARTCAMERA: 10. Disposing old controller");
       final oldController = cameraController;
       cameraController = null;
       if (oldController != null) {
         try {
           await oldController.dispose().timeout(const Duration(seconds: 2));
-          debugPrint("STARTCAMERA: 11. Disposed old controller");
+          log("STARTCAMERA: 11. Disposed old controller");
         } catch (e) {
-          debugPrint("STARTCAMERA: oldController dispose error: $e");
+          log("STARTCAMERA: oldController dispose error: $e");
         }
       }
 
       await oldController?.dispose();
 
       if (sessionId != _cameraSessionId) {
-        debugPrint(
+        log(
           "STARTCAMERA: 12. Session ID mismatch after dispose, returning",
         );
         return;
       }
 
-      debugPrint("STARTCAMERA: 13. Initializing new controller");
+      log("STARTCAMERA: 13. Initializing new controller");
       final newController = CameraController(
         selectedCamera,
         ResolutionPreset.medium,
@@ -265,13 +266,13 @@ class SelfiePunchProvider extends ChangeNotifier {
         await cameraController!.initialize().timeout(
           const Duration(seconds: 5),
         );
-        debugPrint("STARTCAMERA: 14. Initialized new controller successfully");
+        log("STARTCAMERA: 14. Initialized new controller successfully");
 
         // Maximize screen brightness for punch screen
         try {
           await ScreenBrightness().setScreenBrightness(1.0);
         } catch (e) {
-          debugPrint("Could not set screen brightness: $e");
+          log("Could not set screen brightness: $e");
         }
 
         // Safely check environment brightness using a continuous throttled stream
@@ -292,7 +293,7 @@ class SelfiePunchProvider extends ChangeNotifier {
                  bool isDark = (total / count) < 60;
                  if (isDark != isDarkEnvironment) {
                    isDarkEnvironment = isDark;
-                   debugPrint("Punch Screen: Dark environment status changed: $isDarkEnvironment");
+                   log("Punch Screen: Dark environment status changed: $isDarkEnvironment");
                  }
               }
             }
@@ -300,11 +301,11 @@ class SelfiePunchProvider extends ChangeNotifier {
           // Note: We intentionally DO NOT stop the image stream here.
           // Stopping it while the camera is warming up causes native crashes on Android.
         } catch (e) {
-          debugPrint("Failed to start brightness stream: $e");
+          log("Failed to start brightness stream: $e");
         }
 
       } catch (e) {
-        debugPrint("STARTCAMERA: Camera initialize timeout or error: $e");
+        log("STARTCAMERA: Camera initialize timeout or error: $e");
         readyCameraPreviewshow = false;
         cameraisLoading = false;
         notifyListeners();
@@ -312,7 +313,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       if (sessionId != _cameraSessionId) {
-        debugPrint(
+        log(
           "STARTCAMERA: 15. Session ID mismatch after init, disposing and returning",
         );
         try {
@@ -320,19 +321,19 @@ class SelfiePunchProvider extends ChangeNotifier {
         } catch (e) {}
         return;
       }
-      debugPrint("STARTCAMERA: 16. Camera is completely ready!");
+      log("STARTCAMERA: 16. Camera is completely ready!");
       isCameraReady = true;
       readyCameraPreviewshow = false;
     } on CameraException catch (e) {
-      debugPrint("STARTCAMERA: CameraException: $e");
+      log("STARTCAMERA: CameraException: $e");
       readyCameraPreviewshow = false;
       isCameraReady = false;
     } catch (e) {
-      debugPrint("STARTCAMERA: General Exception: $e");
+      log("STARTCAMERA: General Exception: $e");
       readyCameraPreviewshow = false;
       isCameraReady = false;
     } finally {
-      debugPrint("STARTCAMERA: 17. Finally block executed");
+      log("STARTCAMERA: 17. Finally block executed");
       cameraisLoading = false;
       notifyListeners();
     }
@@ -361,7 +362,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       try {
         await oldController.dispose().timeout(const Duration(seconds: 2));
       } catch (e) {
-        debugPrint("switchCamera dispose error: $e");
+        log("switchCamera dispose error: $e");
       }
     }
     if (sessionId != _cameraSessionId) return;
@@ -379,7 +380,7 @@ class SelfiePunchProvider extends ChangeNotifier {
     try {
       await newController.initialize().timeout(const Duration(seconds: 5));
     } catch (e) {
-      debugPrint("switchCamera initialize timeout or error: $e");
+      log("switchCamera initialize timeout or error: $e");
       await newController.dispose();
       cameraController = null;
       isCameraReady = false;
@@ -417,7 +418,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       try {
         await oldController.dispose().timeout(const Duration(seconds: 2));
       } catch (e) {
-        debugPrint("disposeCamera error: $e");
+        log("disposeCamera error: $e");
       }
     }
     notifyListeners();
@@ -1373,7 +1374,7 @@ class SelfiePunchProvider extends ChangeNotifier {
     }
 
     if (isFromWidget) {
-      debugPrint("🟠 [WidgetDebug] App is now in background. Starting image upload...");
+      log("🟠 [WidgetDebug] App is now in background. Starting image upload...");
     }
     try {
       await AttendanceApis().callWithImgPunch(
@@ -1385,11 +1386,11 @@ class SelfiePunchProvider extends ChangeNotifier {
         setLongitude: usersetLongitude,
       );
       if (isFromWidget) {
-        debugPrint("🟠 [WidgetDebug] Image upload in background COMPLETED successfully.");
+        log("🟠 [WidgetDebug] Image upload in background COMPLETED successfully.");
       }
     } catch (e) {
       if (isFromWidget) {
-        debugPrint("🟠 [WidgetDebug] Image upload in background FAILED: $e");
+        log("🟠 [WidgetDebug] Image upload in background FAILED: $e");
       }
     }
 
@@ -1399,7 +1400,7 @@ class SelfiePunchProvider extends ChangeNotifier {
     // After the image successfully uploads in the background, safely kill the app
     // so it doesn't stay stuck on a blank camera screen when reopened.
     if (isFromWidget) {
-      debugPrint("🟠 [WidgetDebug] Safely closing the app memory via SystemNavigator.pop()");
+      log("🟠 [WidgetDebug] Safely closing the app memory via SystemNavigator.pop()");
       SystemNavigator.pop();
     }
   }
@@ -1515,12 +1516,20 @@ class SelfiePunchProvider extends ChangeNotifier {
     String currentDay, [
     bool isFromWidget = false,
   ]) async {
-    if (PunchLoader == true) return;
+    log('--- puchInOutHandleSubmit STARTED ---');
+    log('currentDay: $currentDay, isFromWidget: $isFromWidget');
+    if (PunchLoader == true) {
+      log('PunchLoader is true, returning early.');
+      return;
+    }
 
     // Fetch fresh location before checking distance to ensure it's up to date
+    log('Fetching current location...');
     await getCurrentLocation(context: context);
+    log('Location fetched. Distance: $distance, Allowed Radius: $allowedRadius');
 
     if (distance > allowedRadius) {
+      log('Distance ($distance) is greater than allowed radius ($allowedRadius). Showing Out of Range dialog.');
       if (context.mounted) {
         showDialog(
           context: context,
@@ -1595,8 +1604,10 @@ class SelfiePunchProvider extends ChangeNotifier {
       return;
     }
 
+    log('Setting PunchLoader to true');
     setPunchLoader(true);
     try {
+      log('Fetching shift data...');
       // Fetch shift data in the background while processing face
       final shiftDataFuture = shiftMasterDataGet(context);
 
@@ -1617,21 +1628,25 @@ class SelfiePunchProvider extends ChangeNotifier {
           ? 'IN'
           : (checkStatus!.attendenceLog!.last.status == 'IN' ? 'OUT' : 'IN');
 
+      log('punchTypeString: $punchTypeString');
+      log('internalPunchType: $internalPunchType');
+
       // --- Face Verification Intercept (Silent, in-screen) ---
       bool isVerified = true;
       try {
         final role = curentUser?['Role'];
         final faceId = curentUser?["FaceRegisterId"];
+        log('Role: $role, FaceId: $faceId, isFaceVerifyEnabled: ${RemoteConfigServices.isFaceVerifyEnabled}');
         if (!RemoteConfigServices.isFaceVerifyEnabled) {
           // Remote kill-switch: face verification feature is OFF
-          debugPrint("[SelfiePunchProvider] Face verification disabled via Remote Config.");
+          log("[SelfiePunchProvider] Face verification disabled via Remote Config.");
           isVerified = true;
         } else if (role != 'Admin') {
           if (faceId == null || faceId.toString().isEmpty) {
-            debugPrint("[SelfiePunchProvider] Face verification failed: No registered FaceId.");
+            log("[SelfiePunchProvider] Face verification failed: No registered FaceId.");
             isVerified = false; // Strictly enforce face registration
           } else {
-            debugPrint("[SelfiePunchProvider] Starting live stream face verification for FaceId: $faceId");
+            log("[SelfiePunchProvider] Starting live stream face verification for FaceId: $faceId");
             final faceProvider = Provider.of<FaceVerificationProvider>(
               context,
               listen: false,
@@ -1644,18 +1659,20 @@ class SelfiePunchProvider extends ChangeNotifier {
             } else {
               isVerified = false;
             }
-            debugPrint("[SelfiePunchProvider] Face verification result: $isVerified");
+            log("[SelfiePunchProvider] Face verification result: $isVerified");
           }
         } else {
-          debugPrint("[SelfiePunchProvider] Admin bypasses face verification.");
+          log("[SelfiePunchProvider] Admin bypasses face verification.");
           isVerified = true;
         }
       } catch (e) {
-        debugPrint("[SelfiePunchProvider] Face verification error: $e");
+        log("[SelfiePunchProvider] Face verification error: $e");
+        log('Exception during face verification: $e');
         isVerified = false;
       }
 
       if (!isVerified) {
+        log('Face verification failed. Aborting punch.');
         setPunchLoader(false);
         if (context.mounted) {
           showDialog(
@@ -1735,17 +1752,6 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
       // -----------------------------------
 
-      // Wait for shift data before taking picture and proceeding
-      await shiftDataFuture;
-
-      // Restart camera preview if it was stopped by the verification stream
-      if (cameraController != null && cameraController!.value.isInitialized) {
-        try {
-          // ensure preview is running
-          await cameraController!.resumePreview();
-        } catch (_) {}
-      }
-
       // Stop the image stream safely BEFORE taking a picture.
       // On Android, takePicture() will crash if the image stream is still active.
       if (cameraController != null && cameraController!.value.isStreamingImages) {
@@ -1755,36 +1761,58 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       if (isDarkEnvironment) {
+        log('Dark environment detected, showing flash overlay.');
         showFlashOverlay = true;
         notifyListeners();
         // Short delay to let the screen render white before capture
         await Future.delayed(const Duration(milliseconds: 300));
       }
 
+      log('Taking picture immediately after verification...');
       await takePicture();
+      log('Picture taken. imageFile: ${imageFile?.path}');
 
       if (isDarkEnvironment) {
         showFlashOverlay = false;
         notifyListeners();
       }
 
+      log('Waiting for shift data...');
+      // Wait for shift data after taking picture so the captured face is the verified one
+      await shiftDataFuture;
+      log('Shift data fetched.');
+
+      // Restart camera preview if it was stopped by the verification stream
+      if (cameraController != null && cameraController!.value.isInitialized) {
+        try {
+          // ensure preview is running
+          await cameraController!.resumePreview();
+        } catch (_) {}
+      }
+
       if (imageFile == null) {
+        log('imageFile is null. Showing error and returning.');
         showtoastmessage(cameraImageNotCapturedString);
         setPunchLoader(false);
         return;
       }
 
       File sendImg = await flipCapturedImage(imageFile!);
+      log('Image flipped. sendImg path: ${sendImg.path}');
 
       // ── Persist selfie to permanent storage immediately after capture ───────
       // This ensures the image survives OS temp-file cleanup before sync.
       lastPersistedSelfiePath =
           await OfflinePunchSyncService.persistSelfieImage(sendImg.path);
+      log('Selfie persisted at: $lastPersistedSelfiePath');
       // ────────────────────────────────────────────────────────────────────────
 
+      log('Calling onTapPunchs...');
       await onTapPunchs(context, currentDay, punchTypeString, isFromWidget);
+      log('onTapPunchs completed.');
       setPunchLoader(false); // Hide the loading screen behind the dialog
     } catch (e) {
+      log('Exception in puchInOutHandleSubmit: $e');
       showtoastmessage(punchFailedString);
       setPunchLoader(false);
     }
@@ -1797,9 +1825,9 @@ class SelfiePunchProvider extends ChangeNotifier {
     bool isFromWidget = false,
   ]) async {
     bool setTodayWeekOff = false;
-    /* log('Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift'); */
+    log('Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift');
     if (getUserShift != null) {
-      /* log("getUserShift: $getUserShift"); */
+      log("getUserShift: $getUserShift");
       String dayAbbr = currentDay.toString().substring(0, 3).toLowerCase();
       if ((getUserShift!.mon != null &&
               getUserShift!.sun == false &&
