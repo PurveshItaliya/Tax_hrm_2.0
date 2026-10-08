@@ -80,6 +80,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
 
         if (mounted) {
           CommonSplashAd.show(
+            buttonColor: ColorConst.themeColor,
             context,
             baseUrl: apibaseurl,
             appName: 'TAXHRM2',

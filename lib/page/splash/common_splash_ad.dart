@@ -1,5 +1,5 @@
 // =============================================================================
-// common_splash_ad.dart  — v2.0 (Robust / Shimmer-Loading Edition)
+// common_splash_ad.dart  — v3.0 (FrqCount · Platform · AppVersion · Settings)
 //
 // ★ DROP-IN COMPONENT — copy only THIS file into any Flutter app's lib/.
 //   NO changes required in any other existing screen.
@@ -55,6 +55,32 @@
 //   });
 //
 // ─────────────────────────────────────────────────────────────────────────────
+// NEW PARAMETERS (v3.0) — all parsed from API response automatically:
+// ─────────────────────────────────────────────────────────────────────────────
+//   "FrqCount": 8
+//     ↳ Max times to show this ad per day. If user opens app 10×/day and
+//       FrqCount=8, the ad shows only on the first 8 opens. Across multiple
+//       days each day resets to 0.
+//
+//   "IsIos": true / "IsAndroid": false
+//     ↳ Platform filter. If IsIos=true show only on iOS; IsAndroid=false →
+//       skip on Android. Both null/missing → show on all platforms.
+//
+//   "IsClose": false
+//     ↳ false → no close button, dialog cannot be dismissed (forced ad).
+//       true  → close button appears after closeButtonDelay (default 3s).
+//
+//   "AppVersion": "1.0.2,2.0.2,1.22"
+//     ↳ Comma-separated list of versions. Ad shown only when current app
+//       version matches one of these. Null/empty → show on all versions.
+//       Pass current version via CommonSplashAd.appVersion = '1.0.2';
+//
+//   "Setting": [{"Splashkey":"Download","Splashvalue":"https://...","IsActive":true}]
+//     ↳ Bottom action buttons (max 2). Splashkey = label, Splashvalue = URL.
+//       IsActive must be true to show. 1 button → full-width expanded.
+//       2 buttons → side-by-side, each expanded. Uses theme primary color.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 // 1) PUBSPEC DEPENDENCIES
 // ─────────────────────────────────────────────────────────────────────────────
 //   http: ^1.2.0
@@ -63,6 +89,7 @@
 //   flutter_svg: ^2.0.10
 //   flutter_pdfview: ^1.3.2
 //   path_provider: ^2.1.3
+//   url_launcher: ^6.2.5          ← NEW for Setting button links
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // 2) ANDROID — AndroidManifest.xml
@@ -87,11 +114,11 @@
 //   └─ no ad / already shown today → silent no-op ✅
 // =============================================================================
 
-// ignore_for_file: unnecessary_underscores
+// ignore_for_file: unnecessary_underscores, deprecated_member_use, no_leading_underscores_for_local_identifiers
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show File;
+import 'dart:io' show File, Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -101,6 +128,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // =============================================================================
 // JSON HELPERS
@@ -121,6 +150,49 @@ class _JsonUtils {
     final s = v.toString().trim();
     return s.isEmpty ? null : s;
   }
+
+  static bool? boolVal(Map<String, dynamic> map, String key) {
+    final v = ci(map, key);
+    if (v == null) return null;
+    if (v is bool) return v;
+    final s = v.toString().toLowerCase().trim();
+    if (s == 'true' || s == '1') return true;
+    if (s == 'false' || s == '0') return false;
+    return null;
+  }
+
+  static int? intVal(Map<String, dynamic> map, String key) {
+    final v = ci(map, key);
+    if (v == null) return null;
+    if (v is int) return v;
+    return int.tryParse(v.toString().trim());
+  }
+}
+
+// =============================================================================
+// SETTING BUTTON MODEL
+// =============================================================================
+class SplashSettingButton {
+  final String splashCguid;
+  final String key;   // button label (Splashkey)
+  final String value; // URL to open (Splashvalue)
+  final bool isActive;
+
+  const SplashSettingButton({
+    required this.splashCguid,
+    required this.key,
+    required this.value,
+    required this.isActive,
+  });
+
+  factory SplashSettingButton.fromJson(Map<String, dynamic> json) {
+    return SplashSettingButton(
+      splashCguid: _JsonUtils.str(json, 'SplashCguid') ?? '',
+      key:        _JsonUtils.str(json, 'Splashkey')   ?? '',
+      value:      _JsonUtils.str(json, 'Splashvalue') ?? '',
+      isActive:   _JsonUtils.boolVal(json, 'IsActive') ?? false,
+    );
+  }
 }
 
 // =============================================================================
@@ -136,6 +208,25 @@ class SplashAdModel {
   final String? endTime;
   final String? appName;
 
+  // ── New v3.0 fields ──────────────────────────────────────────────────────
+  /// Max times this ad may be shown per day. 0/null = unlimited.
+  final int frqCount;
+
+  /// If non-null, restricts to iOS only (true) or skips iOS (false).
+  final bool? isIos;
+
+  /// If non-null, restricts to Android only (true) or skips Android (false).
+  final bool? isAndroid;
+
+  /// false = forced (no close button). true = close button shown after delay.
+  final bool isClose;
+
+  /// Comma-separated app version strings. Empty = show on all versions.
+  final String appVersionRaw;
+
+  /// Bottom action buttons (max 2 active ones are shown).
+  final List<SplashSettingButton> settings;
+
   const SplashAdModel({
     required this.splashCguid,
     required this.imageFile,
@@ -145,14 +236,32 @@ class SplashAdModel {
     this.startTime,
     this.endTime,
     this.appName,
+    this.frqCount         = 0,
+    this.isIos,
+    this.isAndroid,
+    this.isClose          = true,
+    this.appVersionRaw    = '',
+    this.settings         = const [],
   });
 
   bool get hasFile => imageFile.isNotEmpty || pdfFile.isNotEmpty;
   String get effectiveFile => imageFile.isNotEmpty ? imageFile : pdfFile;
 
+  /// Active buttons list, limited to max 2.
+  List<SplashSettingButton> get activeButtons =>
+      settings.where((b) => b.isActive && b.key.isNotEmpty).take(2).toList();
+
+  /// Parsed list of app versions that should see this ad.
+  List<String> get allowedVersions =>
+      appVersionRaw
+          .split(',')
+          .map((v) => v.trim())
+          .where((v) => v.isNotEmpty)
+          .toList();
+
   factory SplashAdModel.fromJson(Map<String, dynamic> json) {
-    final rawId      = _JsonUtils.str(json, 'SplashCguid');
-    final fileName   = _JsonUtils.str(json, 'Imagefile') ?? '';
+    final rawId       = _JsonUtils.str(json, 'SplashCguid');
+    final fileName    = _JsonUtils.str(json, 'Imagefile') ?? '';
     final pdfFileName = _JsonUtils.str(json, 'PDFfile') ??
         _JsonUtils.str(json, 'Pdffile') ??
         _JsonUtils.str(json, 'pdffile') ??
@@ -166,15 +275,45 @@ class SplashAdModel {
     final appName = _JsonUtils.str(json, 'AppName');
     final stableId = rawId ?? _stableKey(fileName, title, startTime);
 
+    // v3.0 fields
+    final frqCount      = _JsonUtils.intVal(json, 'FrqCount') ?? 0;
+    final isIos         = _JsonUtils.boolVal(json, 'IsIos');
+    final isAndroid     = _JsonUtils.boolVal(json, 'IsAndroid');
+    final isClose       = _JsonUtils.boolVal(json, 'IsClose') ?? true;
+    final appVersionRaw = _JsonUtils.str(json, 'AppVersion') ?? '';
+
+    // Parse Setting array
+    final settingRaw = _JsonUtils.ci(json, 'Setting');
+    final List<SplashSettingButton> settings = [];
+    if (settingRaw is List) {
+      for (final s in settingRaw) {
+        try {
+          Map<String, dynamic>? map;
+          if (s is Map<String, dynamic>) {
+            map = s;
+          } else if (s is Map) {
+            map = Map<String, dynamic>.from(s);
+          }
+          if (map != null) settings.add(SplashSettingButton.fromJson(map));
+        } catch (_) {}
+      }
+    }
+
     return SplashAdModel(
-      splashCguid: stableId,
-      imageFile: fileName,
-      pdfFile: pdfFileName,
-      title: title,
-      remarks: remarks,
-      startTime: startTime,
-      endTime: endTime,
-      appName: appName,
+      splashCguid:    stableId,
+      imageFile:      fileName,
+      pdfFile:        pdfFileName,
+      title:          title,
+      remarks:        remarks,
+      startTime:      startTime,
+      endTime:        endTime,
+      appName:        appName,
+      frqCount:       frqCount,
+      isIos:          isIos,
+      isAndroid:      isAndroid,
+      isClose:        isClose,
+      appVersionRaw:  appVersionRaw,
+      settings:       settings,
     );
   }
 
@@ -213,7 +352,7 @@ class MediaTypeDetector {
 // =============================================================================
 class SplashAdApiService {
   static const _listTimeout  = Duration(seconds: 8);
-  static const _mediaTimeout = Duration(seconds: 30); // generous for release
+  static const _mediaTimeout = Duration(seconds: 30);
 
   static Future<List<SplashAdModel>> fetch({
     required String baseUrl,
@@ -305,7 +444,7 @@ class SplashAdApiService {
 }
 
 // =============================================================================
-// DAILY HISTORY MANAGER
+// DAILY HISTORY MANAGER  (tracks shown-today set)
 // =============================================================================
 class _DailyHistoryManager {
   static String _key(String a, String c) =>
@@ -348,6 +487,144 @@ class _DailyHistoryManager {
 }
 
 // =============================================================================
+// FREQUENCY COUNTER MANAGER  (FrqCount — counts opens per ad per day)
+// =============================================================================
+class _FrequencyManager {
+  static String _key(String appName, String custId, String cguid) =>
+      'splash_frq_${appName}_${custId}_$cguid';
+
+  static String _today() {
+    final n = DateTime.now();
+    return '${n.year}-${n.month.toString().padLeft(2,'0')}-${n.day.toString().padLeft(2,'0')}';
+  }
+
+  /// Returns how many times this ad has been shown today.
+  static Future<int> getTodayCount(
+      String appName, String custId, String cguid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw   = prefs.getString(_key(appName, custId, cguid));
+      if (raw == null) return 0;
+      final map   = jsonDecode(raw) as Map<String, dynamic>;
+      if ((map['date'] as String?) != _today()) return 0;
+      return (map['count'] as int?) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Increments the daily show-count for this ad.
+  static Future<void> increment(
+      String appName, String custId, String cguid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final count = await getTodayCount(appName, custId, cguid);
+      await prefs.setString(
+        _key(appName, custId, cguid),
+        jsonEncode({'date': _today(), 'count': count + 1}),
+      );
+    } catch (_) {}
+  }
+
+  /// Returns true if this ad may still be shown (count < frqCount, or frqCount=0=unlimited).
+  static Future<bool> canShow(
+      String appName, String custId, SplashAdModel ad) async {
+    if (ad.frqCount <= 0) return true; // 0 = unlimited
+    final count = await getTodayCount(appName, custId, ad.splashCguid);
+    final ok = count < ad.frqCount;
+    if (!ok) {
+      debugPrint(
+        '[SplashAd] ❌ SKIP "${ad.splashCguid}" — FrqCount limit reached. '
+            'Shown today: $count | Max allowed: ${ad.frqCount}',
+      );
+    }
+    return ok;
+  }
+}
+
+// =============================================================================
+// PLATFORM FILTER
+// =============================================================================
+class _PlatformFilter {
+  /// Returns false when the ad should be hidden on the current platform.
+  ///
+  /// Both flags work together as INCLUSION rules:
+  ///   IsIos=true,  IsAndroid=true  → show on BOTH iOS and Android
+  ///   IsIos=true,  IsAndroid=false → show on iOS only
+  ///   IsIos=false, IsAndroid=true  → show on Android only
+  ///   IsIos=null,  IsAndroid=null  → show on all platforms (no filter)
+  ///   IsIos=null,  IsAndroid=true  → show on Android only (IsIos implicitly excluded)
+  ///   IsIos=true,  IsAndroid=null  → show on iOS only (IsAndroid implicitly excluded)
+  static bool passes(SplashAdModel ad) {
+    try {
+      final onIos     = Platform.isIOS;
+      final onAndroid = Platform.isAndroid;
+
+      if (onIos) {
+        // On iOS: pass if IsIos==true,
+        //         OR both flags are null (no restriction).
+        //         Block if IsIos==false (explicitly excluded),
+        //         OR IsIos==null but IsAndroid==true (Android-only ad).
+        final allowed = ad.isIos == true ||
+            (ad.isIos == null && ad.isAndroid != true);
+        if (!allowed) {
+          final reason = ad.isIos == false
+              ? 'IsIos=false (iOS explicitly excluded)'
+              : 'IsAndroid=true without IsIos=true (Android-only ad)';
+          debugPrint('[SplashAd] ❌ SKIP "${ad.splashCguid}" — on iOS but not allowed. Reason: $reason');
+          return false;
+        }
+      }
+
+      if (onAndroid) {
+        // On Android: pass if IsAndroid==true,
+        //             OR both flags are null (no restriction).
+        //             Block if IsAndroid==false (explicitly excluded),
+        //             OR IsAndroid==null but IsIos==true (iOS-only ad).
+        final allowed = ad.isAndroid == true ||
+            (ad.isAndroid == null && ad.isIos != true);
+        if (!allowed) {
+          final reason = ad.isAndroid == false
+              ? 'IsAndroid=false (Android explicitly excluded)'
+              : 'IsIos=true without IsAndroid=true (iOS-only ad)';
+          debugPrint('[SplashAd] ❌ SKIP "${ad.splashCguid}" — on Android but not allowed. Reason: $reason');
+          return false;
+        }
+      }
+
+      return true;
+    } catch (_) {
+      return true; // non-mobile platforms: skip filter
+    }
+  }
+}
+
+// =============================================================================
+// APP VERSION FILTER
+// =============================================================================
+class _AppVersionFilter {
+  /// Returns false when this ad should not be shown on the current app version.
+  /// Pass [currentVersion] via [CommonSplashAd.appVersion].
+  static bool passes(SplashAdModel ad, String? currentVersion) {
+    final allowed = ad.allowedVersions;
+    if (allowed.isEmpty) return true;             // empty = all versions
+    if (currentVersion == null || currentVersion.trim().isEmpty) {
+      debugPrint('[SplashAd] ❌ SKIP "${ad.splashCguid}" — AppVersion is required [${allowed.join(", ")}] but CommonSplashAd.appVersion is NOT SET in the app!');
+      return false;
+    }
+    final cur = currentVersion.trim();
+    final ok = allowed.any((v) => v == cur);
+    if (!ok) {
+      debugPrint(
+        '[SplashAd] ❌ SKIP "${ad.splashCguid}" — AppVersion mismatch. '
+            'Current: "$cur" | Allowed: [${allowed.join(", ")}]',
+      );
+    }
+    return ok;
+  }
+}
+
+// =============================================================================
 // SESSION MANAGER
 // =============================================================================
 class _SplashAdSession {
@@ -385,6 +662,24 @@ class _PreloadedSplashAd {
 class CommonSplashAd {
   CommonSplashAd._();
 
+  // ── v3.0: set this once at app startup (e.g. from package_info_plus) ──────
+  /// Set to the running app's version string before calling show() or prefetch().
+  /// Example:  CommonSplashAd.appVersion = packageInfo.version;  // e.g. "1.0.2"
+  /// If not set, CommonSplashAd will attempt to read it automatically from package_info_plus.
+  static String? appVersion;
+
+  static Future<void> _ensureAppVersion() async {
+    if (appVersion == null || appVersion!.trim().isEmpty) {
+      try {
+        final info = await PackageInfo.fromPlatform();
+        appVersion = info.version;
+        debugPrint('[SplashAd] 📱 Auto-detected AppVersion: "$appVersion"');
+      } catch (_) {
+        debugPrint('[SplashAd] ⚠️ Failed to auto-detect AppVersion');
+      }
+    }
+  }
+
   // Holds the result of prefetch (may be null if prefetch not finished yet)
   static _PreloadedSplashAd? _preloadedAd;
 
@@ -405,9 +700,18 @@ class CommonSplashAd {
     required String appName,
     required String custId,
   }) async {
-    if (!_SplashAdSession.canShow) return;
-    if (_preloadedAd != null || _pendingAd != null) return;
-    if (_prefetchFuture != null) return; // already running
+    if (!_SplashAdSession.canShow) {
+      debugPrint('[SplashAd] ⏭ prefetch() skipped — already shown this session or dialog is open');
+      return;
+    }
+    if (_reloadedAd != null || _pendingAd != null) {
+      debugPrint('[SplashAd] ⏭ prefetch() skipped — ad already preloaded/pending');
+      return;
+    }
+    if (_prefetchFuture != null) {
+      debugPrint('[SplashAd] ⏭ prefetch() skipped — prefetch already in progress');
+      return;
+    }
 
     _prefetchFuture = _doPrefetch(
       baseUrl: baseUrl,
@@ -418,25 +722,40 @@ class CommonSplashAd {
     _prefetchFuture = null;
   }
 
+  // alias for internal readability
+  static _PreloadedSplashAd? get _reloadedAd => _preloadedAd;
+
   static Future<void> _doPrefetch({
     required String baseUrl,
     required String appName,
     required String custId,
   }) async {
+    await _ensureAppVersion();
     try {
       // ── Step 1: Fetch ad list (fast) ──────────────────────────────────────
+      debugPrint('[SplashAd] 🔄 Fetching ad list from API...');
       final ads = await SplashAdApiService.fetch(
         baseUrl: baseUrl,
         appName: appName,
         custId: custId,
       );
-      if (ads.isEmpty) return;
+      if (ads.isEmpty) {
+        debugPrint('[SplashAd] ❌ No ads returned from API — dialog will NOT show');
+        return;
+      }
+      debugPrint('[SplashAd] ✅ API returned ${ads.length} ad(s). Running filters...');
 
       final selected = await _selectAd(ads, appName, custId);
-      if (selected == null) return;
+      if (selected == null) {
+        debugPrint('[SplashAd] ❌ No eligible ad after all filters — dialog will NOT show');
+        return;
+      }
 
       final mediaType = MediaTypeDetector.detect(selected.effectiveFile);
-      if (mediaType == SplashMediaType.unsupported) return;
+      if (mediaType == SplashMediaType.unsupported) {
+        debugPrint('[SplashAd] ❌ SKIP "${selected.splashCguid}" — unsupported media type (file: "${selected.effectiveFile}")');
+        return;
+      }
 
       final mediaUrl = _buildMediaUrl(baseUrl, selected, mediaType);
 
@@ -454,17 +773,14 @@ class CommonSplashAd {
         final ext = selected.effectiveFile.split('.').last;
         localFile = await SplashAdApiService.downloadMedia(
           url: mediaUrl,
-          cacheKey: selected.splashCguid,
+          cacheKey: '${selected.splashCguid}_${selected.effectiveFile.hashCode}',
           ext: ext,
         );
       }
 
       if (mediaType == SplashMediaType.video && mediaUrl.isNotEmpty) {
         try {
-          videoController = VideoPlayerController.networkUrl(
-            Uri.parse(mediaUrl),
-            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-          );
+          videoController = VideoPlayerController.networkUrl(Uri.parse(mediaUrl));
           await videoController.initialize();
           videoController.setLooping(true);
         } catch (_) {
@@ -495,42 +811,67 @@ class CommonSplashAd {
         Duration closeButtonDelay       = const Duration(seconds: 3),
         bool autoCloseOnVideoComplete   = false,
         bool isLogin                    = true,
+        Color? buttonColor,
       }) async {
-    if (!isLogin || !_SplashAdSession.canShow) return;
+    if (!isLogin) {
+      debugPrint('[SplashAd] ❌ show() skipped — isLogin=false');
+      return;
+    }
+    if (!_SplashAdSession.canShow) {
+      if (_SplashAdSession._shownThisSession) {
+        debugPrint('[SplashAd] ❌ show() skipped — already shown once this session');
+      } else {
+        debugPrint('[SplashAd] ❌ show() skipped — dialog is currently open');
+      }
+      return;
+    }
+
+    await _ensureAppVersion();
+    debugPrint('[SplashAd] 🚀 show() called. appVersion="${CommonSplashAd.appVersion ?? "(not set)"}"');
 
     try {
       // ── Ensure we have at least the ad metadata ───────────────────────────
-      // Case 1: prefetch already finished fully → _preloadedAd is set
-      // Case 2: prefetch is still running       → wait for it (max 6s)
-      // Case 3: prefetch never started          → run fast list-fetch now
       if (_preloadedAd == null && _pendingAd == null) {
         if (_prefetchFuture != null) {
-          // prefetch is in-flight, wait up to 6s for the list at minimum
+          debugPrint('[SplashAd] ⏳ Prefetch in-flight — waiting up to 6s...');
           await _prefetchFuture!.timeout(
             const Duration(seconds: 6),
-            onTimeout: () {},
+            onTimeout: () {
+              debugPrint('[SplashAd] ⚠️ Prefetch timed out after 6s — will try opening dialog with whatever is ready');
+            },
           );
         } else {
-          // Nothing started — kick off now, wait only for the list (not media)
+          debugPrint('[SplashAd] 🔄 No prefetch started — fetching list now...');
           await _fetchListOnly(
             baseUrl: baseUrl,
             appName: appName,
             custId: custId,
           );
         }
+      } else {
+        debugPrint('[SplashAd] ⚡ Using prefetched ad data (fast path)');
       }
 
       // After waiting, decide what we have
-      final _PreloadedSplashAd? readyAd = _preloadedAd;
-      final SplashAdModel?     pendingAd = _pendingAd;
-      final String             pendingUrl = _pendingMediaUrl ?? '';
-      final SplashMediaType    pendingType =
+      final _PreloadedSplashAd? readyAd    = _preloadedAd;
+      final SplashAdModel?      pendingAd  = _pendingAd;
+      final String              pendingUrl = _pendingMediaUrl ?? '';
+      final SplashMediaType     pendingType =
           _pendingMediaType ?? SplashMediaType.textOnly;
 
-      // If nothing at all → no ad configured / already shown
-      if (readyAd == null && pendingAd == null) return;
+      if (readyAd == null && pendingAd == null) {
+        debugPrint('[SplashAd] ❌ No ad available after fetch — dialog will NOT show');
+        return;
+      }
 
-      if (!context.mounted || !_SplashAdSession.canShow) {
+      if (!context.mounted) {
+        debugPrint('[SplashAd] ❌ show() aborted — BuildContext is no longer mounted');
+        readyAd?.videoController?.dispose();
+        _cleanup();
+        return;
+      }
+      if (!_SplashAdSession.canShow) {
+        debugPrint('[SplashAd] ❌ show() aborted — session state changed while fetching');
         readyAd?.videoController?.dispose();
         _cleanup();
         return;
@@ -541,18 +882,23 @@ class CommonSplashAd {
       _SplashAdSession.markShown();
 
       final adModel = readyAd?.ad ?? pendingAd!;
+
+      // Increment frequency counter
+      await _FrequencyManager.increment(appName, custId, adModel.splashCguid);
       await _DailyHistoryManager.markShown(appName, custId, adModel.splashCguid);
 
       if (!context.mounted) {
+        debugPrint('[SplashAd] ❌ show() aborted — context unmounted after markShown()');
         readyAd?.videoController?.dispose();
         _cleanup();
         _SplashAdSession.setDialogOpen(false);
         return;
       }
+      debugPrint('[SplashAd] ✅ Showing dialog for ad "${adModel.splashCguid}" '
+          '| IsClose=${adModel.isClose} | FrqCount=${adModel.frqCount} '
+          '| Buttons=${adModel.activeButtons.length} | MediaType=${MediaTypeDetector.detect(adModel.effectiveFile).name}');
 
       // ── Open dialog ───────────────────────────────────────────────────────
-      // If media is ready → pass it in, dialog shows media instantly.
-      // If media is NOT ready → dialog opens with shimmer, loads inside itself.
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
@@ -560,13 +906,12 @@ class CommonSplashAd {
           ad: adModel,
           mediaUrl: readyAd?.mediaUrl ?? pendingUrl,
           mediaType: readyAd?.mediaType ?? pendingType,
-          // If fully preloaded, pass local file / video controller
           preloadedLocalFile: readyAd?.localFile,
           preloadedVideo: readyAd?.videoController,
-          // If NOT fully preloaded, dialog must download media internally
           needsMediaLoad: readyAd == null,
           closeButtonDelay: closeButtonDelay,
           autoCloseOnVideoComplete: autoCloseOnVideoComplete,
+          buttonColor: buttonColor,
         ),
       );
     } catch (_) {
@@ -600,22 +945,60 @@ class CommonSplashAd {
         appName: appName,
         custId: custId,
       );
-      if (ads.isEmpty) return;
+      if (ads.isEmpty) {
+        debugPrint('[SplashAd] ❌ No ads returned from API — dialog will NOT show');
+        return;
+      }
+      debugPrint('[SplashAd] ✅ API returned ${ads.length} ad(s). Running filters...');
       final selected = await _selectAd(ads, appName, custId);
-      if (selected == null) return;
+      if (selected == null) {
+        debugPrint('[SplashAd] ❌ No eligible ad after all filters — dialog will NOT show');
+        return;
+      }
       final mediaType = MediaTypeDetector.detect(selected.effectiveFile);
-      if (mediaType == SplashMediaType.unsupported) return;
+      if (mediaType == SplashMediaType.unsupported) {
+        debugPrint('[SplashAd] ❌ SKIP "${selected.splashCguid}" — unsupported media type (file: "${selected.effectiveFile}")');
+        return;
+      }
       _pendingAd        = selected;
       _pendingMediaUrl  = _buildMediaUrl(baseUrl, selected, mediaType);
       _pendingMediaType = mediaType;
     } catch (_) {}
   }
 
+  /// Selects the first eligible ad applying all v3.0 filters:
+  ///   1. Platform filter (IsIos / IsAndroid)
+  ///   2. App version filter (AppVersion)
+  ///   3. Frequency filter (FrqCount per day)
+  ///   4. Not already shown today (daily dedup)
   static Future<SplashAdModel?> _selectAd(
       List<SplashAdModel> ads, String appName, String custId) async {
     final shownToday = await _DailyHistoryManager.getTodayShown(appName, custId);
-    for (final ad in ads) {
-      if (!shownToday.contains(ad.splashCguid)) return ad;
+
+    for (int i = 0; i < ads.length; i++) {
+      final ad = ads[i];
+      debugPrint('[SplashAd] 🔍 Checking ad [${i + 1}/${ads.length}]: "${ad.splashCguid}"');
+
+      // 1. Platform filter
+      if (!_PlatformFilter.passes(ad)) continue;
+
+      // 2. App version filter
+      if (!_AppVersionFilter.passes(ad, appVersion)) continue;
+
+      // 3. Frequency filter — if FrqCount > 0, count must be < FrqCount
+      final freqOk = await _FrequencyManager.canShow(appName, custId, ad);
+      if (!freqOk) continue;
+
+      // 4. Daily dedup — skip if this ad was already "fully used" today
+      //    (We rely on frqCount for repeat ads; shownToday is legacy dedup
+      //     kept for backward compat when FrqCount = 0/unlimited.)
+      if (ad.frqCount <= 0 && shownToday.contains(ad.splashCguid)) {
+        debugPrint('[SplashAd] ❌ SKIP "${ad.splashCguid}" — already shown today (FrqCount=0 unlimited dedup)');
+        continue;
+      }
+
+      debugPrint('[SplashAd] ✅ Selected ad "${ad.splashCguid}" — all filters passed');
+      return ad;
     }
     return null;
   }
@@ -645,6 +1028,7 @@ class _SplashAdViewer extends StatefulWidget {
   final bool                    needsMediaLoad;
   final Duration                closeButtonDelay;
   final bool                    autoCloseOnVideoComplete;
+  final Color?                  buttonColor;
 
   const _SplashAdViewer({
     required this.ad,
@@ -655,6 +1039,7 @@ class _SplashAdViewer extends StatefulWidget {
     required this.needsMediaLoad,
     required this.closeButtonDelay,
     required this.autoCloseOnVideoComplete,
+    this.buttonColor,
   });
 
   @override
@@ -672,6 +1057,10 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
   File?                 _localFile;
   VideoPlayerController? _videoController;
   String?               _pdfLocalPath;
+
+  // ── loading progress (0.0–1.0; -1 = indeterminate) ───────────────────────
+  double _loadProgress  = -1;
+  String _loadingLabel  = 'Loading…';
 
   // ── close-button timer ────────────────────────────────────────────────────
   bool   _canClose   = false;
@@ -705,21 +1094,21 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
       duration: const Duration(milliseconds: 1100),
     )..repeat(reverse: true);
 
-    // Close button timer
-    _closeTimer = Timer(widget.closeButtonDelay, () {
-      if (mounted) setState(() => _canClose = true);
-    });
+    // Close button timer — only relevant when IsClose=true
+    if (widget.ad.isClose) {
+      _closeTimer = Timer(widget.closeButtonDelay, () {
+        if (mounted) setState(() => _canClose = true);
+      });
+    }
+    // IsClose=false → _canClose stays false forever → button never shown
 
     // Initialize media
     if (!widget.needsMediaLoad &&
         widget.mediaType != SplashMediaType.textOnly) {
-      // Prefetch was ready — use preloaded assets
       _initFromPreloaded();
     } else if (widget.mediaType == SplashMediaType.textOnly) {
-      // No media — instantly ready
       _setReady();
     } else {
-      // Must load inside dialog
       _loadMediaInDialog();
     }
   }
@@ -733,8 +1122,17 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
         _videoController!.play();
         _setReady();
       } else {
-        // Video wasn't cached — load network stream in dialog
+        _updateLabel('Preparing video…');
         _loadVideoInDialog();
+      }
+    } else if (widget.mediaType == SplashMediaType.pdf) {
+      final cachedPath = widget.preloadedLocalFile?.path;
+      if (cachedPath != null) {
+        _pdfLocalPath = cachedPath;
+        _setReady();
+      } else {
+        _updateLabel('Downloading PDF…');
+        _loadPdfInDialog();
       }
     } else {
       _localFile = widget.preloadedLocalFile;
@@ -761,51 +1159,92 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
 
   Future<void> _loadImageInDialog() async {
     if (widget.mediaUrl.isEmpty) { _setError(); return; }
+    _updateLabel('Downloading image…');
     try {
-      final ext = widget.mediaUrl.split('.').last.split('?').first;
-      final file = await SplashAdApiService.downloadMedia(
+      final ext  = widget.mediaUrl.split('.').last.split('?').first;
+      final dir  = await getTemporaryDirectory();
+      final cacheKey = '${widget.ad.splashCguid}_${widget.ad.effectiveFile.hashCode}';
+      final file = File('${dir.path}/splash_ad_$cacheKey.$ext');
+
+      if (await file.exists() && await file.length() > 0) {
+        if (!mounted) return;
+        _localFile = file;
+        _setReady();
+        return;
+      }
+
+      final downloaded = await _streamDownload(
         url: widget.mediaUrl,
-        cacheKey: widget.ad.splashCguid,
-        ext: ext,
+        dest: file,
+        label: 'Downloading image…',
       );
       if (!mounted) return;
-      _localFile = file; // null = fall back to network Image.network
+      _localFile = downloaded;
       _setReady();
     } catch (_) {
-      if (mounted) _setReady(); // still try network render
+      if (mounted) _setReady();
     }
   }
 
   Future<void> _loadVideoInDialog() async {
     if (widget.mediaUrl.isEmpty) { _setError(); return; }
-    try {
-      final ctrl = VideoPlayerController.networkUrl(
-        Uri.parse(widget.mediaUrl),
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      );
-      await ctrl.initialize();
-      if (!mounted) { ctrl.dispose(); return; }
+    _updateLabel('Buffering video…');
+
+    Future<VideoPlayerController?> _tryInit() async {
+      final ctrl = VideoPlayerController.networkUrl(Uri.parse(widget.mediaUrl));
+      try {
+        await ctrl.initialize().timeout(const Duration(seconds: 40));
+        return ctrl;
+      } catch (_) {
+        await ctrl.dispose();
+        return null;
+      }
+    }
+
+    VideoPlayerController? ctrl = await _tryInit();
+
+    if (ctrl == null) {
+      _updateLabel('Retrying video…');
+      await Future.delayed(const Duration(seconds: 2));
+      ctrl = await _tryInit();
+    }
+
+    if (!mounted) { ctrl?.dispose(); return; }
+
+    if (ctrl != null) {
       ctrl.addListener(_onVideoTick);
       ctrl.setLooping(true);
       ctrl.play();
       _videoController = ctrl;
       _setReady();
-    } catch (_) {
-      if (mounted) _setError();
+    } else {
+      _setError();
     }
   }
 
   Future<void> _loadPdfInDialog() async {
     if (widget.mediaUrl.isEmpty) { _setError(); return; }
+    _updateLabel('Downloading PDF…');
     try {
-      final file = await SplashAdApiService.downloadMedia(
+      final dir  = await getTemporaryDirectory();
+      final cacheKey = '${widget.ad.splashCguid}_${widget.ad.effectiveFile.hashCode}';
+      final file = File('${dir.path}/splash_ad_$cacheKey.pdf');
+
+      if (await file.exists() && await file.length() > 0) {
+        if (!mounted) return;
+        _pdfLocalPath = file.path;
+        _setReady();
+        return;
+      }
+
+      final downloaded = await _streamDownload(
         url: widget.mediaUrl,
-        cacheKey: widget.ad.splashCguid,
-        ext: 'pdf',
+        dest: file,
+        label: 'Downloading PDF…',
       );
       if (!mounted) return;
-      if (file != null) {
-        _pdfLocalPath = file.path;
+      if (downloaded != null) {
+        _pdfLocalPath = downloaded.path;
         _setReady();
       } else {
         _setError();
@@ -813,6 +1252,48 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     } catch (_) {
       if (mounted) _setError();
     }
+  }
+
+  /// Streams a download and updates [_loadProgress] + [_loadingLabel].
+  Future<File?> _streamDownload({
+    required String url,
+    required File dest,
+    required String label,
+  }) async {
+    final client = http.Client();
+    try {
+      final request  = http.Request('GET', Uri.parse(url));
+      final response = await client.send(request)
+          .timeout(const Duration(seconds: 60));
+
+      final total    = response.contentLength ?? 0;
+      int received   = 0;
+      final bytes    = <int>[];
+
+      await for (final chunk in response.stream) {
+        bytes.addAll(chunk);
+        received += chunk.length;
+        if (total > 0 && mounted) {
+          setState(() {
+            _loadProgress = received / total;
+            _loadingLabel = '$label  ${(received / total * 100).toStringAsFixed(0)}%';
+          });
+        }
+      }
+
+      if (response.statusCode == 200 && bytes.isNotEmpty) {
+        await dest.writeAsBytes(bytes, flush: true);
+        return dest;
+      }
+    } catch (_) {
+    } finally {
+      client.close();
+    }
+    return null;
+  }
+
+  void _updateLabel(String label) {
+    if (mounted) setState(() { _loadingLabel = label; _loadProgress = -1; });
   }
 
   void _setReady() {
@@ -868,6 +1349,27 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     });
   }
 
+  // ── Open a URL from a Setting button ─────────────────────────────────────
+  Future<void> _launchUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+
+      // 1. Try external application first (for deep links and App/Play store)
+      bool launched = false;
+      try {
+        launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {}
+
+      // 2. If it fails (e.g. Android can't find a component for an apple.com link),
+      // fallback to the default platform browser handler.
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('[SplashAd] ❌ Failed to launch URL: $url - Error: $e');
+    }
+  }
+
   // ==========================================================================
   // BUILD
   // ==========================================================================
@@ -881,152 +1383,199 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     final maxH         = size.height * 0.80;
     final maxW         = size.width  * 0.90;
     final maxMediaH    = size.height * 0.52;
+    final themeColor   = widget.buttonColor ?? Theme.of(context).primaryColor;
+
+    // Active buttons (max 2, IsActive=true)
+    final activeButtons = widget.ad.activeButtons;
 
     _checkScrollable();
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxH, maxWidth: maxW),
-        child: Material(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(20),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            children: [
-              // ── Main content ──────────────────────────────────────────────
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    return PopScope(
+        canPop: widget.ad.isClose,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxH, maxWidth: maxW),
+            child: Material(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(20),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
                 children: [
-                  // Media area: constrained by maxMediaH, media sizes itself
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: maxMediaH,
-                      minWidth: double.infinity,
-                    ),
-                    child: _buildMediaArea(isDark, maxMediaH),
-                  ),
-                  // Text area
-                  if (widget.ad.title.isNotEmpty || widget.ad.remarks.isNotEmpty)
-                    Flexible(
-                      child: Stack(
-                        children: [
-                          RawScrollbar(
-                            controller: _scrollCtrl,
-                            thumbVisibility: _isScrollable,
-                            thickness: 4,
-                            radius: const Radius.circular(8),
-                            thumbColor: isDark ? Colors.white38 : Colors.black26,
-                            child: SingleChildScrollView(
-                              controller: _scrollCtrl,
-                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (widget.ad.title.isNotEmpty)
-                                    Text(
-                                      widget.ad.title,
-                                      style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.1,
-                                        color: titleColor,
-                                        height: 1.3,
-                                      ),
-                                    ),
-                                  if (widget.ad.title.isNotEmpty &&
-                                      widget.ad.remarks.isNotEmpty)
-                                    const SizedBox(height: 10),
-                                  if (widget.ad.remarks.isNotEmpty)
-                                    Text(
-                                      widget.ad.remarks,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: descColor,
-                                        height: 1.45,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (_isScrollable)
-                            Positioned(
-                              bottom: 6, right: 14,
-                              child: IgnorePointer(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? Colors.white.withOpacity(0.12)
-                                        : Colors.black.withOpacity(0.06),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
+                  // ── Main content ──────────────────────────────────────────────
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Media area
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: maxMediaH,
+                          minWidth: double.infinity,
+                        ),
+                        child: _buildMediaArea(isDark, maxMediaH),
+                      ),
+                      // Text area
+                      if (widget.ad.title.isNotEmpty || widget.ad.remarks.isNotEmpty)
+                        Flexible(
+                          child: Stack(
+                            children: [
+                              RawScrollbar(
+                                controller: _scrollCtrl,
+                                thumbVisibility: _isScrollable,
+                                thickness: 4,
+                                radius: const Radius.circular(8),
+                                thumbColor: isDark ? Colors.white38 : Colors.black26,
+                                child: SingleChildScrollView(
+                                  controller: _scrollCtrl,
+                                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.unfold_more, size: 14,
-                                          color: isDark
-                                              ? Colors.white70
-                                              : Colors.black54),
-                                      const SizedBox(width: 2),
-                                      Text('Scroll',
+                                      if (widget.ad.title.isNotEmpty)
+                                        Text(
+                                          widget.ad.title,
                                           style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark
-                                                ? Colors.white70
-                                                : Colors.black54,
-                                          )),
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.1,
+                                            color: titleColor,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      if (widget.ad.title.isNotEmpty &&
+                                          widget.ad.remarks.isNotEmpty)
+                                        const SizedBox(height: 10),
+                                      if (widget.ad.remarks.isNotEmpty)
+                                        Text(
+                                          widget.ad.remarks,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: descColor,
+                                            height: 1.45,
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
                               ),
+                              if (_isScrollable)
+                                Positioned(
+                                  bottom: 6, right: 14,
+                                  child: IgnorePointer(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.12)
+                                            : Colors.black.withOpacity(0.06),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.unfold_more, size: 14,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : Colors.black54),
+                                          const SizedBox(width: 2),
+                                          Text('Scroll',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                                color: isDark
+                                                    ? Colors.white70
+                                                    : Colors.black54,
+                                              )),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+
+                      // ── Setting buttons (max 2) ───────────────────────────────
+                      if (activeButtons.isNotEmpty)
+                        _buildSettingButtons(activeButtons, themeColor, isDark),
+                    ],
+                  ),
+
+                  // ── Close button (IsClose=true only) ─────────────────────────
+                  if (widget.ad.isClose)
+                    Positioned(
+                      top: 10, right: 10,
+                      child: AnimatedOpacity(
+                        opacity: _canClose ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: IgnorePointer(
+                          ignoring: !_canClose,
+                          child: InkWell(
+                            onTap: _close,
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.68),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.25),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.close_rounded,
+                                  color: Colors.white, size: 18),
                             ),
-                        ],
+                          ),
+                        ),
                       ),
                     ),
                 ],
               ),
+            ),
+          ),
+        ));
+  }
 
-              // ── Close button (fades in after delay) ───────────────────────
-              Positioned(
-                top: 10, right: 10,
-                child: AnimatedOpacity(
-                  opacity: _canClose ? 1 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: IgnorePointer(
-                    ignoring: !_canClose,
-                    child: InkWell(
-                      onTap: _close,
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.68),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.25),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.close_rounded,
-                            color: Colors.white, size: 18),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+  // ==========================================================================
+  // SETTING BUTTONS
+  // 1 button  → full-width expanded
+  // 2 buttons → side-by-side, each expanded equally
+  // Uses theme primary color for styling — works across all apps automatically.
+  // ==========================================================================
+  Widget _buildSettingButtons(
+      List<SplashSettingButton> buttons, Color themeColor, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.white12 : Colors.black12,
+            width: 1,
           ),
         ),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      child: Row(
+        children: [
+          for (int i = 0; i < buttons.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            Expanded(
+              child: _SettingButton(
+                label: buttons[i].key,
+                url: buttons[i].value,
+                themeColor: themeColor,
+                onTap: () => _launchUrl(buttons[i].value),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1047,13 +1596,14 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     );
   }
 
-  // ── Shimmer skeleton — fixed comfortable height while media is unknown ───────
+  // ── Shimmer skeleton ──────────────────────────────────────────────────────
   Widget _buildShimmer(bool isDark, double mediaH) {
-    // Use 220px as shimmer height — comfortable placeholder regardless of
-    // what the actual media height will be once loaded.
-    const shimmerH = 220.0;
+    const shimmerH       = 220.0;
     final baseColor      = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE8E8E8);
     final highlightColor = isDark ? const Color(0xFF3A3A3C) : const Color(0xFFF5F5F5);
+    final labelColor     = isDark ? Colors.white38 : Colors.black38;
+    final progressBg     = isDark ? Colors.white12 : Colors.black12;
+    final progressFg     = isDark ? Colors.white54 : const Color(0xFF4CAF50);
 
     return AnimatedBuilder(
       key: const ValueKey('shimmer'),
@@ -1075,22 +1625,42 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 52,
-                height: 52,
+                width: 52, height: 52,
                 child: _SpinningRing(
                   color: isDark ? Colors.white24 : Colors.black12,
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Loading…',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white38 : Colors.black38,
-                  letterSpacing: 0.5,
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  _loadingLabel,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: labelColor,
+                    letterSpacing: 0.4,
+                  ),
                 ),
               ),
+              if (_loadProgress >= 0) ...([
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: SizedBox(
+                      height: 4,
+                      child: LinearProgressIndicator(
+                        value: _loadProgress,
+                        backgroundColor: progressBg,
+                        valueColor: AlwaysStoppedAnimation<Color>(progressFg),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
             ],
           ),
         );
@@ -1098,7 +1668,7 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     );
   }
 
-  // ── Loaded / error media — each widget sizes itself, no forced height ────────
+  // ── Loaded / error media ──────────────────────────────────────────────────
   Widget _buildLoadedMedia(double maxH) {
     if (_mediaState == _MediaState.error) return _buildError();
 
@@ -1115,7 +1685,6 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     }
   }
 
-  // Error state — compact fixed height, no wasted space
   Widget _buildError() {
     return const SizedBox(
       width: double.infinity,
@@ -1134,9 +1703,6 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     );
   }
 
-  // Image: fills full width, height auto-adapts to image's own aspect ratio.
-  // BoxFit.fitWidth = fill width exactly, let height follow → no black space.
-  // Parent ConstrainedBox(maxHeight) prevents it from being too tall.
   Widget _buildImage() {
     final useLocal = _localFile != null &&
         _localFile!.existsSync() &&
@@ -1172,8 +1738,7 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
           height: 160,
           child: Center(
             child: SizedBox(
-              width: 32,
-              height: 32,
+              width: 32, height: 32,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             ),
           ),
@@ -1188,8 +1753,6 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     );
   }
 
-  // Video: AspectRatio drives height from the video's real ratio.
-  // Width is constrained by dialog; height is natural. No black bars.
   Widget _buildVideo() {
     final ctrl = _videoController;
     if (ctrl == null || !ctrl.value.isInitialized) return _buildError();
@@ -1200,8 +1763,6 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
     );
   }
 
-  // PDF: needs an explicit height for the native PDFView renderer.
-  // We use maxH (the ConstrainedBox cap) to fill the allowed space fully.
   Widget _buildPdf(double maxH) {
     if (_pdfLocalPath == null) return _buildError();
     return SizedBox(
@@ -1252,6 +1813,53 @@ class _SplashAdViewerState extends State<_SplashAdViewer>
             title: Text(widget.ad.title.isEmpty ? 'Document' : widget.ad.title),
           ),
           body: PDFView(filePath: path, fitPolicy: FitPolicy.BOTH),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// SETTING BUTTON WIDGET
+// =============================================================================
+class _SettingButton extends StatelessWidget {
+  final String   label;
+  final String   url;
+  final Color    themeColor;
+  final VoidCallback onTap;
+
+  const _SettingButton({
+    required this.label,
+    required this.url,
+    required this.themeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: themeColor,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        splashColor: Colors.white24,
+        highlightColor: Colors.white10,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
         ),
       ),
     );
