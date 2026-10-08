@@ -13,6 +13,7 @@ import 'package:tax_hrm/page/face_registation/face_registration_screen.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
@@ -216,6 +217,8 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   }
 
   Future<void> _checkFaceRegistration() async {
+    // Remote kill-switch: skip face registration dialog when feature is OFF
+    if (!RemoteConfigServices.isFaceVerifyEnabled) return;
     if (curentUser?['Role'] == 'Admin') return;
 
     final faceId = curentUser?["FaceRegisterId"];

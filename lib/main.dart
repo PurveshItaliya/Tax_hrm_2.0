@@ -13,6 +13,7 @@ import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/app_providers.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/services/widget_link_service.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
@@ -97,6 +98,8 @@ Future<void> main() async {
   } catch (e) {
     /* log('Firebase initialization error: $e'); */
   }
+  // Fetch Remote Config first (falls back to local cache when offline)
+  await RemoteConfigServices.instance.init();
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 
   PlatformDispatcher.instance.onError = (error, stack) {

@@ -17,6 +17,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tax_hrm/provider/face_verification_provider.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/services/location_permission_service.dart';
 import 'package:tax_hrm/api/authapi.dart';
@@ -1621,7 +1622,11 @@ class SelfiePunchProvider extends ChangeNotifier {
       try {
         final role = curentUser?['Role'];
         final faceId = curentUser?["FaceRegisterId"];
-        if (role != 'Admin') {
+        if (!RemoteConfigServices.isFaceVerifyEnabled) {
+          // Remote kill-switch: face verification feature is OFF
+          debugPrint("[SelfiePunchProvider] Face verification disabled via Remote Config.");
+          isVerified = true;
+        } else if (role != 'Admin') {
           if (faceId == null || faceId.toString().isEmpty) {
             debugPrint("[SelfiePunchProvider] Face verification failed: No registered FaceId.");
             isVerified = false; // Strictly enforce face registration

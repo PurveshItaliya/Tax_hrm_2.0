@@ -32,6 +32,7 @@ import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/provider/location_tracking_provider.dart';
 import 'package:tax_hrm/provider/face_verification_provider.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -502,8 +503,8 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
       );
     }
 
-    // Add Face Verification Section (Hidden for Admins)
-    if (curentUser?['Role'] != 'Admin') {
+    // Add Face Verification Section (Hidden for Admins or when disabled via Remote Config)
+    if (RemoteConfigServices.isFaceVerifyEnabled && curentUser?['Role'] != 'Admin') {
       list.add(_buildFaceVerificationSection(size));
       list.add(
         Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
