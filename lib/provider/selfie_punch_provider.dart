@@ -229,6 +229,11 @@ class SelfiePunchProvider extends ChangeNotifier {
       final oldController = cameraController;
       cameraController = null;
       if (oldController != null) {
+        if (oldController.value.isStreamingImages) {
+          try {
+            await oldController.stopImageStream();
+          } catch (_) {}
+        }
         try {
           await oldController.dispose().timeout(const Duration(seconds: 2));
           log("STARTCAMERA: 11. Disposed old controller");
@@ -236,8 +241,6 @@ class SelfiePunchProvider extends ChangeNotifier {
           log("STARTCAMERA: oldController dispose error: $e");
         }
       }
-
-      await oldController?.dispose();
 
       if (sessionId != _cameraSessionId) {
         log("STARTCAMERA: 12. Session ID mismatch after dispose, returning");
@@ -277,39 +280,8 @@ class SelfiePunchProvider extends ChangeNotifier {
           log("Could not set screen brightness: $e");
         }
 
-        // Safely check environment brightness using a continuous throttled stream
-        // This avoids the native crash caused by rapidly stopping the stream.
-        Stopwatch brightnessStopwatch = Stopwatch()..start();
-        try {
-          cameraController!.startImageStream((image) {
-            // Smartly handle strobe effect: do not check brightness while flash is active
-            if (showFlashOverlay) return;
-            if (brightnessStopwatch.elapsedMilliseconds < 500) return;
-            brightnessStopwatch.reset();
-
-            if (image.planes.isNotEmpty) {
-              final bytes = image.planes[0].bytes;
-              int total = 0, count = 0;
-              for (int i = 0; i < bytes.length; i += 50) {
-                total += bytes[i];
-                count++;
-              }
-              if (count > 0) {
-                bool isDark = (total / count) < 60;
-                if (isDark != isDarkEnvironment) {
-                  isDarkEnvironment = isDark;
-                  log(
-                    "Punch Screen: Dark environment status changed: $isDarkEnvironment",
-                  );
-                }
-              }
-            }
-          });
-          // Note: We intentionally DO NOT stop the image stream here.
-          // Stopping it while the camera is warming up causes native crashes on Android.
-        } catch (e) {
-          log("Failed to start brightness stream: $e");
-        }
+        // Brightness streaming disabled to prevent camera platform crashes
+        isDarkEnvironment = false;
       } catch (e) {
         log("STARTCAMERA: Camera initialize timeout or error: $e");
         readyCameraPreviewshow = false;
@@ -365,6 +337,11 @@ class SelfiePunchProvider extends ChangeNotifier {
     final oldController = cameraController;
     cameraController = null;
     if (oldController != null) {
+      if (oldController.value.isStreamingImages) {
+        try {
+          await oldController.stopImageStream();
+        } catch (_) {}
+      }
       try {
         await oldController.dispose().timeout(const Duration(seconds: 2));
       } catch (e) {
@@ -445,6 +422,11 @@ class SelfiePunchProvider extends ChangeNotifier {
       if (cameraController == null ||
           cameraController!.value.isInitialized == false) {
         return;
+      }
+      if (cameraController!.value.isStreamingImages) {
+        try {
+          await cameraController!.stopImageStream();
+        } catch (_) {}
       }
       picture = await cameraController!.takePicture();
       if (picture != null) {
@@ -563,7 +545,11 @@ class SelfiePunchProvider extends ChangeNotifier {
     return distance <= allowedRadius;
   }
 
+  bool _isFetchingLocation = false;
+
   Future<void> getCurrentLocation({BuildContext? context}) async {
+    if (_isFetchingLocation) return;
+    _isFetchingLocation = true;
     // ── 1. INSTANT LOCATION LOAD ──
     try {
       Position? lastKnown = await Geolocator.getLastKnownPosition();
@@ -611,6 +597,7 @@ class SelfiePunchProvider extends ChangeNotifier {
     } catch (e) {
       showtoastmessage(unableToGetLocationGpsString);
     } finally {
+      _isFetchingLocation = false;
       setLocationLoader(false);
       notifyListeners();
     }
@@ -694,7 +681,12 @@ class SelfiePunchProvider extends ChangeNotifier {
       if (context != null) {
         bool? openSettings = await showGpsDisabledDialog(context);
         if (openSettings == true) {
-          return await getPosition(context: context);
+          bool isNowEnabled = await Geolocator.isLocationServiceEnabled();
+          if (isNowEnabled) {
+            return await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high,
+            );
+          }
         }
       } else {
         await Geolocator.openLocationSettings();

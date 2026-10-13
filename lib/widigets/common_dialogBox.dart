@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart' as loc;
 import 'package:lottie/lottie.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -205,14 +206,25 @@ void punchDeniedShowDialog(String msg, context) {
   );
 }
 
+bool _isGpsDialogShowing = false;
+
 Future<bool> showGpsDisabledDialog(BuildContext context) async {
-  return await showDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext ctx) {
-      return const _GpsDialog();
-    },
-  ) ?? false;
+  if (_isGpsDialogShowing) return false;
+  _isGpsDialogShowing = true;
+
+  try {
+    if (!context.mounted) return false;
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext ctx) {
+        return const _GpsDialog();
+      },
+    );
+    return result ?? false;
+  } finally {
+    _isGpsDialogShowing = false;
+  }
 }
 
 class _GpsDialog extends StatefulWidget {
@@ -239,8 +251,11 @@ class _GpsDialogState extends State<_GpsDialog> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.resumed) {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (serviceEnabled) {
-        if (mounted) {
+      LocationPermission permission = await Geolocator.checkPermission();
+      bool hasPermission = permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
+      if (serviceEnabled && hasPermission) {
+        if (mounted && context.mounted) {
           Navigator.pop(context, true);
         }
       }
@@ -282,7 +297,34 @@ class _GpsDialogState extends State<_GpsDialog> with WidgetsBindingObserver {
             ),
           ),
           onPressed: () async {
-            await Geolocator.openLocationSettings();
+            // 1. Check and request location permission within the app
+            LocationPermission permission = await Geolocator.checkPermission();
+            if (permission == LocationPermission.denied) {
+              permission = await Geolocator.requestPermission();
+            }
+
+            // 2. Request to enable GPS hardware location service WITHIN the application
+            final loc.Location location = loc.Location();
+            bool serviceEnabled = await location.serviceEnabled();
+            if (!serviceEnabled) {
+              serviceEnabled = await location.requestService();
+            }
+
+            if (serviceEnabled &&
+                (permission == LocationPermission.whileInUse ||
+                 permission == LocationPermission.always)) {
+              if (mounted && context.mounted) {
+                Navigator.pop(context, true);
+              }
+              return;
+            }
+
+            // 3. Fallback: If in-app system prompt did not turn on location, open device settings outside the app
+            if (permission == LocationPermission.deniedForever) {
+              await Geolocator.openAppSettings();
+            } else {
+              await Geolocator.openLocationSettings();
+            }
           },
           child: Text(settingString, style: const TextStyle(color: Colors.white)),
         ),
