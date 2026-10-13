@@ -244,6 +244,10 @@ class SelfiePunchProvider extends ChangeNotifier {
 
       if (sessionId != _cameraSessionId) {
         log("STARTCAMERA: 12. Session ID mismatch after dispose, returning");
+        // Reset loading flags so the UI doesn't freeze on a spinner forever.
+        cameraisLoading = false;
+        readyCameraPreviewshow = false;
+        notifyListeners();
         return;
       }
 
@@ -297,6 +301,10 @@ class SelfiePunchProvider extends ChangeNotifier {
         try {
           await newController.dispose().timeout(const Duration(seconds: 2));
         } catch (e) {}
+        // Reset loading flags so the UI doesn't freeze on a spinner forever.
+        cameraisLoading = false;
+        readyCameraPreviewshow = false;
+        notifyListeners();
         return;
       }
       log("STARTCAMERA: 16. Camera is completely ready!");
@@ -1453,8 +1461,22 @@ class SelfiePunchProvider extends ChangeNotifier {
         }
         // ──────────────────────────────────────────────────────────
 
-        // Asynchronously update reminders
+        // ── Persist punch status to SharedPreferences so reminder scheduler
+        // knows this day has already been punched and skips the notification.
         Future.microtask(() async {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final DateTime now = DateTime.now();
+            final String dateKey =
+                '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+            if (punchStatus == 'IN') {
+              await prefs.setBool('punched_in_\$dateKey', true);
+              await prefs.setBool('punched_out_\$dateKey', false);
+            } else if (punchStatus == 'OUT') {
+              await prefs.setBool('punched_out_\$dateKey', true);
+            }
+          } catch (_) {}
+          // Reschedule reminders now that punch status is persisted correctly.
           // await ReminderNotificationService.updateHolidaysAndLeaves();
           await ReminderNotificationService.scheduleReminders();
         });

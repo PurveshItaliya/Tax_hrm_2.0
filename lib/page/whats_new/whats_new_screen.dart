@@ -50,9 +50,12 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version107 = 'v1.0.7';
     String versionName107 = 'Visit Module & Face Punch';
 
+    String version108 = 'v1.0.8';
+    String versionName108 = 'Punch Redesign & Enhancements';
+
     versions = Platform.isAndroid 
-        ? ['All', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
-        : ['All', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
+        ? ['All', 'v1.0.8', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        : ['All', 'v1.0.8', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -600,6 +603,82 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Improved Timeline UI for a clearer activity experience',
           'Improved overall app performance and responsiveness',
           'Fixed issues and made general improvements',
+        ],
+      ),
+      // --- v1.0.8 New Features Added ---
+      ReleaseNoteItem(
+        id: 34,
+        title: 'Redesigned Self Punch & Confirm Dialog',
+        description: 'Redesigned Self Punch screen and Confirm Punch dialog with camera preview, location status, working hours, address, and remarks.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Employee App',
+        icon: Icons.camera_alt,
+        bgColor: const Color(0xFF2196F3),
+        features: [
+          'Redesigned the Self Punch Screen with camera preview, location status, working hours, check-in/check-out times, and location refresh functionality.',
+          'Redesigned the Confirm Punch Dialog with photo preview, punch details, address, and remarks.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 35,
+        title: 'Home WorkType & Offline Punching',
+        description: 'Enhanced Home WorkType to allow Punch In/Out from any location and added offline punch dialog.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Employee App',
+        icon: Icons.home_work,
+        bgColor: const Color(0xFF009688),
+        features: [
+          'Enhanced Home WorkType to allow Punch In/Out from any location.',
+          'Added a No Internet Connection dialog for offline Punch In/Out.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 36,
+        title: 'Attendance & Leave Enhancements',
+        description: 'Added a Remark field to the Attendance bottom sheet and improved Half-Day leave duration display.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Both',
+        icon: Icons.event_note,
+        bgColor: const Color(0xFF4CAF50),
+        features: [
+          'Added a Remark field to the Attendance bottom sheet.',
+          'Improved Half-Day Leave Duration display.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 37,
+        title: 'Admin Mode & User Profile',
+        description: 'Fixed Admin mode session persistence after app restart and improved profile image display.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Both',
+        icon: Icons.admin_panel_settings,
+        bgColor: const Color(0xFF673AB7),
+        features: [
+          'Fixed Admin mode session persistence after app restart.',
+          'Improved profile image display for the logged-in user.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 38,
+        title: 'Location Permissions & Punch Reminders',
+        description: 'Fixed repeated location dialogs, improved location permission handling, and fixed unnecessary punch reminders.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Both',
+        icon: Icons.notifications_active,
+        bgColor: const Color(0xFFFF9800),
+        features: [
+          'Fixed repeated location dialogs and improved location permission handling.',
+          'Fixed unnecessary Punch In/Out reminder notifications.',
         ],
       ),
     ];
