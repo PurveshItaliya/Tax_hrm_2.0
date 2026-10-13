@@ -307,6 +307,13 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
 
   // ── Profile Header Section ─────────────────────────────────────────────────
   Widget _buildProfileHeader(Size size, SettingProvider settingProvider) {
+    final profileImage = settingProvider.setEmpProfile?.img?.toString();
+    final hasProfileImage = profileImage != null && profileImage.isNotEmpty;
+    final firstName = curentUser?['FirstName']?.toString().trim() ?? '';
+    final lastName = curentUser?['LastName']?.toString().trim() ?? '';
+    final profileInitials =
+        '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}';
+
     return SizedBox(
       width: size.width,
       height: size.width * 0.72,
@@ -342,32 +349,20 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
               child: CircleAvatar(
                 radius: size.width * 0.16,
                 backgroundColor: ColorConst.greyOpicityColor,
-                child: settingProvider.setEmpProfile?.img != null
+                child: hasProfileImage
                     ? Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           image: DecorationImage(
                             image: NetworkImage(
-                              '${apibaseurl}UploadFiles/Emp/${settingProvider.setEmpProfile!.img}',
+                              '${apibaseurl}UploadFiles/Emp/$profileImage',
                             ),
                             fit: BoxFit.cover,
                           ),
                         ),
                       )
                     : Text(
-                        curentUser == null
-                            ? ""
-                            : (curentUser['FirstName'] != null &&
-                                  curentUser['FirstName'] != "")
-                            ? ('${curentUser['FirstName']}'[0] +
-                                  (curentUser['LastName'] != null &&
-                                          curentUser['LastName'] != ""
-                                      ? '${curentUser['LastName']}'[0]
-                                      : ""))
-                            : (curentUser['Username'] != null &&
-                                      curentUser['Username'] != ""
-                                  ? '${curentUser['Username']}'[0]
-                                  : ""),
+                        profileInitials,
                         style: TextStyle(
                           fontSize: size.height * 0.045,
                           color: ColorConst.themeColor,
@@ -521,6 +516,8 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
             size: size,
             val: curentUser?['Role'] == 'Admin',
             onChanged: (val) async {
+              settingProvider.setloading(true);
+              try {
               if (curentUser['OriginalRole'] == null) {
                 curentUser['OriginalRole'] = curentUser['Role'];
               }
@@ -547,6 +544,9 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                   context,
                   listen: false,
                 ).selectFloadButton();
+              }
+              } finally {
+                settingProvider.setloading(false);
               }
             },
           ),

@@ -27,8 +27,10 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 class SettingProvider extends ChangeNotifier {
   bool islodering = false;
 
-  setloading(bool value) {
+  void setloading(bool value) {
+    if (islodering == value) return;
     islodering = value;
+    notifyListeners();
   }
   // user profile data
   Employeelists? setEmpProfile;

@@ -48,12 +48,29 @@ class SplashProvider extends ChangeNotifier {
     }
   }
 
-  loadingData(context) {
+  loadingData(context) async {
     try {
-      SaveUser().loadAdminSwitch();
+      // Await so that switchValue is populated BEFORE getAllData() reads it.
+      await SaveUser().loadAdminSwitch();
       getAllData(context);
     } catch (e) {
       /* ignored */
+    }
+  }
+
+  /// Re-applies the persisted admin-switch override onto curentUser.
+  /// Call this after every time curentUser is loaded or refreshed from the
+  /// server so that a role toggled in Settings survives hot/cold restarts.
+  Future<void> _applyAdminSwitchOverride() async {
+    if (curentUser == null) return;
+    // Reload from prefs to be safe (in case switchValue hasn't been set yet).
+    await SaveUser().loadAdminSwitch();
+    if (switchValue) {
+      // Preserve the original server role so the toggle can be reversed later.
+      curentUser['OriginalRole'] ??= curentUser['Role'];
+      curentUser['Role'] = 'Admin';
+      // Persist the patched user data so the next cold start also sees 'Admin'.
+      await SaveUser().saveUserData(jsonEncode(curentUser));
     }
   }
 
@@ -166,6 +183,12 @@ class SplashProvider extends ChangeNotifier {
     SaveUser().getUserDatas().then((value) async {
       if (value != '') {
         curentUser = jsonDecode(value);
+
+        // ── Restore Admin-mode override BEFORE any role-based logic ──
+        // This ensures that if the user had toggled Admin mode in Settings,
+        // the role is correctly re-applied after a hot/cold restart.
+        await _applyAdminSwitchOverride();
+
         // ── Analytics: identify user right after loading from storage ──
         _identifyUser();
         FcmTokenService.instance.initialize();
@@ -184,9 +207,13 @@ class SplashProvider extends ChangeNotifier {
         }
 
         // 2. Start silent background API refresh (Level 3)
+        // Use OriginalRole (the server role) for the login call so we always
+        // authenticate with the real credentials, not the locally-overridden role.
+        final String serverRole =
+            curentUser['OriginalRole']?.toString() ?? curentUser['Role']?.toString() ?? '';
         CompanyDataApis().getCompanyDataList().then((value) async {
           if (value == 401) {
-            if (curentUser['Role'] == 'Admin') {
+            if (serverRole == 'Admin') {
               adminLogin(context, false);
             } else {
               empLogin(context, false);
@@ -195,7 +222,7 @@ class SplashProvider extends ChangeNotifier {
             getAllCompany = value;
             await Provider.of<HomeProvider>(context, listen: false).setcompanyselected();
             // Silently refresh the user data in the background
-            if (curentUser['Role'] == 'Admin') {
+            if (serverRole == 'Admin') {
               adminLogin(context, true);
             } else {
               empLogin(context, true);
@@ -212,23 +239,20 @@ class SplashProvider extends ChangeNotifier {
           _setupNotificationsAfterSplash();
           triggerNextScreen(context, AnimatedBottomBar());
         } else if (curentUser['Role'] == 'Sub-Admin') {
-          SaveUser().loadAdminSwitch().then((value) async {
-            if (switchValue) {
-              Provider.of<HomeProvider>(
-                context,
-                listen: false,
-              ).changeSelectBottomBar(0);
-              _setupNotificationsAfterSplash();
-              triggerNextScreen(context, AnimatedBottomBar());
-            } else {
-              Provider.of<HomeProvider>(
-                context,
-                listen: false,
-              ).selectFloadButton();
-              _setupNotificationsAfterSplash();
-              triggerNextScreen(context, AnimatedBottomBar());
-            }
-          });
+          // Sub-Admin whose admin switch is OFF navigates as employee.
+          if (switchValue) {
+            Provider.of<HomeProvider>(
+              context,
+              listen: false,
+            ).changeSelectBottomBar(0);
+          } else {
+            Provider.of<HomeProvider>(
+              context,
+              listen: false,
+            ).selectFloadButton();
+          }
+          _setupNotificationsAfterSplash();
+          triggerNextScreen(context, AnimatedBottomBar());
         } else {
           Provider.of<HomeProvider>(
             context,
@@ -258,7 +282,6 @@ class SplashProvider extends ChangeNotifier {
             }
           } else {
             if (loginReponse.hRM != null) {
-              var holdData = value;
               String udata = jsonEncode(value);
               SaveUser().saveUserData(udata);
               if (!silentRefresh) {
@@ -267,6 +290,9 @@ class SplashProvider extends ChangeNotifier {
                 triggerNextScreen(context, AnimatedBottomBar());
               } else {
                 curentUser = jsonDecode(udata);
+                // Re-apply admin switch override after silent refresh so that
+                // a toggled role is not overwritten by the fresh server data.
+                await _applyAdminSwitchOverride();
                 // ── Analytics: re-identify after silent refresh ──
                 _identifyUser();
               }
@@ -304,6 +330,9 @@ class SplashProvider extends ChangeNotifier {
                 triggerNextScreen(context, AnimatedBottomBar());
               } else {
                 curentUser = jsonDecode(udata);
+                // Re-apply admin switch override after silent refresh so that
+                // a toggled role is not overwritten by the fresh server data.
+                await _applyAdminSwitchOverride();
               }
             }
           }
