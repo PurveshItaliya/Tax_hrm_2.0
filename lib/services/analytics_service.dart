@@ -1,16 +1,12 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_renaming_method_parameters, curly_braces_in_flow_control_structures, use_null_aware_elements, avoid_print
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart'; 
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 // =============================================================================
 // ANALYTICS SERVICE — Ultra Simple & Clean Architecture

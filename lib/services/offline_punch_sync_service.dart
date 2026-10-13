@@ -1,9 +1,7 @@
 // ignore_for_file: avoid_print, empty_catches
 
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
-
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';

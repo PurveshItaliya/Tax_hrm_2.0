@@ -50,20 +50,22 @@ class _LeaveViewPageState extends State<LeaveViewPage> with SingleTickerProvider
         backgroundColor: ColorConst.scaffoldColor,
         appBar: showBottomAppBar(leaveString, size, centerTitles: false),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: Padding(
-          padding: EdgeInsets.only(bottom: size.height * 0.10),
-          child: iconWithTextBtnDesign(
-            size,
-            applyNewLeaveString,
-            isIcon: false,
-            onTap: () {
-              leaveMastServices.resetLeaveForm();
-              leaveMastServices.leaveHandleSubmit(context,false, leaveData: null);
-            },
-            isgradient: true,
-            isImage: false,
-          ),
-        ),
+        floatingActionButton: leaveMastServices.islodering
+            ? const SizedBox()
+            : Padding(
+                padding: EdgeInsets.only(bottom: size.height * 0.11),
+                child: iconWithTextBtnDesign(
+                  size,
+                  applyNewLeaveString,
+                  isIcon: false,
+                  onTap: () {
+                    leaveMastServices.resetLeaveForm();
+                    leaveMastServices.leaveHandleSubmit(context, false, leaveData: null);
+                  },
+                  isgradient: true,
+                  isImage: false,
+                ),
+              ),
         body: leaveMastServices.islodering
             ? buildShimmerContent(size)
             : Column(

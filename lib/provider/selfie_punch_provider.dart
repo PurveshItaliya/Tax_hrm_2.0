@@ -13,7 +13,6 @@ import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as img;
-import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,6 +35,7 @@ import 'package:tax_hrm/page/attendance/punchBox.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
+import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/shiftprovider.dart';
 import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/navigation.dart';
@@ -165,9 +165,7 @@ class SelfiePunchProvider extends ChangeNotifier {
   XFile? picture;
 
   Future<void> startCamera(int setDirection) async {
-    log(
-      "STARTCAMERA: 1. startCamera called with direction $setDirection",
-    );
+    log("STARTCAMERA: 1. startCamera called with direction $setDirection");
     final sessionId = ++_cameraSessionId;
     readyCameraPreviewshow = true;
     cameraisLoading = true;
@@ -186,9 +184,7 @@ class SelfiePunchProvider extends ChangeNotifier {
           camerapermissionStatus = await Permission.camera.request().timeout(
             const Duration(seconds: 3),
           );
-          log(
-            "STARTCAMERA: 5. Request result is $camerapermissionStatus",
-          );
+          log("STARTCAMERA: 5. Request result is $camerapermissionStatus");
         }
       } catch (e) {
         log("STARTCAMERA: Permission check timed out or failed: $e");
@@ -244,9 +240,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       await oldController?.dispose();
 
       if (sessionId != _cameraSessionId) {
-        log(
-          "STARTCAMERA: 12. Session ID mismatch after dispose, returning",
-        );
+        log("STARTCAMERA: 12. Session ID mismatch after dispose, returning");
         return;
       }
 
@@ -268,6 +262,14 @@ class SelfiePunchProvider extends ChangeNotifier {
         );
         log("STARTCAMERA: 14. Initialized new controller successfully");
 
+        // Set to max zoom out (min zoom level)
+        try {
+          final double minZoom = await cameraController!.getMinZoomLevel();
+          await cameraController!.setZoomLevel(minZoom);
+        } catch (e) {
+          log("Could not set min zoom level: $e");
+        }
+
         // Maximize screen brightness for punch screen
         try {
           await ScreenBrightness().setScreenBrightness(1.0);
@@ -284,17 +286,22 @@ class SelfiePunchProvider extends ChangeNotifier {
             if (showFlashOverlay) return;
             if (brightnessStopwatch.elapsedMilliseconds < 500) return;
             brightnessStopwatch.reset();
-            
+
             if (image.planes.isNotEmpty) {
               final bytes = image.planes[0].bytes;
               int total = 0, count = 0;
-              for (int i = 0; i < bytes.length; i += 50) { total += bytes[i]; count++; }
+              for (int i = 0; i < bytes.length; i += 50) {
+                total += bytes[i];
+                count++;
+              }
               if (count > 0) {
-                 bool isDark = (total / count) < 60;
-                 if (isDark != isDarkEnvironment) {
-                   isDarkEnvironment = isDark;
-                   log("Punch Screen: Dark environment status changed: $isDarkEnvironment");
-                 }
+                bool isDark = (total / count) < 60;
+                if (isDark != isDarkEnvironment) {
+                  isDarkEnvironment = isDark;
+                  log(
+                    "Punch Screen: Dark environment status changed: $isDarkEnvironment",
+                  );
+                }
               }
             }
           });
@@ -303,7 +310,6 @@ class SelfiePunchProvider extends ChangeNotifier {
         } catch (e) {
           log("Failed to start brightness stream: $e");
         }
-
       } catch (e) {
         log("STARTCAMERA: Camera initialize timeout or error: $e");
         readyCameraPreviewshow = false;
@@ -379,6 +385,14 @@ class SelfiePunchProvider extends ChangeNotifier {
 
     try {
       await newController.initialize().timeout(const Duration(seconds: 5));
+
+      // Set to max zoom out (min zoom level)
+      try {
+        final double minZoom = await newController.getMinZoomLevel();
+        await newController.setZoomLevel(minZoom);
+      } catch (e) {
+        log("Could not set min zoom level on switch: $e");
+      }
     } catch (e) {
       log("switchCamera initialize timeout or error: $e");
       await newController.dispose();
@@ -413,7 +427,9 @@ class SelfiePunchProvider extends ChangeNotifier {
 
     if (oldController != null) {
       if (oldController.value.isStreamingImages) {
-        try { await oldController.stopImageStream(); } catch (_) {}
+        try {
+          await oldController.stopImageStream();
+        } catch (_) {}
       }
       try {
         await oldController.dispose().timeout(const Duration(seconds: 2));
@@ -456,27 +472,6 @@ class SelfiePunchProvider extends ChangeNotifier {
     }
   }
 
-  // ==================== TIME FUNCTIONS ====================
-  ValueNotifier<String> currentTimeNotifier = ValueNotifier('');
-  Timer? timer;
-
-  void startLiveTime() {
-    stopLiveTime();
-    updateTime();
-    timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      updateTime();
-    });
-  }
-
-  void updateTime() {
-    currentTimeNotifier.value = DateFormat('hh:mm:ss a').format(DateTime.now());
-  }
-
-  void stopLiveTime() {
-    timer?.cancel();
-    timer = null;
-  }
-
   // ==================== LOCATION FUNCTIONS ====================
   Position? currentPosition;
   String? setlongitude;
@@ -512,6 +507,61 @@ class SelfiePunchProvider extends ChangeNotifier {
       _companyLng != null &&
       _companyRadius != null &&
       _companyRadius! > 0;
+
+  static bool _isValNullOrEmpty(dynamic val) {
+    if (val == null) return true;
+    final s = val.toString().trim().toLowerCase();
+    return s.isEmpty || s == 'null' || s == '-';
+  }
+
+  /// True when attendance from any location is allowed:
+  /// - WorkType is 'Home' (case-insensitive)
+  /// - Both WorkType and OfficeLocation are null / empty
+  /// - Today visit is allowed
+  /// - Background location fetch is enabled
+  bool get isLocationBypassed {
+    final rawWorkType = curentUser?['WorkType'] ?? curentUser?['workType'];
+    final bool isWorkTypeNull = _isValNullOrEmpty(rawWorkType);
+    final bool isWorkFromHome =
+        !isWorkTypeNull &&
+        rawWorkType.toString().trim().toLowerCase() == 'home';
+
+    if (isWorkFromHome) return true;
+
+    final rawOfficeLoc =
+        curentUser?['OfficeLocation'] ?? curentUser?['officeLocation'];
+    final bool isOfficeLocNull = _isValNullOrEmpty(rawOfficeLoc);
+
+    if (isWorkTypeNull && isOfficeLocNull) return true;
+
+    if (checkStatus?.todayVisit == true) return true;
+
+    if (Platform.isAndroid &&
+        BackgroundLocationRepository.isFetchLocationEnabled()) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Whether office range proximity check is required for this punch.
+  bool get needOfficeRangeCheck {
+    if (isLocationBypassed) return false;
+
+    if (_isStaticCompany) {
+      final rawOfficeLoc =
+          curentUser?['OfficeLocation'] ?? curentUser?['officeLocation'];
+      return !_isValNullOrEmpty(rawOfficeLoc);
+    } else {
+      return _hasCompanyLocation;
+    }
+  }
+
+  /// Whether current location is within allowed punch range.
+  bool get isInRange {
+    if (!needOfficeRangeCheck) return true;
+    return distance <= allowedRadius;
+  }
 
   Future<void> getCurrentLocation({BuildContext? context}) async {
     // ── 1. INSTANT LOCATION LOAD ──
@@ -602,6 +652,11 @@ class SelfiePunchProvider extends ChangeNotifier {
 
   /// Computes distance/radius without any network call (for offline use).
   Future<void> _computeDistanceOnly(double long, double lat) async {
+    if (isLocationBypassed) {
+      allowedRadius = 0;
+      distance = 0;
+      return;
+    }
     if (_isStaticCompany) {
       final officeLoc = curentUser?['OfficeLocation'];
       if (officeLoc == null ||
@@ -736,7 +791,10 @@ class SelfiePunchProvider extends ChangeNotifier {
 
   Future<void> getAddressFromLatLng(double long, double lat) async {
     // 1. Calculate distance and allowed radius first (does not require internet)
-    if (_isStaticCompany) {
+    if (isLocationBypassed) {
+      allowedRadius = 0;
+      distance = 0;
+    } else if (_isStaticCompany) {
       // ── Static path: TAX541 (Surat) / TAY967 (Bhavnagar) ─────────────
       final officeLoc = curentUser?['OfficeLocation'];
       if (officeLoc == null ||
@@ -768,7 +826,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       allowedRadius = 0;
       distance = 0;
     }
-
+            
     // 2. Try to get physical address (requires internet)
     try {
       final bool offline = await _checkIsOffline();
@@ -820,7 +878,10 @@ class SelfiePunchProvider extends ChangeNotifier {
       return false;
     }
 
-    if (_isStaticCompany) {
+    if (isLocationBypassed) {
+      allowedRadius = 0;
+      distance = 0;
+    } else if (_isStaticCompany) {
       // ── Static path: TAX541 (Surat) / TAY967 (Bhavnagar) ─────────────────
       final officeLoc = curentUser?['OfficeLocation'];
       if (officeLoc == null ||
@@ -920,7 +981,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         punchProcessStatus.value = 'Offline mode — checking location...';
 
         // If no company location config is available offline, block the punch.
-        if (!_isStaticCompany && !_hasCompanyLocation) {
+        if (needOfficeRangeCheck && !_isStaticCompany && !_hasCompanyLocation) {
           showtoastmessage(
             'Location configuration is unavailable offline. '
             'Connect to the internet and try again.',
@@ -965,25 +1026,6 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       punchProcessStatus.value = 'Checking Location Range...';
-      // Proximity check:
-      //  • Static companies (TAX541 / TAY967): enforce when WorkType is set and not 'home'.
-      //  • All other companies: enforce only if the backend has provided lat/lng/radius.
-      final bool workFromHome =
-          curentUser['WorkType'] != null &&
-          curentUser['WorkType'].toString().toLowerCase() == 'home';
-      final bool isFetchLocation =
-          Platform.isAndroid &&
-          BackgroundLocationRepository.isFetchLocationEnabled();
-
-      final bool todayVisitAllowed = checkStatus?.todayVisit == true;
-
-      final bool needOfficeRangeCheck = _isStaticCompany
-          ? (curentUser['WorkType'] != null &&
-                !workFromHome &&
-                !isFetchLocation &&
-                !todayVisitAllowed)
-          : (_hasCompanyLocation && !workFromHome && !isFetchLocation && !todayVisitAllowed);
-
       if (needOfficeRangeCheck) {
         final bool locationSuccess = await checkAndPunch(context);
         if (!context.mounted) return;
@@ -1016,13 +1058,20 @@ class SelfiePunchProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> checkLastPunch(int employeid, BuildContext context) async {
-    setLoading(true);
+  Future<void> checkLastPunch(
+    int employeid,
+    BuildContext context, {
+    bool showLoading = false,
+  }) async {
+    if (showLoading) setLoading(true);
     try {
+      final compId =
+          selectedcurentcompany?.companyId ?? curentUser?['CompanyId'] ?? 0;
+      final targetDate = DateTime.now();
       checkStatus = await AttendanceApis().getDateBlogEmp(
-        newDateTime,
+        DateTime(targetDate.year, targetDate.month, targetDate.day),
         employeid,
-        selectedcurentcompany!.companyId,
+        compId,
       );
     } catch (e) {
       /* ignored */
@@ -1032,18 +1081,26 @@ class SelfiePunchProvider extends ChangeNotifier {
       } else if (checkStatus!.attendenceLog == null) {
         checkStatus!.attendenceLog = [];
       }
-      setLoading(false);
+      await _mergePendingOfflinePunches(employeid);
+      _sortLogsAscending();
+      if (showLoading) setLoading(false);
     }
     notifyListeners();
   }
 
-  Future<void> refreshLastPunchOnly(int employeid) async {
-    setLoading(true);
+  Future<void> refreshLastPunchOnly(
+    int employeid, {
+    bool showLoading = false,
+  }) async {
+    if (showLoading) setLoading(true);
     try {
+      final compId =
+          selectedcurentcompany?.companyId ?? curentUser?['CompanyId'] ?? 0;
+      final targetDate = DateTime.now();
       checkStatus = await AttendanceApis().getDateBlogEmp(
-        newDateTime,
+        DateTime(targetDate.year, targetDate.month, targetDate.day),
         employeid,
-        selectedcurentcompany!.companyId,
+        compId,
       );
     } catch (e) {
       /* ignored */
@@ -1053,9 +1110,73 @@ class SelfiePunchProvider extends ChangeNotifier {
       } else if (checkStatus!.attendenceLog == null) {
         checkStatus!.attendenceLog = [];
       }
-      setLoading(false);
+      await _mergePendingOfflinePunches(employeid);
+      _sortLogsAscending();
+      if (showLoading) setLoading(false);
     }
     notifyListeners();
+  }
+
+  void _sortLogsAscending() {
+    if (checkStatus?.attendenceLog != null) {
+      checkStatus!.attendenceLog!.sort((a, b) {
+        final rawA = (a.time ?? a.attendenceDate ?? '').toString().trim();
+        final rawB = (b.time ?? b.attendenceDate ?? '').toString().trim();
+        final dtA = DateTime.tryParse(rawA);
+        final dtB = DateTime.tryParse(rawB);
+        if (dtA != null && dtB != null) {
+          return dtA.compareTo(dtB);
+        }
+        return rawA.compareTo(rawB);
+      });
+    }
+  }
+
+  Future<void> _mergePendingOfflinePunches(int employeid) async {
+    try {
+      final today = DateTime.now();
+      final String dateKey =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final allOfflineRecords = await OfflinePunchSyncService.instance
+          .getAllRecords();
+
+      final todayOfflineRecords = allOfflineRecords.where((r) {
+        if (r.empId != employeid) return false;
+        try {
+          final DateTime rTime = DateTime.parse(r.punchTimestamp);
+          final String rDateKey =
+              '${rTime.year}-${rTime.month.toString().padLeft(2, '0')}-${rTime.day.toString().padLeft(2, '0')}';
+          return rDateKey == dateKey;
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+
+      checkStatus ??= AttendanceDayBlog();
+      checkStatus!.attendenceLog ??= [];
+
+      for (final r in todayOfflineRecords) {
+        final bool alreadyExists = checkStatus!.attendenceLog!.any(
+          (log) => (log.cguid ?? '').isNotEmpty && log.cguid == r.cguid,
+        );
+        if (!alreadyExists) {
+          checkStatus!.attendenceLog!.add(
+            AttendenceLog(
+              logId: -1,
+              empId: r.empId,
+              status: r.punchStatus,
+              time: r.punchTimestamp,
+              attendenceDate: r.attendenceDate,
+              cguid: r.cguid,
+              location: r.location,
+              latitude: r.latitude,
+              longitude: r.longitude,
+              isOffline: true,
+            ),
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> callApi(BuildContext context) async {
@@ -1111,15 +1232,18 @@ class SelfiePunchProvider extends ChangeNotifier {
 
       // Filter out any logs in checkStatus that are NOT from today
       checkStatus!.attendenceLog!.removeWhere((log) {
-        if (log.time == null || log.time.toString().isEmpty) return true;
-        try {
-          final DateTime logTime = DateTime.parse(log.time.toString());
+        final rawVal = (log.time ?? log.attendenceDate ?? '').toString().trim();
+        if (rawVal.isEmpty) return true;
+        DateTime? logTime = DateTime.tryParse(rawVal);
+        if (logTime == null && log.attendenceDate != null) {
+          logTime = DateTime.tryParse(log.attendenceDate.toString().trim());
+        }
+        if (logTime != null) {
           final String logDateKey =
               '${logTime.year}-${logTime.month.toString().padLeft(2, '0')}-${logTime.day.toString().padLeft(2, '0')}';
           return logDateKey != dateKey;
-        } catch (_) {
-          return true;
         }
+        return false;
       });
 
       // Fetch all offline queued records for today
@@ -1345,6 +1469,12 @@ class SelfiePunchProvider extends ChangeNotifier {
 
         await refreshLastPunchOnly(employeid);
         if (!context.mounted) return;
+        try {
+          Provider.of<HomeProvider>(
+            context,
+            listen: false,
+          ).refreshWorkingHours(context);
+        } catch (_) {}
         if (isFromWidget) {
           final navigator = Navigator.of(context);
           navigator.pop(); // Pop the dialog
@@ -1374,7 +1504,9 @@ class SelfiePunchProvider extends ChangeNotifier {
     }
 
     if (isFromWidget) {
-      log("🟠 [WidgetDebug] App is now in background. Starting image upload...");
+      log(
+        "🟠 [WidgetDebug] App is now in background. Starting image upload...",
+      );
     }
     try {
       await AttendanceApis().callWithImgPunch(
@@ -1386,7 +1518,9 @@ class SelfiePunchProvider extends ChangeNotifier {
         setLongitude: usersetLongitude,
       );
       if (isFromWidget) {
-        log("🟠 [WidgetDebug] Image upload in background COMPLETED successfully.");
+        log(
+          "🟠 [WidgetDebug] Image upload in background COMPLETED successfully.",
+        );
       }
     } catch (e) {
       if (isFromWidget) {
@@ -1400,7 +1534,9 @@ class SelfiePunchProvider extends ChangeNotifier {
     // After the image successfully uploads in the background, safely kill the app
     // so it doesn't stay stuck on a blank camera screen when reopened.
     if (isFromWidget) {
-      log("🟠 [WidgetDebug] Safely closing the app memory via SystemNavigator.pop()");
+      log(
+        "🟠 [WidgetDebug] Safely closing the app memory via SystemNavigator.pop()",
+      );
       SystemNavigator.pop();
     }
   }
@@ -1493,6 +1629,15 @@ class SelfiePunchProvider extends ChangeNotifier {
       );
       notifyListeners();
 
+      if (context.mounted) {
+        try {
+          Provider.of<HomeProvider>(
+            context,
+            listen: false,
+          ).refreshWorkingHours(context);
+        } catch (_) {}
+      }
+
       showtoastmessage(punchSavedOfflineWillSyncString);
 
       if (context.mounted) {
@@ -1526,10 +1671,14 @@ class SelfiePunchProvider extends ChangeNotifier {
     // Fetch fresh location before checking distance to ensure it's up to date
     log('Fetching current location...');
     await getCurrentLocation(context: context);
-    log('Location fetched. Distance: $distance, Allowed Radius: $allowedRadius');
+    log(
+      'Location fetched. Distance: $distance, Allowed Radius: $allowedRadius, needOfficeRangeCheck: $needOfficeRangeCheck',
+    );
 
-    if (distance > allowedRadius) {
-      log('Distance ($distance) is greater than allowed radius ($allowedRadius). Showing Out of Range dialog.');
+    if (needOfficeRangeCheck && distance > allowedRadius) {
+      log(
+        'Distance ($distance) is greater than allowed radius ($allowedRadius). Showing Out of Range dialog.',
+      );
       if (context.mounted) {
         showDialog(
           context: context,
@@ -1611,7 +1760,6 @@ class SelfiePunchProvider extends ChangeNotifier {
       // Fetch shift data in the background while processing face
       final shiftDataFuture = shiftMasterDataGet(context);
 
-
       String punchTypeString =
           (checkStatus == null ||
               checkStatus!.attendenceLog == null ||
@@ -1636,22 +1784,31 @@ class SelfiePunchProvider extends ChangeNotifier {
       try {
         final role = curentUser?['Role'];
         final faceId = curentUser?["FaceRegisterId"];
-        log('Role: $role, FaceId: $faceId, isFaceVerifyEnabled: ${RemoteConfigServices.isFaceVerifyEnabled}');
+        log(
+          'Role: $role, FaceId: $faceId, isFaceVerifyEnabled: ${RemoteConfigServices.isFaceVerifyEnabled}',
+        );
         if (!RemoteConfigServices.isFaceVerifyEnabled) {
           // Remote kill-switch: face verification feature is OFF
-          log("[SelfiePunchProvider] Face verification disabled via Remote Config.");
+          log(
+            "[SelfiePunchProvider] Face verification disabled via Remote Config.",
+          );
           isVerified = true;
         } else if (role != 'Admin') {
           if (faceId == null || faceId.toString().isEmpty) {
-            log("[SelfiePunchProvider] Face verification failed: No registered FaceId.");
+            log(
+              "[SelfiePunchProvider] Face verification failed: No registered FaceId.",
+            );
             isVerified = false; // Strictly enforce face registration
           } else {
-            log("[SelfiePunchProvider] Starting live stream face verification for FaceId: $faceId");
+            log(
+              "[SelfiePunchProvider] Starting live stream face verification for FaceId: $faceId",
+            );
             final faceProvider = Provider.of<FaceVerificationProvider>(
               context,
               listen: false,
             );
-            if (cameraController != null && cameraController!.value.isInitialized) {
+            if (cameraController != null &&
+                cameraController!.value.isInitialized) {
               isVerified = await faceProvider.verifyLiveStream(
                 cameraController!,
                 faceId.toString(),
@@ -1754,7 +1911,8 @@ class SelfiePunchProvider extends ChangeNotifier {
 
       // Stop the image stream safely BEFORE taking a picture.
       // On Android, takePicture() will crash if the image stream is still active.
-      if (cameraController != null && cameraController!.value.isStreamingImages) {
+      if (cameraController != null &&
+          cameraController!.value.isStreamingImages) {
         try {
           await cameraController!.stopImageStream();
         } catch (_) {}
@@ -1825,7 +1983,9 @@ class SelfiePunchProvider extends ChangeNotifier {
     bool isFromWidget = false,
   ]) async {
     bool setTodayWeekOff = false;
-    log('Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift');
+    log(
+      'Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift',
+    );
     if (getUserShift != null) {
       log("getUserShift: $getUserShift");
       String dayAbbr = currentDay.toString().substring(0, 3).toLowerCase();
@@ -2019,7 +2179,6 @@ class SelfiePunchProvider extends ChangeNotifier {
           // Permission already at required level — fetch location silently
           await _fetchAndStoreLocation();
         }
-        startLiveTime();
         await callApi(context);
       } else {
         // Show permission dialog if needed

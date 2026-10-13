@@ -14,6 +14,7 @@ import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/api/companiapi.dart';
 import 'package:tax_hrm/models/Holidays/getholiday.dart';
 import 'package:tax_hrm/models/attendance/monathattendace.dart';
+import 'package:tax_hrm/models/attendance/attendanceBlog.dart';
 import 'package:tax_hrm/models/company/getallcompany.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/shiftclass/shiftmaster/getshiftmasters.dart';
@@ -288,7 +289,7 @@ class HomeProvider extends ChangeNotifier {
     _updateWorkingHours(selfiePunchProvider);
 
     // Start the 1-second UI update timer immediately (no guard — timer is set here first)
-    _workingHoursTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _workingHoursTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (timer.isActive) {
         _updateWorkingHours(selfiePunchProvider);
       }
@@ -296,12 +297,15 @@ class HomeProvider extends ChangeNotifier {
 
     // Fetch fresh attendance data on first frame after the timer is ready
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
+      final empId = curentUser?['Id'];
+      if (empId != null) {
+        try {
         await selfiePunchProvider.checkLastPunch(curentUser['Id'], context);
-      } catch (e) {
-        // ignore errors
+        } catch (e) {
+          // ignore errors
+        }
+        _updateWorkingHours(selfiePunchProvider);
       }
-      _updateWorkingHours(selfiePunchProvider);
     });
   }
 
@@ -311,166 +315,195 @@ class HomeProvider extends ChangeNotifier {
     _workingHoursTimer = null;
   }
 
-  // MAIN WORKING HOURS CALCULATION LOGIC (from your commanCheck)
-  String _calculateTotalWorkingHours(SelfiePunchProvider selfiePunchProvider) {
-    if (selfiePunchProvider.checkStatus == null ||
-        selfiePunchProvider.checkStatus!.attendenceLog == null ||
-        selfiePunchProvider.checkStatus!.attendenceLog!.isEmpty) {
-      return "00:00";
-    }
+  DateTime? _parseLogDateTime(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty) return null;
 
-    final logs = selfiePunchProvider.checkStatus!.attendenceLog!;
-    final int usedLength = logs.length;
-    
-    int totalMinutes = 0;
-    
-    try {
-      // If last status is OUT (complete day)
-      if (logs.last.status == 'OUT') {
-        // Calculate all IN-OUT pairs
-        for (int i = 0; i < usedLength; i += 2) {
-          if (i < usedLength - 1) {
-            DateTime inTime = DateTime.parse(logs[i].time.toString());
-            DateTime outTime = DateTime.parse(logs[i + 1].time.toString());
-            Duration duration = outTime.difference(inTime);
-            totalMinutes += duration.inMinutes;
-          }
-        }
-      } 
-      // If last status is IN (currently working)
-      else {
-        // First, calculate all completed pairs
-        int completedPairs = (usedLength - 1) ~/ 2;
-        
-        for (int i = 0; i < completedPairs * 2; i += 2) {
-          if (i + 1 < usedLength) {
-            DateTime inTime = DateTime.parse(logs[i].time.toString());
-            DateTime outTime = DateTime.parse(logs[i + 1].time.toString());
-            Duration duration = outTime.difference(inTime);
-            totalMinutes += duration.inMinutes;
-          }
-        }
-        
-        // Add current ongoing session
-        DateTime lastInTime = DateTime.parse(logs.last.time.toString());
-        Duration currentDuration = DateTime.now().difference(lastInTime);
-        totalMinutes += currentDuration.inMinutes;
-      }
-      
-      // Convert to hours and minutes
-      int hours = totalMinutes ~/ 60;
-      int minutes = totalMinutes % 60;
-      
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
-      
-    } catch (e) {
-      return "00:00";
+    final parsed = DateTime.tryParse(str);
+    if (parsed != null) return parsed.toLocal();
+
+    if (str.contains(':')) {
+      try {
+        final parts = str.split(':');
+        final now = DateTime.now();
+        return DateTime(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+        );
+      } catch (_) {}
     }
+    return null;
   }
 
-  // Get check-in time (first IN of the day)
-  String _getCheckInTime(SelfiePunchProvider selfiePunchProvider) {
+  List<AttendenceLog> _getTodayUserLogs(SelfiePunchProvider selfiePunchProvider) {
     if (selfiePunchProvider.checkStatus == null ||
-        selfiePunchProvider.checkStatus!.attendenceLog == null ||
-        selfiePunchProvider.checkStatus!.attendenceLog!.isEmpty) {
-      return "00:00";
+        selfiePunchProvider.checkStatus!.attendenceLog == null) {
+      return [];
     }
 
-    final logs = selfiePunchProvider.checkStatus!.attendenceLog!;
-    
-    // Find first IN log
-    for (var log in logs) {
-      if (log.status == 'IN') {
-        if (log.time != null) {
-          return DateFormat('hh:mm a').format(DateTime.parse(log.time.toString()));
+    final DateTime today = DateTime.now();
+    final String currentUserId = curentUser?['Id']?.toString() ?? '';
+
+    final List<AttendenceLog> result = [];
+    for (final log in selfiePunchProvider.checkStatus!.attendenceLog!) {
+      if (log.empId != null && currentUserId.isNotEmpty) {
+        if (log.empId.toString() != currentUserId) {
+          continue;
         }
       }
-    }
-    
-    return "00:00";
-  }
 
-  // Get check-out time (last OUT of the day)
-  String _getCheckOutTime(SelfiePunchProvider selfiePunchProvider) {
-    if (selfiePunchProvider.checkStatus == null ||
-        selfiePunchProvider.checkStatus!.attendenceLog == null ||
-        selfiePunchProvider.checkStatus!.attendenceLog!.isEmpty) {
-      return "00:00";
-    }
-
-    final logs = selfiePunchProvider.checkStatus!.attendenceLog!;
-    
-    // Find last OUT log
-    for (int i = logs.length - 1; i >= 0; i--) {
-      if (logs[i].status == 'OUT') {
-        if (logs[i].time != null) {
-          return DateFormat('hh:mm a').format(DateTime.parse(logs[i].time.toString()));
+      final DateTime? logDate = _parseLogDateTime(log.time ?? log.attendenceDate);
+      if (logDate != null) {
+        if (logDate.year != today.year ||
+            logDate.month != today.month ||
+            logDate.day != today.day) {
+          continue;
         }
       }
-    }
-    
-    return "00:00";
-  }
 
-  // Get working status (checked in but not checked out)
-  bool _getWorkingStatus(SelfiePunchProvider selfiePunchProvider) {
-    if (selfiePunchProvider.checkStatus == null ||
-        selfiePunchProvider.checkStatus!.attendenceLog == null ||
-        selfiePunchProvider.checkStatus!.attendenceLog!.isEmpty) {
-      return false;
+      result.add(log);
     }
 
-    final logs = selfiePunchProvider.checkStatus!.attendenceLog!;
-    
-    // If last log is IN, user is currently working
-    if (logs.last.status == 'IN') {
-      return true;
-    }
-    
-    return false;
+    result.sort((a, b) {
+      final tA = _parseLogDateTime(a.time ?? a.attendenceDate) ?? DateTime(0);
+      final tB = _parseLogDateTime(b.time ?? b.attendenceDate) ?? DateTime(0);
+      return tA.compareTo(tB);
+    });
+
+    return result;
   }
 
   // Update working hours calculation
   void _updateWorkingHours(SelfiePunchProvider selfiePunchProvider) {
     try {
-      // Only proceed if data is available
-      if (selfiePunchProvider.checkStatus == null ||
-          selfiePunchProvider.checkStatus!.attendenceLog == null ||
-          selfiePunchProvider.checkStatus!.attendenceLog!.isEmpty) {
+      final logs = _getTodayUserLogs(selfiePunchProvider);
+      final attendenceSummary = selfiePunchProvider.checkStatus?.attendence;
+
+      if (logs.isEmpty && attendenceSummary == null) {
+        bool hasChanges = false;
+        if (_currentWorkingHours != "00:00") {
+          _currentWorkingHours = "00:00";
+          hasChanges = true;
+        }
+        if (_checkInTime != "00:00") {
+          _checkInTime = "00:00";
+          hasChanges = true;
+        }
+        if (_checkOutTime != "00:00") {
+          _checkOutTime = "00:00";
+          hasChanges = true;
+        }
+        if (_isCurrentlyWorking != false) {
+          _isCurrentlyWorking = false;
+          hasChanges = true;
+        }
+        if (hasChanges) {
+          notifyListeners();
+        }
         return;
       }
-      
-      final newWorkingHours = _calculateTotalWorkingHours(selfiePunchProvider);
-      final newCheckInTime = _getCheckInTime(selfiePunchProvider);
-      final newCheckOutTime = _getCheckOutTime(selfiePunchProvider);
-      final newWorkingStatus = _getWorkingStatus(selfiePunchProvider);
-      
+
+      // ── 1. Calculate Check In Time (first IN of the day) ──
+      String newCheckIn = "00:00";
+      for (final log in logs) {
+        final st = (log.status ?? '').toString().trim().toUpperCase();
+        if (st == 'IN') {
+          final dt = _parseLogDateTime(log.time ?? log.attendenceDate);
+          if (dt != null) {
+            newCheckIn = DateFormat('hh:mm a').format(dt);
+            break;
+          }
+        }
+      }
+      if (newCheckIn == "00:00" && attendenceSummary?.inTime != null && attendenceSummary!.inTime!.isNotEmpty) {
+        final dt = _parseLogDateTime(attendenceSummary.inTime);
+        if (dt != null) {
+          newCheckIn = DateFormat('hh:mm a').format(dt);
+        }
+      }
+
+      // ── 2. Calculate Check Out Time (last OUT of the day) ──
+      String newCheckOut = "00:00";
+      for (int i = logs.length - 1; i >= 0; i--) {
+        final st = (logs[i].status ?? '').toString().trim().toUpperCase();
+        if (st == 'OUT') {
+          final dt = _parseLogDateTime(logs[i].time ?? logs[i].attendenceDate);
+          if (dt != null) {
+            newCheckOut = DateFormat('hh:mm a').format(dt);
+            break;
+          }
+        }
+      }
+      if (newCheckOut == "00:00" && attendenceSummary?.outTime != null && attendenceSummary!.outTime!.isNotEmpty) {
+        final dt = _parseLogDateTime(attendenceSummary.outTime);
+        if (dt != null) {
+          newCheckOut = DateFormat('hh:mm a').format(dt);
+        }
+      }
+
+      // ── 3. Calculate Working Hours and Live Working Status ──
+      int totalMinutes = 0;
+      DateTime? activeInTime;
+
+      for (final log in logs) {
+        final st = (log.status ?? '').toString().trim().toUpperCase();
+        final dt = _parseLogDateTime(log.time ?? log.attendenceDate);
+        if (dt == null) continue;
+
+        if (st == 'IN') {
+          activeInTime ??= dt;
+        } else if (st == 'OUT') {
+          if (activeInTime != null) {
+            final diff = dt.difference(activeInTime).inMinutes;
+            if (diff > 0) totalMinutes += diff;
+            activeInTime = null;
+          }
+        }
+      }
+
+      bool newWorkingStatus = false;
+      if (activeInTime != null) {
+        newWorkingStatus = true;
+        final currentOngoing = DateTime.now().difference(activeInTime).inMinutes;
+        if (currentOngoing > 0) totalMinutes += currentOngoing;
+      }
+
+      if (totalMinutes == 0 && !newWorkingStatus && attendenceSummary?.totalMinute != null) {
+        final tm = int.tryParse(attendenceSummary!.totalMinute.toString()) ?? 0;
+        if (tm > 0) totalMinutes = tm;
+      }
+
+      final int h = totalMinutes ~/ 60;
+      final int m = totalMinutes % 60;
+      final String newWorkingHours =
+          '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+
       bool hasChanges = false;
-      
       if (_currentWorkingHours != newWorkingHours) {
         _currentWorkingHours = newWorkingHours;
         hasChanges = true;
       }
-      
-      if (_checkInTime != newCheckInTime) {
-        _checkInTime = newCheckInTime;
+      if (_checkInTime != newCheckIn) {
+        _checkInTime = newCheckIn;
         hasChanges = true;
       }
-      
-      if (_checkOutTime != newCheckOutTime) {
-        _checkOutTime = newCheckOutTime;
+      if (_checkOutTime != newCheckOut) {
+        _checkOutTime = newCheckOut;
         hasChanges = true;
       }
-      
       if (_isCurrentlyWorking != newWorkingStatus) {
         _isCurrentlyWorking = newWorkingStatus;
         hasChanges = true;
       }
-      
+
       if (hasChanges) {
         notifyListeners();
       }
-    } catch (e) { /* ignored */ }
+    } catch (_) {}
   }
 
   // Manual refresh method

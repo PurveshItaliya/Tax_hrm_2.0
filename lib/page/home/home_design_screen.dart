@@ -1,9 +1,8 @@
- 
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/adminattendance.dart';
+import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
@@ -11,8 +10,49 @@ import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 
 Widget buildDateHeader(Size size) {
-  return Consumer<HomeProvider>(
-    builder: (context, homeProvider, child) {
+  return Consumer2<HomeProvider, AttendanceEmp>(
+    builder: (context, homeProvider, attendanceEmp, child) {
+      bool isLateCheckIn = false;
+      String checkInStr = homeProvider.checkInTime;
+      if (checkInStr != "00:00") {
+        String? beginTimeStr = attendanceEmp.shiftBeginTime ??
+            (attendanceEmp.getUserShift?.beginTime?.toString());
+        if (beginTimeStr != null && beginTimeStr != 'null') {
+          try {
+            DateTime? useTime = DateTime.tryParse(beginTimeStr);
+            if (useTime == null) {
+              try {
+                final parts = beginTimeStr.trim().split(':');
+                if (parts.length >= 2) {
+                  final h = int.parse(parts[0]);
+                  final m = int.parse(parts[1].split(' ')[0]);
+                  useTime = DateTime(2000, 1, 1, h, m, 0);
+                }
+              } catch (_) {}
+            }
+
+            DateTime? checkInParsed;
+            try {
+              checkInParsed = DateFormat("hh:mm a").parse(checkInStr);
+            } catch (_) {
+              try {
+                checkInParsed = DateFormat("HH:mm").parse(checkInStr);
+              } catch (_) {}
+            }
+
+            if (useTime != null && checkInParsed != null) {
+              DateTime punchInTimeOnly = DateTime(
+                  2000, 1, 1, checkInParsed.hour, checkInParsed.minute, 0);
+              DateTime beginTimeOnly = DateTime(
+                  2000, 1, 1, useTime.hour, useTime.minute, useTime.second);
+              isLateCheckIn = punchInTimeOnly.isAfter(beginTimeOnly);
+            }
+          } catch (e) {
+            isLateCheckIn = false;
+          }
+        }
+      }
+
       return Container(
         width: size.width,
         margin: EdgeInsets.symmetric(
@@ -24,15 +64,15 @@ Widget buildDateHeader(Size size) {
           color: ColorConst.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: ColorConst.isDark 
-                ? Colors.white.withOpacity(0.06) 
+            color: ColorConst.isDark
+                ? Colors.white.withOpacity(0.06)
                 : Colors.black.withOpacity(0.04),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: ColorConst.isDark 
-                  ? Colors.black.withOpacity(0.3) 
+              color: ColorConst.isDark
+                  ? Colors.black.withOpacity(0.3)
                   : Colors.black.withOpacity(0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
@@ -71,7 +111,10 @@ Widget buildDateHeader(Size size) {
                 ),
                 if (homeProvider.isCurrentlyWorking)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xff10B981).withOpacity(0.12),
                       borderRadius: BorderRadius.circular(20),
@@ -117,6 +160,7 @@ Widget buildDateHeader(Size size) {
                     homeProvider.checkInTime,
                     checkInString,
                     const Color(0xff10B981),
+                    isLateCheckIn: isLateCheckIn,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -154,15 +198,15 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
     builder: (context, attendanceService, child) {
       // Get current date
       DateTime currentDate = DateTime.now();
-      
 
       // Calculate percentage based on actual data
       int totalEmployees = attendanceService.mainHoldEmpList.length;
       int presentCount = attendanceService.totalPresents;
-      
-      double percentage = totalEmployees > 0 ? (presentCount / totalEmployees) * 100 : 0;
-      
-      
+
+      double percentage = totalEmployees > 0
+          ? (presentCount / totalEmployees) * 100
+          : 0;
+
       return Container(
         width: size.width,
         margin: EdgeInsets.symmetric(
@@ -174,15 +218,15 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
           color: ColorConst.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: ColorConst.isDark 
-                ? Colors.white.withOpacity(0.06) 
+            color: ColorConst.isDark
+                ? Colors.white.withOpacity(0.06)
                 : Colors.black.withOpacity(0.04),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: ColorConst.isDark 
-                  ? Colors.black.withOpacity(0.3) 
+              color: ColorConst.isDark
+                  ? Colors.black.withOpacity(0.3)
                   : Colors.black.withOpacity(0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
@@ -212,7 +256,10 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        DateFormat('EEEE, dd MMM yyyy', LanguageProvider.currentLanguageCode).format(currentDate),
+                        DateFormat(
+                          'EEEE, dd MMM yyyy',
+                          LanguageProvider.currentLanguageCode,
+                        ).format(currentDate),
                         style: TextStyle(
                           fontSize: size.width * 0.032,
                           fontFamily: fontInterSemiBoldString,
@@ -234,7 +281,10 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: ColorConst.themeColor.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(20),
@@ -269,7 +319,10 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                     GestureDetector(
                       onTap: onAllPressed,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: ColorConst.themeColor.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(20),
@@ -280,8 +333,9 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                         ),
                         child: Row(
                           children: [
-                            Text(seeAllString,
-                            style: TextStyle(
+                            Text(
+                              seeAllString,
+                              style: TextStyle(
                                 fontSize: size.width * 0.028,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: fontInterSemiBoldString,
@@ -289,7 +343,11 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.arrow_circle_right_rounded,color: ColorConst.themeColor, size: size.width * 0.038,)
+                            Icon(
+                              Icons.arrow_circle_right_rounded,
+                              color: ColorConst.themeColor,
+                              size: size.width * 0.038,
+                            ),
                           ],
                         ),
                       ),
@@ -298,9 +356,9 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Show loader when explicitly loading (e.g., initial load or manual refresh)
             if (attendanceService.islodering)
               attendanceBoardShimmer(size)
@@ -312,7 +370,9 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(color: ColorConst.textgrey.withOpacity(0.5),),
+                      CircularProgressIndicator(
+                        color: ColorConst.textgrey.withOpacity(0.5),
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         '$noDataAvailableString $todaysAttendanceString',
@@ -333,7 +393,9 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                   GestureDetector(
                     onTap: () {
                       // Reset to show all employees
-                      attendanceService.setEmpAttendanceList(attendanceService.mainHoldEmpList);
+                      attendanceService.setEmpAttendanceList(
+                        attendanceService.mainHoldEmpList,
+                      );
                     },
                     child: SizedBox(
                       width: size.width * 0.16,
@@ -350,7 +412,9 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                               backgroundColor: ColorConst.isDark
                                   ? Colors.white.withOpacity(0.06)
                                   : Colors.black.withOpacity(0.04),
-                              valueColor: AlwaysStoppedAnimation<Color>(ColorConst.themeColor),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                ColorConst.themeColor,
+                              ),
                             ),
                           ),
                           Column(
@@ -379,16 +443,18 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(width: 12),
                   // Vertical divider
                   Container(
                     height: size.width * 0.12,
                     width: 1.2,
-                    color: ColorConst.isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08),
+                    color: ColorConst.isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.08),
                   ),
                   const SizedBox(width: 12),
-                  
+
                   // Stat cards
                   Expanded(
                     child: Row(
@@ -408,7 +474,8 @@ Widget buildAttendanceBoard(Size size, mounted, {VoidCallback? onAllPressed}) {
                           attendanceService.totalAbsent.toString(),
                           absentString,
                           Colors.red,
-                          onTap: () => attendanceService.filtersOntapData(false),
+                          onTap: () =>
+                              attendanceService.filtersOntapData(false),
                         ),
                         const SizedBox(width: 6),
                         _adminStatColumn(
@@ -447,10 +514,7 @@ Widget _adminStatColumn(
         decoration: BoxDecoration(
           color: color.withOpacity(ColorConst.isDark ? 0.12 : 0.06),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: color.withOpacity(0.15),
-            width: 1,
-          ),
+          border: Border.all(color: color.withOpacity(0.15), width: 1),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -486,7 +550,6 @@ Widget _adminStatColumn(
   );
 }
 
-
 Widget _todayAttendanceWidget(
   Size size,
   IconData icon,
@@ -494,6 +557,7 @@ Widget _todayAttendanceWidget(
   String label,
   Color accentColor, {
   bool isWorking = false,
+  bool isLateCheckIn = false,
 }) {
   return Container(
     padding: EdgeInsets.symmetric(
@@ -504,9 +568,11 @@ Widget _todayAttendanceWidget(
       color: ColorConst.greyOpicityColor,
       borderRadius: BorderRadius.circular(12),
       border: Border.all(
-        color: isWorking 
-            ? const Color(0xff10B981).withOpacity(0.4) 
-            : (ColorConst.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+        color: isWorking
+            ? const Color(0xff10B981).withOpacity(0.4)
+            : (ColorConst.isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.03)),
         width: 1,
       ),
     ),
@@ -520,17 +586,13 @@ Widget _todayAttendanceWidget(
             color: accentColor.withOpacity(0.12),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            icon,
-            color: accentColor,
-            size: size.width * 0.045,
-          ),
+          child: Icon(icon, color: accentColor, size: size.width * 0.045),
         ),
         const SizedBox(height: 8),
         Text(
           time,
           style: TextStyle(
-            color: ColorConst.black,
+            color: isLateCheckIn ? Colors.red : ColorConst.black,
             fontFamily: fontInterSemiBoldString,
             fontWeight: FontWeight.bold,
             fontSize: size.width * 0.032,

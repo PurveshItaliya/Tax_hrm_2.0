@@ -1853,7 +1853,6 @@ Future<void> showDayDetails(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text("data", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,color: ColorConst.white),),
                           heightSpacer(size.height * 0.02),
                           Padding(
                             padding: EdgeInsets.only(
@@ -3056,6 +3055,91 @@ Future<void> showDayDetails(
                                                       ),
                                                     ],
                                                   ),
+
+                                            if (attendenceLog[index].remarks !=
+                                                    null &&
+                                                attendenceLog[index]
+                                                    .remarks
+                                                    .toString()
+                                                    .trim()
+                                                    .isNotEmpty &&
+                                                attendenceLog[index]
+                                                        .remarks
+                                                        .toString()
+                                                        .trim()
+                                                        .toLowerCase() !=
+                                                    'null') ...[
+                                              if (attendenceLog[index]
+                                                          .location !=
+                                                      null &&
+                                                  attendenceLog[index]
+                                                      .location
+                                                      .toString()
+                                                      .trim()
+                                                      .isNotEmpty)
+                                                heightSpacer(
+                                                  size.height * 0.005,
+                                                ),
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Icon(
+                                                    Icons.notes_rounded,
+                                                    size: 14,
+                                                    color: Colors.grey,
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text.rich(
+                                                      TextSpan(
+                                                        children: [
+                                                          TextSpan(
+                                                            text:
+                                                                '$remarksString: ',
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: isDark
+                                                                  ? Colors.grey
+                                                                      .shade300
+                                                                  : Colors.grey
+                                                                      .shade800,
+                                                            ),
+                                                          ),
+                                                          TextSpan(
+                                                            text: attendenceLog[
+                                                                    index]
+                                                                .remarks
+                                                                .toString()
+                                                                .trim(),
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w400,
+                                                              color: isDark
+                                                                  ? Colors.grey
+                                                                      .shade400
+                                                                  : Colors.grey
+                                                                      .shade700,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        fontFamily:
+                                                            fontInterRegularString,
+                                                      ),
+                                                      maxLines: 3,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ],
                                         ),
                                       ),

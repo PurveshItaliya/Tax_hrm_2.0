@@ -101,6 +101,51 @@ class LeaveMastServices extends ChangeNotifier {
     return value.toStringAsFixed(1);
   }
 
+  /// Calculates the leave duration in days considering Full Day and Half Day.
+  double getLeaveDurationDays(LeaveListData leaveData) {
+    final fromDate =
+        DateTime.tryParse(leaveData.fromDate.toString()) ?? DateTime.now();
+    final toDate =
+        DateTime.tryParse(leaveData.toDate.toString()) ?? fromDate;
+
+    final DateTime fromDateOnly =
+        DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final DateTime toDateOnly =
+        DateTime(toDate.year, toDate.month, toDate.day);
+    final int calendarDays =
+        toDateOnly.difference(fromDateOnly).inDays + 1;
+
+    final String dayTypeStr =
+        (leaveData.dayType ?? '').toString().trim().toLowerCase();
+    final bool isHalfDay = dayTypeStr.contains('half') ||
+        dayTypeStr == 'first half' ||
+        dayTypeStr == 'second half' ||
+        dayTypeStr == '1st half' ||
+        dayTypeStr == '2nd half';
+
+    double? parsedDuration =
+        double.tryParse(leaveData.leaveDuration?.toString() ?? '');
+    if (parsedDuration == null || parsedDuration <= 0) {
+      if (leaveData.leaveDays != null && leaveData.leaveDays! > 0) {
+        parsedDuration = leaveData.leaveDays;
+      }
+    }
+
+    if (isHalfDay || parsedDuration == 0.5) {
+      if (parsedDuration != null &&
+          parsedDuration > 0 &&
+          parsedDuration <= calendarDays * 0.5) {
+        return parsedDuration;
+      }
+      return calendarDays == 1 ? 0.5 : (calendarDays / 2);
+    } else {
+      if (parsedDuration != null && parsedDuration > 0) {
+        return parsedDuration;
+      }
+      return calendarDays.toDouble();
+    }
+  }
+
   // Filter leaves into upcoming and past (based on toDate)
   void filterLeaves() {
     final now = DateTime.now();
@@ -447,7 +492,7 @@ class LeaveMastServices extends ChangeNotifier {
             element.leaveTypeId == selectedLeaveType!.leaveTypeId) {
           final leaveDate = DateTime.tryParse(element.fromDate.toString());
           if (leaveDate != null && isLeaveInSelectedLimit(leaveDate)) {
-            usedLeave += parseLeaveCount(element.leaveDuration);
+            usedLeave += getLeaveDurationDays(element);
           }
         }
       }
@@ -745,7 +790,7 @@ class LeaveMastServices extends ChangeNotifier {
     return ListView.separated(
       itemCount: leaves.length,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.only(bottom: 80, top: 8),
+      padding: EdgeInsets.only(bottom: size.height * 0.22, top: 8),
       separatorBuilder: (context, index) => heightSpacer(size.height * 0.01),
       itemBuilder: (context, index) {
         final leaveData = leaves[index];
@@ -754,14 +799,7 @@ class LeaveMastServices extends ChangeNotifier {
         final toDate =
             DateTime.tryParse(leaveData.toDate.toString()) ?? fromDate;
 
-        DateTime fromDateOnly = DateTime(
-          fromDate.year,
-          fromDate.month,
-          fromDate.day,
-        );
-        DateTime toDateOnly = DateTime(toDate.year, toDate.month, toDate.day);
-        final double days =
-            toDateOnly.difference(fromDateOnly).inDays.toDouble() + 1;
+        final double days = getLeaveDurationDays(leaveData);
         final statusStyle = _getStatusStyle(leaveData.approveStatus);
         final daysRemaining = _getDaysRemaining(leaveData);
         final leaveStatus = getLeaveStatusText(leaveData);
@@ -773,6 +811,12 @@ class LeaveMastServices extends ChangeNotifier {
 
         final String fromDateStr = DateFormat('d MMM, EEE').format(fromDate);
         final String toDateStr = DateFormat('d MMM, EEE').format(toDate);
+        final String daySuffix = days > 1 ? 'Days' : 'Day';
+        final String dayTypeDetail = (leaveData.dayType != null &&
+                leaveData.dayType!.isNotEmpty &&
+                leaveData.dayType != 'Full Day')
+            ? ' (${leaveData.dayType})'
+            : '';
 
         return Container(
           margin: EdgeInsets.symmetric(horizontal: size.width * 0.03),
@@ -816,12 +860,16 @@ class LeaveMastServices extends ChangeNotifier {
                               color: ColorConst.leaveTypeColor,
                             ),
                             SizedBox(width: 4),
-                            Text(
-                              '${days % 1 == 0 ? days.toInt() : days} Day | ${leaveData.leaveTypeFName ?? leaveString}',
-                              style: TextStyle(
-                                fontFamily: fontInterMediumString,
-                                color: ColorConst.leaveTypeColor,
-                                fontSize: 11,
+                            Expanded(
+                              child: Text(
+                                '${days % 1 == 0 ? days.toInt() : days} $daySuffix | ${leaveData.leaveTypeFName ?? leaveString}$dayTypeDetail',
+                                style: TextStyle(
+                                  fontFamily: fontInterMediumString,
+                                  color: ColorConst.leaveTypeColor,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -1125,18 +1173,23 @@ class LeaveMastServices extends ChangeNotifier {
   bool _isRejectedLeave(LeaveListData leave) => leave.approveStatus == 'R';
 
   bool _isUpcomingLeave(LeaveListData leave) {
+    if (leave.approveStatus == 'R') {
+      return false;
+    }
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final fromDate =
         DateTime.tryParse(leave.fromDate.toString()) ?? DateTime.now();
-    final toDate = DateTime.tryParse(leave.toDate.toString()) ?? DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final toDate = DateTime.tryParse(leave.toDate.toString()) ?? fromDate;
 
-    if (fromDate.isAfter(today))
+    final fromDateOnly = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final toDateOnly = DateTime(toDate.year, toDate.month, toDate.day);
+
+    if (fromDateOnly.isAfter(today) || fromDateOnly.isAtSameMomentAs(today)) {
       return true;
-    else if (toDate.isAfter(today) && fromDate.isBefore(today))
+    } else if (!toDateOnly.isBefore(today)) {
       return true;
-    else if (fromDate.isAtSameMomentAs(today))
-      return true;
+    }
     return false;
   }
 
@@ -1145,9 +1198,12 @@ class LeaveMastServices extends ChangeNotifier {
 
   void _filterLeavesed() {
     final allLeaves = mainallLeavesData;
-    final currentUserLeaves = allLeaves
-        .where((leave) => leave.empId == curentUser['Id'])
-        .toList();
+    final currentUserLeaves = allLeaves.where((leave) {
+      if (curentUser['Role'] == 'Admin') return true;
+      final userId = curentUser['Id']?.toString();
+      final empId = leave.empId?.toString();
+      return empId != null && empId == userId;
+    }).toList();
 
     filteredUpcomingLeaves = [];
     filteredPastLeaves = [];

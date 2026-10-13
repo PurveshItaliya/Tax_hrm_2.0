@@ -15,6 +15,7 @@ import 'package:tax_hrm/models/attendance/punchnow.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/top_hrm_model.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AttendanceApis{
@@ -42,7 +43,18 @@ class AttendanceApis{
   }
 
   Future  getDateBlogEmp(setDate,employeid,setCompanyid,)async{
-    var url = Uri.parse('${apibaseurl}api/HRM/GetAttendenceListById?CompanyID=$setCompanyid&EmpId=$employeid&AttendenceDate=$setDate');
+    final compId = setCompanyid ?? selectedcurentcompany?.companyId ?? curentUser?['CompanyId'] ?? 0;
+    final targetEmpId = employeid ?? curentUser?['Id'] ?? 0;
+
+    DateTime pDate;
+    if (setDate is DateTime) {
+      pDate = setDate;
+    } else {
+      pDate = DateTime.tryParse(setDate.toString()) ?? DateTime.now();
+    }
+    final String dateStr = DateFormat('yyyy-MM-dd').format(pDate);
+
+    var url = Uri.parse('${apibaseurl}api/HRM/GetAttendenceListById?CompanyID=$compId&EmpId=$targetEmpId&AttendenceDate=$dateStr');
     var response = await http.get(url, headers: {
       'Authorization': 'bearer ${curentUser['token']}',
     });
@@ -52,11 +64,11 @@ class AttendanceApis{
          bool hasIn = false;
          bool hasOut = false;
          for (var log in data['AttendenceLog']) {
-            if (log['Status'] == 'IN') hasIn = true;
-            if (log['Status'] == 'OUT') hasOut = true;
+            final st = (log['Status'] ?? '').toString().toUpperCase();
+            if (st == 'IN') hasIn = true;
+            if (st == 'OUT') hasOut = true;
          }
          final prefs = await SharedPreferences.getInstance();
-         DateTime pDate = setDate is DateTime ? setDate : (DateTime.tryParse(setDate.toString()) ?? DateTime.now());
          String dateKey = '${pDate.year}-${pDate.month.toString().padLeft(2, '0')}-${pDate.day.toString().padLeft(2, '0')}';
          if (hasIn) await prefs.setBool('punched_in_$dateKey', true);
          if (hasOut) await prefs.setBool('punched_out_$dateKey', true);
