@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, unused_element, must_be_immutable, library_private_types_in_public_api, unused_local_variable, strict_top_level_inference
 
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -37,8 +38,12 @@ class PunchBoxConfirmation extends StatefulWidget {
   _PunchBoxConfirmationState createState() => _PunchBoxConfirmationState();
 }
 
-class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> {
+class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with WidgetsBindingObserver {
   late SelfiePunchProvider punchProvider;
+  Timer? _autoCloseTimer;
+  Timer? _tickTimer;
+  int _secondsRemaining = 15;
+  bool _isClosing = false;
 
   Future<void> callPunchData() async {
     punchProvider.setPunchLoader(true);
@@ -72,6 +77,7 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     punchProvider = Provider.of<SelfiePunchProvider>(context, listen: false);
 
     // Start background checks immediately after dialog opens
@@ -82,6 +88,56 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> {
         punchProvider.processPrePunchChecks(context);
       }
     });
+
+    _startAutoCloseTimer();
+  }
+
+  void _startAutoCloseTimer() {
+    _secondsRemaining = 15;
+    _tickTimer?.cancel();
+    _autoCloseTimer?.cancel();
+
+    _tickTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          if (_secondsRemaining > 0) {
+            _secondsRemaining--;
+          }
+        });
+      }
+    });
+
+    _autoCloseTimer = Timer(const Duration(seconds: 15), () {
+      if (mounted && !_isClosing) {
+        _isClosing = true;
+        _tickTimer?.cancel();
+        punchProvider.setPunchBoxOnTapStart(false);
+        punchProvider.setPunchLoader(false);
+        Navigator.pop(context);
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (mounted && !_isClosing) {
+        _isClosing = true;
+        _tickTimer?.cancel();
+        _autoCloseTimer?.cancel();
+        punchProvider.setPunchBoxOnTapStart(false);
+        punchProvider.setPunchLoader(false);
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _tickTimer?.cancel();
+    _autoCloseTimer?.cancel();
+    super.dispose();
   }
 
   void _checkKeyboardStatus() {
@@ -146,6 +202,9 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> {
                             color: Colors.grey[600],
                           ),
                           onPressed: () {
+                            _tickTimer?.cancel();
+                            _autoCloseTimer?.cancel();
+                            _isClosing = true;
                             punchProvider.setPunchBoxOnTapStart(false);
                             punchProvider.setPunchLoader(false);
                             Navigator.pop(context);
@@ -342,6 +401,9 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> {
                               onPressed: isConfirmDisabled
                                   ? null
                                   : () async {
+                                      _tickTimer?.cancel();
+                                      _autoCloseTimer?.cancel();
+                                      _isClosing = true;
                                       if (provider.punchBoxOnTapStart ==
                                           false) {
                                         provider.setPunchBoxOnTapStart(
@@ -361,15 +423,36 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> {
                                             : Colors.white,
                                       ),
                                     )
-                                  : Text(
-                                      LanguageProvider.translate(
-                                        "Confirm",
-                                        "Confirm",
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: size.height * 0.018,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          LanguageProvider.translate(
+                                            "Confirm",
+                                            "Confirm",
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: size.height * 0.018,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // Icon(
+                                        //   Icons.timer_outlined,
+                                        //   size: size.height * 0.018,
+                                        //   color: isConfirmDisabled ? Colors.grey[500] : Colors.white70,
+                                        // ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          "( $_secondsRemaining s )",
+                                          style: TextStyle(
+                                            fontSize: size.height * 0.016,
+                                            fontWeight: FontWeight.w600,
+                                            color: isConfirmDisabled ? Colors.grey[500] : Colors.white70,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                             ),
                           ),
