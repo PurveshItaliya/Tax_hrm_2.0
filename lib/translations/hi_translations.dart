@@ -870,4 +870,9 @@ final Map<String, String> hiTranslations = {
   'viewTimelineString': 'टाइमलाइन देखें',
   'whatsappMessageString': 'व्हाट्सएप संदेश',
   'dayAttendanceLogString': 'दैनिक उपस्थिति लॉग',
+  'developerOptionsDetected': 'डेवलपर विकल्प चालू हैं',
+  'developerModeDetected': 'डेवलपर मोड चालू है',
+  'developerOptionsBlockedDesc': 'आपके डिवाइस पर डेवलपर विकल्प सक्षम हैं। सुरक्षा और उपस्थिति अखंडता के लिए, डेवलपर विकल्प चालू होने पर पंच इन/आउट अवरोधित है। कृपया आगे बढ़ने के लिए डिवाइस सेटिंग्स में डेवलपर विकल्प बंद करें।',
+  'developerModeBlockedDesc': 'आपके डिवाइस पर डेवलपर मोड सक्षम है। सुरक्षा और उपस्थिति अखंडता के लिए, डेवलपर मोड चालू होने पर पंच इन/आउट अवरोधित है। कृपया सेटिंग्स > गोपनीयता और सुरक्षा में डेवलपर मोड बंद करें।',
+  'openSettings': 'सेटिंग्स खोलें',
 };

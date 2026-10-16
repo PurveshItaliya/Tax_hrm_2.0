@@ -18,6 +18,7 @@ import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
 import 'package:tax_hrm/services/remote_config_services.dart';
+import 'package:tax_hrm/services/developer_mode_service.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/functionsFile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
@@ -1039,6 +1040,14 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
       color: buttonColor,
       onTap: () async {
         if (_isFlowRunning) return;
+
+        // In release builds, block Punch In/Out if Developer Mode is enabled
+        if (await DeveloperModeService.isDeveloperModeRestricted()) {
+          if (context.mounted) {
+            DeveloperModeService.showDeveloperModeWarningDialog(context);
+          }
+          return;
+        }
 
         // Check internet connection before proceeding with punch
         bool hasNoInternet = isOffline ||

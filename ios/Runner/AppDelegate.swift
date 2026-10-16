@@ -1,11 +1,13 @@
 import Flutter
 import UIKit
+import Darwin
 import flutter_local_notifications
 import workmanager_apple
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var widgetMethodChannel: FlutterMethodChannel?
+  private var devMethodChannel: FlutterMethodChannel?
   private let appGroup = "group.com.hrmnewapp.taxhrm"
   private let punchTapKey = "widgetPunchTap"
   private let TAG = "🟠 [WidgetDebug]"
@@ -38,6 +40,28 @@ import workmanager_apple
     if let controller = window?.rootViewController as? FlutterViewController {
       widgetMethodChannel = FlutterMethodChannel(name: "punch_widget/open", binaryMessenger: controller.binaryMessenger)
       print("\(TAG) widgetMethodChannel set up successfully")
+
+      devMethodChannel = FlutterMethodChannel(name: "com.hrmnewapp.taxhrm/developer_mode", binaryMessenger: controller.binaryMessenger)
+      devMethodChannel?.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+        if call.method == "isDeveloperModeEnabled" {
+          var value = Int32(0)
+          var size = MemoryLayout<Int32>.size
+          let sysResult = sysctlbyname("security.mac.amfi.developer_mode_status", &value, &size, nil, 0)
+          let isEnabled = (sysResult == 0 && value == 1)
+          result(isEnabled)
+        } else if call.method == "openDeveloperSettings" {
+          if let settingsUrl = URL(string: UIApplication.openSettingsURLString),
+             UIApplication.shared.canOpenURL(settingsUrl) {
+            UIApplication.shared.open(settingsUrl, options: [:]) { success in
+              result(success)
+            }
+          } else {
+            result(false)
+          }
+        } else {
+          result(FlutterMethodNotImplemented)
+        }
+      }
     } else {
       print("\(TAG) ERROR: could not get FlutterViewController from window")
     }

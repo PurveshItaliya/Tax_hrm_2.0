@@ -892,3 +892,13 @@ String get failedToDownloadExcelString => LanguageProvider.translate("failedToDo
 String get viewTimelineString => LanguageProvider.translate("viewTimelineString", "View Timeline");
 String get whatsappMessageString => LanguageProvider.translate("whatsappMessageString", "WhatsApp Message");
 String get dayAttendanceLogString => LanguageProvider.translate("dayAttendanceLogString", "Day Attendance Log");
+
+// Developer Mode Strings
+String get developerOptionsDetectedString => LanguageProvider.translate("developerOptionsDetected", "Developer Options Detected");
+String get developerModeDetectedString => LanguageProvider.translate("developerModeDetected", "Developer Mode Detected");
+String get developerOptionsDescString => LanguageProvider.translate(
+    "developerOptionsBlockedDesc",
+    "Developer Options are enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Options are active. Please turn off Developer Options in device settings to proceed.");
+String get developerModeDescString => LanguageProvider.translate(
+    "developerModeBlockedDesc",
+    "Developer Mode is enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Mode is active. Please turn off Developer Mode in Settings > Privacy & Security to proceed.");

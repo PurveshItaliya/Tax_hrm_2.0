@@ -47,6 +47,7 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:tax_hrm/services/developer_mode_service.dart';
 
 import '../services/fcm_token_service.dart';
 
@@ -966,6 +967,17 @@ class SelfiePunchProvider extends ChangeNotifier {
   }
 
   Future<void> processPrePunchChecks(BuildContext context) async {
+    // In release builds, block Punch if Developer Mode is enabled
+    if (await DeveloperModeService.isDeveloperModeRestricted()) {
+      isPrePunchChecksLoading = false;
+      notifyListeners();
+      if (context.mounted) {
+        Navigator.pop(context); // Close punch confirmation dialog
+        DeveloperModeService.showDeveloperModeWarningDialog(context);
+      }
+      return;
+    }
+
     isPrePunchChecksLoading = true;
     isPrePunchChecksSuccess = false;
     punchProcessStatus.value = 'Processing...';
@@ -1357,6 +1369,17 @@ class SelfiePunchProvider extends ChangeNotifier {
     bool setweekoffStatus, [
     bool isFromWidget = false,
   ]) async {
+    // Validation before calling the Punch API
+    if (await DeveloperModeService.isDeveloperModeRestricted()) {
+      log('[SelfiePunchProvider] Punch API blocked: Developer Mode active in release build.');
+      setPunchBoxOnTapStart(false);
+      setPunchLoader(false);
+      if (context.mounted) {
+        DeveloperModeService.showDeveloperModeWarningDialog(context);
+      }
+      return;
+    }
+
     final bool offline = await _checkIsOffline();
 
     if (offline) {
@@ -1679,6 +1702,15 @@ class SelfiePunchProvider extends ChangeNotifier {
     log('currentDay: $currentDay, isFromWidget: $isFromWidget');
     if (PunchLoader == true) {
       log('PunchLoader is true, returning early.');
+      return;
+    }
+
+    // In release builds, block Punch In/Out if Developer Mode is enabled
+    if (await DeveloperModeService.isDeveloperModeRestricted()) {
+      log('[SelfiePunchProvider] Punch blocked: Developer Mode active in release build.');
+      if (context.mounted) {
+        DeveloperModeService.showDeveloperModeWarningDialog(context);
+      }
       return;
     }
 
@@ -2019,6 +2051,17 @@ class SelfiePunchProvider extends ChangeNotifier {
 
     if (currentLocation != null) {
       if (!context.mounted) return;
+
+      // Validation before displaying Punch Confirmation
+      if (await DeveloperModeService.isDeveloperModeRestricted()) {
+        log('[SelfiePunchProvider] Developer Mode active in release build. Blocking Punch Confirmation.');
+        setPunchLoader(false);
+        if (context.mounted) {
+          DeveloperModeService.showDeveloperModeWarningDialog(context);
+        }
+        return;
+      }
+
       punchBoxNotesController.clear();
       setPunchBoxOnTapStart(false);
       setPunchLoader(true);

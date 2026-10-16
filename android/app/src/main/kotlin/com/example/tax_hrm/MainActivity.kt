@@ -1,5 +1,6 @@
 package com.hrmnewapp.taxhrm
 import android.content.Intent
+import android.provider.Settings
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -7,7 +8,9 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "punch_widget/open"
+    private val DEV_CHANNEL = "com.hrmnewapp.taxhrm/developer_mode"
     private var methodChannel: MethodChannel? = null
+    private var devMethodChannel: MethodChannel? = null
     private val TAG = "TaxHrmMainActivity"
 
     override fun getInitialRoute(): String {
@@ -32,6 +35,51 @@ class MainActivity : FlutterActivity() {
                 result.success(null)
             } else {
                 result.notImplemented()
+            }
+        }
+
+        devMethodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEV_CHANNEL)
+        devMethodChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isDeveloperModeEnabled" -> {
+                    try {
+                        val devOptions = Settings.Global.getInt(
+                            contentResolver,
+                            Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
+                            0
+                        ) != 0
+                        val adb = Settings.Global.getInt(
+                            contentResolver,
+                            Settings.Global.ADB_ENABLED,
+                            0
+                        ) != 0
+                        result.success(devOptions || adb)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error checking developer mode: ${e.message}", e)
+                        result.success(false)
+                    }
+                }
+                "openDeveloperSettings" -> {
+                    try {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val fallbackIntent = Intent(Settings.ACTION_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(fallbackIntent)
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            Log.e(TAG, "Error opening settings: ${e2.message}", e2)
+                            result.success(false)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
     }

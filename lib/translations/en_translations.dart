@@ -865,4 +865,9 @@ final Map<String, String> enTranslations = {
   'viewTimelineString': 'View Timeline',
   'whatsappMessageString': 'WhatsApp Message',
   'dayAttendanceLogString': 'Day Attendance Log',
+  'developerOptionsDetected': 'Developer Options Detected',
+  'developerModeDetected': 'Developer Mode Detected',
+  'developerOptionsBlockedDesc': 'Developer Options are enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Options are active. Please turn off Developer Options in device settings to proceed.',
+  'developerModeBlockedDesc': 'Developer Mode is enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Mode is active. Please turn off Developer Mode in Settings > Privacy & Security to proceed.',
+  'openSettings': 'Open Settings',
 };

@@ -13,6 +13,7 @@ import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
+import 'package:tax_hrm/services/developer_mode_service.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class PunchBoxConfirmation extends StatefulWidget {
@@ -46,6 +47,20 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
   bool _isClosing = false;
 
   Future<void> callPunchData() async {
+    // In release builds, block Punch API call if Developer Mode is enabled
+    if (await DeveloperModeService.isDeveloperModeRestricted()) {
+      if (mounted) {
+        _tickTimer?.cancel();
+        _autoCloseTimer?.cancel();
+        _isClosing = true;
+        punchProvider.setPunchBoxOnTapStart(false);
+        punchProvider.setPunchLoader(false);
+        Navigator.pop(context);
+        DeveloperModeService.showDeveloperModeWarningDialog(context);
+      }
+      return;
+    }
+
     punchProvider.setPunchLoader(true);
     await LocationBatchStorage.appendLocation(
       latitude: double.parse(widget.setlatitude),
