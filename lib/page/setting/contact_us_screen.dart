@@ -38,13 +38,17 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
+    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
     final Uri launchUri = Uri(
       scheme: 'tel',
-      path: phoneNumber.replaceAll(' ', ''),
+      path: cleanNumber,
     );
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
-    } else {
+    try {
+      final launched = await launchUrl(launchUri);
+      if (!launched && mounted) {
+        _showCopySnackBar(couldNotLaunchPhoneDialerString, phoneNumber);
+      }
+    } catch (_) {
       if (mounted) {
         _showCopySnackBar(couldNotLaunchPhoneDialerString, phoneNumber);
       }
@@ -52,12 +56,30 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
   }
 
   Future<void> _openWebsite(String urlString) async {
-    final Uri url = Uri.parse(urlString.startsWith('http') ? urlString : 'https://$urlString');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        _showCopySnackBar(couldNotOpenBrowserString, urlString);
+    final cleanUrl = urlString.trim();
+    final Uri url = Uri.parse(
+      cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')
+          ? cleanUrl
+          : 'https://$cleanUrl',
+    );
+    try {
+      final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        final fallbackLaunched = await launchUrl(url, mode: LaunchMode.platformDefault);
+        if (!fallbackLaunched && mounted) {
+          _showCopySnackBar(couldNotOpenBrowserString, urlString);
+        }
+      }
+    } catch (e) {
+      try {
+        final fallbackLaunched = await launchUrl(url, mode: LaunchMode.platformDefault);
+        if (!fallbackLaunched && mounted) {
+          _showCopySnackBar(couldNotOpenBrowserString, urlString);
+        }
+      } catch (_) {
+        if (mounted) {
+          _showCopySnackBar(couldNotOpenBrowserString, urlString);
+        }
       }
     }
   }
@@ -66,18 +88,23 @@ class _ContactUsScreenState extends State<ContactUsScreen> with SingleTickerProv
     final Uri googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}');
     final Uri geoUrl = Uri.parse('geo:0,0?q=${Uri.encodeComponent(address)}');
     try {
-      if (await canLaunchUrl(googleMapsUrl)) {
-        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
-      } else if (await canLaunchUrl(geoUrl)) {
-        await launchUrl(geoUrl);
-      } else {
+      bool launched = await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        launched = await launchUrl(geoUrl);
+      }
+      if (!launched && mounted) {
+        _showCopySnackBar(couldNotOpenMapsString, address);
+      }
+    } catch (e) {
+      try {
+        final launched = await launchUrl(geoUrl);
+        if (!launched && mounted) {
+          _showCopySnackBar(couldNotOpenMapsString, address);
+        }
+      } catch (_) {
         if (mounted) {
           _showCopySnackBar(couldNotOpenMapsString, address);
         }
-      }
-    } catch (e) {
-      if (mounted) {
-        _showCopySnackBar(couldNotOpenMapsString, address);
       }
     }
   }

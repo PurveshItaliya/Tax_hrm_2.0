@@ -73,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _initHome() async {
     // Await company/menu setup so selectedcurentcompany is ready before attendance fetch
-    await _homeProvider.homeLoadDatas(context);
+    await _homeProvider.homeLoadDatas(context, forceRefresh: true);
     if (!mounted) return;
 
     if (curentUser['Role'] != 'Admin') {

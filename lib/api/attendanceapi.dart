@@ -382,6 +382,9 @@ class AttendanceApis{
   }
 
   Future getCompanyDataList(month,year) async {
+    if (curentUser == null || curentUser['token'] == null) {
+      return null;
+    }
     var url = Uri.parse(
       '${apibaseurl}api/HRM/HRMTopListReport?Month=$month&Year=$year',
     );

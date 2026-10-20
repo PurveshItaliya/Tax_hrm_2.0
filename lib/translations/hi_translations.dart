@@ -758,7 +758,7 @@ final Map<String, String> hiTranslations = {
   'contactNumbersBothString': '95100 56789  /  95101 56789',
   'contactNumbersBothCopiedString': 'संपर्क नंबर क्लिपबोर्ड पर कॉपी हो गए!',
   'websiteString': 'वेबसाइट',
-  'websiteUrlString': 'www.i-tax.in',
+  'websiteUrlString': 'hrm.taxfile.co.in/',
   'websiteCopiedString': 'वेबसाइट क्लिपबोर्ड पर कॉपी हो गई!',
   // 'locationString': 'स्थान',
   'companyAddressString': '601-602, शुभ स्क्वायर, मोध पटनी वाड़ी के सामने, लाल दरवाजा, सूरत, गुजरात 395003',

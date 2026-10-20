@@ -758,7 +758,7 @@ final Map<String, String> guTranslations = {
   'contactNumbersBothString': '95100 56789  /  95101 56789',
   'contactNumbersBothCopiedString': 'સંપર્ક નંબર ક્લિપબોર્ડ પર કોપી થયા!',
   'websiteString': 'વેબસાઇટ',
-  'websiteUrlString': 'www.i-tax.in',
+  'websiteUrlString': 'hrm.taxfile.co.in/',
   'websiteCopiedString': 'વેબસાઇટ ક્લિપબોર્ડ પર કોપી થઈ!',
   'companyAddressString': '601-602, શુભ સ્ક્વેર, મોઢ પટણી વાડી સામે, લાલ દરવાજા, સુરત, ગુજરાત 395003',
   'addressCopiedString': 'સરનામું ક્લિપબોર્ડ પર કોપી થયું!',

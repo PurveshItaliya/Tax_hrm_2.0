@@ -244,6 +244,13 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                             listen: false,
                           ).clearData();
 
+                          try {
+                            Provider.of<HomeProvider>(
+                              context,
+                              listen: false,
+                            ).clearData();
+                          } catch (_) {}
+
                           // 6. Redirect to Login Screen
                           nextscreenRemove(
                             context,

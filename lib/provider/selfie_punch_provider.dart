@@ -1507,10 +1507,12 @@ class SelfiePunchProvider extends ChangeNotifier {
         await refreshLastPunchOnly(employeid);
         if (!context.mounted) return;
         try {
-          Provider.of<HomeProvider>(
+          final homeProv = Provider.of<HomeProvider>(
             context,
             listen: false,
-          ).refreshWorkingHours(context);
+          );
+          homeProv.refreshWorkingHours(context);
+          homeProv.getTopLeaderboard(forceRefresh: true);
         } catch (_) {}
         if (isFromWidget) {
           final navigator = Navigator.of(context);
@@ -1668,10 +1670,12 @@ class SelfiePunchProvider extends ChangeNotifier {
 
       if (context.mounted) {
         try {
-          Provider.of<HomeProvider>(
+          final homeProv = Provider.of<HomeProvider>(
             context,
             listen: false,
-          ).refreshWorkingHours(context);
+          );
+          homeProv.refreshWorkingHours(context);
+          homeProv.getTopLeaderboard(forceRefresh: true);
         } catch (_) {}
       }
 

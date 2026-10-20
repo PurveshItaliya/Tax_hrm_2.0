@@ -1,5 +1,6 @@
-// ignore_for_file: curly_braces_in_flow_control_structures, strict_top_level_inference, avoid_function_literals_in_foreach_calls, prefer_typing_uninitialized_variables, non_constant_identifier_names, empty_catches
+// ignore_for_file: curly_braces_in_flow_control_structures, strict_top_level_inference, avoid_function_literals_in_foreach_calls, prefer_typing_uninitialized_variables, non_constant_identifier_names, empty_catches, use_build_context_synchronously
 
+import 'dart:convert';
 import 'package:calendar_view/calendar_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -103,14 +104,19 @@ class AttendanceEmp extends ChangeNotifier {
       currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
       shiftBeginTime = null;
       selectedEmploye = null;
-      if(empData == null){
+      if (empData == null) {
+        if (curentUser == null) {
+          final prefs = await SharedPreferences.getInstance();
+          final userStr = prefs.getString('data') ?? '';
+          if (userStr.isNotEmpty) curentUser = jsonDecode(userStr);
+        }
         final futureLeaves = AttendancePerformanceLogger.instance.track(
           'LeaveMastServices.getUserLeaveLists',
           () => Provider.of<LeaveMastServices>(context, listen: false).getUserLeaveLists(),
           executionMode: 'parallel',
         );
 
-        final futureShiftData = setShiftData(empData, '', context);
+        final futureShiftData = setShiftData(curentUser['ShiftCguid'], curentUser['PositionId'], context);
 
         final futureBeginTime = () async {
           String? userPositionName;
@@ -129,10 +135,9 @@ class AttendanceEmp extends ChangeNotifier {
           await fetchAndStoreBeginTime(context, userPositionName);
         }();
 
-        final futureAttendance = getEmpAttendanceData(curentUser['Id'], currentMonth.month, currentMonth.year, context, handleLoading: false, forceRefresh: forceRefresh);
-
-        await Future.wait([futureLeaves, futureShiftData, futureBeginTime, futureAttendance]);
-      } else{
+        await Future.wait([futureLeaves, futureShiftData, futureBeginTime]);
+        await getEmpAttendanceData(curentUser['Id'], currentMonth.month, currentMonth.year, context, handleLoading: false, forceRefresh: forceRefresh);
+      } else {
         final futureLeaves = AttendancePerformanceLogger.instance.track(
           'LeaveMastServices.getUserLeaveLists',
           () => Provider.of<LeaveMastServices>(context, listen: false).getUserLeaveLists(),
@@ -140,23 +145,36 @@ class AttendanceEmp extends ChangeNotifier {
         );
 
         final futureEmployeeData = () async {
-          var empMast = Provider.of<EmployeMastServices>(context,listen: false);
+          final targetEmpId = empData.empId;
+
+          var empMast = Provider.of<EmployeMastServices>(context, listen: false);
           if (empMast.allemployes.isEmpty) {
             await AttendancePerformanceLogger.instance.track(
               'EmployeMastServices.getAllEmployesData',
               () => empMast.getAllEmployesData(),
             );
           }
+
+          Employeelists? matchedEmp;
           for (var element in empMast.allemployes) {
-            if(empData.empId == element.id) {
-              selectedEmploye = element;
-              final futureShift = setShiftData(element.shiftCguid, element.positionId, context);
-              final futureBeginTime = fetchAndStoreBeginTime(context, element.positionName);
-              final futureAttendance = getEmpAttendanceData(empData.empId, currentMonth.month, currentMonth.year, context, handleLoading: false, forceRefresh: forceRefresh);
-              await Future.wait([futureShift, futureBeginTime, futureAttendance]);
+            if (targetEmpId != null && targetEmpId.toString() == element.id.toString()) {
+              matchedEmp = element;
               break;
             }
           }
+
+          selectedEmploye = matchedEmp;
+
+          dynamic targetShiftCguid = matchedEmp?.shiftCguid ?? empData.shiftmstCguid;
+          dynamic targetPositionId = matchedEmp?.positionId;
+          dynamic targetPositionName = matchedEmp?.positionName;
+
+          // Await setShiftData first so getUserShift is ready for attendance week-offs calculation
+          await setShiftData(targetShiftCguid, targetPositionId, context, empRecord: matchedEmp ?? empData);
+          if (targetPositionName != null) {
+            await fetchAndStoreBeginTime(context, targetPositionName);
+          }
+          await getEmpAttendanceData(targetEmpId, currentMonth.month, currentMonth.year, context, handleLoading: false, forceRefresh: forceRefresh);
         }();
 
         await Future.wait([futureLeaves, futureEmployeeData]);
@@ -176,11 +194,9 @@ class AttendanceEmp extends ChangeNotifier {
     isNavigatingMonth = true;
     currentMonth = DateTime(currentMonth.year, currentMonth.month - 1);
     try {
-      if (empData == null) {
-        await getEmpAttendanceData(curentUser['Id'], currentMonth.month, currentMonth.year, context);
-      } else {
-        await getEmpAttendanceData(empData.empId, currentMonth.month, currentMonth.year, context);
-      }
+      final targetEmpId = empData == null ? curentUser['Id'] : empData.empId;
+      await ensureUserShift(context, empData);
+      await getEmpAttendanceData(targetEmpId, currentMonth.month, currentMonth.year, context);
     } finally {
       isNavigatingMonth = false;
     }
@@ -193,11 +209,9 @@ class AttendanceEmp extends ChangeNotifier {
       isNavigatingMonth = true;
       currentMonth = DateTime(currentMonth.year, currentMonth.month + 1);
       try {
-        if (empData == null) {
-          await getEmpAttendanceData(curentUser['Id'], currentMonth.month, currentMonth.year, context);
-        } else {
-          await getEmpAttendanceData(empData.empId, currentMonth.month, currentMonth.year, context);
-        }
+        final targetEmpId = empData == null ? curentUser['Id'] : empData.empId;
+        await ensureUserShift(context, empData);
+        await getEmpAttendanceData(targetEmpId, currentMonth.month, currentMonth.year, context);
       } finally {
         isNavigatingMonth = false;
       }
@@ -210,11 +224,9 @@ class AttendanceEmp extends ChangeNotifier {
   Future<void> onMonthChanged(DateTime focusedDay, empData, context) async {
     if (isNavigatingMonth) return; // already handled by nav buttons
     currentMonth = DateTime(focusedDay.year, focusedDay.month);
-    if (empData == null) {
-      await getEmpAttendanceData(curentUser['Id'], focusedDay.month, focusedDay.year, context);
-    } else {
-      await getEmpAttendanceData(empData.empId, currentMonth.month, currentMonth.year, context);
-    }
+    final targetEmpId = empData == null ? curentUser['Id'] : empData.empId;
+    await ensureUserShift(context, empData);
+    await getEmpAttendanceData(targetEmpId, currentMonth.month, currentMonth.year, context);
     notifyListeners();
   }
 
@@ -222,8 +234,10 @@ class AttendanceEmp extends ChangeNotifier {
     isNavigatingMonth = true;
     currentMonth = month;
     try {
+      final targetEmpId = empData == null ? curentUser['Id'] : empData.empId;
+      await ensureUserShift(context, empData);
       await getEmpAttendanceData(
-        empData == null ? curentUser['Id'] : empData.empId,
+        targetEmpId,
         currentMonth.month,
         currentMonth.year,
         context,
@@ -546,7 +560,112 @@ class AttendanceEmp extends ChangeNotifier {
 
   GetShiftMasterData? getUserShift;
 
-  Future setShiftData(empData, posiId, context) async {
+  Future<void> ensureUserShift(BuildContext context, dynamic empData) async {
+    if (getUserShift != null) return;
+    
+    if (empData == null) {
+      if (curentUser == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final userStr = prefs.getString('data') ?? '';
+        if (userStr.isNotEmpty) curentUser = jsonDecode(userStr);
+      }
+      await setShiftData(curentUser['ShiftCguid'], curentUser['PositionId'], context);
+    } else {
+      final targetEmpId = empData.empId;
+
+      var empMast = Provider.of<EmployeMastServices>(context, listen: false);
+      if (empMast.allemployes.isEmpty) {
+        await empMast.getAllEmployesData();
+      }
+
+      Employeelists? matchedEmp;
+      for (var element in empMast.allemployes) {
+        if (targetEmpId != null && targetEmpId.toString() == element.id.toString()) {
+          matchedEmp = element;
+          break;
+        }
+      }
+      selectedEmploye = matchedEmp;
+
+      dynamic targetShiftCguid = matchedEmp?.shiftCguid;
+      dynamic targetPositionId = matchedEmp?.positionId;
+      if (empData is AllEmployeAttendance) {
+        targetShiftCguid ??= empData.shiftmstCguid;
+      }
+      await setShiftData(targetShiftCguid, targetPositionId, context, empRecord: matchedEmp ?? empData);
+    }
+  }
+
+  int getShiftWorkingMinutes(GetShiftMasterData? shift) {
+    if (shift == null) return 510; // Default 8.5 hours (510 minutes)
+    
+    final val = shift.shiftDuration?.toString().trim() ?? '';
+    if (val.isNotEmpty && val.toLowerCase() != 'null') {
+      try {
+        final dt = DateFormat("dd/MM/yyyy HH:mm:ss").parse(val);
+        final mins = dt.hour * 60 + dt.minute;
+        if (mins > 0) return mins;
+      } catch (_) {}
+
+      final dt = DateTime.tryParse(val);
+      if (dt != null) {
+        final mins = dt.hour * 60 + dt.minute;
+        if (mins > 0) return mins;
+      }
+
+      final cleanVal = val.replaceAll(RegExp(r'[^0-9:]'), '');
+      final parts = cleanVal.split(':');
+      if (parts.length >= 2) {
+        final hours = int.tryParse(parts[0]) ?? 0;
+        final minutes = int.tryParse(parts[1]) ?? 0;
+        final mins = hours * 60 + minutes;
+        if (mins > 0) return mins;
+      } else if (parts.length == 1) {
+        final hours = double.tryParse(parts[0]);
+        if (hours != null && hours > 0) {
+          return (hours * 60).toInt();
+        }
+      }
+    }
+
+    if (shift.beginTime != null && shift.endTime != null) {
+      try {
+        final beginDt = DateTime.tryParse(shift.beginTime.toString());
+        final endDt = DateTime.tryParse(shift.endTime.toString());
+        if (beginDt != null && endDt != null) {
+          int diffMinutes = endDt.difference(beginDt).inMinutes;
+          if (diffMinutes < 0) {
+            diffMinutes += 24 * 60;
+          }
+          if (diffMinutes > 0) {
+            return diffMinutes;
+          }
+        }
+      } catch (_) {}
+    }
+
+    return 510;
+  }
+
+  int getShiftBreakMinutes(String? breakDuration) {
+    if (breakDuration == null || breakDuration.isEmpty || breakDuration == 'null') return 0;
+    try {
+      final dt = DateTime.tryParse(breakDuration);
+      if (dt != null) return dt.hour * 60 + dt.minute;
+    } catch (_) {}
+    try {
+      final cleanVal = breakDuration.replaceAll(RegExp(r'[^0-9:]'), '');
+      final parts = cleanVal.split(':');
+      if (parts.length >= 2) {
+        final hours = int.tryParse(parts[0]) ?? 0;
+        final minutes = int.tryParse(parts[1]) ?? 0;
+        return hours * 60 + minutes;
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  Future setShiftData(dynamic empData, dynamic posiId, BuildContext context, {dynamic empRecord}) async {
     getUserShift = null; // Clear previous shift to prevent Admin shift leakage
     List<GetShiftMasterData> getShiftSData = [];
     PositionDataL? getpostionData;
@@ -566,40 +685,104 @@ class AttendanceEmp extends ChangeNotifier {
       );
 
       final results = await Future.wait([futurePositions, futureShifts]);
+      final positionList = Provider.of<PositionMasterService>(context, listen: false).showPositions;
+      getShiftSData = results[1] as List<GetShiftMasterData>;
 
-      Provider.of<PositionMasterService>(context, listen: false).showPositions.forEach((element) {
-        if(empData == null || empData == ''){
-          if(element.id.toString() == curentUser['PositionId'].toString()){
+      // Determine target position ID:
+      String? targetPosiId;
+      if (posiId != null && posiId.toString().isNotEmpty && posiId.toString() != '0') {
+        targetPosiId = posiId.toString();
+      } else if (empRecord == null && curentUser != null && curentUser['PositionId'] != null) {
+        targetPosiId = curentUser['PositionId'].toString();
+      }
+
+      // Extract details from empRecord if provided
+      dynamic directShiftCguid = empData;
+      dynamic directShiftId;
+      dynamic directDeptId;
+
+      if (empRecord is AllEmployeAttendance) {
+        if (directShiftCguid == null || directShiftCguid.toString().isEmpty) {
+          directShiftCguid = empRecord.shiftmstCguid;
+        }
+        directShiftId = empRecord.shiftId;
+        directDeptId = empRecord.departmentId;
+      } else if (empRecord is Employeelists) {
+        if (directShiftCguid == null || directShiftCguid.toString().isEmpty) {
+          directShiftCguid = empRecord.shiftCguid;
+        }
+        directDeptId = empRecord.departmentId;
+      }
+
+      // Find PositionDataL matching targetPosiId
+      if (targetPosiId != null) {
+        for (var element in positionList) {
+          if (element.id.toString() == targetPosiId) {
             getpostionData = element;
-          }
-        } else {
-          if(element.id.toString() == posiId.toString()){
-            getpostionData = element;
+            break;
           }
         }
-      });
+      }
 
-      getShiftSData = results[1] as List<GetShiftMasterData>;
-      for (var element in getShiftSData) { 
-          // Check if it matches the direct employee shift assignment
-          if (empData != null && empData != '' && element.cguid.toString() == empData.toString()) {
+      // Priority 1: Match direct employee shift assignment by CGUID
+      if (directShiftCguid != null && directShiftCguid.toString().isNotEmpty) {
+        for (var element in getShiftSData) {
+          if (element.cguid != null && element.cguid.toString().toLowerCase() == directShiftCguid.toString().toLowerCase()) {
             getUserShift = element;
             break;
           }
-          // Check if it matches the position's default shift
-          if (getpostionData != null && getpostionData!.shiftCguid != null && element.cguid.toString() == getpostionData!.shiftCguid.toString()) {
-            getUserShift = element; // We don't break here so direct shift can override it
+        }
+      }
+
+      // Priority 2: Match direct employee shift assignment by ShiftID
+      if (getUserShift == null && directShiftId != null && directShiftId.toString().isNotEmpty && directShiftId.toString() != '0') {
+        for (var element in getShiftSData) {
+          if (element.shiftID != null && element.shiftID.toString() == directShiftId.toString()) {
+            getUserShift = element;
+            break;
           }
         }
-        
-        // Fallback to avoid Null Pointer Exceptions if employee's shift is completely missing
-        if (getUserShift == null && getShiftSData.isNotEmpty) {
-          try {
-            // Smart Fallback: Default to an 8.5-hour shift if available, as it is the standard
-            getUserShift = getShiftSData.firstWhere((s) => s.shiftDuration != null && s.shiftDuration!.contains('08:30:00'));
-          } catch (e) {
-            getUserShift = getShiftSData.first;
+      }
+
+      // Priority 3: Match position's default shift CGUID
+      if (getUserShift == null && getpostionData != null && getpostionData.shiftCguid != null && getpostionData.shiftCguid!.isNotEmpty) {
+        for (var element in getShiftSData) {
+          if (element.cguid != null && element.cguid.toString().toLowerCase() == getpostionData.shiftCguid.toString().toLowerCase()) {
+            getUserShift = element;
+            break;
           }
+        }
+      }
+
+      // Priority 4: Match shift directly by positionId
+      if (getUserShift == null && targetPosiId != null) {
+        for (var element in getShiftSData) {
+          if (element.positionId != null && element.positionId.toString() == targetPosiId) {
+            getUserShift = element;
+            break;
+          }
+        }
+      }
+
+      // Priority 5: Match shift by departmentId
+      if (getUserShift == null && directDeptId != null && directDeptId.toString().isNotEmpty && directDeptId.toString() != '0') {
+        for (var element in getShiftSData) {
+          if (element.departmentId != null && element.departmentId.toString() == directDeptId.toString()) {
+            getUserShift = element;
+            break;
+          }
+        }
+      }
+
+      // Fallback: Default to standard 8.5-hour shift or first available shift
+      if (getUserShift == null && getShiftSData.isNotEmpty) {
+        try {
+          getUserShift = getShiftSData.firstWhere(
+            (s) => s.shiftDuration != null && s.shiftDuration!.contains('08:30:00'),
+          );
+        } catch (e) {
+          getUserShift = getShiftSData.first;
+        }
       }
     } catch (e) { /* ignored */ } finally {
       notifyListeners();
@@ -699,15 +882,13 @@ class AttendanceEmp extends ChangeNotifier {
             DateTime lasttTime = DateTime.parse(selectedDateLog!.attendenceLog![i + 1].time.toString());
             Duration getDuration = lasttTime.difference(firstTime);
 
-            if(getUserShift!.break1 == true) {
-              DateTime parsedDateTime = DateTime.parse(getUserShift!.break1Duration ?? '');
-              int totalMinutes = parsedDateTime.hour * 60 + parsedDateTime.minute;
+            if (getUserShift != null && getUserShift!.break1 == true) {
+              int totalMinutes = getShiftBreakMinutes(getUserShift!.break1Duration);
               shiftBreak1 = shiftBreak1 + totalMinutes;
             }
 
-            if(getUserShift!.break2 == true) {
-              DateTime parsedDateTime = DateTime.parse(getUserShift!.break1Duration ?? '');
-              int totalMinutes = parsedDateTime.hour * 60 + parsedDateTime.minute;
+            if (getUserShift != null && getUserShift!.break2 == true) {
+              int totalMinutes = getShiftBreakMinutes(getUserShift!.break2Duration);
               shiftBreak2 = shiftBreak2 + totalMinutes;
             }
 
@@ -723,7 +904,7 @@ class AttendanceEmp extends ChangeNotifier {
       int hours = totalMinutsofData ~/ 60;
       int minutes = totalMinutsofData % 60;
 
-      if(totalMinutsofData > 60){
+      if (totalMinutsofData > 60) {
         totalWorkHour = '$hours: $minutes Hr';
       } else {
         totalWorkHour = ' $totalMinutsofData Min';
@@ -745,8 +926,12 @@ class AttendanceEmp extends ChangeNotifier {
         }
       });
 
-      DateTime parsedDateTime = DateFormat("dd/MM/yyyy HH:mm:ss").parse(getUserShift!.shiftDuration ?? '');
-      showShiftDuartion = DateFormat("HH:mm").format(parsedDateTime);
+      if (getUserShift != null) {
+        final shiftMins = getShiftWorkingMinutes(getUserShift);
+        final sH = shiftMins ~/ 60;
+        final sM = shiftMins % 60;
+        showShiftDuartion = "${sH.toString().padLeft(2, '0')}:${sM.toString().padLeft(2, '0')}";
+      }
     } catch (e) { /* ignored */ }
     notifyListeners();
   }
@@ -763,6 +948,8 @@ class AttendanceEmp extends ChangeNotifier {
 
   Future calculateTime(context, empData, int fetchMonth, int fetchYear) async {
     try {
+      await ensureUserShift(context, empData);
+
       double localUseTotalMinuts = 0;
       double localPaidLeave = 0;
 
@@ -770,7 +957,6 @@ class AttendanceEmp extends ChangeNotifier {
       double premOutMinuts = 0;
 
       final payrollProvider = Provider.of<PayRollProviders>(context, listen: false);
-      final holidayProvider = Provider.of<HolidayeMastServices>(context, listen: false);
 
       for (final element in payrollProvider.getAllMonthsBreak) {
         premOutMinuts += double.tryParse(element.totalOutMinutes?.toString() ?? '0') ?? 0;
@@ -783,20 +969,16 @@ class AttendanceEmp extends ChangeNotifier {
 
       for (final element in getMonthAttenDance) {
         if (element.totalMinute != null) {
-          localUseTotalMinuts += int.parse(element.totalMinute.toString());
+          localUseTotalMinuts += int.tryParse(element.totalMinute.toString()) ?? 0;
         }
 
-        if (element.present == true) {
+        if (element.present == true && getUserShift != null) {
           if (getUserShift!.break1 == true) {
-            final parsedDateTime = DateTime.parse(getUserShift!.break1Duration ?? '');
-            final totalMinutes = parsedDateTime.hour * 60 + parsedDateTime.minute;
-            setShitBreak += totalMinutes;
+            setShitBreak += getShiftBreakMinutes(getUserShift!.break1Duration);
           }
 
           if (getUserShift!.break2 == true) {
-            final parsedDateTime = DateTime.parse(getUserShift!.break2Duration ?? '');
-            final totalMinutes = parsedDateTime.hour * 60 + parsedDateTime.minute;
-            setShitBreak += totalMinutes;
+            setShitBreak += getShiftBreakMinutes(getUserShift!.break2Duration);
           }
         }
 
@@ -810,27 +992,42 @@ class AttendanceEmp extends ChangeNotifier {
       final gMins = grossMinutes % 60;
       grossTotalHours = "$gHours : $gMins";
 
-      final dateFormat = DateFormat("dd/MM/yyyy HH:mm:ss");
-      final parsedDateTime = dateFormat.parse(getUserShift!.shiftDuration ?? '');
-      final dayTotalMinuts = parsedDateTime.hour * 60 + parsedDateTime.minute;
+      // ── Calculate daily shift working minutes for the selected user ──
+      final int dayTotalMinuts = getShiftWorkingMinutes(getUserShift);
 
-      final paidLeaveDuration = dayTotalMinuts * totalPaidLeave;
-      localUseTotalMinuts += paidLeaveDuration;
-
-      final currentDate = DateTime.now();
-      final firstDate = DateTime(currentMonth.year, currentMonth.month, 1);
-
-      final filteredDates = holidayProvider.mainHolidayList.where((date) {
-        final holidayDate = DateTime.parse(date.holidayDate ?? '');
-        return holidayDate.isAfter(firstDate) && holidayDate.isBefore(currentDate);
-      }).where((element) => DateTime.parse(element.holidayDate ?? '').month == currentMonth.month).toList();
-
-      var holidayDuration = 0.0;
-      if (filteredDates.isNotEmpty) {
-        holidayDuration = dayTotalMinuts.toDouble() * filteredDates.length;
+      // Ensure paid leave days are up to date
+      if (totalPaidLeave == 0 && getMonthAttenDance.isNotEmpty) {
+        calcualetPaidLeave();
       }
 
+      // Calculate paid leave hours according to the selected user's shift time
+      final double paidLeaveDuration = dayTotalMinuts * totalPaidLeave.toDouble();
+      localUseTotalMinuts += paidLeaveDuration;
+
+      final plTotalMinutes = paidLeaveDuration.toInt();
+      final plHours = plTotalMinutes ~/ 60;
+      final plMinutes = plTotalMinutes % 60;
+      paidLeaveHours = "$plHours : $plMinutes";
+
+      // Ensure holiday days are up to date
+      if (totalHoliday == 0 && curentMonthHoliday.isNotEmpty) {
+        for (final holiday in curentMonthHoliday) {
+          if (hasDateArrived(holiday.holidayDate)) {
+            totalHoliday += calculateHolidayLeave(holiday);
+          }
+        }
+      }
+
+      // Calculate holiday hours according to the selected user's shift time
+      final double holidayDuration = dayTotalMinuts * totalHoliday.toDouble();
       localUseTotalMinuts += holidayDuration;
+
+      final totalMinutes = holidayDuration.toInt();
+      final hours = totalMinutes ~/ 60;
+      final minutes = totalMinutes % 60;
+      holidayHoursCount = "$hours : $minutes";
+
+      // Final working minutes calculation
       localUseTotalMinuts -= premOutMinuts.toInt();
       localUseTotalMinuts -= setShitBreak.toInt();
 
@@ -838,18 +1035,8 @@ class AttendanceEmp extends ChangeNotifier {
       paidLeave = localPaidLeave;
 
       final ss = useTotalMinuts ~/ 60;
-      final ww = useTotalMinuts.toInt() % 60;
+      final ww = (useTotalMinuts.toInt() % 60).abs();
       showUserTotalHours = '$ss:$ww';
-
-      final totalMinutes = holidayDuration.toInt();
-      final hours = totalMinutes ~/ 60;
-      final minutes = totalMinutes % 60;
-      holidayHoursCount = "$hours : $minutes";
-
-      final plTotalMinutes = paidLeaveDuration.toInt();
-      final plHours = plTotalMinutes ~/ 60;
-      final plMinutes = plTotalMinutes % 60;
-      paidLeaveHours = "$plHours : $plMinutes";
 
       if (getUserShift != null) {
         int totalDaysInMonth = DateTime(fetchYear, fetchMonth + 1, 0).day;
@@ -869,16 +1056,10 @@ class AttendanceEmp extends ChangeNotifier {
         
         int dailyBreakMins = 0;
         if (getUserShift!.break1 == true) {
-          try {
-            final b1 = DateTime.parse(getUserShift!.break1Duration ?? '');
-            dailyBreakMins += b1.hour * 60 + b1.minute;
-          } catch (e) { /* ignored */ }
+          dailyBreakMins += getShiftBreakMinutes(getUserShift!.break1Duration);
         }
         if (getUserShift!.break2 == true) {
-          try {
-            final b2 = DateTime.parse(getUserShift!.break2Duration ?? '');
-            dailyBreakMins += b2.hour * 60 + b2.minute;
-          } catch (e) { /* ignored */ }
+          dailyBreakMins += getShiftBreakMinutes(getUserShift!.break2Duration);
         }
         
         int expectedNetDailyMins = dayTotalMinuts - dailyBreakMins;
@@ -890,9 +1071,9 @@ class AttendanceEmp extends ChangeNotifier {
       } else {
         expectedTotalHours = '0';
       }
-
-
-    } catch (e) { /* ignored */ }
+    } catch (e) {
+      /* ignored */
+    }
   }
 
   TextEditingController punchInTimeC = TextEditingController();
@@ -904,13 +1085,15 @@ class AttendanceEmp extends ChangeNotifier {
     final fetchYear = currentMonth.year;
     
     try {
+      final targetEmpId = empData == null ? curentUser['Id'] : empData.empId;
+
       final payrollProvider = Provider.of<PayRollProviders>(context, listen: false);
       final holidayProvider = Provider.of<HolidayeMastServices>(context, listen: false);
 
       final futureMonthsBreaks = AttendancePerformanceLogger.instance.track(
         'PayRollProviders.getMonthsBreaks',
         () => payrollProvider.getMonthsBreaks(
-          setEmployeId: empData != null ? empData.empId : curentUser['Id'],
+          setEmployeId: targetEmpId,
           setMonth: fetchMonth,
           setYear: fetchYear,
         ),
@@ -920,7 +1103,7 @@ class AttendanceEmp extends ChangeNotifier {
       final futurePayRollData = AttendancePerformanceLogger.instance.track(
         'PayRollProviders.getPayRollData',
         () => payrollProvider.getPayRollData(
-          setEmployeId: empData != null ? empData.empId : curentUser['Id'],
+          setEmployeId: targetEmpId,
           setMonth: fetchMonth,
           setYear: fetchYear,
         ),
