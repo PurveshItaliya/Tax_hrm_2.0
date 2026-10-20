@@ -27,6 +27,8 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widgets/premium_upgrade_alert.dart';
 
+import 'face_punch_2/face_punch.dart';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Interaction state enum
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,6 +56,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
 
         // For admin users, trigger the notification permission flow right away
 
+        
         // since they don't go to the punch screen.
         if (isAdmin && !PermissionFlowService.isFlowRunning) {
           await PermissionFlowService.run(
@@ -123,49 +126,50 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     return AppUpgradeWrapper(
       child: WillPopScope(
         onWillPop: () => commonDialogBoxDesign(
-          context: context,
-          size: size,
-          title: exitString,
-        ),
-        child: Obx(() {
-          final selectedPageRaw = controller.fabSelected.value
-              ? SelfiePunchScreen()
-              : pageList[controller.selectedIndex.value];
+        context: context,
+        size: size,
+        title: exitString,
+      ),
+      child: Obx(() {
+        final selectedPageRaw = controller.fabSelected.value
+            // ? SelfiePunchScreen()
+            ? FacePunchScreen()
+            : pageList[controller.selectedIndex.value];
 
         final selectedPage = selectedPageRaw;
 
-          // ── All platforms: Flutter Liquid Glass bar ──
-          // Using the same Flutter-drawn _LiquidNavBar on iOS and Android
-          // for a consistent glass pill appearance on all iOS versions.
-          return Scaffold(
-            resizeToAvoidBottomInset: false,
-            backgroundColor: ColorConst.scaffoldColor,
-            extendBody: true,
-            body: LiquidGlassView(
-              backgroundWidget: selectedPage,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: _LiquidNavBar(
-                      key: ValueKey(
-                        context.watch<LanguageProvider>().currentLanguage,
-                      ),
-                      isAdmin: isAdmin,
-                      selectedIndex: controller.selectedIndex.value,
-                      fabSelected: controller.fabSelected.value,
-                      onTabSelected: controller.changeTab,
-                      onPunchSelected: controller.selectFab,
+        // ── All platforms: Flutter Liquid Glass bar ──
+        // Using the same Flutter-drawn _LiquidNavBar on iOS and Android
+        // for a consistent glass pill appearance on all iOS versions.
+        return Scaffold(
+          resizeToAvoidBottomInset: false,
+          backgroundColor: ColorConst.scaffoldColor,
+          extendBody: true,
+          body: LiquidGlassView(
+            backgroundWidget: selectedPage,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _LiquidNavBar(
+                    key: ValueKey(
+                      context.watch<LanguageProvider>().currentLanguage,
                     ),
+                    isAdmin: isAdmin,
+                    selectedIndex: controller.selectedIndex.value,
+                    fabSelected: controller.fabSelected.value,
+                    onTabSelected: controller.changeTab,
+                    onPunchSelected: controller.selectFab,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        }),
+          ),
+        );
+      }),
       ),
     );
   }
@@ -625,16 +629,17 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
         clipQuality: LiquidGlassClipQuality.roundedRectangle,
       ),
       appearance: LiquidGlassAppearance(
+        // Increased opacity for better visibility
         color: isDark
             ? const Color(0x89000000) // 60% black
             : const Color(0x5CFFFFFF), // 70% white
         saturation: 1.8,
-        blur: const LiquidGlassBlur(sigmaX: 8, sigmaY: 8),
+        blur: const LiquidGlassBlur(sigmaX: 7, sigmaY: 7),
       ),
       refraction: const LiquidGlassRefraction(
         refractionType: OpticalRefraction(
           refraction: 1.5,
-          refractionWidth: 12,
+          refractionWidth: 18,
           depth: 1.1,
         ),
       ),
@@ -655,15 +660,13 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
             child: LayoutBuilder(
               builder: (ctx, constraints) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _onLayoutReady(constraints.maxWidth + 20);
+                  _onLayoutReady(constraints.maxWidth + 20); // include margins
                 });
-
+                // Wrapping in a standard Container to draw a proper border,
+                // bypassing the buggy LiquidGlassShape border rendering.
                 return Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(100),
-                    color: isDark
-                        ? const Color(0xFF292929).withOpacity(0.35)
-                        : Colors.white.withOpacity(0.25),
                     border: Border.all(
                       color: isDark
                           ? Colors.white.withOpacity(
@@ -674,16 +677,6 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
                             ), // strong white border for light
                       width: 1.0,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isDark
-                            ? Colors.black.withOpacity(0.18)
-                            : Colors.black.withOpacity(0.07),
-                        blurRadius: 16,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(100),

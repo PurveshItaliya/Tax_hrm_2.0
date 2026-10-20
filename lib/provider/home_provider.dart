@@ -84,6 +84,8 @@ class HomeProvider extends ChangeNotifier {
   List<HomeGridClass> homeGridOptionList = [];
 
 
+  bool _hasLeaderboardLoadedThisSession = false;
+
   homeLoadDatas(context, {bool forceRefresh = false}) async {
     await companySelect();
     await homepageMenuGet(context);
@@ -254,7 +256,6 @@ class HomeProvider extends ChangeNotifier {
 
   selectCompanyOntap(item,context) async {
     selectedcurentcompany = item;
-    _setHrmTopRecord = null;
     notifyListeners();
     Navigator.pop(context);
     String setdata =  jsonEncode(selectedcurentcompany);
@@ -262,7 +263,6 @@ class HomeProvider extends ChangeNotifier {
     await setcompanyselected();
     ReminderNotificationService.scheduleAllNotifications(forceRefresh: true);
     await FcmTokenService.instance.updateTopicSubscriptions();
-    unawaited(getTopLeaderboard(forceRefresh: true));
   }
 
   // Working Hours Related
@@ -834,110 +834,90 @@ String get leaderboardErrorMessage => _leaderboardErrorMessage;
 
 bool _isFetchingLeaderboard = false;
 
-  void clearData() {
-    _setHrmTopRecord = null;
-    _isLeaderboardLoading = false;
-    _isFetchingLeaderboard = false;
-    _leaderboardErrorMessage = '';
-    _leaderboardSelectedMonth = DateTime(DateTime.now().year, DateTime.now().month - 1);
-    stopWorkingHoursTimer();
-    notifyListeners();
-  }
-
-// Leaderboard — Stale-While-Revalidate: show cache instantly, refresh silently in background
+// Leaderboard — Stale-While-Revalidate: show cache instantly, refresh silently
 Future<void> getTopLeaderboard({int? month, int? year, bool forceRefresh = false}) async {
   if (_isFetchingLeaderboard) return;
   
   final selectedMonth = month ?? _leaderboardSelectedMonth.month;
   final selectedYear = year ?? _leaderboardSelectedMonth.year;
-  final companyId = selectedcurentcompany?.companyId ?? curentUser?['CompanyId'] ?? '';
-  final cacheKey = '${LocalCacheService.keyLeaderboard}_${companyId}_${selectedYear}_${selectedMonth.toString().padLeft(2, '0')}';
+  final cacheKey = '${LocalCacheService.keyLeaderboard}_${selectedYear}_${selectedMonth.toString().padLeft(2, '0')}';
   const ttlMs = 30 * 60 * 1000; // 30 minutes
 
   _leaderboardErrorMessage = '';
 
-  // ── Step 1: Show memory cache immediately if available ────────────────────
-  if (!forceRefresh && _setHrmTopRecord != null && _setHrmTopRecord!.isNotEmpty &&
+  // ── Step 1: Show memory cache immediately ─────────────────────────────────
+  if (!forceRefresh && _hasLeaderboardLoadedThisSession && _setHrmTopRecord != null && _setHrmTopRecord!.isNotEmpty &&
       _leaderboardSelectedMonth.month == selectedMonth &&
       _leaderboardSelectedMonth.year == selectedYear) {
     _isLeaderboardLoading = false;
     notifyListeners();
-  } else if (!forceRefresh) {
-    // ── Step 2: Try local (SharedPreferences) cache BEFORE background network call ──
+    return;
+  } else {
+    // ── Step 2: Try local (SharedPreferences) cache BEFORE showing spinner ──
     try {
       final cached = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
-      if (cached != null && cached is List && cached.isNotEmpty) {
-        _setHrmTopRecord = cached
+      if (cached != null && cached is List) {
+        _setHrmTopRecord = (cached)
             .map((e) => HrmTopListReport.fromJson(Map<String, dynamic>.from(e)))
             .toList();
         _isLeaderboardLoading = false;
         notifyListeners();
-      } else if (_setHrmTopRecord == null) {
+        _hasLeaderboardLoadedThisSession = true;
+        if (!forceRefresh) return;
+      } else {
+        // No local cache found. Now we show the spinner for the network call.
         _isLeaderboardLoading = true;
         notifyListeners();
       }
     } catch (_) {
-      if (_setHrmTopRecord == null) {
-        _isLeaderboardLoading = true;
-        notifyListeners();
-      }
-    }
-  } else {
-    // Force refresh requested (e.g., month change or pull-to-refresh)
-    if (_setHrmTopRecord == null) {
       _isLeaderboardLoading = true;
       notifyListeners();
     }
   }
 
-  // ── Step 3: Background API refresh (always runs to fetch latest data) ──────
+  // ── Step 3: Background API refresh ───────────────────────────────────────
   _isFetchingLeaderboard = true;
   try {
-    if (curentUser == null || curentUser['token'] == null) {
-      _isLeaderboardLoading = false;
-      _isFetchingLeaderboard = false;
-      return;
-    }
-
     final monthStr = selectedMonth.toString().padLeft(2, '0');
     final yearStr = selectedYear.toString();
-    final response = await AttendanceApis().getCompanyDataList(monthStr, yearStr);
+    final freshData = await AttendanceApis().getCompanyDataList(monthStr, yearStr);
     
-    if (response != null && response is List) {
-      final List<HrmTopListReport> freshData = response.map((item) {
-        if (item is HrmTopListReport) return item;
-        return HrmTopListReport.fromJson(Map<String, dynamic>.from(item));
-      }).toList();
-
-      bool isSame = false;
-      if (_setHrmTopRecord != null && freshData.length == _setHrmTopRecord!.length) {
-        isSame = true;
-        for (int i = 0; i < freshData.length; i++) {
-          if (freshData[i].empName != _setHrmTopRecord![i].empName || 
-              freshData[i].netWorkingMinutes != _setHrmTopRecord![i].netWorkingMinutes ||
-              freshData[i].totalDays != _setHrmTopRecord![i].totalDays) {
-            isSame = false;
-            break;
-          }
+    bool isSame = false;
+    if (_setHrmTopRecord != null && freshData.length == _setHrmTopRecord!.length) {
+      isSame = true;
+      for (int i = 0; i < freshData.length; i++) {
+        if (freshData[i].empName != _setHrmTopRecord![i].empName || 
+            freshData[i].netWorkingMinutes != _setHrmTopRecord![i].netWorkingMinutes ||
+            freshData[i].totalDays != _setHrmTopRecord![i].totalDays) {
+          isSame = false;
+          break;
         }
       }
-      
-      if (!isSame || _setHrmTopRecord == null || _setHrmTopRecord!.isEmpty) {
-        _setHrmTopRecord = freshData;
-        await LocalCacheService.instance.saveCache(
-          cacheKey,
-          freshData.map((e) => e.toJson()).toList(),
-        );
-      }
-    } else {
-      if (_setHrmTopRecord == null) {
-        _setHrmTopRecord = [];
-      }
+    }
+    
+    bool needsUpdate = false;
+    if (!isSame) {
+      _setHrmTopRecord = freshData;
+      // Persist to local cache
+      await LocalCacheService.instance.saveCache(
+        cacheKey,
+        freshData.map((e) => e.toJson()).toList(),
+      );
+      needsUpdate = true;
+    }
+    
+    // If it was showing shimmer, we must update to show data
+    if (_isLeaderboardLoading) {
+      needsUpdate = true;
     }
 
     _isLeaderboardLoading = false;
     _isFetchingLeaderboard = false;
-    notifyListeners();
+    _hasLeaderboardLoadedThisSession = true;
+    
+    if (needsUpdate) {
+      notifyListeners();
+    }
   } catch (e) {
     _leaderboardErrorMessage = e.toString();
     if (_setHrmTopRecord == null) {
@@ -958,6 +938,7 @@ Future<void> changeLeaderboardMonth(DateTime newMonth) async {
   _leaderboardSelectedMonth = DateTime(newMonth.year, newMonth.month);
   
   // Clear the memory cache when changing month so it loads correct data for the new month
+  _hasLeaderboardLoadedThisSession = false;
   _setHrmTopRecord = null;
   
   notifyListeners();
@@ -1004,26 +985,31 @@ List<WinnerModel> convertToWinnerModels(List<HrmTopListReport>? records, int ran
   // Sort by NetWorkingMinutes for proper ranking
   final sortedRecords = List<HrmTopListReport>.from(records);
   sortedRecords.sort((a, b) {
-    final minutesA = a.netWorkingMinutes ?? _convertHoursToMinutes(a.netWorkingHours ?? '0h 0m');
-    final minutesB = b.netWorkingMinutes ?? _convertHoursToMinutes(b.netWorkingHours ?? '0h 0m');
+    final minutesA = a.netWorkingMinutes ?? 0;
+    final minutesB = b.netWorkingMinutes ?? 0;
     return minutesB.compareTo(minutesA);
   });
   
-  // Group by net working minutes to handle ties properly
-  Map<int, List<HrmTopListReport>> groupedByMinutes = {};
+  // Group by net working hours to handle ties
+  Map<String, List<HrmTopListReport>> groupedByHours = {};
   for (var record in sortedRecords) {
-    final minutesKey = record.netWorkingMinutes ?? _convertHoursToMinutes(record.netWorkingHours ?? '0h 0m');
-    groupedByMinutes.putIfAbsent(minutesKey, () => []).add(record);
+    final hoursKey = record.netWorkingHours ?? '0h 0m';
+    groupedByHours.putIfAbsent(hoursKey, () => []).add(record);
   }
   
-  // Get unique minutes in sorted order (highest to lowest)
-  List<int> uniqueMinutes = groupedByMinutes.keys.toList()..sort((a, b) => b.compareTo(a));
+  // Get unique hours in sorted order
+  List<String> uniqueHours = groupedByHours.keys.toList();
+  uniqueHours.sort((a, b) {
+    final minutesA = _convertHoursToMinutes(a);
+    final minutesB = _convertHoursToMinutes(b);
+    return minutesB.compareTo(minutesA);
+  });
   
   // Get records for specific rank
-  if (rank <= uniqueMinutes.length) {
-    final targetMinutes = uniqueMinutes[rank - 1];
-    if (groupedByMinutes.containsKey(targetMinutes)) {
-      rankedRecords = groupedByMinutes[targetMinutes]!;
+  if (rank <= uniqueHours.length) {
+    final targetHours = uniqueHours[rank - 1];
+    if (targetHours != null && groupedByHours.containsKey(targetHours)) {
+      rankedRecords = groupedByHours[targetHours]!;
     }
   }
   

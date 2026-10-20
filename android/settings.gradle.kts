@@ -31,3 +31,7 @@ plugins {
 }
 
 include(":app")
+include(":libfacesdk")
+project(":libfacesdk").projectDir = File(rootDir, "libfacesdk")
+include(":libfotoapparat")
+project(":libfotoapparat").projectDir = File(rootDir, "libfotoapparat")

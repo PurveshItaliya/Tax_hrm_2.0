@@ -58,6 +58,7 @@ class EmployeByid {
   bool? success;
   dynamic token;
   dynamic faceRegisterId;
+  String? faceRegisterImg;
   String? workType;
   String? officeLocation;
   int? locationRadius;
@@ -118,6 +119,7 @@ class EmployeByid {
     this.success,
     this.token,
     this.faceRegisterId,
+    this.faceRegisterImg,
     this.workType,
     this.officeLocation,
     this.locationRadius,
@@ -179,6 +181,7 @@ class EmployeByid {
     success = json['success'];
     token = json['token'];
     faceRegisterId = json['FaceRegisterId'];
+    faceRegisterImg = json['FaceRegisterImg'] ?? json['faceRegisterImg'];
     workType = json['WorkType'];
     officeLocation = json['OfficeLocation'];
     locationRadius = json['LocationRadius'];
@@ -241,6 +244,7 @@ class EmployeByid {
     data['success'] = success;
     data['token'] = token;
     data['FaceRegisterId'] = faceRegisterId;
+    data['FaceRegisterImg'] = faceRegisterImg;
     data['WorkType'] = workType;
     data['OfficeLocation'] = officeLocation;
     data['LocationRadius'] = locationRadius;

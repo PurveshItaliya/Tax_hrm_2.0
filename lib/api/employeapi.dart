@@ -253,6 +253,7 @@ class Employeeclass {
     isFetchLocation,
     setCguids,
     faceRegisterId,
+    faceRegisterImg,
     isVisitor,
     bool removeImage = false,
     required Function(dynamic val) listenRes,
@@ -314,6 +315,8 @@ class Employeeclass {
       "LocationRadius": locationRadius?.toString() ?? '50',
       "IsFetchLocation": isFetchLocation?.toString() ?? 'false',
       "FaceRegisterId": faceRegisterId?.toString() ?? '',
+      if (faceRegisterImg != null && faceRegisterImg.toString().isNotEmpty)
+        "FaceRegisterImg": faceRegisterImg.toString(),
       "IsVisitor": isVisitor?.toString() ?? 'false',
     };
 

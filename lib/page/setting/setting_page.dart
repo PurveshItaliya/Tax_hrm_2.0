@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
+import 'package:tax_hrm/page/face_punch_2/face_sdk_enroll_screen.dart';
 import 'package:tax_hrm/page/face_registation/face_registration_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
 import 'package:tax_hrm/page/authpages/loginpage.dart';
@@ -32,6 +33,8 @@ import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/provider/location_tracking_provider.dart';
 import 'package:tax_hrm/provider/face_verification_provider.dart';
+import 'package:tax_hrm/provider/selfie_punch_provider.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/services/remote_config_services.dart';
 
 class SettingPage extends StatefulWidget {
@@ -244,12 +247,14 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                             listen: false,
                           ).clearData();
 
+                          // Reset punch & face sync session state for clean user switching
                           try {
-                            Provider.of<HomeProvider>(
+                            Provider.of<SelfiePunchProvider>(
                               context,
                               listen: false,
-                            ).clearData();
+                            ).resetState();
                           } catch (_) {}
+                          FaceRegistrationSyncService.instance.resetSyncState();
 
                           // 6. Redirect to Login Screen
                           nextscreenRemove(
@@ -504,14 +509,8 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
         Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
       );
     }
+    // Face SDK Enrollment and Re-register sections hidden as per configuration
 
-    // Add Face Verification Section (Hidden for Admins or when disabled via Remote Config)
-    if (RemoteConfigServices.isFaceVerifyEnabled && curentUser?['Role'] != 'Admin') {
-      list.add(_buildFaceVerificationSection(size));
-      list.add(
-        Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
-      );
-    }
 
     for (int i = 0; i < settingProvider.settingGridOptionList.length; i++) {
       final item = settingProvider.settingGridOptionList[i];
@@ -637,6 +636,63 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   /// Opens the app system settings page so the user can set "Always Allow".
   Future<void> _openBgLocationSettings() async {
     await openAppSettings();
+  }
+
+  // ── Face SDK Enrollment Settings Section ──────────────────────────────────
+  Widget _buildFaceSdkEnrollSection(Size size) {
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 4,
+        ),
+        leading: Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+            color: ColorConst.themeColor.withOpacity(0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SvgPicture.asset(
+              'assets/images/faceid.svg',
+              color: ColorConst.themeColor,
+            ),
+          ),
+        ),
+        title: Text(
+          'Enroll Face (FaceSDK)',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: ColorConst.settingTextColors,
+          ),
+        ),
+        subtitle: Text(
+          'Register face template for punch verification',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.green.shade600,
+          ),
+        ),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: ColorConst.settingIconsColors,
+          size: 24,
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const FaceSdkEnrollScreen(),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   // ── Face Verification Settings Section ─────────────────────────────────────

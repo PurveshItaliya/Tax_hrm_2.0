@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:tax_hrm/models/attendance/attendanceBlog.dart';
@@ -105,7 +106,13 @@ class AttendanceApis{
     /* log("----------------------------$bodys"); */
 
     var url = Uri.parse("${apibaseurl}api/HRM/NewNewCreateAttendence");
+    log("----- API REQUEST: HRM/NewNewCreateAttendence -----", name: "PunchAPI");
+    log("URL: $url", name: "PunchAPI");
+    log("Payload: ${jsonEncode(bodys)}", name: "PunchAPI");
     var response = await http.post(url, body: jsonEncode(bodys), headers: {'Authorization': 'bearer ${curentUser!['token']}','Content-Type': 'application/json',});
+    log("----- API RESPONSE: HRM/NewNewCreateAttendence -----", name: "PunchAPI");
+    log("Status Code: ${response.statusCode}", name: "PunchAPI");
+    log("Response Body: ${response.body}", name: "PunchAPI");
     try {
       final data = jsonDecode(response.body);
       if (data != null && data['success'] == true && data['AttendenceLog'] != null && data['AttendenceLog'].isNotEmpty) {
@@ -382,9 +389,6 @@ class AttendanceApis{
   }
 
   Future getCompanyDataList(month,year) async {
-    if (curentUser == null || curentUser['token'] == null) {
-      return null;
-    }
     var url = Uri.parse(
       '${apibaseurl}api/HRM/HRMTopListReport?Month=$month&Year=$year',
     );

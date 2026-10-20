@@ -900,7 +900,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         }
 
                         bool isZeroTime(String val) {
-                          return val == '0.00' || val == '00.00' || val == '0' || val == '0.0' || val == '00.0';
+                          return val == '0.00' || val == '00.00' || val == '0';
                         }
 
                         final activeWidgets = <Widget>[];

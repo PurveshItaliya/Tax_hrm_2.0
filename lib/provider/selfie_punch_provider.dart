@@ -43,6 +43,7 @@ import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/services/background_location_service.dart';
 import 'package:tax_hrm/services/location_batch_service.dart';
+import 'package:tax_hrm/services/punch_performance_tracker.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widigets/toastmessage.dart';
@@ -90,6 +91,24 @@ class SelfiePunchProvider extends ChangeNotifier {
   bool showLocationLoaders = false;
   void setLocationLoader(bool value) {
     showLocationLoaders = value;
+    notifyListeners();
+  }
+
+  /// Resets all punch and verification state on user logout or user change.
+  void resetState() {
+    checkStatus = null;
+    imageFile = null;
+    PunchLoader = false;
+    isLoading = false;
+    cameraisLoading = true;
+    readyCameraPreviewshow = true;
+    isCameraReady = false;
+    punchBoxOnTapStart = false;
+    isPrePunchChecksLoading = false;
+    isPrePunchChecksSuccess = false;
+    punchProcessStatus.value = '';
+    punchBoxNotesController.clear();
+    lastPersistedSelfiePath = null;
     notifyListeners();
   }
 
@@ -261,7 +280,6 @@ class SelfiePunchProvider extends ChangeNotifier {
             ? ImageFormatGroup.nv21
             : ImageFormatGroup.bgra8888,
       );
-      await newController.initialize();
 
       cameraController = newController;
       try {
@@ -1369,9 +1387,12 @@ class SelfiePunchProvider extends ChangeNotifier {
     bool setweekoffStatus, [
     bool isFromWidget = false,
   ]) async {
+    PunchPerformanceTracker.step('punchNowCall: Started');
     // Validation before calling the Punch API
     if (await DeveloperModeService.isDeveloperModeRestricted()) {
       log('[SelfiePunchProvider] Punch API blocked: Developer Mode active in release build.');
+      PunchPerformanceTracker.step('punchNowCall: Blocked by Developer Mode');
+      PunchPerformanceTracker.finish(isSuccess: false, message: 'Developer Mode active');
       setPunchBoxOnTapStart(false);
       setPunchLoader(false);
       if (context.mounted) {
@@ -1379,8 +1400,10 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
       return;
     }
+    PunchPerformanceTracker.step('punchNowCall: Developer Mode Check Passed');
 
     final bool offline = await _checkIsOffline();
+    PunchPerformanceTracker.step('punchNowCall: Offline Check Done', 'Offline: $offline');
 
     if (offline) {
       // ═══════════════════════════════════════════════════════════════════════
@@ -1434,11 +1457,13 @@ class SelfiePunchProvider extends ChangeNotifier {
     final navigator = Navigator.of(context);
 
     try {
+      PunchPerformanceTracker.step('AttendanceApis: Sending callPunch API Request');
       final response = await AttendanceApis().callPunch(
         sendCguid: setGuid.toString(),
         setRemarks: setUserRemarks,
         weekoffStatus: setweekoffStatus,
       );
+      PunchPerformanceTracker.step('AttendanceApis: callPunch API Response Received');
 
       PunchNow punchResponse = response as PunchNow;
       if (punchResponse.success == true) {
@@ -1457,35 +1482,37 @@ class SelfiePunchProvider extends ChangeNotifier {
           }
         } catch (_) {}
 
-        // ── Location tracking ──────────────────────────────────────
+        // ── Location tracking & timeline batch upload (Background Unawaited) ──
         if (context.mounted) {
           final locationTracker = Provider.of<LocationTrackingProvider>(
             context,
             listen: false,
           );
-          if (punchStatus == 'IN') {
-            // Start tracking when the employee punches in.
-            await locationTracker.startTracking(context: context);
-          } else if (punchStatus == 'OUT') {
-            // Stop tracking when the employee punches out.
-            locationTracker.stopTracking();
-          }
+          unawaited(Future(() async {
+            try {
+              if (punchStatus == 'IN') {
+                await locationTracker.startTracking();
+              } else if (punchStatus == 'OUT') {
+                locationTracker.stopTracking();
+              }
 
-          // Always Final upload to ensure timeline map shows punch immediately
-          final String userDataStr = await SaveUser().getUserDatas();
-          if (userDataStr.isNotEmpty) {
-            final dynamic userData = jsonDecode(userDataStr);
-            await LocationBatchStorage.uploadPendingBatch(
-              userData: userData,
-              isMapScreen: false,
-              isAppForeground: true,
-            );
-          }
+              final String userDataStr = await SaveUser().getUserDatas();
+              if (userDataStr.isNotEmpty) {
+                final dynamic userData = jsonDecode(userDataStr);
+                await LocationBatchStorage.uploadPendingBatch(
+                  userData: userData,
+                  isMapScreen: false,
+                  isAppForeground: true,
+                );
+              }
+            } catch (e) {
+              log('[SelfiePunchProvider] Background tracking/batch upload error: $e');
+            }
+          }));
         }
         // ──────────────────────────────────────────────────────────
 
-        // ── Persist punch status to SharedPreferences so reminder scheduler
-        // knows this day has already been punched and skips the notification.
+        // Reschedule reminders now that punch status is persisted correctly.
         Future.microtask(() async {
           try {
             final prefs = await SharedPreferences.getInstance();
@@ -1499,21 +1526,22 @@ class SelfiePunchProvider extends ChangeNotifier {
               await prefs.setBool('punched_out_\$dateKey', true);
             }
           } catch (_) {}
-          // Reschedule reminders now that punch status is persisted correctly.
-          // await ReminderNotificationService.updateHolidaysAndLeaves();
           await ReminderNotificationService.scheduleReminders();
         });
 
-        await refreshLastPunchOnly(employeid);
-        if (!context.mounted) return;
-        try {
-          final homeProv = Provider.of<HomeProvider>(
-            context,
-            listen: false,
-          );
-          homeProv.refreshWorkingHours(context);
-          homeProv.getTopLeaderboard(forceRefresh: true);
-        } catch (_) {}
+        // Run refreshLastPunchOnly in background so navigation happens instantly without network block
+        unawaited(refreshLastPunchOnly(employeid));
+        if (context.mounted) {
+          try {
+            Provider.of<HomeProvider>(
+              context,
+              listen: false,
+            ).refreshWorkingHours(context);
+          } catch (_) {}
+        }
+        PunchPerformanceTracker.step('punchNowCall: Navigating to AttendanceScreen');
+        PunchPerformanceTracker.finish(isSuccess: true, message: 'Punch $punchStatus confirmed');
+
         if (isFromWidget) {
           final navigator = Navigator.of(context);
           navigator.pop(); // Pop the dialog
@@ -1526,7 +1554,6 @@ class SelfiePunchProvider extends ChangeNotifier {
               'punch_widget/open',
             ).invokeMethod('move_to_background');
           } catch (_) {}
-          // SystemNavigator.pop(); // Removed to allow background image upload
         } else {
           navigator.pop();
           navigator.push(
@@ -1548,6 +1575,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       );
     }
     try {
+      PunchPerformanceTracker.step('AttendanceApis: Uploading Selfie Photo (callWithImgPunch)');
       await AttendanceApis().callWithImgPunch(
         listenRes: (val) {},
         FILES: userImages,
@@ -1556,12 +1584,14 @@ class SelfiePunchProvider extends ChangeNotifier {
         setLocation: setUsreLoaction,
         setLongitude: usersetLongitude,
       );
+      PunchPerformanceTracker.step('AttendanceApis: Selfie Photo Uploaded');
       if (isFromWidget) {
         log(
           "🟠 [WidgetDebug] Image upload in background COMPLETED successfully.",
         );
       }
     } catch (e) {
+      PunchPerformanceTracker.step('AttendanceApis: Selfie Upload Error ($e)');
       if (isFromWidget) {
         log("🟠 [WidgetDebug] Image upload in background FAILED: $e");
       }
@@ -1569,6 +1599,8 @@ class SelfiePunchProvider extends ChangeNotifier {
 
     setPunchBoxOnTapStart(false);
     setPunchLoader(false);
+    imageFile = null;
+    lastPersistedSelfiePath = null;
 
     // After the image successfully uploads in the background, safely kill the app
     // so it doesn't stay stuck on a blank camera screen when reopened.
@@ -1670,12 +1702,10 @@ class SelfiePunchProvider extends ChangeNotifier {
 
       if (context.mounted) {
         try {
-          final homeProv = Provider.of<HomeProvider>(
+          Provider.of<HomeProvider>(
             context,
             listen: false,
-          );
-          homeProv.refreshWorkingHours(context);
-          homeProv.getTopLeaderboard(forceRefresh: true);
+          ).refreshWorkingHours(context);
         } catch (_) {}
       }
 
@@ -1701,12 +1731,15 @@ class SelfiePunchProvider extends ChangeNotifier {
     BuildContext context,
     String currentDay, [
     bool isFromWidget = false,
+    bool skipFaceVerification = false,
   ]) async {
-    log('--- puchInOutHandleSubmit STARTED ---');
-    log('currentDay: $currentDay, isFromWidget: $isFromWidget');
+    log('[PunchFlow] ==================== puchInOutHandleSubmit STARTED ====================');
+    log('[PunchFlow] currentDay: $currentDay, isFromWidget: $isFromWidget, skipFaceVerification: $skipFaceVerification');
+    log('[PunchFlow] curentUser ID: ${curentUser?['Id']}, Name: ${curentUser?['UserName']}');
+    log('[PunchFlow] PunchLoader: $PunchLoader');
     if (PunchLoader == true) {
-      log('PunchLoader is true, returning early.');
-      return;
+      log('[PunchFlow] WARNING: PunchLoader was true. Resetting to false to allow punch to proceed.');
+      PunchLoader = false;
     }
 
     // In release builds, block Punch In/Out if Developer Mode is enabled
@@ -1718,16 +1751,20 @@ class SelfiePunchProvider extends ChangeNotifier {
       return;
     }
 
-    // Fetch fresh location before checking distance to ensure it's up to date
-    log('Fetching current location...');
-    await getCurrentLocation(context: context);
-    log(
-      'Location fetched. Distance: $distance, Allowed Radius: $allowedRadius, needOfficeRangeCheck: $needOfficeRangeCheck',
-    );
+    // Only fetch fresh location if not already obtained
+    if (setlatitude == null || setlatitude!.isEmpty || setlongitude == null || setlongitude!.isEmpty || currentPosition == null) {
+      log('[PunchFlow] Fetching current location coordinates...');
+      await getCurrentLocation(context: context);
+      log(
+        '[PunchFlow] Location fetched. Distance: $distance, Allowed Radius: $allowedRadius, needOfficeRangeCheck: $needOfficeRangeCheck, Lat: $setlatitude, Lng: $setlongitude',
+      );
+    } else {
+      log('[PunchFlow] Location already available (Lat: $setlatitude, Lng: $setlongitude, Distance: $distance). Skipping redundant fetch.');
+    }
 
     if (needOfficeRangeCheck && distance > allowedRadius) {
       log(
-        'Distance ($distance) is greater than allowed radius ($allowedRadius). Showing Out of Range dialog.',
+        '[PunchFlow] BLOCKED: Distance ($distance) is greater than allowed radius ($allowedRadius). Showing Out of Range dialog.',
       );
       if (context.mounted) {
         showDialog(
@@ -1831,51 +1868,58 @@ class SelfiePunchProvider extends ChangeNotifier {
 
       // --- Face Verification Intercept (Silent, in-screen) ---
       bool isVerified = true;
-      try {
-        final role = curentUser?['Role'];
-        final faceId = curentUser?["FaceRegisterId"];
-        log(
-          'Role: $role, FaceId: $faceId, isFaceVerifyEnabled: ${RemoteConfigServices.isFaceVerifyEnabled}',
-        );
-        if (!RemoteConfigServices.isFaceVerifyEnabled) {
-          // Remote kill-switch: face verification feature is OFF
+      if (!skipFaceVerification) {
+        try {
+          final role = curentUser?['Role'];
+          final faceId = curentUser?["FaceRegisterId"];
           log(
-            "[SelfiePunchProvider] Face verification disabled via Remote Config.",
+            'Role: $role, FaceId: $faceId, isFaceVerifyEnabled: ${RemoteConfigServices.isFaceVerifyEnabled}',
           );
-          isVerified = true;
-        } else if (role != 'Admin') {
-          if (faceId == null || faceId.toString().isEmpty) {
+          if (!RemoteConfigServices.isFaceVerifyEnabled) {
+            // Remote kill-switch: face verification feature is OFF
             log(
-              "[SelfiePunchProvider] Face verification failed: No registered FaceId.",
+              "[SelfiePunchProvider] Face verification disabled via Remote Config.",
             );
-            isVerified = false; // Strictly enforce face registration
-          } else {
-            log(
-              "[SelfiePunchProvider] Starting live stream face verification for FaceId: $faceId",
-            );
-            final faceProvider = Provider.of<FaceVerificationProvider>(
-              context,
-              listen: false,
-            );
-            if (cameraController != null &&
-                cameraController!.value.isInitialized) {
-              isVerified = await faceProvider.verifyLiveStream(
-                cameraController!,
-                faceId.toString(),
+            isVerified = true;
+          } else if (role != 'Admin') {
+            if (faceId == null || faceId.toString().isEmpty) {
+              log(
+                "[SelfiePunchProvider] Face verification failed: No registered FaceId.",
               );
+              isVerified = false; // Strictly enforce face registration
             } else {
-              isVerified = false;
+              log(
+                "[SelfiePunchProvider] Starting live stream face verification for FaceId: $faceId",
+              );
+              final faceProvider = Provider.of<FaceVerificationProvider>(
+                context,
+                listen: false,
+              );
+              if (cameraController != null &&
+                  cameraController!.value.isInitialized) {
+                isVerified = await faceProvider.verifyLiveStream(
+                  cameraController!,
+                  faceId.toString(),
+                );
+              } else {
+                isVerified = false;
+              }
+              log("[SelfiePunchProvider] Face verification result: $isVerified");
             }
-            log("[SelfiePunchProvider] Face verification result: $isVerified");
+          } else {
+            log("[SelfiePunchProvider] Admin bypasses face verification.");
+            isVerified = true;
           }
-        } else {
-          log("[SelfiePunchProvider] Admin bypasses face verification.");
-          isVerified = true;
+        } catch (e) {
+          log("[SelfiePunchProvider] Face verification error: $e");
+          log('Exception during face verification: $e');
+          isVerified = false;
         }
-      } catch (e) {
-        log("[SelfiePunchProvider] Face verification error: $e");
-        log('Exception during face verification: $e');
-        isVerified = false;
+      } else {
+        log(
+          "[SelfiePunchProvider] Face already verified via FaceSDK. Skipping secondary verification.",
+        );
+        isVerified = true;
       }
 
       if (!isVerified) {
@@ -1959,14 +2003,16 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
       // -----------------------------------
 
+      PunchPerformanceTracker.step('puchInOutHandleSubmit: Started');
+
       // Stop the image stream safely BEFORE taking a picture.
-      // On Android, takePicture() will crash if the image stream is still active.
       if (cameraController != null &&
           cameraController!.value.isStreamingImages) {
         try {
           await cameraController!.stopImageStream();
         } catch (_) {}
       }
+      PunchPerformanceTracker.step('puchInOutHandleSubmit: Stop Image Stream');
 
       if (isDarkEnvironment) {
         log('Dark environment detected, showing flash overlay.');
@@ -1977,8 +2023,21 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       log('Taking picture immediately after verification...');
-      await takePicture();
-      log('Picture taken. imageFile: ${imageFile?.path}');
+      if (imageFile == null && cameraController != null && cameraController!.value.isInitialized) {
+        try {
+          await takePicture();
+          if (imageFile != null &&
+              (cameraController!.description.lensDirection ==
+                      CameraLensDirection.front ||
+                  isFrontCamera)) {
+            imageFile = await flipCapturedImage(imageFile!);
+          }
+        } catch (e) {
+          log('takePicture error: $e');
+        }
+      }
+      log('Picture ready. imageFile: ${imageFile?.path}');
+      PunchPerformanceTracker.step('puchInOutHandleSubmit: Picture Ready');
 
       if (isDarkEnvironment) {
         showFlashOverlay = false;
@@ -1986,9 +2045,9 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       log('Waiting for shift data...');
-      // Wait for shift data after taking picture so the captured face is the verified one
       await shiftDataFuture;
       log('Shift data fetched.');
+      PunchPerformanceTracker.step('puchInOutHandleSubmit: Shift Data Loaded');
 
       // Restart camera preview if it was stopped by the verification stream
       if (cameraController != null && cameraController!.value.isInitialized) {
@@ -1999,27 +2058,30 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       if (imageFile == null) {
-        log('imageFile is null. Showing error and returning.');
+        log('[PunchFlow] ERROR: imageFile is null. Showing error and returning.');
         showtoastmessage(cameraImageNotCapturedString);
+        PunchPerformanceTracker.finish(isSuccess: false, message: 'Camera image not captured');
         setPunchLoader(false);
         return;
       }
 
-      File sendImg = await flipCapturedImage(imageFile!);
-      log('Image flipped. sendImg path: ${sendImg.path}');
+      // Use the captured image directly without auto-flipping horizontally
+      File sendImg = imageFile!;
+      log('[PunchFlow] Captured selfie ready: ${sendImg.path}');
 
       // ── Persist selfie to permanent storage immediately after capture ───────
-      // This ensures the image survives OS temp-file cleanup before sync.
       lastPersistedSelfiePath =
           await OfflinePunchSyncService.persistSelfieImage(sendImg.path);
-      log('Selfie persisted at: $lastPersistedSelfiePath');
-      // ────────────────────────────────────────────────────────────────────────
+      log('[PunchFlow] Selfie persisted at: $lastPersistedSelfiePath');
+      PunchPerformanceTracker.step('puchInOutHandleSubmit: Persist Selfie to Storage');
 
-      log('Calling onTapPunchs...');
-      await onTapPunchs(context, currentDay, punchTypeString, isFromWidget);
-      log('onTapPunchs completed.');
+      log('[PunchFlow] Calling onTapPunchs(punchType: $punchTypeString, isVerified: $isVerified)...');
+      PunchPerformanceTracker.step('puchInOutHandleSubmit: Calling onTapPunchs');
+      await onTapPunchs(context, currentDay, punchTypeString, isFromWidget, isVerified);
+      log('[PunchFlow] onTapPunchs completed.');
       setPunchLoader(false); // Hide the loading screen behind the dialog
     } catch (e) {
+      PunchPerformanceTracker.finish(isSuccess: false, message: 'Exception: $e');
       log('Exception in puchInOutHandleSubmit: $e');
       showtoastmessage(punchFailedString);
       setPunchLoader(false);
@@ -2031,10 +2093,11 @@ class SelfiePunchProvider extends ChangeNotifier {
     String currentDay,
     String punchType, [
     bool isFromWidget = false,
+    bool isFaceVerified = false,
   ]) async {
     bool setTodayWeekOff = false;
     log(
-      'Current Day: $currentDay, Punch Type: $punchType getUserShift: $getUserShift',
+      '[PunchFlow] >>> In onTapPunchs: Current Day: $currentDay, Punch Type: $punchType, isFaceVerified: $isFaceVerified, currentLocation: $currentLocation <<<',
     );
     if (getUserShift != null) {
       log("getUserShift: $getUserShift");
@@ -2066,15 +2129,25 @@ class SelfiePunchProvider extends ChangeNotifier {
         return;
       }
 
+      final File? currentImage = imageFile;
+      if (currentImage == null) {
+        log('[SelfiePunchProvider] imageFile is null before showing PunchBoxConfirmation');
+        showtoastmessage(cameraImageNotCapturedString);
+        setPunchLoader(false);
+        return;
+      }
+
+      PunchPerformanceTracker.step('onTapPunchs: Location & Developer Mode Validated');
       punchBoxNotesController.clear();
       setPunchBoxOnTapStart(false);
       setPunchLoader(true);
+      PunchPerformanceTracker.step('onTapPunchs: Opening PunchBoxConfirmation Dialog');
       showDialog(
         barrierDismissible: false,
         context: context,
         builder: (BuildContext dialogContext) {
           return PunchBoxConfirmation(
-            imageFile!,
+            currentImage,
             punchType,
             currentLocation.toString(),
             setlatitude ?? '',
@@ -2082,6 +2155,7 @@ class SelfiePunchProvider extends ChangeNotifier {
             setTodayWeekOff,
             postalCode ?? '',
             isFromWidget: isFromWidget,
+            isFaceVerified: isFaceVerified,
           );
         },
       );
@@ -2089,7 +2163,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       await getCurrentLocation(context: context);
       // Retry after getting location
       if (currentLocation != null) {
-        await onTapPunchs(context, currentDay, punchType, isFromWidget);
+        await onTapPunchs(context, currentDay, punchType, isFromWidget, isFaceVerified);
       } else {
         showtoastmessage(unableToGetLocationString);
         setPunchLoader(false);
@@ -2123,6 +2197,9 @@ class SelfiePunchProvider extends ChangeNotifier {
   // ==================== SHIFT & OTHER FUNCTIONS ====================
   Future<void> shiftMasterDataGet(BuildContext context) async {
     try {
+      if (getUserShift != null && getUserShift!.positionId == curentUser?['PositionId']) {
+        return; // Fast cache: Shift data already available for current user
+      }
       List<GetShiftMasterData> getShiftSData = [];
       await Provider.of<ShiftMasterProvider>(
         context,

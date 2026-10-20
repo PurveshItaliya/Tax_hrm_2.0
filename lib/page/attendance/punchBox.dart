@@ -14,7 +14,9 @@ import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/services/developer_mode_service.dart';
+import 'package:tax_hrm/services/punch_performance_tracker.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
+import 'package:tax_hrm/widigets/single_run_gif.dart';
 
 class PunchBoxConfirmation extends StatefulWidget {
   File? userImage;
@@ -22,6 +24,7 @@ class PunchBoxConfirmation extends StatefulWidget {
   dynamic setUserWeekoff;
   String currentLocation, setlatitude, setlongitude, postcode;
   bool isFromWidget;
+  bool isFaceVerified;
 
   PunchBoxConfirmation(
     this.userImage,
@@ -32,6 +35,7 @@ class PunchBoxConfirmation extends StatefulWidget {
     this.setUserWeekoff,
     this.postcode, {
     this.isFromWidget = false,
+    this.isFaceVerified = false,
     super.key,
   });
 
@@ -43,12 +47,20 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
   late SelfiePunchProvider punchProvider;
   Timer? _autoCloseTimer;
   Timer? _tickTimer;
+  Timer? _gifHideTimer;
   int _secondsRemaining = 15;
   bool _isClosing = false;
+  late bool _showVerifiedGif;
 
   Future<void> callPunchData() async {
+    debugPrint('[PunchBox] >>> User tapped Confirm Punch button <<<');
+    debugPrint('[PunchBox] EmpId: ${curentUser?['Id']}, Lat: ${widget.setlatitude}, Lng: ${widget.setlongitude}, UserImage: ${widget.userImage?.path}');
+    PunchPerformanceTracker.step('PunchBox: User Tapped Confirm Punch');
+
     // In release builds, block Punch API call if Developer Mode is enabled
     if (await DeveloperModeService.isDeveloperModeRestricted()) {
+      PunchPerformanceTracker.step('PunchBox: Developer Mode Restricted');
+      PunchPerformanceTracker.finish(isSuccess: false, message: 'Developer Mode Restricted');
       if (mounted) {
         _tickTimer?.cancel();
         _autoCloseTimer?.cancel();
@@ -60,6 +72,7 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
       }
       return;
     }
+    PunchPerformanceTracker.step('PunchBox: Developer Mode Checked');
 
     punchProvider.setPunchLoader(true);
     await LocationBatchStorage.appendLocation(
@@ -67,15 +80,21 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
       longitude: double.parse(widget.setlongitude),
       entryTime: DateTime.now(),
     );
+    PunchPerformanceTracker.step('PunchBox: Location Appended');
+
+    // Launch location batch upload in background without blocking punch API
     final String userDataStr = await SaveUser().getUserDatas();
     if (userDataStr.isNotEmpty) {
       final dynamic userData = jsonDecode(userDataStr);
-      await LocationBatchStorage.uploadPendingBatch(
+      unawaited(LocationBatchStorage.uploadPendingBatch(
         userData: userData,
         isMapScreen: false,
         isAppForeground: true,
-      );
+      ));
+      PunchPerformanceTracker.step('PunchBox: Location Batch Upload Started (Background)');
     }
+
+    PunchPerformanceTracker.step('PunchBox: Calling punchNowCall');
     await punchProvider.punchNowCall(
       context,
       curentUser['Id'],
@@ -94,6 +113,17 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     punchProvider = Provider.of<SelfiePunchProvider>(context, listen: false);
+
+    _showVerifiedGif = widget.isFaceVerified;
+    if (_showVerifiedGif) {
+      _gifHideTimer = Timer(const Duration(milliseconds: 1800), () {
+        if (mounted && _showVerifiedGif) {
+          setState(() {
+            _showVerifiedGif = false;
+          });
+        }
+      });
+    }
 
     // Start background checks immediately after dialog opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -152,6 +182,13 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
     WidgetsBinding.instance.removeObserver(this);
     _tickTimer?.cancel();
     _autoCloseTimer?.cancel();
+    _gifHideTimer?.cancel();
+    try {
+      if (widget.userImage != null) {
+        PaintingBinding.instance.imageCache.evict(FileImage(widget.userImage as File));
+      }
+    } catch (_) {}
+    punchProvider.imageFile = null;
     super.dispose();
   }
 
@@ -238,20 +275,80 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (widget.userImage != null) ...[
-                          Container(
-                            height: size.height * 0.18,
-                            width: size.height * 0.18,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: ColorConst.themeColor.withOpacity(0.4),
-                                width: 2,
+                          Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 250),
+                                  opacity: _showVerifiedGif ? 0.55 : 1.0,
+                                  child: SizedBox(
+                                    height: size.height * 0.18,
+                                    width: size.height * 0.18,
+                                    child: Image.file(
+                                      widget.userImage as File,
+                                      key: ValueKey(widget.userImage!.path),
+                                      fit: BoxFit.cover,
+                                      gaplessPlayback: false,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              image: DecorationImage(
-                                image: FileImage(widget.userImage as File),
-                                fit: BoxFit.cover,
+                              if (_showVerifiedGif)
+                                Positioned.fill(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      color: (Theme.of(context).brightness == Brightness.dark || ColorConst.isDark)
+                                          ? Colors.black.withOpacity(0.45)
+                                          : ColorConst.themeColor.withOpacity(0.18),
+                                      alignment: Alignment.center,
+                                      child: SingleRunGif(
+                                        assetPath: 'assets/lottie/face_sucess.gif',
+                                        width: size.height * 0.14,
+                                        height: size.height * 0.14,
+                                        fit: BoxFit.contain,
+                                        onComplete: () {
+                                          if (mounted && _showVerifiedGif) {
+                                            setState(() {
+                                              _showVerifiedGif = false;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Positioned(
+                                bottom: -4,
+                                right: -4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00E676),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_rounded,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                           const SizedBox(width: 16),
                         ],

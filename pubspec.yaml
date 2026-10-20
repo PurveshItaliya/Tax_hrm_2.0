@@ -50,6 +50,7 @@ dependencies:
   dropdown_button2: 
   intl_phone_field:
   path_provider:
+  path:
   image_picker:
   lottie:
   pdf:
@@ -103,6 +104,11 @@ dependencies:
   flutter_secure_storage: ^10.3.3
   screen_brightness: ^2.1.11
   firebase_remote_config: ^6.7.0
+  facesdk_plugin:
+    path: ./facesdk_plugin
+  flutter_exif_rotation: ^0.5.1
+  sqflite: ^2.4.1
+  settings_ui: ^2.0.2
 
 dev_dependencies:
   flutter_test:

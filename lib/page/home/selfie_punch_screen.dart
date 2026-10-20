@@ -39,6 +39,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   bool _isFlowRunning = false; // true while PermissionFlowService is active
   bool _permissionsChecked = false;
   bool _wentToSettings = false;
+  bool _hasAutoPunchedFromWidget = false;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   @override
@@ -1035,49 +1036,65 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
         ? ColorConst.themeColor
         : Colors.red.shade600;
 
+    // When opened from home screen widget, auto-trigger punch instantly as soon as ready
+    if (widget.isFromWidget && !_hasAutoPunchedFromWidget) {
+      _hasAutoPunchedFromWidget = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !provider.PunchLoader && !_isFlowRunning) {
+          _performPunch(provider, currentDay, isOffline);
+        }
+      });
+    }
+
     return _customButton(
       label: buttonName,
       color: buttonColor,
-      onTap: () async {
-        if (_isFlowRunning) return;
+      onTap: () => _performPunch(provider, currentDay, isOffline),
+    );
+  }
 
-        // In release builds, block Punch In/Out if Developer Mode is enabled
-        if (await DeveloperModeService.isDeveloperModeRestricted()) {
-          if (context.mounted) {
-            DeveloperModeService.showDeveloperModeWarningDialog(context);
-          }
-          return;
+  Future<void> _performPunch(
+    SelfiePunchProvider provider,
+    String currentDay,
+    bool isOffline,
+  ) async {
+    if (_isFlowRunning) return;
+
+    // In release builds, block Punch In/Out if Developer Mode is enabled
+    if (await DeveloperModeService.isDeveloperModeRestricted()) {
+      if (context.mounted) {
+        DeveloperModeService.showDeveloperModeWarningDialog(context);
+      }
+      return;
+    }
+
+    // Check internet connection before proceeding with punch
+    bool hasNoInternet = isOffline ||
+        (context.mounted &&
+            context.read<InternetConnectionProvider>().isOffline);
+
+    if (!hasNoInternet) {
+      try {
+        final connectivityResults =
+            await Connectivity().checkConnectivity();
+        if (connectivityResults.contains(ConnectivityResult.none) ||
+            connectivityResults.isEmpty) {
+          hasNoInternet = true;
         }
+      } catch (_) {}
+    }
 
-        // Check internet connection before proceeding with punch
-        bool hasNoInternet = isOffline ||
-            (context.mounted &&
-                context.read<InternetConnectionProvider>().isOffline);
+    if (hasNoInternet) {
+      if (context.mounted) {
+        _showNoInternetDialog(context);
+      }
+      return;
+    }
 
-        if (!hasNoInternet) {
-          try {
-            final connectivityResults =
-                await Connectivity().checkConnectivity();
-            if (connectivityResults.contains(ConnectivityResult.none) ||
-                connectivityResults.isEmpty) {
-              hasNoInternet = true;
-            }
-          } catch (_) {}
-        }
-
-        if (hasNoInternet) {
-          if (context.mounted) {
-            _showNoInternetDialog(context);
-          }
-          return;
-        }
-
-        await provider.puchInOutHandleSubmit(
-          context,
-          currentDay,
-          widget.isFromWidget,
-        );
-      },
+    await provider.puchInOutHandleSubmit(
+      context,
+      currentDay,
+      widget.isFromWidget,
     );
   }
 

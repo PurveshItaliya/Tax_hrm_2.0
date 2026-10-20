@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:tax_hrm/main.dart' show globalPrefs, iosWidgetPunchLaunch, androidWidgetLaunch;
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/bottom_bar_screen.dart';
-import 'package:tax_hrm/page/home/selfie_punch_screen.dart';
+import 'package:tax_hrm/page/face_punch_2/face_punch.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:provider/provider.dart';
@@ -132,7 +132,7 @@ class _WidgetPunchWrapperState extends State<WidgetPunchWrapper> {
         nextscreenRemove(context, const AnimatedBottomBar());
         return false;
       },
-      child: const SelfiePunchScreen(isFromWidget: true),
+      child: const FacePunchScreen(isFromWidget: true),
     );
   }
 }
