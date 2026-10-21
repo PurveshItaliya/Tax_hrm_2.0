@@ -53,9 +53,12 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version108 = 'v1.0.8';
     String versionName108 = 'Punch Redesign & Enhancements';
 
+    String version109 = 'v1.0.9';
+    String versionName109 = 'Face Verification & Performance Enhancements';
+
     versions = Platform.isAndroid 
-        ? ['All', 'v1.0.8', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
-        : ['All', 'v1.0.8', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
+        ? ['All', 'v1.0.9', 'v1.0.8', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        : ['All', 'v1.0.9', 'v1.0.8', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -679,6 +682,77 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
         features: [
           'Fixed repeated location dialogs and improved location permission handling.',
           'Fixed unnecessary Punch In/Out reminder notifications.',
+        ],
+      ),
+      // --- v1.0.9 New Features Added ---
+      ReleaseNoteItem(
+        id: 39,
+        title: 'Face Verification & Liveness',
+        description: 'Improved face verification accuracy, speed, and liveness detection.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Employee App',
+        icon: Icons.face_retouching_natural_rounded,
+        bgColor: const Color(0xFF2196F3),
+        features: [
+          'Improved face verification accuracy, speed, and liveness detection.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 40,
+        title: 'Face Registration & Matching',
+        description: 'Enhanced face registration and matching across different lighting conditions.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Employee App',
+        icon: Icons.camera_front_rounded,
+        bgColor: const Color(0xFF00BCD4),
+        features: [
+          'Enhanced face registration and matching across different lighting conditions.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 41,
+        title: 'App Loading & Performance',
+        description: 'Optimized app loading and overall performance.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Both',
+        icon: Icons.bolt_rounded,
+        bgColor: const Color(0xFFFF9800),
+        features: [
+          'Optimized app loading and overall performance.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 42,
+        title: 'Confirmation Dialog & Navigation',
+        description: 'Improved confirmation dialog auto-close timing and bottom navigation UI.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Both',
+        icon: Icons.touch_app_rounded,
+        bgColor: const Color(0xFF673AB7),
+        features: [
+          'Improved confirmation dialog auto-close timing and bottom navigation UI.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 43,
+        title: 'Attendance Count Increment',
+        description: 'Fixed attendance count increment issues.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Both',
+        icon: Icons.event_available_rounded,
+        bgColor: const Color(0xFF4CAF50),
+        features: [
+          'Fixed attendance count increment issues.',
         ],
       ),
     ];
