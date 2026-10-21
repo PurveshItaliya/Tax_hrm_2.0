@@ -50,6 +50,7 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
   Timer? _gifHideTimer;
   int _secondsRemaining = 15;
   bool _isClosing = false;
+  bool _timerStarted = false;
   late bool _showVerifiedGif;
 
   Future<void> callPunchData() async {
@@ -113,6 +114,7 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     punchProvider = Provider.of<SelfiePunchProvider>(context, listen: false);
+    punchProvider.addListener(_onPunchProviderChanged);
 
     _showVerifiedGif = widget.isFaceVerified;
     if (_showVerifiedGif) {
@@ -125,19 +127,32 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
       });
     }
 
-    // Start background checks immediately after dialog opens
+    // Direct open old logic: run pre-punch background checks after dialog renders without blocking
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkKeyboardStatus();
-      // Ensure we have current location first if not already available
       if (punchProvider.currentLocation != null) {
         punchProvider.processPrePunchChecks(context);
       }
     });
 
-    _startAutoCloseTimer();
+    // Note: Timer does not start while loading is running; it starts only after all loading completes!
+    if (!punchProvider.isPrePunchChecksLoading &&
+        punchProvider.isPrePunchChecksSuccess) {
+      _startAutoCloseTimer();
+    }
+  }
+
+  void _onPunchProviderChanged() {
+    if (!mounted || _timerStarted || _isClosing) return;
+    if (!punchProvider.isPrePunchChecksLoading &&
+        punchProvider.isPrePunchChecksSuccess) {
+      _startAutoCloseTimer();
+    }
   }
 
   void _startAutoCloseTimer() {
+    if (_timerStarted || _isClosing || !mounted) return;
+    _timerStarted = true;
     _secondsRemaining = 15;
     _tickTimer?.cancel();
     _autoCloseTimer?.cancel();
@@ -180,6 +195,7 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    punchProvider.removeListener(_onPunchProviderChanged);
     _tickTimer?.cancel();
     _autoCloseTimer?.cancel();
     _gifHideTimer?.cancel();

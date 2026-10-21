@@ -1,4 +1,4 @@
-// ignore_for_file: constant_identifier_names, prefer_final_fields
+// ignore_for_file: constant_identifier_names, prefer_final_fields, non_constant_identifier_names
 
 import 'dart:async';
 import 'dart:convert';
@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/face_registation/face_punch_state.dart';
 import 'package:tax_hrm/page/face_registation/face_recognition_service.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 
 class FaceVerificationProvider extends ChangeNotifier {
@@ -45,8 +46,8 @@ class FaceVerificationProvider extends ChangeNotifier {
   bool hasSyncError = false;
 
   // Constants
-  static const double THRESHOLD =
-      0.60; // Cosine similarity threshold for MobileFaceNet
+  static double get THRESHOLD =>
+      RemoteConfigServices.identityThreshold; // Cosine similarity threshold for MobileFaceNet
   final String templateKeyPrefix = 'face_template_v2_'; // Append empId
 
   // Logs

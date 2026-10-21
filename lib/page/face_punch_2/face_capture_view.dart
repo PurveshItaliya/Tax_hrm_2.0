@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names, unused_field, must_be_immutable, duplicate_ignore, library_private_types_in_public_api, strict_top_level_inference, curly_braces_in_flow_control_structures, empty_catches
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -21,6 +23,10 @@ import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:tax_hrm/api/documentapi.dart';
 import 'package:tax_hrm/api/employeapi.dart';
+import 'package:tax_hrm/api/authapi.dart';
+import 'package:tax_hrm/models/authclass/emploginclass.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 
 typedef Person = FaceSdkPerson;
@@ -166,12 +172,23 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
   @override
   void initState() {
     super.initState();
-
+    RemoteConfigServices.configVersion.addListener(_onRemoteConfigUpdated);
     loadSettings();
 
     setState(() {
       _viewMode = ViewMode.NO_FACE_PREPARE;
     });
+  }
+
+  @override
+  void dispose() {
+    RemoteConfigServices.configVersion.removeListener(_onRemoteConfigUpdated);
+    super.dispose();
+  }
+
+  void _onRemoteConfigUpdated() {
+    if (!mounted) return;
+    loadSettings();
   }
 
   void setViewMode(ViewMode viewMode) {
@@ -186,15 +203,16 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
   }
 
   Future<void> loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? livenessThreshold = prefs.getString("liveness_threshold");
-    String? identifyThreshold = prefs.getString("identify_threshold");
     if (mounted) {
       setState(() {
-        _livenessThreshold = double.tryParse(livenessThreshold ?? '') ?? 0.70;
-        _identifyThreshold = double.tryParse(identifyThreshold ?? '') ?? 0.70;
+        _livenessThreshold = RemoteConfigServices.livenessThreshold;
+        _identifyThreshold = RemoteConfigServices.identityThreshold;
       });
+    } else {
+      _livenessThreshold = RemoteConfigServices.livenessThreshold;
+      _identifyThreshold = RemoteConfigServices.identityThreshold;
     }
+    RemoteConfigServices.instance.fetchLatestConfig();
   }
 
   Future<void> registerFace(BuildContext context) async {
@@ -358,6 +376,59 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
           faceRegisterImg: uploadedImgName ?? '',
           removeImage: false,
           listenRes: (_) {},
+        );
+
+        // 1-TIME EmpLogin call immediately after face registration to fetch latest user details & image from server
+        final String username =
+            (curentUser?['UserName'] ?? curentUser?['Username'] ?? '')
+                .toString()
+                .trim();
+        final String password =
+            (curentUser?['Password'] ?? curentUser?['password'] ?? '')
+                .toString()
+                .trim();
+        if (username.isNotEmpty && password.isNotEmpty) {
+          try {
+            final loginVal =
+                await AuthLoginService().callEmployeLogin(username, password);
+            if (loginVal is EmpUserLogin && loginVal.success != false) {
+              final String freshJson = jsonEncode(loginVal.toJson());
+              await SaveUser().saveUserData(freshJson);
+              curentUser = jsonDecode(freshJson);
+              final String? freshFileName =
+                  loginVal.fileName ?? loginVal.faceRegisterImg;
+              if (freshFileName != null && freshFileName.trim().isNotEmpty) {
+                final clean =
+                    freshFileName.trim().split('/').last.split(r'\').last;
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('cached_face_register_img_$empId', clean);
+              }
+            }
+          } catch (e) {
+            debugPrint(
+              '[FaceCaptureView] Post-registration 1-time EmpLogin refresh error: $e',
+            );
+          }
+        }
+
+        // Save persistent local copy of face image in app documents directory for offline resilience
+        try {
+          final appDir = await getApplicationDocumentsDirectory();
+          final localFaceFile = File('${appDir.path}/face_reg_$empId.jpg');
+          await localFaceFile.writeAsBytes(person.faceJpg);
+          debugPrint(
+            '[FaceCaptureView] Saved offline face image to ${localFaceFile.path}',
+          );
+        } catch (e) {
+          debugPrint(
+            '[FaceCaptureView] Error saving local offline face image: $e',
+          );
+        }
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'face_template_version_$empId',
+          FaceRegistrationSyncService.currentTemplateVersion,
         );
       }
     } catch (_) {}

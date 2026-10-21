@@ -20,25 +20,21 @@ import 'package:tax_hrm/provider/face_verification_provider.dart';
 import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/api/attendanceapi.dart';
 import 'package:tax_hrm/services/location_permission_service.dart';
-import 'package:tax_hrm/api/authapi.dart';
 import 'package:tax_hrm/models/offline_punch_record.dart';
 import 'package:tax_hrm/provider/location_tracking_provider.dart';
 import 'package:tax_hrm/repository/background_location_repository.dart';
 import 'package:tax_hrm/models/attendance/attendanceBlog.dart';
 import 'package:tax_hrm/models/attendance/punchnow.dart'
     hide Attendence, AttendenceLog;
-import 'package:tax_hrm/models/authclass/emploginclass.dart';
 import 'package:tax_hrm/models/createcguid.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/shiftclass/shiftmaster/getshiftmasters.dart';
 import 'package:tax_hrm/page/attendance/punchBox.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
-import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/shiftprovider.dart';
 import 'package:tax_hrm/services/offline_punch_sync_service.dart';
-import 'package:tax_hrm/utils/navigation.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:tax_hrm/services/background_location_service.dart';
@@ -1020,34 +1016,7 @@ class SelfiePunchProvider extends ChangeNotifier {
           return;
         }
       } else {
-        // ── ONLINE PATH (unchanged) ─────────────────────────────────────────
-        punchProcessStatus.value = 'Authenticating...';
-        EmpUserLogin setresponse = await AuthLoginService().callEmployeLogin(
-          curentUser['UserName'],
-          curentUser['Password'],
-        );
-        if (!context.mounted) return;
-
-        if (setresponse.success != true) {
-          showtoastmessage(accountInactiveString);
-          await FcmTokenService.instance.handleLogout();
-          SaveUser().saveUserData('');
-          SaveUser().saveselectedcopany('');
-          nextscreenRemove(context, ShowSpleshPage(), onthenValue: (vaolue) {});
-          Navigator.pop(context); // Close dialog
-          return;
-        }
-
-        if (setresponse.password != curentUser['Password']) {
-          showtoastmessage(passwordChangedString);
-          await FcmTokenService.instance.handleLogout();
-          SaveUser().saveUserData('');
-          SaveUser().saveselectedcopany('');
-          nextscreenRemove(context, ShowSpleshPage(), onthenValue: (vaolue) {});
-          Navigator.pop(context); // Close dialog
-          return;
-        }
-
+        // ── ONLINE PATH ─────────────────────────────────────────
         punchProcessStatus.value = 'Syncing attendance...';
         if (checkStatus == null || checkStatus!.attendenceLog == null) {
           await refreshLastPunchOnly(curentUser['Id']);
@@ -1752,7 +1721,7 @@ class SelfiePunchProvider extends ChangeNotifier {
     }
 
     // Only fetch fresh location if not already obtained
-    if (setlatitude == null || setlatitude!.isEmpty || setlongitude == null || setlongitude!.isEmpty || currentPosition == null) {
+    if (setlatitude == null || setlatitude!.isEmpty || setlongitude == null || setlongitude!.isEmpty) {
       log('[PunchFlow] Fetching current location coordinates...');
       await getCurrentLocation(context: context);
       log(
@@ -2140,6 +2109,9 @@ class SelfiePunchProvider extends ChangeNotifier {
       PunchPerformanceTracker.step('onTapPunchs: Location & Developer Mode Validated');
       punchBoxNotesController.clear();
       setPunchBoxOnTapStart(false);
+      isPrePunchChecksLoading = true;
+      isPrePunchChecksSuccess = false;
+      punchProcessStatus.value = 'Checking location...';
       setPunchLoader(true);
       PunchPerformanceTracker.step('onTapPunchs: Opening PunchBoxConfirmation Dialog');
       showDialog(

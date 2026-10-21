@@ -7,10 +7,10 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:tax_hrm/page/face_punch_2/face_sdk_engine.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -159,23 +159,36 @@ class FaceSdkVerifyScreenState extends State<FaceSdkVerifyScreen> {
   @override
   void initState() {
     super.initState();
+    RemoteConfigServices.configVersion.addListener(_onRemoteConfigUpdated);
     _loadSettings();
   }
 
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? livenessThreshold = prefs.getString('liveness_threshold');
-    final String? identifyThreshold = prefs.getString('identify_threshold');
+  @override
+  void dispose() {
+    RemoteConfigServices.configVersion.removeListener(_onRemoteConfigUpdated);
+    super.dispose();
+  }
+
+  void _onRemoteConfigUpdated() {
+    if (!mounted) return;
+    _applySettings();
+  }
+
+  void _applySettings() {
     if (mounted) {
       setState(() {
-        if (livenessThreshold != null && livenessThreshold.trim().isNotEmpty) {
-          _livenessThreshold = (double.tryParse(livenessThreshold.trim()) ?? 0.70).clamp(0.35, 0.95);
-        }
-        if (identifyThreshold != null && identifyThreshold.trim().isNotEmpty) {
-          _identifyThreshold = (double.tryParse(identifyThreshold.trim()) ?? 0.70).clamp(0.35, 0.95);
-        }
+        _livenessThreshold = RemoteConfigServices.livenessThreshold;
+        _identifyThreshold = RemoteConfigServices.identityThreshold;
       });
+    } else {
+      _livenessThreshold = RemoteConfigServices.livenessThreshold;
+      _identifyThreshold = RemoteConfigServices.identityThreshold;
     }
+  }
+
+  Future<void> _loadSettings() async {
+    _applySettings();
+    RemoteConfigServices.instance.fetchLatestConfig();
   }
 
   void faceRecognitionStart() {

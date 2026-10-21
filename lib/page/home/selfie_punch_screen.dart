@@ -10,13 +10,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
-import 'package:tax_hrm/page/face_registation/face_registration_screen.dart';
 import 'package:tax_hrm/provider/language_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/services/developer_mode_service.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
@@ -42,50 +42,82 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
   bool _hasAutoPunchedFromWidget = false;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
+  bool _isInitFlowRunning = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_isFlowRunning && !_permissionsChecked) {
-        _initializePage();
-        _checkFaceRegistration();
-      }
-      // Show punch sync summary dialog if there are unviewed results.
-      PunchSyncSummaryDialog.showIfNeeded(context);
-
-      // Fetch shift data for accurate late check-in tracking
-      final settingProv = Provider.of<SettingProvider>(context, listen: false);
-      if (settingProv.setEmpProfile?.positionName != null) {
-        Provider.of<AttendanceEmp>(
-          context,
-          listen: false,
-        ).fetchAndStoreBeginTime(
-          context,
-          settingProv.setEmpProfile!.positionName,
-        );
-      } else {
-        settingProv.getUserEmployeeData(context).then((_) {
-          if (mounted) {
-            Provider.of<AttendanceEmp>(
-              context,
-              listen: false,
-            ).fetchAndStoreBeginTime(
-              context,
-              settingProv.setEmpProfile?.positionName,
-            );
-          }
-        });
-      }
-
-      // Start live timer to keep check-in/out times updated
       if (mounted) {
-        Provider.of<HomeProvider>(
-          context,
-          listen: false,
-        ).startWorkingHoursTimer(context);
+        _runSequentialInitFlow();
       }
     });
+  }
+
+  Future<void> _runSequentialInitFlow() async {
+    if (!mounted || _isInitFlowRunning) return;
+    _isInitFlowRunning = true;
+
+    try {
+      // 1. Shift data & working hours (non-UI background tasks)
+      _fetchShiftDataAndStartTimer();
+
+      // 2. Initialize permissions & camera preview
+      if (!_permissionsChecked) {
+        await _initializePage();
+      }
+
+      if (!mounted) return;
+
+      // 3. Face Registration check (ONLY AFTER permissions are done & camera is granted)
+      final bool camGranted = await Permission.camera.status.isGranted;
+      if (camGranted) {
+        await _checkFaceRegistration();
+      }
+
+      if (!mounted) return;
+
+      // 4. Punch Sync Summary dialog (ONLY AFTER face registration is done / dismissed)
+      await PunchSyncSummaryDialog.showIfNeeded(context);
+    } catch (e) {
+      debugPrint('[SelfiePunch] Sequential init flow error: $e');
+    } finally {
+      _isInitFlowRunning = false;
+    }
+  }
+
+  void _fetchShiftDataAndStartTimer() {
+    final settingProv = Provider.of<SettingProvider>(context, listen: false);
+    if (settingProv.setEmpProfile?.positionName != null) {
+      Provider.of<AttendanceEmp>(
+        context,
+        listen: false,
+      ).fetchAndStoreBeginTime(
+        context,
+        settingProv.setEmpProfile!.positionName,
+      );
+    } else {
+      settingProv.getUserEmployeeData(context).then((_) {
+        if (mounted) {
+          Provider.of<AttendanceEmp>(
+            context,
+            listen: false,
+          ).fetchAndStoreBeginTime(
+            context,
+            settingProv.setEmpProfile?.positionName,
+          );
+        }
+      });
+    }
+
+    // Start live timer to keep check-in/out times updated
+    if (mounted) {
+      Provider.of<HomeProvider>(
+        context,
+        listen: false,
+      ).startWorkingHoursTimer(context);
+    }
   }
 
   @override
@@ -175,55 +207,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
           provider.callApi(context),
         ]);
 
-        debugPrint(
-          "INITPAGE: 7. Calling PermissionFlowService.run in background",
-        );
-        PermissionFlowService.run(
-              context,
-              isFetchLocation: provider.isFetchLocation,
-            )
-            .then((result) {
-              debugPrint(
-                "INITPAGE: 8. Background PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}",
-              );
-              if (mounted && result.cameraGranted && !cameraStarted) {
-                debugPrint(
-                  "INITPAGE: 9. Calling startCamera(0) from background flow",
-                );
-                provider.startCamera(0);
-              } else if (mounted && !result.cameraGranted && !cameraStarted) {
-                debugPrint(
-                  "INITPAGE: 10. Resetting loaders from background flow",
-                );
-                provider.cameraisLoading = false;
-                provider.readyCameraPreviewshow = false;
-                provider.setLoading(provider.isLoading);
-              }
-            })
-            .catchError((e) {
-              debugPrint(
-                "INITPAGE: 11. Background PermissionFlowService.run caught error: $e",
-              );
-              if (mounted && !cameraStarted) {
-                debugPrint(
-                  "INITPAGE: 12. Resetting loaders from background flow catchError",
-                );
-                provider.cameraisLoading = false;
-                provider.readyCameraPreviewshow = false;
-                provider.setLoading(provider.isLoading);
-              }
-              return const PermissionFlowResult(
-                notificationGranted: false,
-                cameraGranted: false,
-                locationGranted: false,
-              );
-            })
-            .whenComplete(() {
-              debugPrint(
-                "INITPAGE: 13. Background PermissionFlowService.run whenComplete",
-              );
-              _isFlowRunning = false;
-            });
+        _isFlowRunning = false;
         return; // Fast path successful!
       }
 
@@ -261,114 +245,110 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
     if (!RemoteConfigServices.isFaceVerifyEnabled) return;
     if (curentUser?['Role'] == 'Admin') return;
 
-    final faceId = curentUser?["FaceRegisterId"];
-    final alternativeFaceId = curentUser?["FaceRegisterId "];
+    // Check availability locally first (Offline First)
+    final bool isRegistered = await FaceRegistrationSyncService.instance
+        .checkFaceAvailabilityAndSync(forceServerCheck: false);
 
-    if ((faceId == null || faceId.toString().isEmpty) &&
-        (alternativeFaceId == null || alternativeFaceId.toString().isEmpty)) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return PopScope(
-            canPop: false,
-            child: Dialog(
-              shape: RoundedRectangleBorder(
+    // If face is already enrolled locally or on server, DO NOT show registration dialog!
+    if (isRegistered) return;
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: ColorConst.themeColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: ColorConst.themeColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: SvgPicture.asset(
-                        'assets/images/faceid.svg',
-                        height: 48,
-                        width: 48,
-                        color: ColorConst.themeColor,
-                      ),
+                    child: SvgPicture.asset(
+                      'assets/images/faceid.svg',
+                      height: 48,
+                      width: 48,
+                      color: ColorConst.themeColor,
                     ),
-                    const SizedBox(height: 20),
-                    Text(
-                      faceRegistrationRequiredString,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    faceRegistrationRequiredString,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      faceRegistrationDescString,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
-                        height: 1.4,
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    faceRegistrationDescString,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                      height: 1.4,
                     ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ColorConst.themeColor,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ColorConst.themeColor,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        onPressed: () async {
-                          final selfieProvider =
-                              Provider.of<SelfiePunchProvider>(
-                                context,
-                                listen: false,
-                              );
-                          selfieProvider.disposeCamera();
+                      ),
+                      onPressed: () async {
+                        final selfieProvider =
+                            Provider.of<SelfiePunchProvider>(
+                              context,
+                              listen: false,
+                            );
+                        selfieProvider.disposeCamera();
 
-                          final success = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const FaceRegistrationScreen(),
-                            ),
-                          );
+                        final success = await FaceRegistrationSyncService
+                            .instance
+                            .openFaceRegistrationScreen(context);
 
-                          if (success != null && success != false) {
-                            if (success is String && curentUser != null) {
-                              curentUser["FaceRegisterId"] = success;
-                            }
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              selfieProvider.startCamera(0);
-                            }
-                          } else {
-                            if (context.mounted) {
-                              selfieProvider.startCamera(0);
-                            }
+                        if (success) {
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            selfieProvider.startCamera(0);
                           }
-                        },
+                        } else {
+                          if (context.mounted) {
+                            selfieProvider.startCamera(0);
+                          }
+                        }
+                      },
                         child: Text(
                           registerFaceNowString,
                           style: const TextStyle(
@@ -386,7 +366,6 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
           );
         },
       );
-    }
   }
 
   Future<void> _checkPermissionsAfterSettings(

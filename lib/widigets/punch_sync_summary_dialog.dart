@@ -20,6 +20,9 @@ class PunchSyncSummaryDialog extends StatefulWidget {
     this.serverLogs = const [],
   });
 
+  /// Global flag indicating if a punch sync summary dialog is currently open.
+  static bool isShowing = false;
+
   /// Check for unviewed results and show appropriate confirmation dialog.
   ///
   /// - Non-duplicate punches: Added directly -> shows simple clean success dialog.
@@ -28,88 +31,94 @@ class PunchSyncSummaryDialog extends StatefulWidget {
     BuildContext context, {
     List<blog.AttendenceLog> serverLogs = const [],
   }) async {
+    if (isShowing) return;
     final unviewed =
         await OfflinePunchSyncService.instance.getUnviewedResults();
     if (unviewed.isEmpty) return;
     if (!context.mounted) return;
 
-    final duplicates = unviewed
-        .where((r) =>
-            r.syncStatus == OfflineSyncStatus.duplicateDetected ||
-            r.syncStatus == OfflineSyncStatus.needsAttention)
-        .toList();
+    isShowing = true;
+    try {
+      final duplicates = unviewed
+          .where((r) =>
+              r.syncStatus == OfflineSyncStatus.duplicateDetected ||
+              r.syncStatus == OfflineSyncStatus.needsAttention)
+          .toList();
 
-    if (duplicates.isEmpty) {
-      // ── Scenario A: No duplicates — Punch was added directly! Show simple dialog.
-      await showDialog<void>(
-        context: context,
-        builder: (_) => Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.check_circle_outline_rounded,
-                  color: ColorConst.themeColor,
-                  size: 48,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  punchAddedSuccessfullyString,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+      if (duplicates.isEmpty) {
+        // ── Scenario A: No duplicates — Punch was added directly! Show simple dialog.
+        await showDialog<void>(
+          context: context,
+          builder: (_) => Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: ColorConst.themeColor,
+                    size: 48,
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  offlinePunchAddedRecordString,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: ColorConst.textgrey,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ColorConst.themeColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                  const SizedBox(height: 12),
+                  Text(
+                    punchAddedSuccessfullyString,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
                     ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(okString,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Text(
+                    offlinePunchAddedRecordString,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: ColorConst.textgrey,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ColorConst.themeColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(okString,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    } else {
-      // ── Scenario B: Duplicate detected — API NOT called yet. Show user confirmation dialog.
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => PunchSyncSummaryDialog(
-          offlineRecords: unviewed,
-          serverLogs: serverLogs,
-        ),
-      );
-    }
+        );
+      } else {
+        // ── Scenario B: Duplicate detected — API NOT called yet. Show user confirmation dialog.
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => PunchSyncSummaryDialog(
+            offlineRecords: unviewed,
+            serverLogs: serverLogs,
+          ),
+        );
+      }
 
-    // Mark results as viewed after dialog is dismissed.
-    await OfflinePunchSyncService.instance.markResultsViewed(
-      unviewed.map((r) => r.localId).toList(),
-    );
+      // Mark results as viewed after dialog is dismissed.
+      await OfflinePunchSyncService.instance.markResultsViewed(
+        unviewed.map((r) => r.localId).toList(),
+      );
+    } finally {
+      isShowing = false;
+    }
   }
 
   @override

@@ -1,4 +1,4 @@
-// ignore_for_file: invalid_return_type_for_catch_error, deprecated_member_use, strict_top_level_inference, use_build_context_synchronously
+// ignore_for_file: invalid_return_type_for_catch_error, deprecated_member_use, strict_top_level_inference, use_build_context_synchronously, unused_element
 
 import 'dart:async';
 import 'dart:io';
@@ -22,6 +22,7 @@ import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
 import 'package:tax_hrm/services/developer_mode_service.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/services/punch_performance_tracker.dart';
 import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
@@ -81,8 +82,25 @@ class _FacePunchScreenState extends State<FacePunchScreen>
   // ── On-Demand Face Verification State ─────────────────────────────────────
   FaceScanStatus _scanStatus = FaceScanStatus.idle;
   File? _capturedFaceFile;
+  String? _cameraBoxMessage;
+  Timer? _cameraBoxMessageTimer;
   double _identifyThreshold = 0.70;
   double _livenessThreshold = 0.70;
+
+  void _setCameraBoxMessage(String message, {Duration duration = const Duration(seconds: 3)}) {
+    _cameraBoxMessageTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _cameraBoxMessage = message;
+    });
+    _cameraBoxMessageTimer = Timer(duration, () {
+      if (mounted && _cameraBoxMessage == message) {
+        setState(() {
+          _cameraBoxMessage = null;
+        });
+      }
+    });
+  }
 
   Widget _buildStatusGif() {
     switch (_scanStatus) {
@@ -122,26 +140,35 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     }
   }
 
+  void _onRemoteConfigUpdated() {
+    if (!mounted) return;
+    _applySettingsFromRemote();
+  }
+
+  void _applySettingsFromRemote() {
+    final idThreshold = RemoteConfigServices.identityThreshold;
+    final liveThreshold = RemoteConfigServices.livenessThreshold;
+    if (mounted) {
+      setState(() {
+        _identifyThreshold = idThreshold;
+        _livenessThreshold = liveThreshold;
+      });
+    } else {
+      _identifyThreshold = idThreshold;
+      _livenessThreshold = liveThreshold;
+    }
+    debugPrint('=================================================================');
+    debugPrint('[FacePunch] APPLIED REMOTE CONFIG SETTINGS:');
+    debugPrint('[FacePunch]   - identifyThreshold: $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%)');
+    debugPrint('[FacePunch]   - livenessThreshold: $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%)');
+    debugPrint('=================================================================');
+  }
+
   Future<void> _loadSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? identifyThreshold = prefs.getString('identify_threshold');
-      final String? livenessThreshold = prefs.getString('liveness_threshold');
-      if (mounted) {
-        setState(() {
-          if (identifyThreshold != null && identifyThreshold.trim().isNotEmpty) {
-            _identifyThreshold = (double.tryParse(identifyThreshold.trim()) ?? 0.70).clamp(0.35, 0.95);
-          }
-          if (livenessThreshold != null && livenessThreshold.trim().isNotEmpty) {
-            _livenessThreshold = (double.tryParse(livenessThreshold.trim()) ?? 0.70).clamp(0.35, 0.95);
-          }
-        });
-      }
-      debugPrint('=================================================================');
-      debugPrint('[FacePunch] LOADED FACE RECOGNITION SETTINGS:');
-      debugPrint('[FacePunch]   - identifyThreshold setting: $identifyThreshold -> $_identifyThreshold (${(_identifyThreshold * 100).toInt()}%)');
-      debugPrint('[FacePunch]   - livenessThreshold setting: $livenessThreshold -> $_livenessThreshold (${(_livenessThreshold * 100).toInt()}%)');
-      debugPrint('=================================================================');
+      _applySettingsFromRemote();
+      // Silently fetch and activate latest config in the background
+      RemoteConfigServices.instance.fetchLatestConfig();
     } catch (e) {
       debugPrint('[FacePunch] _loadSettings error: $e');
     }
@@ -199,6 +226,10 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     Duration timeout = const Duration(seconds: 2),
     List<FaceSdkPerson>? enrolledPersons,
   }) async {
+    // Dynamic sync: Always use latest active thresholds from RemoteConfigServices
+    _identifyThreshold = RemoteConfigServices.identityThreshold;
+    _livenessThreshold = RemoteConfigServices.livenessThreshold;
+
     final controller = selfiePunchProvider.cameraController;
     if (controller == null || !controller.value.isInitialized) {
       debugPrint('[FacePunch] [Verify] BLOCKED: Camera controller not ready for verification');
@@ -388,58 +419,89 @@ class _FacePunchScreenState extends State<FacePunchScreen>
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
+  bool _isInitFlowRunning = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    RemoteConfigServices.configVersion.addListener(_onRemoteConfigUpdated);
     _loadSettings();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_isFlowRunning && !_permissionsChecked) {
-        _initializePage();
-        // ── SDK-based face check: if no SDK enrollment, nudge registration ──
-        _checkFaceSdkEnrollment();
-      }
-      // Show punch sync summary dialog if there are unviewed results.
-      PunchSyncSummaryDialog.showIfNeeded(context);
-
-      // Fetch shift data for accurate late check-in tracking
-      final settingProv = Provider.of<SettingProvider>(context, listen: false);
-      if (settingProv.setEmpProfile?.positionName != null) {
-        Provider.of<AttendanceEmp>(
-          context,
-          listen: false,
-        ).fetchAndStoreBeginTime(
-          context,
-          settingProv.setEmpProfile!.positionName,
-        );
-      } else {
-        settingProv.getUserEmployeeData(context).then((_) {
-          if (mounted) {
-            Provider.of<AttendanceEmp>(
-              context,
-              listen: false,
-            ).fetchAndStoreBeginTime(
-              context,
-              settingProv.setEmpProfile?.positionName,
-            );
-          }
-        });
-      }
-
-      // Start live timer to keep check-in/out times updated
       if (mounted) {
-        Provider.of<HomeProvider>(
-          context,
-          listen: false,
-        ).startWorkingHoursTimer(context);
+        _runSequentialInitFlow();
       }
     });
-    // Initialise KBY-AI FaceSDK once when screen opens and verify face enrollment
-    _initFaceSdk().then((_) {
-      if (mounted) {
-        _checkEnrolledFaceStatus();
+  }
+
+  Future<void> _runSequentialInitFlow() async {
+    if (!mounted || _isInitFlowRunning) return;
+    _isInitFlowRunning = true;
+
+    try {
+      // 1. Fetch shift data & start live timer (non-UI background tasks)
+      _fetchShiftDataAndStartTimer();
+
+      // 2. Initialize permissions & camera preview
+      if (!_permissionsChecked) {
+        await _initializePage();
       }
-    });
+
+      if (!mounted) return;
+
+      // 3. Initialize Face SDK engine
+      await _initFaceSdk();
+
+      if (!mounted) return;
+
+      // 4. Face registration check (ONLY AFTER permissions are done & camera is granted)
+      final bool camGranted = await Permission.camera.status.isGranted;
+      if (camGranted && !_hasShownFaceRegisterPrompt) {
+        await _checkEnrolledFaceStatus();
+      }
+
+      if (!mounted) return;
+
+      // 5. Punch Sync Summary dialog (ONLY AFTER face registration dialog is closed)
+      await PunchSyncSummaryDialog.showIfNeeded(context);
+    } catch (e) {
+      debugPrint('[FacePunch] Sequential init flow error: $e');
+    } finally {
+      _isInitFlowRunning = false;
+    }
+  }
+
+  void _fetchShiftDataAndStartTimer() {
+    final settingProv = Provider.of<SettingProvider>(context, listen: false);
+    if (settingProv.setEmpProfile?.positionName != null) {
+      Provider.of<AttendanceEmp>(
+        context,
+        listen: false,
+      ).fetchAndStoreBeginTime(
+        context,
+        settingProv.setEmpProfile!.positionName,
+      );
+    } else {
+      settingProv.getUserEmployeeData(context).then((_) {
+        if (mounted) {
+          Provider.of<AttendanceEmp>(
+            context,
+            listen: false,
+          ).fetchAndStoreBeginTime(
+            context,
+            settingProv.setEmpProfile?.positionName,
+          );
+        }
+      });
+    }
+
+    // Start live timer to keep check-in/out times updated
+    if (mounted) {
+      Provider.of<HomeProvider>(
+        context,
+        listen: false,
+      ).startWorkingHoursTimer(context);
+    }
   }
 
   @override
@@ -476,6 +538,8 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
   @override
   void dispose() {
+    _cameraBoxMessageTimer?.cancel();
+    RemoteConfigServices.configVersion.removeListener(_onRemoteConfigUpdated);
     final controller = selfiePunchProvider.cameraController;
     if (controller != null && controller.value.isStreamingImages) {
       try {
@@ -544,55 +608,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
           provider.callApi(context),
         ]);
 
-        debugPrint(
-          "INITPAGE: 7. Calling PermissionFlowService.run in background",
-        );
-        PermissionFlowService.run(
-          context,
-          isFetchLocation: provider.isFetchLocation,
-        )
-            .then((result) {
-          debugPrint(
-            "INITPAGE: 8. Background PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}",
-          );
-          if (mounted && result.cameraGranted && !cameraStarted) {
-            debugPrint(
-              "INITPAGE: 9. Calling startCamera(0) from background flow",
-            );
-            provider.startCamera(0);
-          } else if (mounted && !result.cameraGranted && !cameraStarted) {
-            debugPrint(
-              "INITPAGE: 10. Resetting loaders from background flow",
-            );
-            provider.cameraisLoading = false;
-            provider.readyCameraPreviewshow = false;
-            provider.setLoading(provider.isLoading);
-          }
-        })
-            .catchError((e) {
-          debugPrint(
-            "INITPAGE: 11. Background PermissionFlowService.run caught error: $e",
-          );
-          if (mounted && !cameraStarted) {
-            debugPrint(
-              "INITPAGE: 12. Resetting loaders from background flow catchError",
-            );
-            provider.cameraisLoading = false;
-            provider.readyCameraPreviewshow = false;
-            provider.setLoading(provider.isLoading);
-          }
-          return const PermissionFlowResult(
-            notificationGranted: false,
-            cameraGranted: false,
-            locationGranted: false,
-          );
-        })
-            .whenComplete(() {
-          debugPrint(
-            "INITPAGE: 13. Background PermissionFlowService.run whenComplete",
-          );
-          _isFlowRunning = false;
-        });
+        _isFlowRunning = false;
         return; // Fast path successful!
       }
 
@@ -655,14 +671,10 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     } catch (_) {}
   }
 
-  Future<void> _checkFaceSdkEnrollment() async {
-    await _checkEnrolledFaceStatus();
-  }
-
   // ── Face registration check & employee master sync ────────────────────────
   Future<void> _checkEnrolledFaceStatus({bool allowPrompt = true}) async {
     final bool isAvailable = await FaceRegistrationSyncService.instance
-        .checkFaceAvailabilityAndSync();
+        .checkFaceAvailabilityAndSync(forceServerCheck: false);
 
     if (mounted) {
       setState(() {
@@ -670,23 +682,21 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       });
       if (!isAvailable && allowPrompt && !_hasShownFaceRegisterPrompt) {
         _hasShownFaceRegisterPrompt = true;
-        _showRegisterFacePromptDialog();
+        await _showRegisterFacePromptDialog();
       }
     }
   }
 
-  void _showRegisterFacePromptDialog() {
+  Future<void> _showRegisterFacePromptDialog() async {
     if (!mounted) return;
-    FaceRegistrationSyncService.instance
-        .showFaceRegistrationRequiredDialog(context)
-        .then((registered) {
-      if (registered && mounted) {
-        setState(() {
-          _isFaceEnrolled = true;
-        });
-        _checkEnrolledFaceStatus(allowPrompt: false);
-      }
-    });
+    final registered = await FaceRegistrationSyncService.instance
+        .showFaceRegistrationRequiredDialog(context);
+    if (registered && mounted) {
+      setState(() {
+        _isFaceEnrolled = true;
+      });
+      await _checkEnrolledFaceStatus(allowPrompt: false);
+    }
   }
 
   Future<void> _openFaceRegistration() async {
@@ -698,15 +708,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       });
       await _checkEnrolledFaceStatus(allowPrompt: false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Face registered successfully! You can now punch.',
-            ),
-            backgroundColor: Colors.green.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _setCameraBoxMessage('Face Registered Successfully');
       }
     }
   }
@@ -855,87 +857,23 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                                   Container(
                                     color: const Color(0xFF0E1320).withOpacity(0.55),
                                   ),
-                                // Centered multi-face alert overlay: multiplse_detect.gif in center with message at the bottom
+                                // Centered status animations (scanning, success, failed, multiple faces)
                                 if (_scanStatus == FaceScanStatus.multipleFaces)
                                   Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.center,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Colors.black.withOpacity(0.4),
-
-                                            ),
-                                            child: Image.asset(
-                                              'assets/lottie/multiplse_detect.gif',
-                                              width: 130,
-                                              height: 130,
-                                              fit: BoxFit.contain,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF161922).withOpacity(0.92),
-                                              borderRadius: BorderRadius.circular(14),
-                                              border: Border.all(
-                                                color: Colors.redAccent.shade100.withOpacity(0.85),
-                                                width: 1.5,
-                                              ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withOpacity(0.5),
-                                                  blurRadius: 10,
-                                                  offset: const Offset(0, 3),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: const [
-                                                Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.warning_amber_rounded,
-                                                      color: Colors.amberAccent,
-                                                      size: 18,
-                                                    ),
-                                                    SizedBox(width: 6),
-                                                    Text(
-                                                      'Multiple People Detected',
-                                                      style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 13,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                SizedBox(height: 4),
-                                                Text(
-                                                  'Only 1 person allowed to punch.\nPlease face the camera alone.',
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color: Color(0xFFE2E8F0),
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.black.withOpacity(0.4),
+                                      ),
+                                      child: Image.asset(
+                                        'assets/lottie/multiplse_detect.gif',
+                                        width: 130,
+                                        height: 130,
+                                        fit: BoxFit.contain,
                                       ),
                                     ),
                                   )
-                                // Single-run status GIF overlay: scanning, success, or failed (never loops, freezes on final frame)
                                 else if (_scanStatus != FaceScanStatus.idle)
                                   Center(
                                     child: Container(
@@ -952,6 +890,44 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                                         ],
                                       ),
                                       child: _buildStatusGif(),
+                                    ),
+                                  ),
+
+                                // In-camera short message pill: styled using app themeColor, no red, no icons
+                                if (_cameraBoxMessage != null && _cameraBoxMessage!.isNotEmpty)
+                                  Positioned(
+                                    bottom: 12,
+                                    left: 16,
+                                    right: 16,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: ColorConst.themeColor.withOpacity(0.92),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.2),
+                                          width: 1.0,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.35),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        _cameraBoxMessage!,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
                                     ),
                                   ),
                               ],
@@ -1041,8 +1017,6 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                               ),
                               const SizedBox(width: 8),
                               _buildRangeStatusPill(provider, isOffline),
-                              const SizedBox(width: 8),
-                              _buildAccuracyPill(),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -2105,17 +2079,13 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       return Container(
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: _scanStatus == FaceScanStatus.multipleFaces
-              ? Colors.red.shade700
-              : ColorConst.themeColor,
+          color: ColorConst.themeColor,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (_scanStatus == FaceScanStatus.multipleFaces)
-              const Icon(Icons.people_alt, color: Colors.white, size: 16)
-            else
+            if (_scanStatus == FaceScanStatus.scanning || provider.PunchLoader) ...[
               const SizedBox(
                 height: 16,
                 width: 16,
@@ -2124,59 +2094,24 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                   strokeWidth: 1.5,
                 ),
               ),
-            if (_scanStatus == FaceScanStatus.scanning) ...[
               const SizedBox(width: 10),
-              Text(
-                LanguageProvider.translate(
-                  "verifyingFace",
-                  "Verifying Face...",
-                ),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-            ] else if (_scanStatus == FaceScanStatus.success) ...[
-              const SizedBox(width: 10),
-              Text(
-                LanguageProvider.translate(
-                  "faceVerifiedSuccess",
-                  "Face Verified!",
-                ),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-            ] else if (_scanStatus == FaceScanStatus.failed) ...[
-              const SizedBox(width: 10),
-              Text(
-                LanguageProvider.translate(
-                  "faceNotVerified",
-                  "Face Not Verified",
-                ),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-            ] else if (_scanStatus == FaceScanStatus.multipleFaces) ...[
-              const SizedBox(width: 10),
-              Text(
-                LanguageProvider.translate(
-                  "multipleFacesDetected",
-                  "Multiple People Detected",
-                ),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
             ],
+            Text(
+              _scanStatus == FaceScanStatus.scanning
+                  ? LanguageProvider.translate("verifyingFace", "Verifying Face...")
+                  : _scanStatus == FaceScanStatus.success
+                      ? LanguageProvider.translate("faceVerifiedSuccess", "Face Verified!")
+                      : _scanStatus == FaceScanStatus.failed
+                          ? LanguageProvider.translate("faceNotVerified", "Face Not Verified")
+                          : _scanStatus == FaceScanStatus.multipleFaces
+                              ? LanguageProvider.translate("multipleFacesDetected", "Multiple People Detected")
+                              : waitString,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
           ],
         ),
       );
@@ -2199,7 +2134,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     if (!_isFaceEnrolled) {
       return _customButton(
         label: "Register Face",
-        color: Colors.deepOrange.shade600,
+        color: ColorConst.themeColor,
         onTap: () => _openFaceRegistration(),
       );
     }
@@ -2334,17 +2269,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     if (!_isFaceEnrolled || persons.isEmpty) {
       debugPrint('[FacePunch] BLOCKED: _isFaceEnrolled=$_isFaceEnrolled, matching persons=${persons.length}');
       PunchPerformanceTracker.finish(isSuccess: false, message: 'No enrolled faces found');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              persons.isEmpty
-                  ? 'No face registered for this user. Please register your face first.'
-                  : 'Face registration pending sync. Please register your face.',
-            ),
-            backgroundColor: Colors.orange.shade800,
-            behavior: SnackBarBehavior.floating,
-          ),
+      if (mounted) {
+        _setCameraBoxMessage(
+          persons.isEmpty ? 'Face Not Registered' : 'Face Sync Pending',
         );
         _showRegisterFacePromptDialog();
       }
@@ -2403,41 +2330,21 @@ class _FacePunchScreenState extends State<FacePunchScreen>
         setState(() {
           _capturedFaceFile = null;
           _scanStatus = FaceScanStatus.multipleFaces;
+          _cameraBoxMessage = LanguageProvider.translate(
+            'multipleFacesDetected',
+            'Multiple People Detected',
+          );
         });
       }
       debugPrint('[FacePunch] ================= PUNCH REJECTED: MULTIPLE PEOPLE DETECTED =================');
       PunchPerformanceTracker.finish(isSuccess: false, message: 'Multiple people detected. Punch rejected.');
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.people_alt, color: Colors.white, size: 22),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    LanguageProvider.translate(
-                      'multipleFacesDetected',
-                      'Multiple people detected! Only one person is allowed to punch.',
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red.shade800,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
 
       await Future.delayed(const Duration(milliseconds: 2800));
 
       if (mounted) {
         setState(() {
           _scanStatus = FaceScanStatus.idle;
+          _cameraBoxMessage = null;
         });
       }
       return;
@@ -2445,37 +2352,28 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
     if (!attemptResult.isSuccess || verifyResult == null) {
       provider.imageFile = null;
+      final String shortMsg = attemptResult.bestSimilarity > 0
+          ? 'Face Not Matched (${(attemptResult.bestSimilarity * 100).toInt()}%)'
+          : 'Face Not Detected';
+
       if (mounted) {
         setState(() {
           _capturedFaceFile = null;
           _scanStatus = FaceScanStatus.failed;
+          _cameraBoxMessage = shortMsg;
         });
       }
       final String reason = attemptResult.failureReason ?? 'Face verification failed';
-      final String userMsg = attemptResult.bestSimilarity > 0
-          ? 'Face match: ${(attemptResult.bestSimilarity * 100).toInt()}% (required ${(_identifyThreshold * 100).toInt()}%). Look straight with good light.'
-          : (attemptResult.failureReason ?? 'Face not detected. Please look directly at the camera.');
-
       debugPrint('[FacePunch] ================= PUNCH FAILED: VERIFICATION =================');
       debugPrint('[FacePunch] Reason: $reason (best sim: ${(attemptResult.bestSimilarity * 100).toStringAsFixed(1)}%, frames: ${attemptResult.framesAnalyzed})');
       PunchPerformanceTracker.finish(isSuccess: false, message: 'Face verification failed: $reason');
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(userMsg),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-
-      await Future.delayed(const Duration(milliseconds: 1500));
+      await Future.delayed(const Duration(milliseconds: 2000));
 
       if (mounted) {
         setState(() {
           _scanStatus = FaceScanStatus.idle;
+          _cameraBoxMessage = null;
         });
       }
       return;
@@ -2507,6 +2405,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     if (mounted) {
       setState(() {
         _scanStatus = FaceScanStatus.success;
+        _cameraBoxMessage = null;
       });
     }
 
@@ -2533,6 +2432,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
         setState(() {
           _scanStatus = FaceScanStatus.idle;
           _capturedFaceFile = null;
+          _cameraBoxMessage = null;
         });
       }
     }

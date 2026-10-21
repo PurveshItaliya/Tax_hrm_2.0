@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, unused_element
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +9,7 @@ import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/face_punch_2/face_sdk_engine.dart';
 import 'package:tax_hrm/page/face_punch_2/face_sdk_verify_screen.dart';
 import 'package:tax_hrm/page/face_punch_2/face_capture_view.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 
 class FaceSdkEnrollScreen extends StatefulWidget {
@@ -22,26 +23,41 @@ class _FaceSdkEnrollScreenState extends State<FaceSdkEnrollScreen> {
   List<FaceSdkPerson> _personList = [];
   bool _isLoading = false;
   String _statusMessage = 'Initializing Face Recognition SDK...';
-  double _identifyThreshold = 0.75;
+  double _identifyThreshold = 0.70;
 
   @override
   void initState() {
     super.initState();
+    RemoteConfigServices.configVersion.addListener(_onRemoteConfigUpdated);
     _loadSettings();
     _initSdkAndLoad();
   }
 
+  @override
+  void dispose() {
+    RemoteConfigServices.configVersion.removeListener(_onRemoteConfigUpdated);
+    super.dispose();
+  }
+
+  void _onRemoteConfigUpdated() {
+    if (!mounted) return;
+    _applySettings();
+  }
+
+  void _applySettings() {
+    if (mounted) {
+      setState(() {
+        _identifyThreshold = RemoteConfigServices.identityThreshold;
+      });
+    } else {
+      _identifyThreshold = RemoteConfigServices.identityThreshold;
+    }
+  }
+
   Future<void> _loadSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? identifyThreshold = prefs.getString('identify_threshold');
-      if (mounted) {
-        setState(() {
-          if (identifyThreshold != null && identifyThreshold.trim().isNotEmpty) {
-            _identifyThreshold = (double.tryParse(identifyThreshold.trim()) ?? 0.70).clamp(0.35, 0.95);
-          }
-        });
-      }
+      _applySettings();
+      RemoteConfigServices.instance.fetchLatestConfig();
     } catch (_) {}
   }
 
@@ -295,11 +311,6 @@ class _FaceSdkEnrollScreenState extends State<FaceSdkEnrollScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Recognition Accuracy Settings',
-            onPressed: _showAccuracySettingsDialog,
-          ),
           if (_personList.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
@@ -382,40 +393,6 @@ class _FaceSdkEnrollScreenState extends State<FaceSdkEnrollScreen> {
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 14),
-                    // Clickable Accuracy Setting Pill
-                    InkWell(
-                      onTap: _showAccuracySettingsDialog,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.tune_rounded, color: Colors.white, size: 15),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Match Accuracy: ${(_identifyThreshold * 100).toInt()}% ($_accuracyTier)',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 11),
-                          ],
-                        ),
-                      ),
                     ),
                   ],
                 ),

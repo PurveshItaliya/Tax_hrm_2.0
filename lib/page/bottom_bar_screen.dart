@@ -12,10 +12,10 @@ import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/splash/common_splash_ad.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/page/attendance/showviewdata.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
 import 'package:tax_hrm/page/home/home_screen.dart';
-import 'package:tax_hrm/page/home/selfie_punch_screen.dart';
 import 'package:tax_hrm/page/leave/admin_leave_page.dart';
 import 'package:tax_hrm/page/leave/leavepage.dart';
 import 'package:tax_hrm/page/setting/setting_page.dart';
@@ -70,6 +70,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
         // no dialogs are on top (isCurrent == true),
         // and any route transition animation has fully completed.
         while (PermissionFlowService.isFlowRunning ||
+            FaceRegistrationSyncService.isDialogShowing ||
             ModalRoute.of(context)?.isCurrent != true ||
             ModalRoute.of(context)?.animation?.isCompleted != true) {
           await Future.delayed(const Duration(milliseconds: 200));
