@@ -604,6 +604,10 @@ final Map<String, String> enTranslations = {
   'administratorString': 'Administrator',
   'reRegisterFaceString': 'Re-Register Face',
   'faceIsRegisteredString': 'Face is registered',
+  'faceNotMatched': 'Face Not Matched',
+  'faceNotDetected': 'Face Not Detected',
+  'startingCamera': 'Starting camera...',
+  'tapToRestartCamera': 'Tap to restart camera',
   'selectLanguageString': 'Select Language',
   'searchLanguageString': 'Search Language...',
   'versionString': 'Version',
@@ -869,5 +873,7 @@ final Map<String, String> enTranslations = {
   'developerModeDetected': 'Developer Mode Detected',
   'developerOptionsBlockedDesc': 'Developer Options are enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Options are active. Please turn off Developer Options in device settings to proceed.',
   'developerModeBlockedDesc': 'Developer Mode is enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Mode is active. Please turn off Developer Mode in Settings > Privacy & Security to proceed.',
+  'developerOptionsShortDesc': 'Please turn off Developer Options in device settings to proceed with punch.',
+  'developerModeShortDesc': 'Please turn off Developer Mode in Settings > Privacy & Security to proceed with punch.',
   'openSettings': 'Open Settings',
 };

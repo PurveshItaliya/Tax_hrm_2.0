@@ -662,6 +662,7 @@ class FaceSdkEngine {
     required CameraDescription camera,
     required List<dynamic> enrolledPersons,
     double threshold = 0.55,
+    double? visibleAspectRatio,
   }) async {
     final t0 = DateTime.now().millisecondsSinceEpoch;
     await init();
@@ -729,6 +730,75 @@ class FaceSdkEngine {
     final double mlYaw = mlFace.headEulerAngleY ?? 0.0;
     final double mlRoll = mlFace.headEulerAngleZ ?? 0.0;
     final double mlPitch = mlFace.headEulerAngleX ?? 0.0;
+
+    // 1b. Validate that the FULL face is completely inside the visible camera widget
+    final double cameraAspect = uprightWidth / uprightHeight;
+    Rect visibleRect;
+    if (visibleAspectRatio != null && visibleAspectRatio > 0) {
+      if (visibleAspectRatio > cameraAspect) {
+        // Widget is wider than camera stream; top and bottom of sensor are cropped off by BoxFit.cover
+        final double visibleHeight = uprightWidth / visibleAspectRatio;
+        final double cropY = (uprightHeight - visibleHeight) / 2.0;
+        visibleRect = Rect.fromLTWH(0, cropY, uprightWidth.toDouble(), visibleHeight);
+      } else {
+        // Widget is narrower than camera stream; left and right are cropped off by BoxFit.cover
+        final double visibleWidth = uprightHeight * visibleAspectRatio;
+        final double cropX = (uprightWidth - visibleWidth) / 2.0;
+        visibleRect = Rect.fromLTWH(cropX, 0, visibleWidth, uprightHeight.toDouble());
+      }
+    } else {
+      visibleRect = Rect.fromLTWH(0, 0, uprightWidth.toDouble(), uprightHeight.toDouble());
+    }
+
+    // Safety margins: Ensure forehead, chin, cheeks are comfortably inside the visible box (not cut in half)
+    final double marginX = visibleRect.width * 0.04;
+    final double marginY = visibleRect.height * 0.04;
+    final double safeLeft = visibleRect.left + marginX;
+    final double safeRight = visibleRect.right - marginX;
+    final double safeTop = visibleRect.top + marginY;
+    final double safeBottom = visibleRect.bottom - marginY;
+
+    final bool isFaceFullyInside = mlBox.left >= safeLeft &&
+        mlBox.right <= safeRight &&
+        mlBox.top >= safeTop &&
+        mlBox.bottom <= safeBottom;
+
+    // Frontal orientation check (reject profile/half faces where user turns head sideways)
+    final bool isLookingStraight = mlYaw.abs() <= 20.0 && mlPitch.abs() <= 20.0;
+
+    // Ensure face is properly sized (not tiny speck or oversized beyond widget)
+    final bool isReasonableSize = mlBox.width >= visibleRect.width * 0.18 &&
+        mlBox.width <= visibleRect.width * 0.88;
+
+    if (!isFaceFullyInside || !isLookingStraight || !isReasonableSize) {
+      final String reason = !isFaceFullyInside
+          ? 'PARTIAL_FACE_OUTSIDE_FRAME'
+          : (!isLookingStraight ? 'FACE_NOT_LOOKING_STRAIGHT' : 'PARTIAL_FACE_DETECTED');
+
+      debugPrint(
+        '[FaceSdkEngine] [ML-Kit] ⚠️ Partial face rejected: reason=$reason, '
+        'box=[${mlBox.left.toInt()}, ${mlBox.top.toInt()}, ${mlBox.right.toInt()}, ${mlBox.bottom.toInt()}], '
+        'visible=[${visibleRect.left.toInt()}, ${visibleRect.top.toInt()}, ${visibleRect.right.toInt()}, ${visibleRect.bottom.toInt()}], '
+        'yaw=${mlYaw.toStringAsFixed(1)}°, pitch=${mlPitch.toStringAsFixed(1)}°',
+      );
+
+      return FaceSdkMatchResult(
+        isMatch: false,
+        matchedName: '',
+        similarity: 0.0,
+        liveness: 1.0,
+        yaw: mlYaw,
+        roll: mlRoll,
+        pitch: mlPitch,
+        boundingBox: mlBox,
+        liveFaceJpg: null,
+        fullFrameJpg: null,
+        enrolledFaceJpg: null,
+        frameWidth: uprightWidth,
+        frameHeight: uprightHeight,
+        errorMessage: reason,
+      );
+    }
 
     // 2. Direct 112x112 square face crop with roll angle compensation (takes ~3ms)
     final faceCrop112 = cropFace112(

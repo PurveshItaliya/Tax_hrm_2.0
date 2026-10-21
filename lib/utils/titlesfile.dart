@@ -645,6 +645,10 @@ String get successfullyString => LanguageProvider.translate("successfullyString"
 String get administratorString => LanguageProvider.translate("administratorString", "Administrator");
 String get reRegisterFaceString => LanguageProvider.translate("reRegisterFaceString", "Re-Register Face");
 String get faceIsRegisteredString => LanguageProvider.translate("faceIsRegisteredString", "Face is registered");
+String get faceNotMatchedString => LanguageProvider.translate("faceNotMatched", "Face Not Matched");
+String get faceNotDetectedString => LanguageProvider.translate("faceNotDetected", "Face Not Detected");
+String get startingCameraString => LanguageProvider.translate("startingCamera", "Starting camera...");
+String get tapToRestartCameraString => LanguageProvider.translate("tapToRestartCamera", "Tap to restart camera");
 String get selectLanguageString => LanguageProvider.translate("selectLanguageString", "Select Language");
 String get searchLanguageString => LanguageProvider.translate("searchLanguageString", "Search Language...");
 String get versionString => LanguageProvider.translate("versionString", "Version");
@@ -902,3 +906,9 @@ String get developerOptionsDescString => LanguageProvider.translate(
 String get developerModeDescString => LanguageProvider.translate(
     "developerModeBlockedDesc",
     "Developer Mode is enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Mode is active. Please turn off Developer Mode in Settings > Privacy & Security to proceed.");
+String get developerOptionsShortDescString => LanguageProvider.translate(
+    "developerOptionsShortDesc",
+    "Please turn off Developer Options in device settings to proceed with punch.");
+String get developerModeShortDescString => LanguageProvider.translate(
+    "developerModeShortDesc",
+    "Please turn off Developer Mode in Settings > Privacy & Security to proceed with punch.");

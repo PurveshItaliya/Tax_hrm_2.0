@@ -605,6 +605,10 @@ final Map<String, String> hiTranslations = {
   'administratorString': 'व्यवस्थापक',
   'reRegisterFaceString': 'चेहरा पुनः पंजीकृत करें',
   'faceIsRegisteredString': 'चेहरा पंजीकृत है',
+  'faceNotMatched': 'चेहरा मेल नहीं खाया',
+  'faceNotDetected': 'चेहरा नहीं पहचाना गया',
+  'startingCamera': 'कैमरा शुरू हो रहा है...',
+  'tapToRestartCamera': 'कैमरा पुनः आरंभ करने के लिए टैप करें',
   'selectLanguageString': 'भाषा चुनें',
   'searchLanguageString': 'भाषा खोजें...',
   'versionString': 'संस्करण',
@@ -874,5 +878,7 @@ final Map<String, String> hiTranslations = {
   'developerModeDetected': 'डेवलपर मोड चालू है',
   'developerOptionsBlockedDesc': 'आपके डिवाइस पर डेवलपर विकल्प सक्षम हैं। सुरक्षा और उपस्थिति अखंडता के लिए, डेवलपर विकल्प चालू होने पर पंच इन/आउट अवरोधित है। कृपया आगे बढ़ने के लिए डिवाइस सेटिंग्स में डेवलपर विकल्प बंद करें।',
   'developerModeBlockedDesc': 'आपके डिवाइस पर डेवलपर मोड सक्षम है। सुरक्षा और उपस्थिति अखंडता के लिए, डेवलपर मोड चालू होने पर पंच इन/आउट अवरोधित है। कृपया सेटिंग्स > गोपनीयता और सुरक्षा में डेवलपर मोड बंद करें।',
+  'developerOptionsShortDesc': 'पंच जारी रखने के लिए कृपया डिवाइस सेटिंग्स में डेवलपर विकल्प बंद करें।',
+  'developerModeShortDesc': 'पंच जारी रखने के लिए कृपया सेटिंग्स में डेवलपर मोड बंद करें।',
   'openSettings': 'सेटिंग्स खोलें',
 };

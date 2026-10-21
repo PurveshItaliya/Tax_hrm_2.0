@@ -76,8 +76,33 @@ class _FacePunchScreenState extends State<FacePunchScreen>
   bool _hasAutoPunchedFromWidget = false;
 
   // ── Face Enrollment & Master Sync State ───────────────────────────────────
-  bool _isFaceEnrolled = false;
+  bool? _isFaceEnrolled;
+  bool _isCheckingFaceStatus = false;
   bool _hasShownFaceRegisterPrompt = false;
+
+  // ── Fast Camera Auto-Restart State ──────────────────────────────────────────
+  int _cameraAutoRestartAttempts = 0;
+  DateTime? _lastCameraAutoRestartTime;
+
+  void _triggerFastCameraAutoRestart() {
+    final now = DateTime.now();
+    if (_lastCameraAutoRestartTime != null &&
+        now.difference(_lastCameraAutoRestartTime!).inMilliseconds < 1000) {
+      return;
+    }
+    _lastCameraAutoRestartTime = now;
+    if (_cameraAutoRestartAttempts < 5) {
+      _cameraAutoRestartAttempts++;
+      debugPrint('[FacePunch] FAST CAMERA AUTO-RESTART triggered (attempt $_cameraAutoRestartAttempts/5)...');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            !selfiePunchProvider.cameraisLoading &&
+            !selfiePunchProvider.isCameraReady) {
+          selfiePunchProvider.startCamera(0);
+        }
+      });
+    }
+  }
 
   // ── On-Demand Face Verification State ─────────────────────────────────────
   FaceScanStatus _scanStatus = FaceScanStatus.idle;
@@ -196,7 +221,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       if (pName == 'employee') return false;
 
       // Match by exact User ID or prefix (e.g. "391941" or "391941_Aaa")
-      if (userId.isNotEmpty && (pName == userId || pName.startsWith('${userId}_') || pName.contains(userId))) {
+      if (userId.isNotEmpty && (pName == userId || pName.startsWith('${userId}_') || pName.split('_').first == userId)) {
         return true;
       }
       if (userName.isNotEmpty && (pName == userName || pName.startsWith('${userName}_'))) return true;
@@ -209,12 +234,6 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       uniqueMap[p.name] = p;
     }
     final deduplicatedPersons = uniqueMap.values.toList();
-
-    // Fallback: If no exact user-ID match, but only 1 person exists in local DB
-    if (deduplicatedPersons.isEmpty && allPersons.length == 1) {
-      debugPrint('[FacePunch] Falling back to single registered person in DB: "${allPersons.first.name}"');
-      return allPersons;
-    }
 
     return deduplicatedPersons;
   }
@@ -231,11 +250,14 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     _livenessThreshold = RemoteConfigServices.livenessThreshold;
 
     final controller = selfiePunchProvider.cameraController;
-    if (controller == null || !controller.value.isInitialized) {
-      debugPrint('[FacePunch] [Verify] BLOCKED: Camera controller not ready for verification');
+    if (controller == null || !controller.value.isInitialized || !selfiePunchProvider.isCameraReady) {
+      debugPrint('[FacePunch] [Verify] Camera controller not ready. Self-healing restart...');
+      try {
+        await selfiePunchProvider.startCamera(0);
+      } catch (_) {}
       return const FaceVerificationAttemptResult(
         matchResult: null,
-        failureReason: 'Camera not ready',
+        failureReason: 'Camera initializing, please try again',
       );
     }
 
@@ -297,6 +319,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       } catch (e) {
         debugPrint('[FacePunch] [Verify] stopImageStream error: $e');
       }
+      try {
+        await controller.resumePreview();
+      } catch (_) {}
     }
 
     debugPrint(
@@ -338,12 +363,16 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
         isProcessing = true;
 
+        final Size screenSize = MediaQuery.of(context).size;
+        final double widgetAspectRatio = (screenSize.width - 40) / (screenSize.height * 0.5);
+
         try {
           final result = await FaceSdkEngine.instance.processCameraFrame(
             cameraImage: image,
             camera: frontCamera,
             enrolledPersons: targetPersons,
             threshold: _identifyThreshold,
+            visibleAspectRatio: widgetAspectRatio,
           );
 
           if (result == null) {
@@ -363,6 +392,22 @@ class _FacePunchScreenState extends State<FacePunchScreen>
               ));
             }
             return;
+          } else if (result.errorMessage == 'PARTIAL_FACE_OUTSIDE_FRAME' || result.errorMessage == 'PARTIAL_FACE_DETECTED') {
+            debugPrint('[FacePunch] [Verify] Frame #$frameCount: ⚠️ Partial face outside widget frame');
+            lastFailureReason = 'PARTIAL_FACE_OUTSIDE_FRAME';
+            if (mounted && _cameraBoxMessage != 'Keep Full Face Inside Frame') {
+              setState(() {
+                _cameraBoxMessage = 'Keep Full Face Inside Frame';
+              });
+            }
+          } else if (result.errorMessage == 'FACE_NOT_LOOKING_STRAIGHT') {
+            debugPrint('[FacePunch] [Verify] Frame #$frameCount: ⚠️ Face not looking straight');
+            lastFailureReason = 'FACE_NOT_LOOKING_STRAIGHT';
+            if (mounted && _cameraBoxMessage != 'Look Straight at Camera') {
+              setState(() {
+                _cameraBoxMessage = 'Look Straight at Camera';
+              });
+            }
           } else {
             if (result.similarity > bestSimilarity) {
               bestSimilarity = result.similarity;
@@ -404,6 +449,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       debugPrint('[FacePunch] [Verify] startImageStream error: $e');
       timeoutTimer.cancel();
       await stopStreamSafely();
+      try {
+        await selfiePunchProvider.startCamera(0);
+      } catch (_) {}
       return FaceVerificationAttemptResult(
         matchResult: null,
         bestSimilarity: bestSimilarity,
@@ -427,6 +475,16 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     WidgetsBinding.instance.addObserver(this);
     RemoteConfigServices.configVersion.addListener(_onRemoteConfigUpdated);
     _loadSettings();
+
+    // Fast path: Check local SQLite enrollment immediately for current user
+    FaceRegistrationSyncService.instance.isFaceEnrolledLocally().then((isLocal) {
+      if (mounted && isLocal) {
+        setState(() {
+          _isFaceEnrolled = true;
+        });
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _runSequentialInitFlow();
@@ -533,6 +591,24 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       if (!_isFlowRunning && _permissionsChecked) {
         selfiePunchProvider.getCurrentLocation(context: context);
       }
+
+      // Self-heal camera preview if it was paused or killed by OS in background
+      final controller = selfiePunchProvider.cameraController;
+      if (controller == null || !controller.value.isInitialized || !selfiePunchProvider.isCameraReady) {
+        debugPrint('[FacePunch] App Resumed: Camera not ready, fast auto-restarting...');
+        _cameraAutoRestartAttempts = 0;
+        selfiePunchProvider.startCamera(0);
+      }
+
+      // Guarantee any stuck scanning or loading state is cleared when returning to screen
+      if (_scanStatus == FaceScanStatus.scanning) {
+        setState(() {
+          _scanStatus = FaceScanStatus.idle;
+          _cameraBoxMessage = null;
+        });
+      }
+      selfiePunchProvider.setPunchLoader(false);
+      selfiePunchProvider.setPunchBoxOnTapStart(false);
     }
   }
 
@@ -577,12 +653,12 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       bool locGranted = false;
 
       try {
-        camGranted = await Permission.camera.status.isGranted.timeout(
-          const Duration(seconds: 2),
-        );
-        locGranted = await Permission.location.status.isGranted.timeout(
-          const Duration(seconds: 2),
-        );
+        final results = await Future.wait([
+          Permission.camera.status.isGranted.timeout(const Duration(seconds: 2)),
+          Permission.location.status.isGranted.timeout(const Duration(seconds: 2)),
+        ]);
+        camGranted = results[0];
+        locGranted = results[1];
         debugPrint(
           "INITPAGE: 3. Fast path results: camGranted=$camGranted, locGranted=$locGranted",
         );
@@ -673,42 +749,92 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
   // ── Face registration check & employee master sync ────────────────────────
   Future<void> _checkEnrolledFaceStatus({bool allowPrompt = true}) async {
-    final bool isAvailable = await FaceRegistrationSyncService.instance
-        .checkFaceAvailabilityAndSync(forceServerCheck: false);
+    if (_isCheckingFaceStatus) return;
+    _isCheckingFaceStatus = true;
 
-    if (mounted) {
-      setState(() {
-        _isFaceEnrolled = isAvailable;
-      });
-      if (!isAvailable && allowPrompt && !_hasShownFaceRegisterPrompt) {
-        _hasShownFaceRegisterPrompt = true;
-        await _showRegisterFacePromptDialog();
+    try {
+      final bool isAvailable = await FaceRegistrationSyncService.instance
+          .checkFaceAvailabilityAndSync(forceServerCheck: false);
+
+      if (mounted) {
+        setState(() {
+          _isFaceEnrolled = isAvailable;
+          _isCheckingFaceStatus = false;
+        });
+        // CRITICAL: Only prompt AFTER API response has completed and confirmed user is NOT registered!
+        if (!isAvailable && allowPrompt && !_hasShownFaceRegisterPrompt) {
+          _hasShownFaceRegisterPrompt = true;
+          await _showRegisterFacePromptDialog();
+        }
+      }
+    } catch (e) {
+      debugPrint('[FacePunch] _checkEnrolledFaceStatus error: $e');
+      if (mounted) {
+        final bool isLocal = await FaceRegistrationSyncService.instance.isFaceEnrolledLocally();
+        if (mounted) {
+          setState(() {
+            _isCheckingFaceStatus = false;
+            _isFaceEnrolled = isLocal ? true : false;
+          });
+        }
       }
     }
   }
 
   Future<void> _showRegisterFacePromptDialog() async {
     if (!mounted) return;
-    final registered = await FaceRegistrationSyncService.instance
-        .showFaceRegistrationRequiredDialog(context);
-    if (registered && mounted) {
-      setState(() {
-        _isFaceEnrolled = true;
-      });
-      await _checkEnrolledFaceStatus(allowPrompt: false);
+    try {
+      await selfiePunchProvider.disposeCamera();
+      final registered = await FaceRegistrationSyncService.instance
+          .showFaceRegistrationRequiredDialog(context);
+      if (registered && mounted) {
+        setState(() {
+          _isFaceEnrolled = true;
+        });
+        await _checkEnrolledFaceStatus(allowPrompt: false);
+      }
+    } catch (e) {
+      debugPrint('[FacePunch] _showRegisterFacePromptDialog error: $e');
+    } finally {
+      if (mounted) {
+        await selfiePunchProvider.startCamera(0);
+        setState(() {
+          _scanStatus = FaceScanStatus.idle;
+          _capturedFaceFile = null;
+        });
+        selfiePunchProvider.setPunchLoader(false);
+        selfiePunchProvider.setPunchBoxOnTapStart(false);
+        _isFlowRunning = false;
+      }
     }
   }
 
   Future<void> _openFaceRegistration() async {
-    final registered = await FaceRegistrationSyncService.instance
-        .openFaceRegistrationScreen(context);
-    if (registered && mounted) {
-      setState(() {
-        _isFaceEnrolled = true;
-      });
-      await _checkEnrolledFaceStatus(allowPrompt: false);
+    try {
+      await selfiePunchProvider.disposeCamera();
+      final registered = await FaceRegistrationSyncService.instance
+          .openFaceRegistrationScreen(context);
+      if (registered && mounted) {
+        setState(() {
+          _isFaceEnrolled = true;
+        });
+        await _checkEnrolledFaceStatus(allowPrompt: false);
+        if (mounted) {
+          _setCameraBoxMessage('Face Registered Successfully');
+        }
+      }
+    } catch (e) {
+      debugPrint('[FacePunch] _openFaceRegistration error: $e');
+    } finally {
       if (mounted) {
-        _setCameraBoxMessage('Face Registered Successfully');
+        await selfiePunchProvider.startCamera(0);
+        setState(() {
+          _scanStatus = FaceScanStatus.idle;
+          _capturedFaceFile = null;
+        });
+        selfiePunchProvider.setPunchLoader(false);
+        selfiePunchProvider.setPunchBoxOnTapStart(false);
+        _isFlowRunning = false;
       }
     }
   }
@@ -789,6 +915,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
               if (cameraController != null &&
                   cameraController.value.isInitialized &&
                   cameraController.value.previewSize != null) {
+                _cameraAutoRestartAttempts = 0;
                 return Positioned.fill(
                   child: Stack(
                     fit: StackFit.expand,
@@ -939,7 +1066,45 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                   ),
                 );
               }
-              return Positioned.fill(child: Container(color: Colors.black));
+              // Fast auto-restart: automatically trigger camera restart without requiring manual tap
+              if (!selfiePunchProvider.cameraisLoading && _cameraAutoRestartAttempts < 5) {
+                _triggerFastCameraAutoRestart();
+              }
+
+              final bool isAutoRestarting = selfiePunchProvider.cameraisLoading || _cameraAutoRestartAttempts < 5;
+
+              return Positioned.fill(
+                child: GestureDetector(
+                  onTap: () {
+                    debugPrint('[FacePunch] Camera fallback tapped: restarting camera...');
+                    _cameraAutoRestartAttempts = 0;
+                    _lastCameraAutoRestartTime = null;
+                    selfiePunchProvider.startCamera(0);
+                  },
+                  child: Container(
+                    color: Colors.black,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(color: Colors.white70, strokeWidth: 2.5),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            isAutoRestarting
+                                ? LanguageProvider.translate("startingCamera", "Starting camera...")
+                                : LanguageProvider.translate("tapToRestartCamera", "Tap to restart camera"),
+                            style: const TextStyle(color: Colors.white60, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
             },
           ),
 
@@ -2076,43 +2241,56 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
     // Punch loader or on-demand face verification active
     if (provider.PunchLoader || _scanStatus != FaceScanStatus.idle) {
-      return Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: ColorConst.themeColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_scanStatus == FaceScanStatus.scanning || provider.PunchLoader) ...[
-              const SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(
+      return GestureDetector(
+        onTap: () {
+          debugPrint('[FacePunch] Stuck button tapped by user: resetting to idle');
+          if (mounted) {
+            setState(() {
+              _scanStatus = FaceScanStatus.idle;
+              _cameraBoxMessage = null;
+            });
+          }
+          provider.setPunchLoader(false);
+          provider.setPunchBoxOnTapStart(false);
+        },
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: ColorConst.themeColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_scanStatus == FaceScanStatus.scanning || provider.PunchLoader) ...[
+                const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 1.5,
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Text(
+                _scanStatus == FaceScanStatus.scanning
+                    ? LanguageProvider.translate("verifyingFace", "Verifying Face...")
+                    : _scanStatus == FaceScanStatus.success
+                        ? LanguageProvider.translate("faceVerifiedSuccess", "Face Verified!")
+                        : _scanStatus == FaceScanStatus.failed
+                            ? LanguageProvider.translate("faceNotVerified", "Face Not Verified")
+                            : _scanStatus == FaceScanStatus.multipleFaces
+                                ? LanguageProvider.translate("multipleFacesDetected", "Multiple People Detected")
+                                : waitString,
+                style: const TextStyle(
                   color: Colors.white,
-                  strokeWidth: 1.5,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
                 ),
               ),
-              const SizedBox(width: 10),
             ],
-            Text(
-              _scanStatus == FaceScanStatus.scanning
-                  ? LanguageProvider.translate("verifyingFace", "Verifying Face...")
-                  : _scanStatus == FaceScanStatus.success
-                      ? LanguageProvider.translate("faceVerifiedSuccess", "Face Verified!")
-                      : _scanStatus == FaceScanStatus.failed
-                          ? LanguageProvider.translate("faceNotVerified", "Face Not Verified")
-                          : _scanStatus == FaceScanStatus.multipleFaces
-                              ? LanguageProvider.translate("multipleFacesDetected", "Multiple People Detected")
-                              : waitString,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ],
+          ),
         ),
       );
     }
@@ -2130,8 +2308,18 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       );
     }
 
-    // If face is NOT registered in Employee Master, ALWAYS show Register Face button
-    if (!_isFaceEnrolled) {
+    // 1. While checking face registration from API / downloading, DO NOT show Register Face!
+    // Show disabled "Please Wait..." instead so user never sees premature "Register Face".
+    if (_isFaceEnrolled == null || _isCheckingFaceStatus) {
+      return _customButton(
+        label: waitString,
+        color: ColorConst.themeColor.withOpacity(0.5),
+        onTap: () {},
+      );
+    }
+
+    // 2. ONLY show "Register Face" AFTER API response confirmed user is truly not registered
+    if (_isFaceEnrolled == false) {
       return _customButton(
         label: "Register Face",
         color: ColorConst.themeColor,
@@ -2188,233 +2376,259 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     }
 
     if (_scanStatus != FaceScanStatus.idle) {
-      debugPrint('[FacePunch] BLOCKED: _scanStatus is $_scanStatus (not idle). Ignoring tap.');
-      return;
-    }
-
-    PunchPerformanceTracker.start('Face Punch Flow');
-
-    // In release builds, block Punch In/Out if Developer Mode is enabled
-    if (await DeveloperModeService.isDeveloperModeRestricted()) {
-      debugPrint('[FacePunch] BLOCKED: Developer mode restricted.');
-      PunchPerformanceTracker.step('Developer Mode Check');
-      PunchPerformanceTracker.finish(isSuccess: false, message: 'Developer Mode Restricted');
-      if (context.mounted) {
-        DeveloperModeService.showDeveloperModeWarningDialog(context);
-      }
-      return;
-    }
-    PunchPerformanceTracker.step('Developer Mode Check Passed');
-    debugPrint('[FacePunch] Developer mode check passed.');
-
-    // Check internet connection before proceeding with punch
-    bool hasNoInternet = isOffline ||
-        (context.mounted &&
-            context.read<InternetConnectionProvider>().isOffline);
-
-    if (!hasNoInternet) {
-      try {
-        final connectivityResults =
-        await Connectivity().checkConnectivity();
-        if (connectivityResults.contains(ConnectivityResult.none) ||
-            connectivityResults.isEmpty) {
-          hasNoInternet = true;
-        }
-      } catch (_) {}
-    }
-    PunchPerformanceTracker.step('Connectivity Check', 'Offline: $hasNoInternet');
-    debugPrint('[FacePunch] Connectivity check: hasNoInternet=$hasNoInternet');
-
-    if (hasNoInternet) {
-      debugPrint('[FacePunch] BLOCKED: No internet connection.');
-      PunchPerformanceTracker.finish(isSuccess: false, message: 'No internet connection');
-      if (context.mounted) {
-        _showNoInternetDialog(context);
-      }
-      return;
-    }
-
-    // ── Clear all previous face capture & provider image state immediately ──
-    provider.imageFile = null;
-    if (mounted) {
-      setState(() {
-        _capturedFaceFile = null;
-        _scanStatus = FaceScanStatus.idle;
-      });
-    }
-    PunchPerformanceTracker.step('Reset State & Clear Previous Image');
-
-    // ── Load Settings & Check Enrolled Faces in Local SQLite ──
-    await _loadSettings();
-    final allPersons = await FaceSdkDatabase.loadAll();
-    debugPrint('[FacePunch] FaceSdkDatabase loaded ${allPersons.length} persons: ${allPersons.map((p) => p.name).toList()}');
-
-    final persons = _getEnrolledPersonsForCurrentUser(allPersons);
-    debugPrint('[FacePunch] Matching enrolled persons for current user: ${persons.length}');
-
-    // If local DB doesn't have the face yet, attempt on-demand server sync with forceServerCheck: true
-    if (persons.isEmpty) {
-      debugPrint('[FacePunch] No matching persons found locally. Attempting server sync (forceServerCheck: true)...');
-      await FaceRegistrationSyncService.instance.checkFaceAvailabilityAndSync(forceServerCheck: true);
-      final reloadedPersons = _getEnrolledPersonsForCurrentUser(await FaceSdkDatabase.loadAll());
-      if (reloadedPersons.isNotEmpty) {
-        persons.addAll(reloadedPersons);
-        _isFaceEnrolled = true;
-        debugPrint('[FacePunch] Server sync found ${persons.length} matching enrolled templates!');
-      }
-    }
-
-    PunchPerformanceTracker.step('Load Settings & Enrolled Faces', 'Count: ${persons.length}');
-
-    if (!_isFaceEnrolled || persons.isEmpty) {
-      debugPrint('[FacePunch] BLOCKED: _isFaceEnrolled=$_isFaceEnrolled, matching persons=${persons.length}');
-      PunchPerformanceTracker.finish(isSuccess: false, message: 'No enrolled faces found');
-      if (mounted) {
-        _setCameraBoxMessage(
-          persons.isEmpty ? 'Face Not Registered' : 'Face Sync Pending',
-        );
-        _showRegisterFacePromptDialog();
-      }
-      return;
-    }
-
-    final String currentUserId = (curentUser?['Id'] ?? '').toString().trim();
-    final String currentFileName = (curentUser?['FileName'] ?? curentUser?['FaceRegisterImg'] ?? '').toString().trim();
-    final String cleanFileName = currentFileName.split('/').last.split(r'\').last;
-    final String base = apibaseurl.endsWith('/') ? apibaseurl : '$apibaseurl/';
-    final String fullCompareUrl = currentFileName.startsWith('http')
-        ? currentFileName
-        : '${base}HRM/Uploads/$currentUserId/$cleanFileName';
-
-    debugPrint('=================================================================');
-    debugPrint('[FacePunch] ================= COMPARE IMAGE FULL URL =================');
-    debugPrint('[FacePunch] USER ID: $currentUserId');
-    debugPrint('[FacePunch] NAME: ${curentUser?['UserName']} / ${curentUser?['FirstName']}');
-    debugPrint('[FacePunch] FILE NAME: $cleanFileName');
-    debugPrint('[FacePunch] FULL COMPARE IMAGE URL: $fullCompareUrl');
-    debugPrint('=================================================================');
-
-    setState(() {
-      _scanStatus = FaceScanStatus.scanning;
-    });
-
-    final startTime = DateTime.now();
-
-    final attemptResult = await _verifyFaceOnDemand(
-      timeout: const Duration(seconds: 2),
-      enrolledPersons: persons,
-    );
-
-    final verifyResult = attemptResult.matchResult;
-    PunchPerformanceTracker.step(
-      'On-Demand Face Verification',
-      attemptResult.isSuccess && verifyResult != null
-          ? 'Matched: ${verifyResult.matchedName} (sim: ${(verifyResult.similarity * 100).toStringAsFixed(1)}%)'
-          : 'Face Verification Failed: ${attemptResult.failureReason}',
-    );
-
-    if (!mounted) return;
-
-    // Snappy scanning animation delay
-    final elapsed = DateTime.now().difference(startTime);
-    const minScanDuration = Duration(milliseconds: 150);
-    if (elapsed < minScanDuration) {
-      await Future.delayed(minScanDuration - elapsed);
-    }
-    PunchPerformanceTracker.step('Scanning Animation Delay');
-    if (!mounted) return;
-
-    if (attemptResult.isMultipleFaces || attemptResult.failureReason == 'MULTIPLE_FACES_DETECTED') {
-      provider.imageFile = null;
-      if (mounted) {
-        setState(() {
-          _capturedFaceFile = null;
-          _scanStatus = FaceScanStatus.multipleFaces;
-          _cameraBoxMessage = LanguageProvider.translate(
-            'multipleFacesDetected',
-            'Multiple People Detected',
-          );
-        });
-      }
-      debugPrint('[FacePunch] ================= PUNCH REJECTED: MULTIPLE PEOPLE DETECTED =================');
-      PunchPerformanceTracker.finish(isSuccess: false, message: 'Multiple people detected. Punch rejected.');
-
-      await Future.delayed(const Duration(milliseconds: 2800));
-
+      debugPrint('[FacePunch] _scanStatus is $_scanStatus (not idle). Resetting to allow retry.');
       if (mounted) {
         setState(() {
           _scanStatus = FaceScanStatus.idle;
           _cameraBoxMessage = null;
         });
       }
+      provider.setPunchLoader(false);
+      provider.setPunchBoxOnTapStart(false);
       return;
     }
 
-    if (!attemptResult.isSuccess || verifyResult == null) {
-      provider.imageFile = null;
-      final String shortMsg = attemptResult.bestSimilarity > 0
-          ? 'Face Not Matched (${(attemptResult.bestSimilarity * 100).toInt()}%)'
-          : 'Face Not Detected';
-
-      if (mounted) {
-        setState(() {
-          _capturedFaceFile = null;
-          _scanStatus = FaceScanStatus.failed;
-          _cameraBoxMessage = shortMsg;
-        });
-      }
-      final String reason = attemptResult.failureReason ?? 'Face verification failed';
-      debugPrint('[FacePunch] ================= PUNCH FAILED: VERIFICATION =================');
-      debugPrint('[FacePunch] Reason: $reason (best sim: ${(attemptResult.bestSimilarity * 100).toStringAsFixed(1)}%, frames: ${attemptResult.framesAnalyzed})');
-      PunchPerformanceTracker.finish(isSuccess: false, message: 'Face verification failed: $reason');
-
-      await Future.delayed(const Duration(milliseconds: 2000));
-
-      if (mounted) {
-        setState(() {
-          _scanStatus = FaceScanStatus.idle;
-          _cameraBoxMessage = null;
-        });
-      }
-      return;
-    }
-
-    debugPrint(
-      '[FacePunch] >>> Face verified! Matched: ${verifyResult.matchedName} (similarity: ${(verifyResult.similarity * 100).toStringAsFixed(1)}%) <<<',
-    );
-
-    // Face is verified! Pass the real full-frame selfie (uncropped, unzoomed)
-    if (verifyResult.fullFrameJpg != null) {
-      try {
-        final tempFile = File(
-          '${Directory.systemTemp.path}/full_selfie_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}.jpg',
-        );
-        await tempFile.writeAsBytes(verifyResult.fullFrameJpg!, flush: true);
-        try {
-          PaintingBinding.instance.imageCache.evict(FileImage(tempFile));
-        } catch (_) {}
-        provider.imageFile = tempFile;
-        _capturedFaceFile = tempFile;
-        debugPrint('[FacePunch] Full selfie file written: ${tempFile.path} (${tempFile.lengthSync()} bytes)');
-      } catch (e) {
-        debugPrint('[FacePunch] Error writing verified full frame: $e');
-      }
-    }
-    PunchPerformanceTracker.step('Write Verified Full-Frame File');
-
-    if (mounted) {
-      setState(() {
-        _scanStatus = FaceScanStatus.success;
-        _cameraBoxMessage = null;
-      });
-    }
-
-    // Snappy checkmark display (200ms)
-    await Future.delayed(const Duration(milliseconds: 200));
-    PunchPerformanceTracker.step('Success Checkmark Display');
-    if (!mounted) return;
+    Timer? stuckWatchdogTimer;
 
     try {
+      // 12-second safety watchdog ensures button or loader never gets stuck indefinitely
+      stuckWatchdogTimer = Timer(const Duration(seconds: 12), () {
+        if (mounted && (_scanStatus != FaceScanStatus.idle || provider.PunchLoader)) {
+          debugPrint('[FacePunch] Safety watchdog: Force-resetting stuck scan status / loader');
+          setState(() {
+            _scanStatus = FaceScanStatus.idle;
+            _capturedFaceFile = null;
+            _cameraBoxMessage = null;
+          });
+          provider.setPunchLoader(false);
+          provider.setPunchBoxOnTapStart(false);
+        }
+      });
+
+      PunchPerformanceTracker.start('Face Punch Flow');
+
+      // In release builds, block Punch In/Out if Developer Mode is enabled
+      if (await DeveloperModeService.isDeveloperModeRestricted()) {
+        debugPrint('[FacePunch] BLOCKED: Developer mode restricted.');
+        PunchPerformanceTracker.step('Developer Mode Check');
+        PunchPerformanceTracker.finish(isSuccess: false, message: 'Developer Mode Restricted');
+        if (context.mounted) {
+          DeveloperModeService.showDeveloperModeWarningDialog(context);
+        }
+        return;
+      }
+      PunchPerformanceTracker.step('Developer Mode Check Passed');
+      debugPrint('[FacePunch] Developer mode check passed.');
+
+      // Check internet connection before proceeding with punch
+      bool hasNoInternet = isOffline ||
+          (context.mounted &&
+              context.read<InternetConnectionProvider>().isOffline);
+
+      if (!hasNoInternet) {
+        try {
+          final connectivityResults =
+          await Connectivity().checkConnectivity();
+          if (connectivityResults.contains(ConnectivityResult.none) ||
+              connectivityResults.isEmpty) {
+            hasNoInternet = true;
+          }
+        } catch (_) {}
+      }
+      PunchPerformanceTracker.step('Connectivity Check', 'Offline: $hasNoInternet');
+      debugPrint('[FacePunch] Connectivity check: hasNoInternet=$hasNoInternet');
+
+      if (hasNoInternet) {
+        debugPrint('[FacePunch] BLOCKED: No internet connection.');
+        PunchPerformanceTracker.finish(isSuccess: false, message: 'No internet connection');
+        if (context.mounted) {
+          _showNoInternetDialog(context);
+        }
+        return;
+      }
+
+      // ── Clear all previous face capture & provider image state immediately ──
+      provider.imageFile = null;
+      if (mounted) {
+        setState(() {
+          _capturedFaceFile = null;
+          _scanStatus = FaceScanStatus.idle;
+        });
+      }
+      PunchPerformanceTracker.step('Reset State & Clear Previous Image');
+
+      // ── Load Settings & Check Enrolled Faces in Local SQLite ──
+      await _loadSettings();
+      final allPersons = await FaceSdkDatabase.loadAll();
+      debugPrint('[FacePunch] FaceSdkDatabase loaded ${allPersons.length} persons: ${allPersons.map((p) => p.name).toList()}');
+
+      final persons = _getEnrolledPersonsForCurrentUser(allPersons);
+      debugPrint('[FacePunch] Matching enrolled persons for current user: ${persons.length}');
+
+      // If local DB doesn't have the face yet, attempt on-demand server sync with forceServerCheck: true
+      if (persons.isEmpty) {
+        debugPrint('[FacePunch] No matching persons found locally. Attempting server sync (forceServerCheck: true)...');
+        await FaceRegistrationSyncService.instance.checkFaceAvailabilityAndSync(forceServerCheck: true);
+        final reloadedPersons = _getEnrolledPersonsForCurrentUser(await FaceSdkDatabase.loadAll());
+        if (reloadedPersons.isNotEmpty) {
+          persons.addAll(reloadedPersons);
+          _isFaceEnrolled = true;
+          debugPrint('[FacePunch] Server sync found ${persons.length} matching enrolled templates!');
+        }
+      }
+
+      PunchPerformanceTracker.step('Load Settings & Enrolled Faces', 'Count: ${persons.length}');
+
+      if (_isFaceEnrolled != true || persons.isEmpty) {
+        debugPrint('[FacePunch] BLOCKED: _isFaceEnrolled=$_isFaceEnrolled, matching persons=${persons.length}');
+        PunchPerformanceTracker.finish(isSuccess: false, message: 'No enrolled faces found');
+        if (mounted) {
+          _setCameraBoxMessage(
+            persons.isEmpty ? 'Face Not Registered' : 'Face Sync Pending',
+          );
+          _showRegisterFacePromptDialog();
+        }
+        return;
+      }
+
+      final String currentUserId = (curentUser?['Id'] ?? '').toString().trim();
+      final String currentFileName = (curentUser?['FileName'] ?? curentUser?['FaceRegisterImg'] ?? '').toString().trim();
+      final String cleanFileName = currentFileName.split('/').last.split(r'\').last;
+      final String base = apibaseurl.endsWith('/') ? apibaseurl : '$apibaseurl/';
+      final String fullCompareUrl = currentFileName.startsWith('http')
+          ? currentFileName
+          : '${base}HRM/Uploads/$currentUserId/$cleanFileName';
+
+      debugPrint('=================================================================');
+      debugPrint('[FacePunch] ================= COMPARE IMAGE FULL URL =================');
+      debugPrint('[FacePunch] USER ID: $currentUserId');
+      debugPrint('[FacePunch] NAME: ${curentUser?['UserName']} / ${curentUser?['FirstName']}');
+      debugPrint('[FacePunch] FILE NAME: $cleanFileName');
+      debugPrint('[FacePunch] FULL COMPARE IMAGE URL: $fullCompareUrl');
+      debugPrint('=================================================================');
+
+      if (mounted) {
+        setState(() {
+          _scanStatus = FaceScanStatus.scanning;
+        });
+      }
+
+      final startTime = DateTime.now();
+
+      final attemptResult = await _verifyFaceOnDemand(
+        timeout: const Duration(seconds: 2),
+        enrolledPersons: persons,
+      );
+
+      final verifyResult = attemptResult.matchResult;
+      PunchPerformanceTracker.step(
+        'On-Demand Face Verification',
+        attemptResult.isSuccess && verifyResult != null
+            ? 'Matched: ${verifyResult.matchedName} (sim: ${(verifyResult.similarity * 100).toStringAsFixed(1)}%)'
+            : 'Face Verification Failed: ${attemptResult.failureReason}',
+      );
+
+      if (!mounted) return;
+
+      // Snappy scanning animation delay
+      final elapsed = DateTime.now().difference(startTime);
+      const minScanDuration = Duration(milliseconds: 150);
+      if (elapsed < minScanDuration) {
+        await Future.delayed(minScanDuration - elapsed);
+      }
+      PunchPerformanceTracker.step('Scanning Animation Delay');
+      if (!mounted) return;
+
+      if (attemptResult.isMultipleFaces || attemptResult.failureReason == 'MULTIPLE_FACES_DETECTED') {
+        provider.imageFile = null;
+        if (mounted) {
+          setState(() {
+            _capturedFaceFile = null;
+            _scanStatus = FaceScanStatus.multipleFaces;
+            _cameraBoxMessage = LanguageProvider.translate(
+              'multipleFacesDetected',
+              'Multiple People Detected',
+            );
+          });
+        }
+        debugPrint('[FacePunch] ================= PUNCH REJECTED: MULTIPLE PEOPLE DETECTED =================');
+        PunchPerformanceTracker.finish(isSuccess: false, message: 'Multiple people detected. Punch rejected.');
+
+        await Future.delayed(const Duration(milliseconds: 2500));
+        return;
+      }
+
+      if (!attemptResult.isSuccess || verifyResult == null) {
+        provider.imageFile = null;
+        final String shortMsg;
+        if (attemptResult.failureReason == 'PARTIAL_FACE_OUTSIDE_FRAME' ||
+            attemptResult.failureReason == 'PARTIAL_FACE_DETECTED') {
+          shortMsg = 'Keep Full Face Inside Frame';
+        } else if (attemptResult.failureReason == 'FACE_NOT_LOOKING_STRAIGHT') {
+          shortMsg = 'Look Straight at Camera';
+        } else if (attemptResult.bestSimilarity > 0) {
+          shortMsg = LanguageProvider.translate(
+            'faceNotMatched',
+            'Face Not Matched',
+          );
+        } else {
+          shortMsg = LanguageProvider.translate(
+            'faceNotDetected',
+            'Face Not Detected',
+          );
+        }
+
+        if (mounted) {
+          setState(() {
+            _capturedFaceFile = null;
+            _scanStatus = FaceScanStatus.failed;
+            _cameraBoxMessage = shortMsg;
+          });
+        }
+        final String reason = attemptResult.failureReason ?? 'Face verification failed';
+        debugPrint('[FacePunch] ================= PUNCH FAILED: VERIFICATION =================');
+        debugPrint('[FacePunch] Reason: $reason (best sim: ${(attemptResult.bestSimilarity * 100).toStringAsFixed(1)}%, frames: ${attemptResult.framesAnalyzed})');
+        PunchPerformanceTracker.finish(isSuccess: false, message: 'Face verification failed: $reason');
+
+        await Future.delayed(const Duration(milliseconds: 1800));
+        return;
+      }
+
+      debugPrint(
+        '[FacePunch] >>> Face verified! Matched: ${verifyResult.matchedName} (similarity: ${(verifyResult.similarity * 100).toStringAsFixed(1)}%) <<<',
+      );
+
+      // Face is verified! Pass the real full-frame selfie (uncropped, unzoomed)
+      if (verifyResult.fullFrameJpg != null) {
+        try {
+          final tempFile = File(
+            '${Directory.systemTemp.path}/full_selfie_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}.jpg',
+          );
+          await tempFile.writeAsBytes(verifyResult.fullFrameJpg!, flush: true);
+          try {
+            PaintingBinding.instance.imageCache.evict(FileImage(tempFile));
+          } catch (_) {}
+          provider.imageFile = tempFile;
+          _capturedFaceFile = tempFile;
+          debugPrint('[FacePunch] Full selfie file written: ${tempFile.path} (${tempFile.lengthSync()} bytes)');
+        } catch (e) {
+          debugPrint('[FacePunch] Error writing verified full frame: $e');
+        }
+      }
+      PunchPerformanceTracker.step('Write Verified Full-Frame File');
+
+      if (mounted) {
+        setState(() {
+          _scanStatus = FaceScanStatus.success;
+          _cameraBoxMessage = null;
+        });
+      }
+
+      // Snappy checkmark display (200ms)
+      await Future.delayed(const Duration(milliseconds: 200));
+      PunchPerformanceTracker.step('Success Checkmark Display');
+      if (!mounted) return;
+
       PunchPerformanceTracker.step('Invoking puchInOutHandleSubmit');
       debugPrint('[FacePunch] >>> Invoking provider.puchInOutHandleSubmit <<<');
       await provider.puchInOutHandleSubmit(
@@ -2424,9 +2638,13 @@ class _FacePunchScreenState extends State<FacePunchScreen>
         true, // Face verified
       );
       debugPrint('[FacePunch] >>> puchInOutHandleSubmit finished <<<');
-    } catch (e) {
-      debugPrint('[FacePunch] ERROR in puchInOutHandleSubmit: $e');
+    } catch (e, stack) {
+      debugPrint('[FacePunch] ERROR in _performFacePunch: $e\n$stack');
+      if (mounted) {
+        _setCameraBoxMessage('Punch Failed. Please Try Again.');
+      }
     } finally {
+      stuckWatchdogTimer?.cancel();
       provider.imageFile = null;
       if (mounted) {
         setState(() {
@@ -2434,6 +2652,17 @@ class _FacePunchScreenState extends State<FacePunchScreen>
           _capturedFaceFile = null;
           _cameraBoxMessage = null;
         });
+      }
+      provider.setPunchLoader(false);
+      provider.setPunchBoxOnTapStart(false);
+      _isFlowRunning = false;
+
+      // Fast auto-restart if camera stopped or became uninitialized during verification
+      final ctrl = selfiePunchProvider.cameraController;
+      if (ctrl == null || !ctrl.value.isInitialized || !selfiePunchProvider.isCameraReady) {
+        debugPrint('[FacePunch] Camera not ready after punch flow, auto-restarting fast...');
+        _cameraAutoRestartAttempts = 0;
+        selfiePunchProvider.startCamera(0);
       }
     }
   }

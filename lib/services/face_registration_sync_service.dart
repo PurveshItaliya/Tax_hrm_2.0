@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_exif_rotation/flutter_exif_rotation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/face_punch_2/face_capture_view.dart';
 import 'package:tax_hrm/page/face_punch_2/face_sdk_engine.dart';
@@ -30,6 +31,75 @@ class FaceRegistrationSyncService {
   void resetSyncState() {
     _inFlightSync = null;
     _inFlightUserId = null;
+  }
+
+  /// Wipes all locally cached face templates, database records, and temp files on user logout.
+  /// This guarantees that when a new account logs in, it will NEVER compare against
+  /// or claim a previous account's face template.
+  Future<void> clearAllFaceDataOnLogout() async {
+    debugPrint('[FaceRegistrationSyncService] Clearing all local face data on user logout...');
+    resetSyncState();
+
+    // 1. Wipe all enrolled face templates from SQLite
+    try {
+      await FaceSdkDatabase.deleteAll();
+      debugPrint('[FaceRegistrationSyncService] Cleared all SQLite face templates.');
+    } catch (e) {
+      debugPrint('[FaceRegistrationSyncService] Error wiping FaceSdkDatabase: $e');
+    }
+
+    // 2. Remove all face-related keys from SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs
+          .getKeys()
+          .where((k) =>
+              k.startsWith('cached_face_') ||
+              k.startsWith('face_template_version_') ||
+              k.contains('face_register_img'))
+          .toList();
+      for (final k in keys) {
+        await prefs.remove(k);
+      }
+      debugPrint('[FaceRegistrationSyncService] Cleared ${keys.length} face preferences.');
+    } catch (e) {
+      debugPrint('[FaceRegistrationSyncService] Error clearing face prefs: $e');
+    }
+
+    // 3. Remove face templates from FlutterSecureStorage
+    try {
+      const storage = FlutterSecureStorage(
+        aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      );
+      final all = await storage.readAll();
+      for (final k in all.keys) {
+        if (k.startsWith('face_template_')) {
+          await storage.delete(key: k);
+        }
+      }
+      debugPrint('[FaceRegistrationSyncService] Cleared secure storage face templates.');
+    } catch (e) {
+      debugPrint('[FaceRegistrationSyncService] Error clearing secure storage: $e');
+    }
+
+    // 4. Clean up temp face files in temp directory
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final files = tempDir.listSync();
+      for (final f in files) {
+        if (f is File &&
+            (f.path.contains('face_sync_') ||
+                f.path.contains('full_selfie_') ||
+                f.path.contains('face_reg_'))) {
+          try {
+            await f.delete();
+          } catch (_) {}
+        }
+      }
+      debugPrint('[FaceRegistrationSyncService] Cleared temp face files.');
+    } catch (e) {
+      debugPrint('[FaceRegistrationSyncService] Error cleaning temp face files: $e');
+    }
   }
 
   /// Checks whether [fileName] represents a valid image file/URL/format.
@@ -59,7 +129,7 @@ class FaceRegistrationSyncService {
     return validExts.any((ext) => lower.endsWith(ext) || lower.contains('$ext?'));
   }
 
-  /// Returns whether any enrolled person in [allPersons] matches the current user.
+  /// Returns whether any enrolled person in [allPersons] strictly matches the current user.
   /// Validates that the stored template is a genuine native FaceSDK template (>200 bytes).
   bool isUserEnrolledInList(
     List<FaceSdkPerson> allPersons,
@@ -78,27 +148,17 @@ class FaceRegistrationSyncService {
       final bool matchesUser = (userId.isNotEmpty &&
               (pName == userId ||
                   pName.startsWith('${userId}_') ||
-                  pName.contains(userId))) ||
+                  pName.split('_').first == userId)) ||
           (userName.isNotEmpty &&
               (pName == userName || pName.startsWith('${userName}_')));
 
-      final bool hasValidTemplate = p.templates.isNotEmpty && p.templates.length >= 200;
+      final bool hasValidTemplate =
+          p.templates.isNotEmpty && p.templates.length >= 200;
 
       return matchesUser && hasValidTemplate;
     });
 
-    if (hasUserMatch) return true;
-
-    // Fallback: If exactly 1 person is enrolled on this device with valid templates
-    if (allPersons.length == 1) {
-      final p = allPersons.first;
-      final pName = p.name.trim().toLowerCase();
-      if (pName != 'employee' && p.templates.isNotEmpty && p.templates.length >= 200) {
-        return true;
-      }
-    }
-
-    return false;
+    return hasUserMatch;
   }
 
   /// Checks if current user has face templates saved locally in SQLite DB.
@@ -193,8 +253,10 @@ class FaceRegistrationSyncService {
       if (forceServerCheck || faceImg == null || !isValidFaceImage(faceImg)) {
         // 2a. Check Employee Master API: /api/Master/GetEmpListById
         try {
+          final String base =
+              apibaseurl.endsWith('/') ? apibaseurl : '$apibaseurl/';
           final url =
-              Uri.parse('$apibaseurl/api/Master/GetEmpListById?Id=$userId');
+              Uri.parse('${base}api/Master/GetEmpListById?Id=$userId');
           final token = curentUser?['token'] ?? '';
           final resp = await http.get(
             url,

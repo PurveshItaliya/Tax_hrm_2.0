@@ -606,6 +606,10 @@ final Map<String, String> guTranslations = {
   'administratorString': 'એડમિનિસ્ટ્રેટર',
   'reRegisterFaceString': 'ચહેરો ફરીથી નોંધણી કરો',
   'faceIsRegisteredString': 'ચહેરો નોંધાયેલ છે',
+  'faceNotMatched': 'ચહેરો મેળ ખાતો નથી',
+  'faceNotDetected': 'ચહેરો મળ્યો નથી',
+  'startingCamera': 'કેમેરો શરૂ થઈ રહ્યો છે...',
+  'tapToRestartCamera': 'કેમેરો ફરીથી શરૂ કરવા માટે ટેપ કરો',
   'selectLanguageString': 'ભાષા પસંદ કરો',
   'searchLanguageString': 'ભાષા શોધો...',
   'versionString': 'આવૃત્તિ',
@@ -873,5 +877,7 @@ final Map<String, String> guTranslations = {
   'developerModeDetected': 'ડેવલપર મોડ ચાલુ છે',
   'developerOptionsBlockedDesc': 'તમારા ડિવાઇસ પર ડેવલપર ઓપ્શન્સ ચાલુ છે. સુરક્ષા અને હાજરીની ચોકસાઈ માટે, ડેવલપર ઓપ્શન્સ ચાલુ હોય ત્યારે પંચ ઇન/આઉટ બ્લોક કરેલ છે. આગળ વધવા માટે કૃપા કરીને ડિવાઇસ સેટિંગ્સમાં ડેવલપર ઓપ્શન્સ બંધ કરો.',
   'developerModeBlockedDesc': 'તમારા ડિવાઇસ પર ડેવલપર મોડ ચાલુ છે. સુરક્ષા અને હાજરીની ચોકસાઈ માટે, ડેવલપર મોડ ચાલુ હોય ત્યારે પંચ ઇન/આઉટ બ્લોક કરેલ છે. આગળ વધવા માટે કૃપા કરીને સેટિંગ્સ > પ્રાઇવસી અને સિક્યુરિટીમાં ડેવલપર મોડ બંધ કરો.',
+  'developerOptionsShortDesc': 'પંચ આગળ વધારવા માટે કૃપા કરીને સેટિંગ્સમાં ડેવલપર ઓપ્શન્સ બંધ કરો.',
+  'developerModeShortDesc': 'પંચ આગળ વધારવા માટે કૃપા કરીને સેટિંગ્સમાં ડેવલપર મોડ બંધ કરો.',
   'openSettings': 'સેટિંગ્સ ખોલો',
 };

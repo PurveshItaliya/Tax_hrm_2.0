@@ -254,7 +254,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                               listen: false,
                             ).resetState();
                           } catch (_) {}
-                          FaceRegistrationSyncService.instance.resetSyncState();
+                          await FaceRegistrationSyncService.instance.clearAllFaceDataOnLogout();
 
                           // 6. Redirect to Login Screen
                           nextscreenRemove(

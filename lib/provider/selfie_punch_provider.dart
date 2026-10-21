@@ -47,6 +47,7 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:tax_hrm/services/developer_mode_service.dart';
 
 import '../services/fcm_token_service.dart';
+import 'language_provider.dart';
 
 class SelfiePunchProvider extends ChangeNotifier {
   bool _notifyScheduled = false;
@@ -189,42 +190,48 @@ class SelfiePunchProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      log("STARTCAMERA: 2. Checking permission status");
-      try {
-        camerapermissionStatus = await Permission.camera.status.timeout(
-          const Duration(seconds: 2),
-        );
-        log("STARTCAMERA: 3. Status is $camerapermissionStatus");
-        if (camerapermissionStatus != PermissionStatus.granted) {
-          log("STARTCAMERA: 4. Requesting permission");
-          camerapermissionStatus = await Permission.camera.request().timeout(
-            const Duration(seconds: 3),
-          );
-          log("STARTCAMERA: 5. Request result is $camerapermissionStatus");
-        }
-      } catch (e) {
-        log("STARTCAMERA: Permission check timed out or failed: $e");
-        camerapermissionStatus = PermissionStatus.denied;
-      }
-
+      // Fast path: Only query/request camera permission if not already granted
       if (camerapermissionStatus != PermissionStatus.granted) {
-        log("STARTCAMERA: 6. Permission not granted, returning");
-        readyCameraPreviewshow = false;
-        cameraisLoading = false;
-        notifyListeners();
-        return;
+        log("STARTCAMERA: 2. Checking permission status");
+        try {
+          camerapermissionStatus = await Permission.camera.status.timeout(
+            const Duration(seconds: 2),
+          );
+          log("STARTCAMERA: 3. Status is $camerapermissionStatus");
+          if (camerapermissionStatus != PermissionStatus.granted) {
+            log("STARTCAMERA: 4. Requesting permission");
+            camerapermissionStatus = await Permission.camera.request().timeout(
+              const Duration(seconds: 3),
+            );
+            log("STARTCAMERA: 5. Request result is $camerapermissionStatus");
+          }
+        } catch (e) {
+          log("STARTCAMERA: Permission check timed out or failed: $e");
+          camerapermissionStatus = PermissionStatus.denied;
+        }
+
+        if (camerapermissionStatus != PermissionStatus.granted) {
+          log("STARTCAMERA: 6. Permission not granted, returning");
+          readyCameraPreviewshow = false;
+          cameraisLoading = false;
+          notifyListeners();
+          return;
+        }
       }
 
-      log("STARTCAMERA: 7. Getting available cameras");
-      try {
-        cameras = await availableCameras().timeout(const Duration(seconds: 3));
-        log("STARTCAMERA: 8. Got ${cameras?.length} cameras");
-      } catch (e) {
-        log("STARTCAMERA: availableCameras timeout or error: $e");
-        readyCameraPreviewshow = false;
-        cameraisLoading = false;
-        notifyListeners();
-        return;
+      // Fast path: Reuse previously queried camera hardware list
+      if (cameras == null || cameras!.isEmpty) {
+        log("STARTCAMERA: 7. Getting available cameras");
+        try {
+          cameras = await availableCameras().timeout(const Duration(seconds: 3));
+          log("STARTCAMERA: 8. Got ${cameras?.length} cameras");
+        } catch (e) {
+          log("STARTCAMERA: availableCameras timeout or error: $e");
+          readyCameraPreviewshow = false;
+          cameraisLoading = false;
+          notifyListeners();
+          return;
+        }
       }
 
       if (cameras == null || cameras!.isEmpty) {
@@ -284,20 +291,11 @@ class SelfiePunchProvider extends ChangeNotifier {
         );
         log("STARTCAMERA: 14. Initialized new controller successfully");
 
-        // Set to max zoom out (min zoom level)
-        try {
-          final double minZoom = await cameraController!.getMinZoomLevel();
-          await cameraController!.setZoomLevel(minZoom);
-        } catch (e) {
-          log("Could not set min zoom level: $e");
-        }
-
-        // Maximize screen brightness for punch screen
-        try {
-          await ScreenBrightness().setScreenBrightness(1.0);
-        } catch (e) {
-          log("Could not set screen brightness: $e");
-        }
+        // Non-blocking zoom and brightness adjustments so camera readiness is instant
+        cameraController!.getMinZoomLevel().then((minZoom) {
+          cameraController?.setZoomLevel(minZoom).catchError((_) {});
+        }).catchError((_) {});
+        ScreenBrightness().setScreenBrightness(1.0).catchError((_) {});
 
         // Brightness streaming disabled to prevent camera platform crashes
         isDarkEnvironment = false;
@@ -1378,7 +1376,7 @@ class SelfiePunchProvider extends ChangeNotifier {
       // ═══════════════════════════════════════════════════════════════════════
       // OFFLINE PATH — save to local queue; do NOT call any server API
       // ═══════════════════════════════════════════════════════════════════════
-      await _saveOfflinePunch(
+      final bool saved = await _saveOfflinePunch(
         context: context,
         employeid: employeid,
         setUsreLoaction: setUsreLoaction,
@@ -1389,6 +1387,11 @@ class SelfiePunchProvider extends ChangeNotifier {
       );
       setPunchBoxOnTapStart(false);
       setPunchLoader(false);
+
+      if (!saved) {
+        log('🔴 [SelfiePunchProvider] Offline punch saving failed. STRICTLY KEEPING APP OPEN.');
+        return;
+      }
 
       showtoastmessage(punchSavedOfflineString);
 
@@ -1405,7 +1408,7 @@ class SelfiePunchProvider extends ChangeNotifier {
             'punch_widget/open',
           ).invokeMethod('move_to_background');
         } catch (_) {}
-        SystemNavigator.pop(); // Restored because offline doesn't need to wait for API
+        SystemNavigator.pop();
       } else {
         final navigator = Navigator.of(context);
         navigator.pop();
@@ -1508,83 +1511,125 @@ class SelfiePunchProvider extends ChangeNotifier {
             ).refreshWorkingHours(context);
           } catch (_) {}
         }
-        PunchPerformanceTracker.step('punchNowCall: Navigating to AttendanceScreen');
+        PunchPerformanceTracker.step('punchNowCall: Punch API Confirmed');
         PunchPerformanceTracker.finish(isSuccess: true, message: 'Punch $punchStatus confirmed');
 
-        if (isFromWidget) {
-          final navigator = Navigator.of(context);
-          navigator.pop(); // Pop the dialog
+        // ── 1. Upload selfie photo while strictly remaining in the FOREGROUND ──
+        log('🟠 [SelfiePunchProvider] Punch API confirmed! Uploading photo in foreground before any navigation...');
+        punchProcessStatus.value = 'Uploading photo...';
+        notifyListeners();
 
-          // CRITICAL: Stop the camera before closing the app to prevent ImageReader Surface crashes
-          await disposeCamera();
+        // Resolve valid upload file: check userImages first, fallback to lastPersistedSelfiePath
+        File? uploadFile = userImages;
+        if (!uploadFile.existsSync() || uploadFile.lengthSync() == 0) {
+          if (lastPersistedSelfiePath != null) {
+            final fallback = File(lastPersistedSelfiePath!);
+            if (fallback.existsSync() && fallback.lengthSync() > 0) {
+              uploadFile = fallback;
+              log('[SelfiePunchProvider] Using fallback persisted selfie: ${fallback.path}');
+            }
+          }
+        }
 
+        bool isImageUploadSuccess = false;
+        const int maxAttempts = 3;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+          punchProcessStatus.value = 'Uploading photo ($attempt/$maxAttempts)...';
+          notifyListeners();
           try {
-            await const MethodChannel(
-              'punch_widget/open',
-            ).invokeMethod('move_to_background');
-          } catch (_) {}
+            PunchPerformanceTracker.step('AttendanceApis: Uploading Selfie Photo (attempt #$attempt)');
+            final uploadResult = await AttendanceApis().callWithImgPunch(
+              listenRes: (val) {
+                log('[SelfiePunchProvider] callWithImgPunch response: $val');
+              },
+              FILES: uploadFile,
+              setCguid: setGuid,
+              setLatitude: usersetLatitude,
+              setLocation: setUsreLoaction,
+              setLongitude: usersetLongitude,
+            );
+            if (uploadResult != null) {
+              isImageUploadSuccess = true;
+              PunchPerformanceTracker.step('AttendanceApis: Selfie Photo Uploaded');
+              log('🟢 [SelfiePunchProvider] Image upload succeeded on attempt #$attempt.');
+              break;
+            } else {
+              log('🟠 [SelfiePunchProvider] Image upload returned null on attempt #$attempt');
+            }
+          } catch (e) {
+            PunchPerformanceTracker.step('AttendanceApis: Selfie Upload Error ($e)');
+            log('🟠 [SelfiePunchProvider] Image upload attempt #$attempt error: $e');
+          }
+          if (!isImageUploadSuccess && attempt < maxAttempts) {
+            await Future.delayed(Duration(milliseconds: attempt * 1000));
+          }
+        }
+
+        setPunchBoxOnTapStart(false);
+        setPunchLoader(false);
+
+        // ── 2. Strictly close widget ONLY if BOTH punch API and image upload succeeded ──
+        if (isFromWidget) {
+          if (isImageUploadSuccess) {
+            log('🟢 [WidgetDebug] Punch API & Image Upload BOTH succeeded! Strictly closing widget app.');
+            imageFile = null;
+            lastPersistedSelfiePath = null;
+            if (context.mounted) {
+              final nav = Navigator.of(context);
+              nav.pop(); // Pop the dialog
+            }
+            await disposeCamera();
+            try {
+              await const MethodChannel(
+                'punch_widget/open',
+              ).invokeMethod('move_to_background');
+            } catch (_) {}
+            SystemNavigator.pop();
+          } else {
+            log('🔴 [WidgetDebug] Image upload failed ($isImageUploadSuccess). STRICTLY KEEPING APP OPEN.');
+            showtoastmessage(LanguageProvider.translate(
+              'punchRecordedPhotoPending',
+              'Punch recorded, but photo upload failed. Please keep app open to sync.',
+            ));
+            // CRITICAL: DO NOT call move_to_background!
+            // CRITICAL: DO NOT call SystemNavigator.pop()!
+            // App strictly stays open so the user can verify, retry, or stay connected until sync.
+            if (context.mounted) {
+              final nav = Navigator.of(context);
+              nav.pop();
+            }
+          }
         } else {
-          navigator.pop();
-          navigator.push(
-            MaterialPageRoute(
-              builder: (context) => const AttendanceScreen(empData: null),
-            ),
-          );
+          imageFile = null;
+          lastPersistedSelfiePath = null;
+          if (context.mounted) {
+            final nav = Navigator.of(context);
+            nav.pop();
+            nav.push(
+              MaterialPageRoute(
+                builder: (context) => const AttendanceScreen(empData: null),
+              ),
+            );
+          }
         }
       } else {
+        log('🔴 [SelfiePunchProvider] Punch API response success != true. STRICTLY KEEPING APP OPEN.');
+        setPunchBoxOnTapStart(false);
+        setPunchLoader(false);
         showtoastmessage(punchTryAgainString);
       }
     } catch (e) {
+      log('🔴 [SelfiePunchProvider] Punch API error: $e. STRICTLY KEEPING APP OPEN.');
+      setPunchBoxOnTapStart(false);
+      setPunchLoader(false);
       showtoastmessage(errorOccurredString);
-    }
-
-    if (isFromWidget) {
-      log(
-        "🟠 [WidgetDebug] App is now in background. Starting image upload...",
-      );
-    }
-    try {
-      PunchPerformanceTracker.step('AttendanceApis: Uploading Selfie Photo (callWithImgPunch)');
-      await AttendanceApis().callWithImgPunch(
-        listenRes: (val) {},
-        FILES: userImages,
-        setCguid: setGuid,
-        setLatitude: usersetLatitude,
-        setLocation: setUsreLoaction,
-        setLongitude: usersetLongitude,
-      );
-      PunchPerformanceTracker.step('AttendanceApis: Selfie Photo Uploaded');
-      if (isFromWidget) {
-        log(
-          "🟠 [WidgetDebug] Image upload in background COMPLETED successfully.",
-        );
-      }
-    } catch (e) {
-      PunchPerformanceTracker.step('AttendanceApis: Selfie Upload Error ($e)');
-      if (isFromWidget) {
-        log("🟠 [WidgetDebug] Image upload in background FAILED: $e");
-      }
-    }
-
-    setPunchBoxOnTapStart(false);
-    setPunchLoader(false);
-    imageFile = null;
-    lastPersistedSelfiePath = null;
-
-    // After the image successfully uploads in the background, safely kill the app
-    // so it doesn't stay stuck on a blank camera screen when reopened.
-    if (isFromWidget) {
-      log(
-        "🟠 [WidgetDebug] Safely closing the app memory via SystemNavigator.pop()",
-      );
-      SystemNavigator.pop();
     }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Save offline punch to local queue
   // ═══════════════════════════════════════════════════════════════════════════
-  Future<void> _saveOfflinePunch({
+  Future<bool> _saveOfflinePunch({
     required BuildContext context,
     required int employeid,
     required String setUsreLoaction,
@@ -1679,17 +1724,10 @@ class SelfiePunchProvider extends ChangeNotifier {
       }
 
       showtoastmessage(punchSavedOfflineWillSyncString);
-
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Close PunchBox dialog
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const AttendanceScreen(empData: null),
-          ),
-        );
-      }
+      return true;
     } catch (e) {
       showtoastmessage(failedToSaveOfflineString);
+      return false;
     }
   }
 

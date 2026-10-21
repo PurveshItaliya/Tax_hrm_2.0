@@ -27,6 +27,7 @@ import 'package:tax_hrm/utils/reminder_service.dart';
 import 'package:tax_hrm/provider/attendanceemp.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 
 
 class Otpverificationprovider extends ChangeNotifier {
@@ -212,6 +213,7 @@ class Otpverificationprovider extends ChangeNotifier {
         if (value != '') {
           curentUser = jsonDecode(value);
           FcmTokenService.instance.handleTokenSync();
+          unawaited(FaceRegistrationSyncService.instance.checkFaceAvailabilityAndSync());
 
           final navigator = Navigator.of(context);
           Future.microtask(() async {

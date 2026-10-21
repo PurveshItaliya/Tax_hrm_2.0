@@ -205,6 +205,8 @@ class _PunchBoxConfirmationState extends State<PunchBoxConfirmation> with Widget
       }
     } catch (_) {}
     punchProvider.imageFile = null;
+    punchProvider.setPunchBoxOnTapStart(false);
+    punchProvider.setPunchLoader(false);
     super.dispose();
   }
 

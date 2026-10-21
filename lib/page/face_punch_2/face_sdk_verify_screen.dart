@@ -98,16 +98,9 @@ class FaceSdkDatabase {
         return;
       }
 
-      final rows = await db.query(_tableName, where: 'name = ?', whereArgs: ['Employee']);
-      if (rows.isNotEmpty) {
-        await db.update(
-          _tableName,
-          {'name': targetName},
-          where: 'name = ?',
-          whereArgs: ['Employee'],
-        );
-        debugPrint('[FaceSdkDatabase] Migrated legacy "Employee" record to "$targetName"');
-      }
+      // Remove any legacy unassigned 'Employee' record so new users never inherit old faces
+      await db.delete(_tableName, where: 'name = ?', whereArgs: ['Employee']);
+      debugPrint('[FaceSdkDatabase] Ensured stale legacy "Employee" record is removed');
     } catch (e) {
       debugPrint('[FaceSdkDatabase] Migration error: $e');
     }

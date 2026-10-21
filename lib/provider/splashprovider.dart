@@ -24,6 +24,7 @@ import 'package:tax_hrm/provider/setting_provider.dart';
 import 'package:tax_hrm/services/analytics_service.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/services/notifications/notification_storage_service.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 
 import '../models/company/getallcompany.dart';
 
@@ -192,6 +193,7 @@ class SplashProvider extends ChangeNotifier {
         // ── Analytics: identify user right after loading from storage ──
         _identifyUser();
         FcmTokenService.instance.initialize();
+        unawaited(FaceRegistrationSyncService.instance.checkFaceAvailabilityAndSync());
 
         _updateAllDataForReminders(context);
 
