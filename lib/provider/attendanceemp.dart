@@ -1,4 +1,4 @@
-// ignore_for_file: curly_braces_in_flow_control_structures, strict_top_level_inference, avoid_function_literals_in_foreach_calls, prefer_typing_uninitialized_variables, non_constant_identifier_names, empty_catches, use_build_context_synchronously
+// ignore_for_file: unused_local_variable, curly_braces_in_flow_control_structures, strict_top_level_inference, avoid_function_literals_in_foreach_calls, prefer_typing_uninitialized_variables, non_constant_identifier_names, empty_catches, use_build_context_synchronously
 
 import 'dart:convert';
 import 'package:calendar_view/calendar_view.dart';
@@ -961,16 +961,21 @@ class AttendanceEmp extends ChangeNotifier {
       for (final element in payrollProvider.getAllMonthsBreak) {
         premOutMinuts += double.tryParse(element.totalOutMinutes?.toString() ?? '0') ?? 0;
       }
-
-      final breakTotalMinutes = premOutMinuts.toInt();
-      final breakHours = breakTotalMinutes ~/ 60;
-      final breakMinutes = breakTotalMinutes % 60;
-      totalBreakHours = "$breakHours : $breakMinutes";
-
+      int validDaysCount = 0;
       for (final element in getMonthAttenDance) {
-        if (element.totalMinute != null) {
-          localUseTotalMinuts += int.tryParse(element.totalMinute.toString()) ?? 0;
+        int dayMins = (double.tryParse(element.totalMinute?.toString() ?? '0') ?? 0).toInt();
+        if (dayMins == 0 && element.inTime != null && element.outTime != null) {
+          try {
+            final inT = DateTime.tryParse(element.inTime.toString());
+            final outT = DateTime.tryParse(element.outTime.toString());
+            if (inT != null && outT != null) {
+              final diff = outT.difference(inT).inMinutes;
+              if (diff > 0) dayMins = diff;
+            }
+          } catch (_) {}
         }
+        if (dayMins > 0) validDaysCount++;
+        localUseTotalMinuts += dayMins;
 
         if (element.present == true && getUserShift != null) {
           if (getUserShift!.break1 == true) {
@@ -991,14 +996,17 @@ class AttendanceEmp extends ChangeNotifier {
       final gHours = grossMinutes ~/ 60;
       final gMins = grossMinutes % 60;
       grossTotalHours = "$gHours : $gMins";
-
+      
+      final breakTotalMinutes = (premOutMinuts + setShitBreak).toInt();
+      final breakHours = breakTotalMinutes ~/ 60;
+      final breakMinutes = breakTotalMinutes % 60;
+      totalBreakHours = "$breakHours : $breakMinutes";
+      
       // ── Calculate daily shift working minutes for the selected user ──
       final int dayTotalMinuts = getShiftWorkingMinutes(getUserShift);
-
+      
       // Ensure paid leave days are up to date
-      if (totalPaidLeave == 0 && getMonthAttenDance.isNotEmpty) {
-        calcualetPaidLeave();
-      }
+      calcualetPaidLeave();
 
       // Calculate paid leave hours according to the selected user's shift time
       final double paidLeaveDuration = dayTotalMinuts * totalPaidLeave.toDouble();
@@ -1008,15 +1016,15 @@ class AttendanceEmp extends ChangeNotifier {
       final plHours = plTotalMinutes ~/ 60;
       final plMinutes = plTotalMinutes % 60;
       paidLeaveHours = "$plHours : $plMinutes";
-
+      
       // Ensure holiday days are up to date
-      if (totalHoliday == 0 && curentMonthHoliday.isNotEmpty) {
-        for (final holiday in curentMonthHoliday) {
-          if (hasDateArrived(holiday.holidayDate)) {
-            totalHoliday += calculateHolidayLeave(holiday);
-          }
+      double holidayDays = 0;
+      for (final holiday in curentMonthHoliday) {
+        if (hasDateArrived(holiday.holidayDate)) {
+          holidayDays += calculateHolidayLeave(holiday);
         }
       }
+      totalHoliday = holidayDays;
 
       // Calculate holiday hours according to the selected user's shift time
       final double holidayDuration = dayTotalMinuts * totalHoliday.toDouble();
@@ -1026,10 +1034,11 @@ class AttendanceEmp extends ChangeNotifier {
       final hours = totalMinutes ~/ 60;
       final minutes = totalMinutes % 60;
       holidayHoursCount = "$hours : $minutes";
-
+      
       // Final working minutes calculation
       localUseTotalMinuts -= premOutMinuts.toInt();
       localUseTotalMinuts -= setShitBreak.toInt();
+      if (localUseTotalMinuts < 0) localUseTotalMinuts = 0;
 
       useTotalMinuts = localUseTotalMinuts;
       paidLeave = localPaidLeave;
@@ -1037,7 +1046,7 @@ class AttendanceEmp extends ChangeNotifier {
       final ss = useTotalMinuts ~/ 60;
       final ww = (useTotalMinuts.toInt() % 60).abs();
       showUserTotalHours = '$ss:$ww';
-
+      
       if (getUserShift != null) {
         int totalDaysInMonth = DateTime(fetchYear, fetchMonth + 1, 0).day;
         int weekOffs = 0;
@@ -1072,7 +1081,6 @@ class AttendanceEmp extends ChangeNotifier {
         expectedTotalHours = '0';
       }
     } catch (e) {
-      /* ignored */
     }
   }
 

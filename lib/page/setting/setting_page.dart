@@ -8,11 +8,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/page/face_punch_2/face_sdk_enroll_screen.dart';
-import 'package:tax_hrm/page/face_registation/face_registration_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
 import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
@@ -32,10 +29,8 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/provider/location_tracking_provider.dart';
-import 'package:tax_hrm/provider/face_verification_provider.dart';
 import 'package:tax_hrm/provider/selfie_punch_provider.dart';
 import 'package:tax_hrm/services/face_registration_sync_service.dart';
-import 'package:tax_hrm/services/remote_config_services.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -639,122 +634,8 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   }
 
   // ── Face SDK Enrollment Settings Section ──────────────────────────────────
-  Widget _buildFaceSdkEnrollSection(Size size) {
-    return Material(
-      color: Colors.transparent,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 4,
-        ),
-        leading: Container(
-          height: 40,
-          width: 40,
-          decoration: BoxDecoration(
-            color: ColorConst.themeColor.withOpacity(0.08),
-            shape: BoxShape.circle,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: SvgPicture.asset(
-              'assets/images/faceid.svg',
-              color: ColorConst.themeColor,
-            ),
-          ),
-        ),
-        title: Text(
-          'Enroll Face (FaceSDK)',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: ColorConst.settingTextColors,
-          ),
-        ),
-        subtitle: Text(
-          'Register face template for punch verification',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Colors.green.shade600,
-          ),
-        ),
-        trailing: Icon(
-          Icons.chevron_right_rounded,
-          color: ColorConst.settingIconsColors,
-          size: 24,
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const FaceSdkEnrollScreen(),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   // ── Face Verification Settings Section ─────────────────────────────────────
-  Widget _buildFaceVerificationSection(Size size) {   
-    return Consumer<FaceVerificationProvider>(
-      builder: (context, faceProvider, child) {
-        return Material(
-          color: Colors.transparent,
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 4,
-            ),
-            leading: Container(
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: ColorConst.themeColor.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SvgPicture.asset(
-                  'assets/images/faceid.svg',
-                  color: ColorConst.themeColor,
-                ),
-              ),
-            ),
-            title: Text(
-              reRegisterFaceString,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: ColorConst.settingTextColors,
-              ),
-            ),
-            subtitle: Text(
-              faceIsRegisteredString,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.green.shade600,
-              ),
-            ),
-            trailing: Icon(
-              Icons.chevron_right_rounded,
-              color: ColorConst.settingIconsColors,
-              size: 24,
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const FaceRegistrationScreen(),
-                ),
-              ).then((_) {});
-            },
-          ),
-        );
-      },
-    );
-  }
 
   // ── Custom Settings Tile ───────────────────────────────────────────────────
   Widget _buildSettingTile({

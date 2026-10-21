@@ -758,7 +758,7 @@ final Map<String, String> enTranslations = {
   'contactNumbersBothString': '95100 56789  /  95101 56789',
   'contactNumbersBothCopiedString': 'Contact numbers copied to clipboard!',
   'websiteString': 'Website',
-  'websiteUrlString': 'www.i-tax.in',
+  'websiteUrlString': 'hrm.taxfile.co.in/',
   'websiteCopiedString': 'Website copied to clipboard!',
   'companyAddressString': '601-602, SUBH SQUARE, opp. Modh Patni wadi, Lal Darwaja, Surat, Gujarat 395003',
   'addressCopiedString': 'Address copied to clipboard!',

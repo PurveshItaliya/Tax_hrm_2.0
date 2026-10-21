@@ -60,7 +60,9 @@ class HomeProvider extends ChangeNotifier {
   @override
   void notifyListeners() {
     final schedulerPhase = SchedulerBinding.instance.schedulerPhase;
-    final canNotifyNow = schedulerPhase == SchedulerPhase.idle || schedulerPhase == SchedulerPhase.postFrameCallbacks;
+    final canNotifyNow =
+        schedulerPhase == SchedulerPhase.idle ||
+        schedulerPhase == SchedulerPhase.postFrameCallbacks;
 
     if (canNotifyNow) {
       super.notifyListeners();
@@ -83,7 +85,6 @@ class HomeProvider extends ChangeNotifier {
 
   List<HomeGridClass> homeGridOptionList = [];
 
-
   bool _hasLeaderboardLoadedThisSession = false;
 
   homeLoadDatas(context, {bool forceRefresh = false}) async {
@@ -103,88 +104,256 @@ class HomeProvider extends ChangeNotifier {
       } else if (val != null) {
         isVisitor = val.toString().toLowerCase() == 'true';
       }
-    } else {
-    }
+    } else {}
 
-    homeGridOptionList = curentUser['Role'] == 'Admin' ? [
-      HomeGridClass(image: attendanceUserString, title: attendanceString, onTap: () {
-        changeSelectBottomBar(1);
-      },),
-      HomeGridClass(image: leaveImgString, title: leaveString, onTap: (){
-        changeSelectBottomBar(2);
-      }),
-      HomeGridClass(image: employeeMasterImageString, title: employeeMasterTitleString, onTap: () {
-        nextScreen(context, EmployeeMasterScreen(), onthenValue: (value) {});
-      },),
-      HomeGridClass(image: paySlipImageString, title: paySlipString, onTap: () {
-        nextScreen(context, PaySlipMaterScreen(), onthenValue: (value) {});
-      },),
-      HomeGridClass(image: holidayImageString, title: holidayString, onTap: () {
-        nextScreen(context, ShowHolidayViews(), onthenValue: (value) {});
-      },), 
-      HomeGridClass(image: payrollMasterImageString, title: payrollMasterString, onTap: () {
-        nextScreen(context, PayrollMaterScreen(), onthenValue: (value) {});
-      },), 
-      HomeGridClass(image: payrollSummeryImageString, title: payrollSummeryString, onTap: (){
-        nextScreen(context, PayrollSummaryScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: leaveMstImageString, title: leaveMasterString, onTap: () {
-        nextScreen(context, AdminLeaveMasterScreen(), onthenValue: (value) {});
-      },),
-      HomeGridClass(image: shiftMstImageString, title: shiftMasterString, onTap: (){
-         nextScreen(context, ShiftMasterScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: shiftTimingImageString, title: shiftTimingString, onTap: () {
-        nextScreen(context, ShiftTimingMasterScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: departmentImageString, title: departmentString, onTap: (){
-        nextScreen(context, DepartmentMenuScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: eventImageString, title: eventString, onTap: () {
-        nextScreen(context, EventPageScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: candidateImageString, title: recuritmentString, onTap: () {
-        nextScreen(context, RecruitmentPageScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: aediDecImageString, title: addDeduString, onTap: () {
-        nextScreen(context, AdditionDeductionScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: visitImageString, title: visitString, onTap: () {
-        nextScreen(context, VisitScreen(), onthenValue: (value) {});
-      }),
-    ] : [
-      HomeGridClass(image: attendanceUserString, title: attendanceString,onTap: (){
-        changeSelectBottomBar(1);
-      }),
-      HomeGridClass(image: leaveImgString, title: leaveString,onTap: (){
-        changeSelectBottomBar(2);
-      }),
-      HomeGridClass(image: salarySlipsImageString, title: salarySlipString,onTap: () {
-        nextScreen(context, SalaryPayslipScreen(), onthenValue: (value) {});
-      }),
-      HomeGridClass(image: holidayImageString, title: holidayString,onTap: () {
-        nextScreen(context, ShowHolidayViews(), onthenValue: (value) {});
-      },),
-      HomeGridClass(image: payrollMasterImageString, title: payrollMasterString, onTap: () {
-        nextScreen(context, PayrollMaterScreen(), onthenValue: (value) {});
-      },), 
-      HomeGridClass(image: notesImageString, title: noteString,onTap: () {
-        nextScreen(context, NotesViewPage(), onthenValue: (value) {});
-      },),
-      HomeGridClass(image: documentImageString, title: documentString,onTap: () {
-        nextScreen(context, ShowDocumentScreen(), onthenValue: (value) {});
-      },),
-      HomeGridClass(image: timelineImageString, title: timeLineString,onTap: (){
-         showDialog(context: context,builder: (context) => LocationTimeLines(),);
-      }),
-      HomeGridClass(image: timelineviewString, title: timeLineViewString,onTap: () {
-        nextScreen(context, SmartTimelineScreen(userId: curentUser['Id'].toString()),onthenValue: (value){});
-      },),
-      if (isVisitor)
-        HomeGridClass(image: visitImageString, title: visitString, onTap: () {
-          nextScreen(context, VisitScreen(), onthenValue: (value) {});
-        }),
-    ];
+    homeGridOptionList = curentUser['Role'] == 'Admin'
+        ? [
+            HomeGridClass(
+              image: attendanceUserString,
+              title: attendanceString,
+              onTap: () {
+                changeSelectBottomBar(1);
+              },
+            ),
+            HomeGridClass(
+              image: leaveImgString,
+              title: leaveString,
+              onTap: () {
+                changeSelectBottomBar(2);
+              },
+            ),
+            HomeGridClass(
+              image: employeeMasterImageString,
+              title: employeeMasterTitleString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  EmployeeMasterScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: paySlipImageString,
+              title: paySlipString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  PaySlipMaterScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: holidayImageString,
+              title: holidayString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  ShowHolidayViews(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: payrollMasterImageString,
+              title: payrollMasterString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  PayrollMaterScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: payrollSummeryImageString,
+              title: payrollSummeryString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  PayrollSummaryScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: leaveMstImageString,
+              title: leaveMasterString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  AdminLeaveMasterScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: shiftMstImageString,
+              title: shiftMasterString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  ShiftMasterScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: shiftTimingImageString,
+              title: shiftTimingString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  ShiftTimingMasterScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: departmentImageString,
+              title: departmentString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  DepartmentMenuScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: eventImageString,
+              title: eventString,
+              onTap: () {
+                nextScreen(context, EventPageScreen(), onthenValue: (value) {});
+              },
+            ),
+            HomeGridClass(
+              image: candidateImageString,
+              title: recuritmentString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  RecruitmentPageScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: aediDecImageString,
+              title: addDeduString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  AdditionDeductionScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: visitImageString,
+              title: visitString,
+              onTap: () {
+                nextScreen(context, VisitScreen(), onthenValue: (value) {});
+              },
+            ),
+          ]
+        : [
+            HomeGridClass(
+              image: attendanceUserString,
+              title: attendanceString,
+              onTap: () {
+                changeSelectBottomBar(1);
+              },
+            ),
+            HomeGridClass(
+              image: leaveImgString,
+              title: leaveString,
+              onTap: () {
+                changeSelectBottomBar(2);
+              },
+            ),
+            HomeGridClass(
+              image: salarySlipsImageString,
+              title: salarySlipString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  SalaryPayslipScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: holidayImageString,
+              title: holidayString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  ShowHolidayViews(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: payrollMasterImageString,
+              title: payrollMasterString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  PayrollMaterScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: notesImageString,
+              title: noteString,
+              onTap: () {
+                nextScreen(context, NotesViewPage(), onthenValue: (value) {});
+              },
+            ),
+            HomeGridClass(
+              image: documentImageString,
+              title: documentString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  ShowDocumentScreen(),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            HomeGridClass(
+              image: timelineImageString,
+              title: timeLineString,
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => LocationTimeLines(),
+                );
+              },
+            ),
+            HomeGridClass(
+              image: timelineviewString,
+              title: timeLineViewString,
+              onTap: () {
+                nextScreen(
+                  context,
+                  SmartTimelineScreen(userId: curentUser['Id'].toString()),
+                  onthenValue: (value) {},
+                );
+              },
+            ),
+            if (isVisitor)
+              HomeGridClass(
+                image: visitImageString,
+                title: visitString,
+                onTap: () {
+                  nextScreen(context, VisitScreen(), onthenValue: (value) {});
+                },
+              ),
+          ];
   }
 
   void changeSelectBottomBar(int value) {
@@ -221,10 +390,13 @@ class HomeProvider extends ChangeNotifier {
   }
 
   companySelect() async {
-    await CompanyDataApis().getCompanyDataList().then((value) async {
-      getAllCompany = value;
-      await setcompanyselected();
-    }).onError((error, stackTrace) {});
+    await CompanyDataApis()
+        .getCompanyDataList()
+        .then((value) async {
+          getAllCompany = value;
+          await setcompanyselected();
+        })
+        .onError((error, stackTrace) {});
   }
 
   Future setcompanyselected() async {
@@ -233,7 +405,8 @@ class HomeProvider extends ChangeNotifier {
         Map<String, dynamic> jsonMap = jsonDecode(value);
         GetCompanyData holadcompany = GetCompanyData.fromJson(jsonMap);
         for (var element in getAllCompany) {
-          if (element.companyId.toString() == holadcompany.companyId.toString()) {
+          if (element.companyId.toString() ==
+              holadcompany.companyId.toString()) {
             selectedcurentcompany = element;
             notifyListeners();
           }
@@ -250,15 +423,15 @@ class HomeProvider extends ChangeNotifier {
     });
   }
 
-  companyHandleSubmit(context,{size}) {
-    showCompanySelectDialog(context,size: size);
+  companyHandleSubmit(context, {size}) {
+    showCompanySelectDialog(context, size: size);
   }
 
-  selectCompanyOntap(item,context) async {
+  selectCompanyOntap(item, context) async {
     selectedcurentcompany = item;
     notifyListeners();
     Navigator.pop(context);
-    String setdata =  jsonEncode(selectedcurentcompany);
+    String setdata = jsonEncode(selectedcurentcompany);
     SaveUser().saveselectedcopany(setdata);
     await setcompanyselected();
     ReminderNotificationService.scheduleAllNotifications(forceRefresh: true);
@@ -269,20 +442,23 @@ class HomeProvider extends ChangeNotifier {
   Timer? _workingHoursTimer;
   String _currentWorkingHours = "00:00";
   bool _isCurrentlyWorking = false;
-  
+
   String get currentWorkingHours => _currentWorkingHours;
   bool get isCurrentlyWorking => _isCurrentlyWorking;
-  
+
   // Check times
   String _checkInTime = "00:00";
   String _checkOutTime = "00:00";
-  
+
   String get checkInTime => _checkInTime;
   String get checkOutTime => _checkOutTime;
 
   // Start the auto-update timer
   void startWorkingHoursTimer(BuildContext context) {
-    final selfiePunchProvider = Provider.of<SelfiePunchProvider>(context, listen: false);
+    final selfiePunchProvider = Provider.of<SelfiePunchProvider>(
+      context,
+      listen: false,
+    );
     stopWorkingHoursTimer();
 
     // Instantly update UI with cached status if any
@@ -300,7 +476,7 @@ class HomeProvider extends ChangeNotifier {
       final empId = curentUser?['Id'];
       if (empId != null) {
         try {
-        await selfiePunchProvider.checkLastPunch(curentUser['Id'], context);
+          await selfiePunchProvider.checkLastPunch(curentUser['Id'], context);
         } catch (e) {
           // ignore errors
         }
@@ -339,7 +515,9 @@ class HomeProvider extends ChangeNotifier {
     return null;
   }
 
-  List<AttendenceLog> _getTodayUserLogs(SelfiePunchProvider selfiePunchProvider) {
+  List<AttendenceLog> _getTodayUserLogs(
+    SelfiePunchProvider selfiePunchProvider,
+  ) {
     if (selfiePunchProvider.checkStatus == null ||
         selfiePunchProvider.checkStatus!.attendenceLog == null) {
       return [];
@@ -356,7 +534,9 @@ class HomeProvider extends ChangeNotifier {
         }
       }
 
-      final DateTime? logDate = _parseLogDateTime(log.time ?? log.attendenceDate);
+      final DateTime? logDate = _parseLogDateTime(
+        log.time ?? log.attendenceDate,
+      );
       if (logDate != null) {
         if (logDate.year != today.year ||
             logDate.month != today.month ||
@@ -419,7 +599,9 @@ class HomeProvider extends ChangeNotifier {
           }
         }
       }
-      if (newCheckIn == "00:00" && attendenceSummary?.inTime != null && attendenceSummary!.inTime!.isNotEmpty) {
+      if (newCheckIn == "00:00" &&
+          attendenceSummary?.inTime != null &&
+          attendenceSummary!.inTime!.isNotEmpty) {
         final dt = _parseLogDateTime(attendenceSummary.inTime);
         if (dt != null) {
           newCheckIn = DateFormat('hh:mm a').format(dt);
@@ -438,7 +620,9 @@ class HomeProvider extends ChangeNotifier {
           }
         }
       }
-      if (newCheckOut == "00:00" && attendenceSummary?.outTime != null && attendenceSummary!.outTime!.isNotEmpty) {
+      if (newCheckOut == "00:00" &&
+          attendenceSummary?.outTime != null &&
+          attendenceSummary!.outTime!.isNotEmpty) {
         final dt = _parseLogDateTime(attendenceSummary.outTime);
         if (dt != null) {
           newCheckOut = DateFormat('hh:mm a').format(dt);
@@ -468,11 +652,15 @@ class HomeProvider extends ChangeNotifier {
       bool newWorkingStatus = false;
       if (activeInTime != null) {
         newWorkingStatus = true;
-        final currentOngoing = DateTime.now().difference(activeInTime).inMinutes;
+        final currentOngoing = DateTime.now()
+            .difference(activeInTime)
+            .inMinutes;
         if (currentOngoing > 0) totalMinutes += currentOngoing;
       }
 
-      if (totalMinutes == 0 && !newWorkingStatus && attendenceSummary?.totalMinute != null) {
+      if (totalMinutes == 0 &&
+          !newWorkingStatus &&
+          attendenceSummary?.totalMinute != null) {
         final tm = int.tryParse(attendenceSummary!.totalMinute.toString()) ?? 0;
         if (tm > 0) totalMinutes = tm;
       }
@@ -508,7 +696,10 @@ class HomeProvider extends ChangeNotifier {
 
   // Manual refresh method
   void refreshWorkingHours(BuildContext context) {
-    final selfiePunchProvider = Provider.of<SelfiePunchProvider>(context, listen: false);
+    final selfiePunchProvider = Provider.of<SelfiePunchProvider>(
+      context,
+      listen: false,
+    );
     _updateWorkingHours(selfiePunchProvider);
   }
 
@@ -517,7 +708,7 @@ class HomeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-// Statistics Variables
+  // Statistics Variables
   int _totalHour = 0;
   int _totalMinute = 0;
   String _paidLeaveHours = "00:00";
@@ -525,7 +716,7 @@ class HomeProvider extends ChangeNotifier {
   String _totalBreakHours = "00:00";
   String _expectedTotalHours = "0";
   bool _isCalculating = false;
-  
+
   int get totalHour => _totalHour;
   int get totalMinute => _totalMinute;
   String get paidLeaveHours => _paidLeaveHours;
@@ -540,16 +731,16 @@ class HomeProvider extends ChangeNotifier {
       final leaveDuration = attendance.leaveDuration.toString().toLowerCase();
       final duration = double.tryParse(leaveDuration);
       if (duration != null) return duration;
-      if (leaveDuration.contains('half') || 
-          leaveDuration.contains('first half') || 
+      if (leaveDuration.contains('half') ||
+          leaveDuration.contains('first half') ||
           leaveDuration.contains('second half')) {
         return 0.5;
       }
     }
     if (attendance.dayType != null) {
       final dayType = attendance.dayType.toString().toLowerCase();
-      if (dayType.contains('half') || 
-          dayType.contains('first half') || 
+      if (dayType.contains('half') ||
+          dayType.contains('first half') ||
           dayType.contains('second half')) {
         return 0.5;
       }
@@ -561,8 +752,8 @@ class HomeProvider extends ChangeNotifier {
   double _calculateHolidayLeave(GetHolidayViews holiday) {
     if (holiday.holidayType != null) {
       final holidayType = holiday.holidayType.toString().toLowerCase();
-      if (holidayType.contains('half') || 
-          holidayType.contains('first half') || 
+      if (holidayType.contains('half') ||
+          holidayType.contains('first half') ||
           holidayType.contains('second half')) {
         return 0.5;
       }
@@ -573,7 +764,7 @@ class HomeProvider extends ChangeNotifier {
   // Main Calculate Time Function
   Future<void> calculateTime(BuildContext context) async {
     if (_isCalculating) return;
-    
+
     _isCalculating = true;
     _totalHour = 0;
     _totalMinute = 0;
@@ -590,9 +781,18 @@ class HomeProvider extends ChangeNotifier {
       double premOutMinuts = 0;
 
       // Get attendance provider
-      final attendanceProvider = Provider.of<AttendanceEmp>(context, listen: false);
-      final holidayProvider = Provider.of<HolidayeMastServices>(context, listen: false);
-      final payrollProvider = Provider.of<PayRollProviders>(context, listen: false);
+      final attendanceProvider = Provider.of<AttendanceEmp>(
+        context,
+        listen: false,
+      );
+      final holidayProvider = Provider.of<HolidayeMastServices>(
+        context,
+        listen: false,
+      );
+      final payrollProvider = Provider.of<PayRollProviders>(
+        context,
+        listen: false,
+      );
       final currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
       attendanceProvider.currentMonth = currentMonth;
@@ -610,11 +810,11 @@ class HomeProvider extends ChangeNotifier {
         setYear: currentMonth.year,
       );
       if (!context.mounted) return;
-      
+
       // Get user shift data
       GetShiftMasterData? getUserShift = await _getUserShift(context);
       if (!context.mounted) return;
-      
+
       if (getUserShift == null) {
         _isCalculating = false;
         notifyListeners();
@@ -629,12 +829,18 @@ class HomeProvider extends ChangeNotifier {
 
         // Calculate shift breaks
         if (element.present == true) {
-          if (getUserShift.break1 == true && getUserShift.break1Duration != null) {
-            DateTime parsedDateTime = DateTime.parse(getUserShift.break1Duration!);
+          if (getUserShift.break1 == true &&
+              getUserShift.break1Duration != null) {
+            DateTime parsedDateTime = DateTime.parse(
+              getUserShift.break1Duration!,
+            );
             setShitBreak += parsedDateTime.hour * 60 + parsedDateTime.minute;
           }
-          if (getUserShift.break2 == true && getUserShift.break2Duration != null) {
-            DateTime parsedDateTime = DateTime.parse(getUserShift.break2Duration!);
+          if (getUserShift.break2 == true &&
+              getUserShift.break2Duration != null) {
+            DateTime parsedDateTime = DateTime.parse(
+              getUserShift.break2Duration!,
+            );
             setShitBreak += parsedDateTime.hour * 60 + parsedDateTime.minute;
           }
         }
@@ -662,7 +868,9 @@ class HomeProvider extends ChangeNotifier {
 
       // Calculate day total minutes from shift duration
       DateFormat dateFormat = DateFormat("dd/MM/yyyy HH:mm:ss");
-      DateTime parsedDateTime = dateFormat.parse(getUserShift.shiftDuration ?? '');
+      DateTime parsedDateTime = dateFormat.parse(
+        getUserShift.shiftDuration ?? '',
+      );
       int dayTotalMinuts = parsedDateTime.hour * 60 + parsedDateTime.minute;
 
       // Calculate paid leave duration
@@ -671,26 +879,35 @@ class HomeProvider extends ChangeNotifier {
 
       // Get current date range
       DateTime firstDate = DateTime(currentMonth.year, currentMonth.month, 1);
-      DateTime lastDate = DateTime(currentMonth.year, currentMonth.month + 1, 0);
+      DateTime lastDate = DateTime(
+        currentMonth.year,
+        currentMonth.month + 1,
+        0,
+      );
 
       // Filter holidays
-      List<GetHolidayViews> filteredDates = holidayProvider.mainHolidayList.where((date) {
-        DateTime holidayDate = DateTime.parse(date.holidayDate ?? '');
-        return !holidayDate.isBefore(firstDate) && !holidayDate.isAfter(lastDate);
-      }).toList();
+      List<GetHolidayViews> filteredDates = holidayProvider.mainHolidayList
+          .where((date) {
+            DateTime holidayDate = DateTime.parse(date.holidayDate ?? '');
+            return !holidayDate.isBefore(firstDate) &&
+                !holidayDate.isAfter(lastDate);
+          })
+          .toList();
 
       // Calculate holiday duration
       final attendanceCounting = attendanceProvider.setEmpAttendanc;
-      if (attendanceCounting != null && 
-          attendanceCounting.isNotEmpty && 
+      if (attendanceCounting != null &&
+          attendanceCounting.isNotEmpty &&
           attendanceCounting.first.totalHolidays != null) {
-        holidayLeave = double.parse(attendanceCounting.first.totalHolidays.toString());
+        holidayLeave = double.parse(
+          attendanceCounting.first.totalHolidays.toString(),
+        );
       } else {
         filteredDates.forEach((element) {
           holidayLeave += _calculateHolidayLeave(element);
         });
       }
-      
+
       double holidayDuration = dayTotalMinuts * holidayLeave;
       useTotalMinuts += holidayDuration;
 
@@ -706,7 +923,7 @@ class HomeProvider extends ChangeNotifier {
 
       int ss = useTotalMinuts ~/ 60;
       int ww = useTotalMinuts.toInt() % 60;
-      
+
       _totalHour = ss;
       _totalMinute = ww;
 
@@ -723,43 +940,60 @@ class HomeProvider extends ChangeNotifier {
       _holidayHoursCount = "$holidayHours : $holidayMinutes";
 
       // Calculate expected total hours from shift
-      int totalDaysInMonth = DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
+      int totalDaysInMonth = DateTime(
+        currentMonth.year,
+        currentMonth.month + 1,
+        0,
+      ).day;
       int weekOffs = 0;
       for (int i = 1; i <= totalDaysInMonth; i++) {
         DateTime day = DateTime(currentMonth.year, currentMonth.month, i);
-        if (getUserShift.mon == false && day.weekday == 1) weekOffs++;
-        else if (getUserShift.tue == false && day.weekday == 2) weekOffs++;
-        else if (getUserShift.wed == false && day.weekday == 3) weekOffs++;
-        else if (getUserShift.thu == false && day.weekday == 4) weekOffs++;
-        else if (getUserShift.fri == false && day.weekday == 5) weekOffs++;
-        else if (getUserShift.sat == false && day.weekday == 6) weekOffs++;
-        else if (getUserShift.sun == false && day.weekday == 7) weekOffs++;
+        if (getUserShift.mon == false && day.weekday == 1)
+          weekOffs++;
+        else if (getUserShift.tue == false && day.weekday == 2)
+          weekOffs++;
+        else if (getUserShift.wed == false && day.weekday == 3)
+          weekOffs++;
+        else if (getUserShift.thu == false && day.weekday == 4)
+          weekOffs++;
+        else if (getUserShift.fri == false && day.weekday == 5)
+          weekOffs++;
+        else if (getUserShift.sat == false && day.weekday == 6)
+          weekOffs++;
+        else if (getUserShift.sun == false && day.weekday == 7)
+          weekOffs++;
       }
-      
+
       int expectedWorkingDays = totalDaysInMonth - weekOffs;
-      
+
       int dailyBreakMins = 0;
       if (getUserShift.break1 == true) {
         try {
           final b1 = DateTime.parse(getUserShift.break1Duration ?? '');
           dailyBreakMins += b1.hour * 60 + b1.minute;
-        } catch (e) { /* ignored */ }
+        } catch (e) {
+          /* ignored */
+        }
       }
       if (getUserShift.break2 == true) {
         try {
           final b2 = DateTime.parse(getUserShift.break2Duration ?? '');
           dailyBreakMins += b2.hour * 60 + b2.minute;
-        } catch (e) { /* ignored */ }
+        } catch (e) {
+          /* ignored */
+        }
       }
-      
+
       int expectedNetDailyMins = dayTotalMinuts - dailyBreakMins;
       int expectedMonthlyMinuts = expectedWorkingDays * expectedNetDailyMins;
-      
+
       final expectedHH = expectedMonthlyMinuts ~/ 60;
       final expectedMM = expectedMonthlyMinuts % 60;
-      _expectedTotalHours = '$expectedHH:${expectedMM.toString().padLeft(2, '0')}';
-
-    } catch (e) { /* ignored */ } finally {
+      _expectedTotalHours =
+          '$expectedHH:${expectedMM.toString().padLeft(2, '0')}';
+    } catch (e) {
+      /* ignored */
+    } finally {
       _isCalculating = false;
       notifyListeners();
     }
@@ -768,9 +1002,13 @@ class HomeProvider extends ChangeNotifier {
   // Get user shift data
   Future<GetShiftMasterData?> _getUserShift(BuildContext context) async {
     try {
-      final shiftProvider = Provider.of<ShiftMasterProvider>(context, listen: false);
-      List<GetShiftMasterData> getShiftSData = await shiftProvider.getShiftTimintgMasterData();
-      
+      final shiftProvider = Provider.of<ShiftMasterProvider>(
+        context,
+        listen: false,
+      );
+      List<GetShiftMasterData> getShiftSData = await shiftProvider
+          .getShiftTimintgMasterData();
+
       for (var element in getShiftSData) {
         if (element.positionId == curentUser['PositionId']) {
           return element;
@@ -785,15 +1023,20 @@ class HomeProvider extends ChangeNotifier {
   // Get today's break time
   String getTodayBreakTime(context) {
     try {
-      final payrollProvider = Provider.of<PayRollProviders>(context, listen: false);
+      final payrollProvider = Provider.of<PayRollProviders>(
+        context,
+        listen: false,
+      );
       DateTime now = DateTime.now();
-      
+
       if (payrollProvider.getAllMonthsBreak.isNotEmpty) {
         String todayDate = DateFormat('dd-MM-yyyy').format(now);
         String lastBreakDate = DateFormat('dd-MM-yyyy').format(
-          DateTime.parse(payrollProvider.getAllMonthsBreak.last.attendenceDate.toString())
+          DateTime.parse(
+            payrollProvider.getAllMonthsBreak.last.attendenceDate.toString(),
+          ),
         );
-        
+
         if (todayDate == lastBreakDate) {
           return '${payrollProvider.getAllMonthsBreak.last.totalOutMinutes.toString()} Min';
         }
@@ -807,7 +1050,10 @@ class HomeProvider extends ChangeNotifier {
   // Get statistics text
   String getStatisticsText() {
     String userTotal = curentUser['Totalhours']?.toString() ?? '0';
-    if (userTotal == '0' || userTotal == '0.0' || userTotal == '0:0' || userTotal == '') {
+    if (userTotal == '0' ||
+        userTotal == '0.0' ||
+        userTotal == '0:0' ||
+        userTotal == '') {
       userTotal = _expectedTotalHours.isEmpty ? '0' : _expectedTotalHours;
     }
     return '$_totalHour : $_totalMinute / $userTotal';
@@ -819,290 +1065,319 @@ class HomeProvider extends ChangeNotifier {
     super.dispose();
   }
 
-// Add these variables in the HomeProvider class
-List<HrmTopListReport>? _setHrmTopRecord;
-List<HrmTopListReport>? get setHrmTopRecord => _setHrmTopRecord;
+  // Add these variables in the HomeProvider class
+  List<HrmTopListReport>? _setHrmTopRecord;
+  List<HrmTopListReport>? get setHrmTopRecord => _setHrmTopRecord;
 
-DateTime _leaderboardSelectedMonth = DateTime(DateTime.now().year, DateTime.now().month - 1);
-DateTime get leaderboardSelectedMonth => _leaderboardSelectedMonth;
+  DateTime _leaderboardSelectedMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month - 1,
+  );
+  DateTime get leaderboardSelectedMonth => _leaderboardSelectedMonth;
 
-bool _isLeaderboardLoading = false;
-bool get isLeaderboardLoading => _isLeaderboardLoading;
+  bool _isLeaderboardLoading = false;
+  bool get isLeaderboardLoading => _isLeaderboardLoading;
 
-String _leaderboardErrorMessage = '';
-String get leaderboardErrorMessage => _leaderboardErrorMessage;
+  String _leaderboardErrorMessage = '';
+  String get leaderboardErrorMessage => _leaderboardErrorMessage;
 
-bool _isFetchingLeaderboard = false;
+  bool _isFetchingLeaderboard = false;
 
-// Leaderboard — Stale-While-Revalidate: show cache instantly, refresh silently
-Future<void> getTopLeaderboard({int? month, int? year, bool forceRefresh = false}) async {
-  if (_isFetchingLeaderboard) return;
-  
-  final selectedMonth = month ?? _leaderboardSelectedMonth.month;
-  final selectedYear = year ?? _leaderboardSelectedMonth.year;
-  final cacheKey = '${LocalCacheService.keyLeaderboard}_${selectedYear}_${selectedMonth.toString().padLeft(2, '0')}';
-  const ttlMs = 30 * 60 * 1000; // 30 minutes
+  // Leaderboard — Stale-While-Revalidate: show cache instantly, refresh silently
+  Future<void> getTopLeaderboard({
+    int? month,
+    int? year,
+    bool forceRefresh = false,
+  }) async {
+    if (_isFetchingLeaderboard) return;
 
-  _leaderboardErrorMessage = '';
+    final selectedMonth = month ?? _leaderboardSelectedMonth.month;
+    final selectedYear = year ?? _leaderboardSelectedMonth.year;
+    final cacheKey =
+        '${LocalCacheService.keyLeaderboard}_${selectedYear}_${selectedMonth.toString().padLeft(2, '0')}';
+    const ttlMs = 30 * 60 * 1000; // 30 minutes
 
-  // ── Step 1: Show memory cache immediately ─────────────────────────────────
-  if (!forceRefresh && _hasLeaderboardLoadedThisSession && _setHrmTopRecord != null && _setHrmTopRecord!.isNotEmpty &&
-      _leaderboardSelectedMonth.month == selectedMonth &&
-      _leaderboardSelectedMonth.year == selectedYear) {
-    _isLeaderboardLoading = false;
-    notifyListeners();
-    return;
-  } else {
-    // ── Step 2: Try local (SharedPreferences) cache BEFORE showing spinner ──
-    try {
-      final cached = await LocalCacheService.instance.getCache(cacheKey, ttlMilliseconds: ttlMs);
-      if (cached != null && cached is List) {
-        _setHrmTopRecord = (cached)
-            .map((e) => HrmTopListReport.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-        _isLeaderboardLoading = false;
-        notifyListeners();
-        _hasLeaderboardLoadedThisSession = true;
-        if (!forceRefresh) return;
-      } else {
-        // No local cache found. Now we show the spinner for the network call.
+    _leaderboardErrorMessage = '';
+
+    // ── Step 1: Show memory cache immediately ─────────────────────────────────
+    if (!forceRefresh &&
+        _hasLeaderboardLoadedThisSession &&
+        _setHrmTopRecord != null &&
+        _setHrmTopRecord!.isNotEmpty &&
+        _leaderboardSelectedMonth.month == selectedMonth &&
+        _leaderboardSelectedMonth.year == selectedYear) {
+      _isLeaderboardLoading = false;
+      notifyListeners();
+      return;
+    } else {
+      // ── Step 2: Try local (SharedPreferences) cache BEFORE showing spinner ──
+      try {
+        final cached = await LocalCacheService.instance.getCache(
+          cacheKey,
+          ttlMilliseconds: ttlMs,
+        );
+        if (cached != null && cached is List) {
+          _setHrmTopRecord = (cached)
+              .map(
+                (e) => HrmTopListReport.fromJson(Map<String, dynamic>.from(e)),
+              )
+              .toList();
+          _isLeaderboardLoading = false;
+          notifyListeners();
+          _hasLeaderboardLoadedThisSession = true;
+          if (!forceRefresh) return;
+        } else {
+          // No local cache found. Now we show the spinner for the network call.
+          _isLeaderboardLoading = true;
+          notifyListeners();
+        }
+      } catch (_) {
         _isLeaderboardLoading = true;
         notifyListeners();
       }
-    } catch (_) {
-      _isLeaderboardLoading = true;
-      notifyListeners();
     }
-  }
 
-  // ── Step 3: Background API refresh ───────────────────────────────────────
-  _isFetchingLeaderboard = true;
-  try {
-    final monthStr = selectedMonth.toString().padLeft(2, '0');
-    final yearStr = selectedYear.toString();
-    final freshData = await AttendanceApis().getCompanyDataList(monthStr, yearStr);
-    
-    bool isSame = false;
-    if (_setHrmTopRecord != null && freshData.length == _setHrmTopRecord!.length) {
-      isSame = true;
-      for (int i = 0; i < freshData.length; i++) {
-        if (freshData[i].empName != _setHrmTopRecord![i].empName || 
-            freshData[i].netWorkingMinutes != _setHrmTopRecord![i].netWorkingMinutes ||
-            freshData[i].totalDays != _setHrmTopRecord![i].totalDays) {
-          isSame = false;
-          break;
+    // ── Step 3: Background API refresh ───────────────────────────────────────
+    _isFetchingLeaderboard = true;
+    try {
+      final monthStr = selectedMonth.toString().padLeft(2, '0');
+      final yearStr = selectedYear.toString();
+      final freshData = await AttendanceApis().getCompanyDataList(
+        monthStr,
+        yearStr,
+      );
+
+      bool isSame = false;
+      if (_setHrmTopRecord != null &&
+          freshData.length == _setHrmTopRecord!.length) {
+        isSame = true;
+        for (int i = 0; i < freshData.length; i++) {
+          if (freshData[i].empName != _setHrmTopRecord![i].empName ||
+              freshData[i].netWorkingMinutes !=
+                  _setHrmTopRecord![i].netWorkingMinutes ||
+              freshData[i].totalDays != _setHrmTopRecord![i].totalDays) {
+            isSame = false;
+            break;
+          }
         }
       }
-    }
-    
-    bool needsUpdate = false;
-    if (!isSame) {
-      _setHrmTopRecord = freshData;
-      // Persist to local cache
-      await LocalCacheService.instance.saveCache(
-        cacheKey,
-        freshData.map((e) => e.toJson()).toList(),
-      );
-      needsUpdate = true;
-    }
-    
-    // If it was showing shimmer, we must update to show data
-    if (_isLeaderboardLoading) {
-      needsUpdate = true;
-    }
 
-    _isLeaderboardLoading = false;
-    _isFetchingLeaderboard = false;
-    _hasLeaderboardLoadedThisSession = true;
-    
-    if (needsUpdate) {
+      bool needsUpdate = false;
+      if (!isSame) {
+        _setHrmTopRecord = freshData;
+        // Persist to local cache
+        await LocalCacheService.instance.saveCache(
+          cacheKey,
+          freshData.map((e) => e.toJson()).toList(),
+        );
+        needsUpdate = true;
+      }
+
+      // If it was showing shimmer, we must update to show data
+      if (_isLeaderboardLoading) {
+        needsUpdate = true;
+      }
+
+      _isLeaderboardLoading = false;
+      _isFetchingLeaderboard = false;
+      _hasLeaderboardLoadedThisSession = true;
+
+      if (needsUpdate) {
+        notifyListeners();
+      }
+    } catch (e) {
+      _leaderboardErrorMessage = e.toString();
+      if (_setHrmTopRecord == null) {
+        _setHrmTopRecord = [];
+      }
+      _isLeaderboardLoading = false;
+      _isFetchingLeaderboard = false;
       notifyListeners();
     }
-  } catch (e) {
-    _leaderboardErrorMessage = e.toString();
-    if (_setHrmTopRecord == null) {
-      _setHrmTopRecord = [];
+  }
+
+  // Change month for leaderboard
+  Future<void> changeLeaderboardMonth(DateTime newMonth) async {
+    if (newMonth.isAfter(DateTime.now())) {
+      return; // Cannot go to future months
     }
-    _isLeaderboardLoading = false;
-    _isFetchingLeaderboard = false;
+
+    _leaderboardSelectedMonth = DateTime(newMonth.year, newMonth.month);
+
+    // Clear the memory cache when changing month so it loads correct data for the new month
+    _hasLeaderboardLoadedThisSession = false;
+    _setHrmTopRecord = null;
+
     notifyListeners();
-  }
-}
-
-// Change month for leaderboard
-Future<void> changeLeaderboardMonth(DateTime newMonth) async {
-  if (newMonth.isAfter(DateTime.now())) {
-    return; // Cannot go to future months
-  }
-  
-  _leaderboardSelectedMonth = DateTime(newMonth.year, newMonth.month);
-  
-  // Clear the memory cache when changing month so it loads correct data for the new month
-  _hasLeaderboardLoadedThisSession = false;
-  _setHrmTopRecord = null;
-  
-  notifyListeners();
-  await getTopLeaderboard(
-    month: _leaderboardSelectedMonth.month,
-    year: _leaderboardSelectedMonth.year,
-    forceRefresh: true,
-  );
-}
-
-// Previous month
-Future<void> previousLeaderboardMonth() async {
-  final newMonth = DateTime(
-    _leaderboardSelectedMonth.year,
-    _leaderboardSelectedMonth.month - 1,
-  );
-  await changeLeaderboardMonth(newMonth);
-}
-
-// Next month
-Future<void> nextLeaderboardMonth() async {
-  final newMonth = DateTime(
-    _leaderboardSelectedMonth.year,
-    _leaderboardSelectedMonth.month + 1,
-  );
-  if (newMonth.isAfter(DateTime.now())) {
-    return;
-  }
-  await changeLeaderboardMonth(newMonth);
-}
-
-// Get month name for display
-String getLeaderboardMonthName() {
-  return DateFormat('MMMM yyyy', LanguageProvider.currentLanguageCode).format(_leaderboardSelectedMonth);
-}
-
-// Convert HrmTopListReport to WinnerModel format
-List<WinnerModel> convertToWinnerModels(List<HrmTopListReport>? records, int rank) {
-  if (records == null || records.isEmpty) return [];
-  
-  // Filter records by rank
-  List<HrmTopListReport> rankedRecords = [];
-  
-  // Sort by NetWorkingMinutes for proper ranking
-  final sortedRecords = List<HrmTopListReport>.from(records);
-  sortedRecords.sort((a, b) {
-    final minutesA = a.netWorkingMinutes ?? 0;
-    final minutesB = b.netWorkingMinutes ?? 0;
-    return minutesB.compareTo(minutesA);
-  });
-  
-  // Group by net working hours to handle ties
-  Map<String, List<HrmTopListReport>> groupedByHours = {};
-  for (var record in sortedRecords) {
-    final hoursKey = record.netWorkingHours ?? '0h 0m';
-    groupedByHours.putIfAbsent(hoursKey, () => []).add(record);
-  }
-  
-  // Get unique hours in sorted order
-  List<String> uniqueHours = groupedByHours.keys.toList();
-  uniqueHours.sort((a, b) {
-    final minutesA = _convertHoursToMinutes(a);
-    final minutesB = _convertHoursToMinutes(b);
-    return minutesB.compareTo(minutesA);
-  });
-  
-  // Get records for specific rank
-  if (rank <= uniqueHours.length) {
-    final targetHours = uniqueHours[rank - 1];
-    if (targetHours != null && groupedByHours.containsKey(targetHours)) {
-      rankedRecords = groupedByHours[targetHours]!;
-    }
-  }
-  
-  // Convert to WinnerModel
-  return rankedRecords.map((record) {
-    return WinnerModel(
-      name: _formatEmployeeName(record.empName ?? ''),
-      hours: record.netWorkingHours ?? '0h 0m',
-      totaldays: record.totalDays ?? 0,
-      avatarUrl: null, // Add avatar URL if available
-      rank: rank,
+    await getTopLeaderboard(
+      month: _leaderboardSelectedMonth.month,
+      year: _leaderboardSelectedMonth.year,
+      forceRefresh: true,
     );
-  }).toList();
-}
-
-// Helper method to convert hours string to minutes
-int _convertHoursToMinutes(String hoursString) {
-  if (hoursString.isEmpty) return 0;
-  
-  int totalMinutes = 0;
-  final RegExp regExp = RegExp(r'(\d+)h\s*(\d*)m?');
-  final matches = regExp.allMatches(hoursString);
-  
-  for (final match in matches) {
-    final hours = int.parse(match.group(1)!);
-    totalMinutes += hours * 60;
-    
-    if (match.group(2) != null && match.group(2)!.isNotEmpty) {
-      final minutes = int.parse(match.group(2)!);
-      totalMinutes += minutes;
-    }
   }
-  
-  return totalMinutes;
-}
 
-// Format employee name to Title Case
-String _formatEmployeeName(String name) {
-  return name.toLowerCase().split(' ').map((word) {
-    if (word.isNotEmpty) {
-      return word[0].toUpperCase() + word.substring(1);
+  // Previous month
+  Future<void> previousLeaderboardMonth() async {
+    final newMonth = DateTime(
+      _leaderboardSelectedMonth.year,
+      _leaderboardSelectedMonth.month - 1,
+    );
+    await changeLeaderboardMonth(newMonth);
+  }
+
+  // Next month
+  Future<void> nextLeaderboardMonth() async {
+    final newMonth = DateTime(
+      _leaderboardSelectedMonth.year,
+      _leaderboardSelectedMonth.month + 1,
+    );
+    if (newMonth.isAfter(DateTime.now())) {
+      return;
     }
-    return word;
-  }).join(' ');
-}
+    await changeLeaderboardMonth(newMonth);
+  }
 
-// Get leaderboard statistics
-Map<String, dynamic> getLeaderboardStatistics() {
-  if (_setHrmTopRecord == null || _setHrmTopRecord!.isEmpty) {
+  // Get month name for display
+  String getLeaderboardMonthName() {
+    return DateFormat(
+      'MMMM yyyy',
+      LanguageProvider.currentLanguageCode,
+    ).format(_leaderboardSelectedMonth);
+  }
+
+  // Convert HrmTopListReport to WinnerModel format
+  List<WinnerModel> convertToWinnerModels(
+    List<HrmTopListReport>? records,
+    int rank,
+  ) {
+    if (records == null || records.isEmpty) return [];
+
+    // Filter records by rank
+    List<HrmTopListReport> rankedRecords = [];
+
+    // Sort by NetWorkingMinutes for proper ranking
+    final sortedRecords = List<HrmTopListReport>.from(records);
+    sortedRecords.sort((a, b) {
+      final minutesA = a.netWorkingMinutes ?? 0;
+      final minutesB = b.netWorkingMinutes ?? 0;
+      return minutesB.compareTo(minutesA);
+    });
+
+    // Group by net working hours to handle ties
+    Map<String, List<HrmTopListReport>> groupedByHours = {};
+    for (var record in sortedRecords) {
+      final hoursKey = record.netWorkingHours ?? '0h 0m';
+      groupedByHours.putIfAbsent(hoursKey, () => []).add(record);
+    }
+
+    // Get unique hours in sorted order
+    List<String> uniqueHours = groupedByHours.keys.toList();
+    uniqueHours.sort((a, b) {
+      final minutesA = _convertHoursToMinutes(a);
+      final minutesB = _convertHoursToMinutes(b);
+      return minutesB.compareTo(minutesA);
+    });
+
+    // Get records for specific rank
+    if (rank <= uniqueHours.length) {
+      final targetHours = uniqueHours[rank - 1];
+      if (targetHours != null && groupedByHours.containsKey(targetHours)) {
+        rankedRecords = groupedByHours[targetHours]!;
+      }
+    }
+
+    // Convert to WinnerModel
+    return rankedRecords.map((record) {
+      return WinnerModel(
+        name: _formatEmployeeName(record.empName ?? ''),
+        hours: record.netWorkingHours ?? '0h 0m',
+        totaldays: record.totalDays ?? 0,
+        avatarUrl: null, // Add avatar URL if available
+        rank: rank,
+      );
+    }).toList();
+  }
+
+  // Helper method to convert hours string to minutes
+  int _convertHoursToMinutes(String hoursString) {
+    if (hoursString.isEmpty) return 0;
+
+    int totalMinutes = 0;
+    final RegExp regExp = RegExp(r'(\d+)h\s*(\d*)m?');
+    final matches = regExp.allMatches(hoursString);
+
+    for (final match in matches) {
+      final hours = int.parse(match.group(1)!);
+      totalMinutes += hours * 60;
+
+      if (match.group(2) != null && match.group(2)!.isNotEmpty) {
+        final minutes = int.parse(match.group(2)!);
+        totalMinutes += minutes;
+      }
+    }
+
+    return totalMinutes;
+  }
+
+  // Format employee name to Title Case
+  String _formatEmployeeName(String name) {
+    return name
+        .toLowerCase()
+        .split(' ')
+        .map((word) {
+          if (word.isNotEmpty) {
+            return word[0].toUpperCase() + word.substring(1);
+          }
+          return word;
+        })
+        .join(' ');
+  }
+
+  // Get leaderboard statistics
+  Map<String, dynamic> getLeaderboardStatistics() {
+    if (_setHrmTopRecord == null || _setHrmTopRecord!.isEmpty) {
+      return {
+        'totalParticipants': 0,
+        'averageHours': '0h 0m',
+        'topHours': '0h 0m',
+      };
+    }
+
+    final totalParticipants = _setHrmTopRecord!.length;
+
+    // Calculate average hours
+    int totalMinutes = 0;
+    int maxMinutes = 0;
+
+    for (var record in _setHrmTopRecord!) {
+      final minutes = _convertHoursToMinutes(record.netWorkingHours ?? '0h 0m');
+      totalMinutes += minutes;
+      if (minutes > maxMinutes) {
+        maxMinutes = minutes;
+      }
+    }
+
+    final avgMinutes = totalMinutes ~/ totalParticipants;
+    final avgHours = '${avgMinutes ~/ 60}h ${avgMinutes % 60}m';
+    final topHours = '${maxMinutes ~/ 60}h ${maxMinutes % 60}m';
+
     return {
-      'totalParticipants': 0,
-      'averageHours': '0h 0m',
-      'topHours': '0h 0m',
+      'totalParticipants': totalParticipants,
+      'averageHours': avgHours,
+      'topHours': topHours,
     };
   }
-  
-  final totalParticipants = _setHrmTopRecord!.length;
-  
-  // Calculate average hours
-  int totalMinutes = 0;
-  int maxMinutes = 0;
-  
-  for (var record in _setHrmTopRecord!) {
-    final minutes = _convertHoursToMinutes(record.netWorkingHours ?? '0h 0m');
-    totalMinutes += minutes;
-    if (minutes > maxMinutes) {
-      maxMinutes = minutes;
-    }
+
+  String formatEmployeeName(String name) {
+    return name
+        .toLowerCase()
+        .split(' ')
+        .map((word) {
+          if (word.isNotEmpty) {
+            return word[0].toUpperCase() + word.substring(1);
+          }
+          return word;
+        })
+        .join(' ');
   }
-  
-  final avgMinutes = totalMinutes ~/ totalParticipants;
-  final avgHours = '${avgMinutes ~/ 60}h ${avgMinutes % 60}m';
-  final topHours = '${maxMinutes ~/ 60}h ${maxMinutes % 60}m';
-  
-  return {
-    'totalParticipants': totalParticipants,
-    'averageHours': avgHours,
-    'topHours': topHours,
-  };
 }
-
-String formatEmployeeName(String name) {
-  return name.toLowerCase().split(' ').map((word) {
-    if (word.isNotEmpty) {
-      return word[0].toUpperCase() + word.substring(1);
-    }
-    return word;
-  }).join(' ');
-}
-
-
-}
-
-
-
-
