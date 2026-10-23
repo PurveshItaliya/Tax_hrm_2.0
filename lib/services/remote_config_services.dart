@@ -158,6 +158,28 @@ class RemoteConfigServices {
     }
   }
 
+  /// Updates thresholds from user customization (e.g. Face & Liveness Settings dialog)
+  /// and saves to SharedPreferences so they persist across app restarts and remote syncs.
+  static Future<void> updateCustomThresholds({
+    double? identify,
+    double? liveness,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (identify != null) {
+      instance._identityThreshold = identify.clamp(0.05, 1.0);
+      await prefs.setString('identify_threshold', instance._identityThreshold.toStringAsFixed(2));
+    }
+    if (liveness != null) {
+      instance._livenessThreshold = liveness.clamp(0.05, 1.0);
+      await prefs.setString('liveness_threshold', instance._livenessThreshold.toStringAsFixed(2));
+    }
+    await prefs.setBool('user_custom_thresholds_applied', true);
+    configVersion.value++;
+    debugPrint(
+      '[RemoteConfigServices] User custom thresholds saved: identify=${instance._identityThreshold}, liveness=${instance._livenessThreshold}',
+    );
+  }
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     
@@ -166,18 +188,22 @@ class RemoteConfigServices {
     final cachedConfig = prefs.getString('face_verification_config_cache');
     if (cachedConfig != null && cachedConfig.isNotEmpty) {
       _parseVerificationConfig(cachedConfig);
-    } else {
-      final savedLive = prefs.getString('liveness_threshold');
-      final savedId = prefs.getString('identify_threshold');
-      if (savedLive != null && savedLive.isNotEmpty) {
-        _livenessThreshold = _normalizeThreshold(savedLive) ?? 0.70;
-      }
-      if (savedId != null && savedId.isNotEmpty) {
-        _identityThreshold = _normalizeThreshold(savedId) ?? 0.70;
-      }
     }
 
-    debugPrint('[RemoteConfigServices] Initial local cache: faceVerify=$faceVerify, liveness=$_livenessThreshold, identity=$_identityThreshold');
+    final hasUserCustom = prefs.getBool('user_custom_thresholds_applied') ?? false;
+    final savedLive = prefs.getString('liveness_threshold');
+    final savedId = prefs.getString('identify_threshold');
+    if (savedLive != null && savedLive.isNotEmpty) {
+      _livenessThreshold = _normalizeThreshold(savedLive) ?? _livenessThreshold;
+    }
+    if (savedId != null && savedId.isNotEmpty) {
+      _identityThreshold = _normalizeThreshold(savedId) ?? _identityThreshold;
+    }
+
+    debugPrint(
+      '[RemoteConfigServices] Initial local cache: faceVerify=$faceVerify, '
+      'liveness=$_livenessThreshold, identity=$_identityThreshold (custom=$hasUserCustom)',
+    );
 
     // Fetch and activate latest configuration from Firebase
     await fetchLatestConfig();
@@ -211,18 +237,32 @@ class RemoteConfigServices {
       faceVerify = remoteConfig.getBool("faceVerify");
       await prefs.setBool('faceVerify_cache', faceVerify);
 
+      final hasUserCustom = prefs.getBool('user_custom_thresholds_applied') ?? false;
+
       final String remoteConfigStr = remoteConfig.getString("face_verification_config");
       if (remoteConfigStr.isNotEmpty) {
-        _parseVerificationConfig(remoteConfigStr);
+        if (!hasUserCustom) {
+          _parseVerificationConfig(remoteConfigStr);
+        }
         await prefs.setString('face_verification_config_cache', remoteConfigStr);
       }
 
       // Check if standalone keys were configured in Firebase Console
-      _extractDirectRemoteConfigParams(remoteConfig);
-
-      // Persist latest active values to SharedPreferences
-      await prefs.setString('liveness_threshold', _livenessThreshold.toString());
-      await prefs.setString('identify_threshold', _identityThreshold.toString());
+      if (!hasUserCustom) {
+        _extractDirectRemoteConfigParams(remoteConfig);
+        await prefs.setString('liveness_threshold', _livenessThreshold.toString());
+        await prefs.setString('identify_threshold', _identityThreshold.toString());
+      } else {
+        // Retain user's custom thresholds
+        final savedLive = prefs.getString('liveness_threshold');
+        final savedId = prefs.getString('identify_threshold');
+        if (savedLive != null && savedLive.isNotEmpty) {
+          _livenessThreshold = _normalizeThreshold(savedLive) ?? _livenessThreshold;
+        }
+        if (savedId != null && savedId.isNotEmpty) {
+          _identityThreshold = _normalizeThreshold(savedId) ?? _identityThreshold;
+        }
+      }
 
       // Notify any listening screens that new config values are available
       configVersion.value++;
@@ -230,7 +270,7 @@ class RemoteConfigServices {
       debugPrint(
         "[RemoteConfigServices] ACTIVE CONFIG APPLIED: faceVerify=$faceVerify, "
         "livenessThreshold=$_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%), "
-        "identityThreshold=$_identityThreshold (${(_identityThreshold * 100).toStringAsFixed(1)}%)",
+        "identityThreshold=$_identityThreshold (${(_identityThreshold * 100).toStringAsFixed(1)}%) (userCustom=$hasUserCustom)",
       );
     } catch (e) {
       debugPrint(

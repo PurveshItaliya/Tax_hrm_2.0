@@ -35,12 +35,22 @@ class DocumentsProvider extends ChangeNotifier {
 
   getEmployeDocuments() async {
     try {
-      await DocumentApis().getDocuments().then((value){
-        showDocumentList = value;
-        mainDocumentList = value;
+      await DocumentApis().getDocuments().then((value) {
+        final List<DocumentViews> docs = value;
+        final filtered = docs.where((doc) {
+          final cat = doc.category?.trim().toLowerCase() ?? '';
+          final fName = doc.filename?.trim().toLowerCase() ?? '';
+          // Hide face registration category document from regular document settings screen
+          if (cat == 'facereg' || cat == 'faceregistration' || fName.contains('face_reg')) {
+            return false;
+          }
+          return true;
+        }).toList();
+        showDocumentList = filtered;
+        mainDocumentList = filtered;
       }).onError((error, stackTrace) {
         setloading(false);
-      },);
+      });
     } catch (e) { /* ignored */ }
   }
 

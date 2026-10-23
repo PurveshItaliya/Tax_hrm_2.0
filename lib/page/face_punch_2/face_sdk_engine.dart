@@ -57,6 +57,7 @@ class FaceSdkEngine {
   FacesdkPlugin get facesdkPlugin => _facesdkPlugin;
 
   Interpreter? _interpreter;
+  Interpreter? _livenessInterpreter; // FAS (Face Anti-Spoofing) model
   FaceDetector? _faceDetector;        // Fast tracking detector for camera video stream
   FaceDetector? _photoFaceDetector;   // High-accuracy detector for static enrollment images
   bool _isInitialized = false;
@@ -80,7 +81,7 @@ class FaceSdkEngine {
           options: FaceDetectorOptions(
             enableContours: false,
             enableLandmarks: false,
-            enableClassification: false,
+            enableClassification: true,
             enableTracking: true,
             performanceMode: FaceDetectorMode.fast,
           ),
@@ -105,12 +106,20 @@ class FaceSdkEngine {
         debugPrint('[FaceSdkEngine] ML Kit _photoFaceDetector init error: $e');
       }
 
-      // MobileFaceNet interpreter for legacy fallback
+      // MobileFaceNet interpreter for face recognition
       try {
         _interpreter = await Interpreter.fromAsset('assets/models/mobilefacenet.tflite');
-        debugPrint('[FaceSdkEngine] MobileFaceNet interpreter loaded for fallback.');
+        debugPrint('[FaceSdkEngine] MobileFaceNet interpreter loaded for face recognition.');
       } catch (e) {
         debugPrint('[FaceSdkEngine] Error loading mobilefacenet.tflite: $e');
+      }
+
+      // FAS (Face Anti-Spoofing) interpreter for real-time liveness detection
+      try {
+        _livenessInterpreter = await Interpreter.fromAsset('assets/models/fas.tflite');
+        debugPrint('[FaceSdkEngine] FAS (Face Anti-Spoofing) interpreter loaded.');
+      } catch (e) {
+        debugPrint('[FaceSdkEngine] Error loading fas.tflite: $e');
       }
 
       _isInitialized = true;
@@ -297,13 +306,19 @@ class FaceSdkEngine {
 
       debugPrint('[FaceSdkEngine] extractFaces: ✅ Enrolled primary face: box=$box, roll=${roll.toStringAsFixed(1)}°, templateSize=${templates.length}B');
 
+      final livenessVal = await computeLiveness(
+        fullImage: activeImage,
+        box: box,
+        mlFace: primaryFace,
+      );
+
       return [
         {
           'x1': box.left.toInt(),
           'y1': box.top.toInt(),
           'x2': box.right.toInt(),
           'y2': box.bottom.toInt(),
-          'liveness': 1.0,
+          'liveness': livenessVal,
           'yaw': primaryFace.headEulerAngleY ?? 0.0,
           'roll': roll,
           'pitch': primaryFace.headEulerAngleX ?? 0.0,
@@ -648,20 +663,347 @@ class FaceSdkEngine {
     return out;
   }
 
+  /// Direct extraction of 80x80 face crop in BGR format with 2.7x context scale.
+  ///
+  /// Uses REPLICATE (edge-clamp) border when the crop exceeds frame boundaries:
+  /// - Real faces whose 2.7x crop extends beyond camera frame get edge-clamped skin/background.
+  /// - Zero-padding was causing real faces to appear as "dark-bezel screen attacks" (fake2 class).
+  /// - Photos shown on a phone/screen or printed paper still score far below the liveness threshold.
+  Float32List cropFaceScaled80Bgr(
+    CameraImage cameraImage,
+    Rect box,
+    int sensorOrientation, {
+    double scale = 2.7,
+  }) {
+    final int w = cameraImage.width;
+    final int h = cameraImage.height;
+
+    final double centerX = box.left + box.width / 2.0;
+    final double centerY = box.top + box.height / 2.0;
+    final double faceSize = math.max(box.width, box.height) * scale;
+
+    final input = Float32List(1 * 80 * 80 * 3);
+    int pixelIndex = 0;
+
+    final isBgra = cameraImage.format.group == ImageFormatGroup.bgra8888;
+    final isNv21 = cameraImage.planes.length == 1;
+
+    if (isNv21) {
+      final bytes = cameraImage.planes[0].bytes;
+      final int frameSize = w * h;
+
+      for (int v = 0; v < 80; v++) {
+        final double normV = (v / 79.0) - 0.5;
+        for (int u = 0; u < 80; u++) {
+          final double normU = (u / 79.0) - 0.5;
+
+          final double xU = centerX + normU * faceSize;
+          final double yU = centerY + normV * faceSize;
+
+          int xS;
+          int yS;
+
+          if (sensorOrientation == 270) {
+            xS = (w - 1 - yU.toInt());
+            yS = xU.toInt();
+          } else if (sensorOrientation == 90) {
+            xS = yU.toInt();
+            yS = (h - 1 - xU.toInt());
+          } else if (sensorOrientation == 180) {
+            xS = (w - 1 - xU.toInt());
+            yS = (h - 1 - yU.toInt());
+          } else {
+            xS = xU.toInt();
+            yS = yU.toInt();
+          }
+
+          // Edge-clamp (replicate border): fill out-of-bounds with nearest real pixel
+          xS = xS.clamp(0, w - 1);
+          yS = yS.clamp(0, h - 1);
+
+          final int yIndex = yS * w + xS;
+          final int uvIndex = frameSize + (yS >> 1) * w + (xS & ~1);
+
+          if (uvIndex + 1 >= bytes.length || yIndex >= bytes.length) {
+            input[pixelIndex++] = 0.0;
+            input[pixelIndex++] = 0.0;
+            input[pixelIndex++] = 0.0;
+            continue;
+          }
+
+          final int yValue = bytes[yIndex] & 0xFF;
+          final int vValue = bytes[uvIndex] & 0xFF;
+          final int uValue = bytes[uvIndex + 1] & 0xFF;
+
+          final double r = (yValue + 1.402 * (vValue - 128)).clamp(0, 255).toDouble();
+          final double g = (yValue - 0.344136 * (uValue - 128) - 0.714136 * (vValue - 128)).clamp(0, 255).toDouble();
+          final double b = (yValue + 1.772 * (uValue - 128)).clamp(0, 255).toDouble();
+
+          input[pixelIndex++] = b;
+          input[pixelIndex++] = g;
+          input[pixelIndex++] = r;
+        }
+      }
+    } else if (isBgra) {
+      final bytes = cameraImage.planes[0].bytes;
+      final int rowStride = cameraImage.planes[0].bytesPerRow;
+      final int pixelStride = cameraImage.planes[0].bytesPerPixel ?? 4;
+
+      for (int v = 0; v < 80; v++) {
+        final double normV = (v / 79.0) - 0.5;
+        for (int u = 0; u < 80; u++) {
+          final double normU = (u / 79.0) - 0.5;
+
+          final double xU = centerX + normU * faceSize;
+          final double yU = centerY + normV * faceSize;
+
+          int xS;
+          int yS;
+
+          if (sensorOrientation == 270) {
+            xS = (w - 1 - yU.toInt());
+            yS = xU.toInt();
+          } else if (sensorOrientation == 90) {
+            xS = yU.toInt();
+            yS = (h - 1 - xU.toInt());
+          } else if (sensorOrientation == 180) {
+            xS = (w - 1 - xU.toInt());
+            yS = (h - 1 - yU.toInt());
+          } else {
+            xS = xU.toInt();
+            yS = yU.toInt();
+          }
+
+          // Edge-clamp
+          xS = xS.clamp(0, w - 1);
+          yS = yS.clamp(0, h - 1);
+
+          final int offset = yS * rowStride + (xS * pixelStride);
+          if (offset + 2 < bytes.length) {
+            // BGRA: bytes[offset] = B, offset+1 = G, offset+2 = R
+            input[pixelIndex++] = bytes[offset].toDouble();
+            input[pixelIndex++] = bytes[offset + 1].toDouble();
+            input[pixelIndex++] = bytes[offset + 2].toDouble();
+          } else {
+            input[pixelIndex++] = 0.0;
+            input[pixelIndex++] = 0.0;
+            input[pixelIndex++] = 0.0;
+          }
+        }
+      }
+    } else {
+      // YUV420 three planes
+      final uvRowStride = cameraImage.planes[1].bytesPerRow;
+      final uvPixelStride = cameraImage.planes[1].bytesPerPixel ?? 1;
+
+      for (int v = 0; v < 80; v++) {
+        final double normV = (v / 79.0) - 0.5;
+        for (int u = 0; u < 80; u++) {
+          final double normU = (u / 79.0) - 0.5;
+
+          final double xU = centerX + normU * faceSize;
+          final double yU = centerY + normV * faceSize;
+
+          int xS;
+          int yS;
+
+          if (sensorOrientation == 270) {
+            xS = (w - 1 - yU.toInt());
+            yS = xU.toInt();
+          } else if (sensorOrientation == 90) {
+            xS = yU.toInt();
+            yS = (h - 1 - xU.toInt());
+          } else if (sensorOrientation == 180) {
+            xS = (w - 1 - xU.toInt());
+            yS = (h - 1 - yU.toInt());
+          } else {
+            xS = xU.toInt();
+            yS = yU.toInt();
+          }
+
+          // Edge-clamp
+          xS = xS.clamp(0, w - 1);
+          yS = yS.clamp(0, h - 1);
+
+          final int pY = yS * cameraImage.planes[0].bytesPerRow;
+          final int pUV = (yS >> 1) * uvRowStride;
+          final int uvIndex = pUV + (xS >> 1) * uvPixelStride;
+
+          if (pY + xS >= cameraImage.planes[0].bytes.length ||
+              uvIndex >= cameraImage.planes[1].bytes.length ||
+              uvIndex >= cameraImage.planes[2].bytes.length) {
+            input[pixelIndex++] = 0.0;
+            input[pixelIndex++] = 0.0;
+            input[pixelIndex++] = 0.0;
+            continue;
+          }
+
+          final int yValue = cameraImage.planes[0].bytes[pY + xS];
+          final int uValue = cameraImage.planes[1].bytes[uvIndex];
+          final int vValue = cameraImage.planes[2].bytes[uvIndex];
+
+          final double r = (yValue + 1.402 * (vValue - 128)).clamp(0, 255).toDouble();
+          final double g = (yValue - 0.344136 * (uValue - 128) - 0.714136 * (vValue - 128)).clamp(0, 255).toDouble();
+          final double b = (yValue + 1.772 * (uValue - 128)).clamp(0, 255).toDouble();
+
+          input[pixelIndex++] = b;
+          input[pixelIndex++] = g;
+          input[pixelIndex++] = r;
+        }
+      }
+    }
+
+    return input;
+  }
+
+  /// Helper to crop an img.Image with 2.7x scale in BGR order with edge-clamp border
+  Float32List _cropImageScaled80Bgr(img.Image src, Rect box, {double scale = 2.7}) {
+    final double centerX = box.left + box.width / 2.0;
+    final double centerY = box.top + box.height / 2.0;
+    final double faceSize = math.max(box.width, box.height) * scale;
+
+    final input = Float32List(1 * 80 * 80 * 3);
+    int pixelIndex = 0;
+
+    for (int v = 0; v < 80; v++) {
+      final double normV = (v / 79.0) - 0.5;
+      for (int u = 0; u < 80; u++) {
+        final double normU = (u / 79.0) - 0.5;
+        // Edge-clamp: clamp to nearest valid pixel (replicate border)
+        final int srcX = (centerX + normU * faceSize).round().clamp(0, src.width - 1);
+        final int srcY = (centerY + normV * faceSize).round().clamp(0, src.height - 1);
+
+        final pixel = src.getPixel(srcX, srcY);
+        input[pixelIndex++] = pixel.b.toDouble();
+        input[pixelIndex++] = pixel.g.toDouble();
+        input[pixelIndex++] = pixel.r.toDouble();
+      }
+    }
+    return input;
+  }
+
+  /// Compute anti-spoof liveness score [0.0 .. 1.0] using fas.tflite (MiniFASNet).
+  /// Returns a confidence score between 0.0 (spoof/screen/photo) and 1.0 (live human face).
+  /// Strictly fails closed (returns 0.0 on error or missing interpreter).
+  Future<double> computeLiveness({
+    Float32List? tensor80Bgr,
+    img.Image? faceCrop,
+    Rect? box,
+    img.Image? fullImage,
+    Face? mlFace,
+  }) async {
+    if (_livenessInterpreter == null) {
+      debugPrint('[FaceSdkEngine] ⚠️ FAS interpreter is null, attempting lazy load...');
+      try {
+        _livenessInterpreter = await Interpreter.fromAsset('assets/models/fas.tflite');
+        debugPrint('[FaceSdkEngine] FAS interpreter successfully loaded on-demand.');
+      } catch (e) {
+        debugPrint('[FaceSdkEngine] ❌ Error loading fas.tflite on-demand: $e');
+      }
+    }
+
+    if (_livenessInterpreter == null) {
+      debugPrint('[FaceSdkEngine] ❌ _livenessInterpreter is null! Rejecting as NOT LIVE (fail-closed).');
+      return 0.0;
+    }
+
+    try {
+      Float32List input;
+      if (tensor80Bgr != null && tensor80Bgr.length == 1 * 80 * 80 * 3) {
+        input = tensor80Bgr;
+      } else if (fullImage != null && box != null) {
+        input = _cropImageScaled80Bgr(fullImage, box, scale: 2.7);
+      } else if (faceCrop != null) {
+        final img.Image resized80 = (faceCrop.width == 80 && faceCrop.height == 80)
+            ? faceCrop
+            : img.copyResize(faceCrop, width: 80, height: 80, interpolation: img.Interpolation.linear);
+        input = Float32List(1 * 80 * 80 * 3);
+        int idx = 0;
+        for (int y = 0; y < 80; y++) {
+          for (int x = 0; x < 80; x++) {
+            final p = resized80.getPixel(x, y);
+            input[idx++] = p.b.toDouble();
+            input[idx++] = p.g.toDouble();
+            input[idx++] = p.r.toDouble();
+          }
+        }
+      } else {
+        return 0.0;
+      }
+
+      final inputTensor = input.reshape([1, 80, 80, 3]);
+      final outputTensor = List.filled(1 * 3, 0.0).reshape([1, 3]);
+
+      _livenessInterpreter!.run(inputTensor, outputTensor);
+
+      final double fakeScore1 = (outputTensor[0][0] as num).toDouble();
+      final double realScore = (outputTensor[0][1] as num).toDouble();
+      final double fakeScore2 = (outputTensor[0][2] as num).toDouble();
+
+      // MiniFASNet has 3 classes: [fake1, real, fake2].
+      // If either fake class has a higher or equal raw score to realScore, the model
+      // has explicitly classified this frame as a SPOOF/PHOTO. Fail immediately (return 0.0)!
+      if (realScore <= fakeScore1 || realScore <= fakeScore2) {
+        debugPrint(
+          '[FaceSdkEngine] FAS Anti-Spoof: SPOOF PHOTO REJECTED (fake1=${fakeScore1.toStringAsFixed(2)}, real=${realScore.toStringAsFixed(2)}, fake2=${fakeScore2.toStringAsFixed(2)}) -> 0.0%',
+        );
+        return 0.0;
+      }
+
+      final double maxScore = math.max(fakeScore1, math.max(realScore, fakeScore2));
+      final double expFake1 = math.exp(fakeScore1 - maxScore);
+      final double expReal = math.exp(realScore - maxScore);
+      final double expFake2 = math.exp(fakeScore2 - maxScore);
+      final double sumExp = expFake1 + expReal + expFake2;
+
+      double livenessScore = (sumExp > 0) ? (expReal / sumExp) : 0.0;
+
+      // Multi-modal check: Head tilt penalty
+      if (mlFace != null) {
+        final double yaw = (mlFace.headEulerAngleY ?? 0.0).abs();
+        final double pitch = (mlFace.headEulerAngleX ?? 0.0).abs();
+        if (yaw > 22.0 || pitch > 22.0) {
+          livenessScore *= 0.80;
+        }
+
+        // Multi-modal check: Eye open classification
+        final double? leftEye = mlFace.leftEyeOpenProbability;
+        final double? rightEye = mlFace.rightEyeOpenProbability;
+        if (leftEye != null && rightEye != null) {
+          if (leftEye < 0.10 && rightEye < 0.10) {
+            livenessScore *= 0.50; // Both eyes closed / unnatural
+          }
+        }
+      }
+
+      debugPrint(
+        '[FaceSdkEngine] FAS Liveness: real=${(livenessScore * 100).toStringAsFixed(2)}% '
+        '(raw: real=${realScore.toStringAsFixed(2)}, fake1=${fakeScore1.toStringAsFixed(2)}, fake2=${fakeScore2.toStringAsFixed(2)})',
+      );
+
+      return livenessScore.clamp(0.0, 1.0);
+    } catch (e) {
+      debugPrint('[FaceSdkEngine] computeLiveness error: $e');
+      return 0.0; // Fail-closed!
+    }
+  }
+
   /// Process live camera frame and match against enrolled person database.
   /// 
   /// Ultra-fast pipeline (<50ms per frame):
   /// 1. ML Kit Face Detection (~20-25ms)
   /// 2. Largest face selection (ignores tiny background passers-by)
   /// 3. Direct 112x112 square face sampling with roll compensation (~3ms)
-  /// 4. MobileFaceNet normal + horizontally flipped embedding (mirror-invariant, ~20ms)
-  /// 5. In-memory cosine similarity against enrolled templates (<1ms)
-  /// 6. Only on match: compress full-frame selfie JPEG
+  /// 4. Anti-spoof liveness detection using FAS MiniFASNet (~3-5ms)
+  /// 5. MobileFaceNet normal + horizontally flipped embedding (mirror-invariant, ~20ms)
+  /// 6. In-memory cosine similarity against enrolled templates (<1ms)
+  /// 7. Only on match (both face & liveness passed): compress full-frame selfie JPEG
   Future<FaceSdkMatchResult?> processCameraFrame({
     required CameraImage cameraImage,
     required CameraDescription camera,
     required List<dynamic> enrolledPersons,
     double threshold = 0.55,
+    double livenessThreshold = 0.70,
     double? visibleAspectRatio,
   }) async {
     final t0 = DateTime.now().millisecondsSinceEpoch;
@@ -713,7 +1055,7 @@ class FaceSdkEngine {
           isMatch: false,
           matchedName: '',
           similarity: 0.0,
-          liveness: 1.0,
+          liveness: 0.0,
           boundingBox: mlFaces.first.boundingBox,
           liveFaceJpg: null,
           fullFrameJpg: null,
@@ -786,7 +1128,7 @@ class FaceSdkEngine {
         isMatch: false,
         matchedName: '',
         similarity: 0.0,
-        liveness: 1.0,
+        liveness: 0.0,
         yaw: mlYaw,
         roll: mlRoll,
         pitch: mlPitch,
@@ -800,7 +1142,7 @@ class FaceSdkEngine {
       );
     }
 
-    // 2. Direct 112x112 square face crop with roll angle compensation (takes ~3ms)
+    // 2. Direct 112x112 square face crop with roll angle compensation for recognition (~3ms)
     final faceCrop112 = cropFace112(
       cameraImage,
       mlBox,
@@ -809,10 +1151,24 @@ class FaceSdkEngine {
     );
     final tCrop = DateTime.now().millisecondsSinceEpoch;
 
-    // 3. Extract MobileFaceNet embeddings (Normal + Horizontally Flipped for mirror invariance)
+    // 2b. Direct 2.7x 80x80 BGR tensor for FAS Anti-Spoofing (<1ms)
+    final tensor80Bgr = cropFaceScaled80Bgr(
+      cameraImage,
+      mlBox,
+      camera.sensorOrientation,
+      scale: 2.7,
+    );
+
+    // Anti-spoof liveness detection using FAS model (~3-5ms)
+    final double livenessScore = await computeLiveness(
+      tensor80Bgr: tensor80Bgr,
+      mlFace: mlFace,
+    );
+    final tLive = DateTime.now().millisecondsSinceEpoch;
+
+    // 3. Extract MobileFaceNet embeddings (Lazy flipped embedding for 2x faster performance)
     final embNormal = _extractEmbedding(faceCrop112);
-    final flippedCrop = img.flipHorizontal(faceCrop112);
-    final embFlipped = _extractEmbedding(flippedCrop);
+    List<double>? embFlipped;
     final liveTemplates = Float32List.fromList(embNormal).buffer.asUint8List();
     final tEmbed = DateTime.now().millisecondsSinceEpoch;
 
@@ -826,8 +1182,13 @@ class FaceSdkEngine {
       if (enrolledTemplates.length == 768) {
         final enrolledFloats = enrolledTemplates.buffer.asFloat32List();
         final simNorm = cosineSimilarityFloats(embNormal, enrolledFloats);
-        final simFlip = cosineSimilarityFloats(embFlipped, enrolledFloats);
-        final rawSim = math.max(simNorm, simFlip);
+        double rawSim = simNorm;
+        // Only if normal similarity is below threshold, try flipped embedding for mirror invariance
+        if (calibrateSimilarity(rawSim) < threshold) {
+          embFlipped ??= _extractEmbedding(img.flipHorizontal(faceCrop112));
+          final simFlip = cosineSimilarityFloats(embFlipped, enrolledFloats);
+          rawSim = math.max(rawSim, simFlip);
+        }
         final sim = calibrateSimilarity(rawSim);
 
         if (sim > maxSimilarity) {
@@ -846,12 +1207,24 @@ class FaceSdkEngine {
       }
     }
 
-    final isMatch = maxSimilarity >= threshold;
+    final bool isFaceMatch = maxSimilarity >= threshold;
+    final bool isLive = livenessScore >= livenessThreshold;
+    final bool isMatch = isFaceMatch && isLive;
+
+    String? errorMessage;
+    if (!isFaceMatch && maxSimilarity >= 0) {
+      errorMessage = 'SIMILARITY_LOW';
+    } else if (isFaceMatch && !isLive) {
+      errorMessage = 'SPOOF_DETECTED';
+    }
+
     final tTotal = DateTime.now().millisecondsSinceEpoch - t0;
     debugPrint(
       '[FaceSdkEngine] Result: sim=${(maxSimilarity * 100).toStringAsFixed(1)}% '
-      '(threshold=${(threshold * 100).toStringAsFixed(0)}%) "$matchedName" '
-      'isMatch=$isMatch [Total: ${tTotal}ms | detect: ${tDetect - t0}ms, crop: ${tCrop - tDetect}ms, embed: ${tEmbed - tCrop}ms]',
+      '(req ${(threshold * 100).toStringAsFixed(0)}%), '
+      'live=${(livenessScore * 100).toStringAsFixed(1)}% '
+      '(req ${(livenessThreshold * 100).toStringAsFixed(0)}%) "$matchedName" '
+      'isMatch=$isMatch [Total: ${tTotal}ms | detect: ${tDetect - t0}ms, crop: ${tCrop - tDetect}ms, live: ${tLive - tCrop}ms, embed: ${tEmbed - tLive}ms]',
     );
 
     // 5. Only on MATCH: encode full frame selfie and thumbnail JPEG
@@ -874,7 +1247,7 @@ class FaceSdkEngine {
       isMatch: isMatch,
       matchedName: matchedName,
       similarity: maxSimilarity,
-      liveness: 1.0,
+      liveness: livenessScore,
       yaw: mlYaw,
       roll: mlRoll,
       pitch: mlPitch,
@@ -884,6 +1257,7 @@ class FaceSdkEngine {
       enrolledFaceJpg: matchedEnrolledFace,
       frameWidth: uprightWidth,
       frameHeight: uprightHeight,
+      errorMessage: errorMessage,
     );
   }  // end processCameraFrame
 
@@ -1059,6 +1433,7 @@ class FaceSdkEngine {
     _faceDetector?.close();
     _photoFaceDetector?.close();
     _interpreter?.close();
+    _livenessInterpreter?.close();
     _isInitialized = false;
   }
 }

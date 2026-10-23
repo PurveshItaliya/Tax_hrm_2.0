@@ -56,11 +56,11 @@ enum FaceCaptureState {
   CAPTURE_OK
 }
 
-const double DEFAULT_YAW_THRESHOLD = 10.0;
-const double DEFAULT_ROLL_THRESHOLD = 10.0;
-const double DEFAULT_PITCH_THRESHOLD = 10.0;
+const double DEFAULT_YAW_THRESHOLD = 20.0;
+const double DEFAULT_ROLL_THRESHOLD = 18.0;
+const double DEFAULT_PITCH_THRESHOLD = 18.0;
 const double DEFAULT_OCCLUSION_THRESHOLD = 0.5;
-const double DEFAULT_EYECLOSE_THRESHOLD = 0.5;
+const double DEFAULT_EYECLOSE_THRESHOLD = 0.65;
 const double DEFAULT_MOUTHOPEN_THRESHOLD = 0.5;
 
 Float32List byteArrayToFloatArray(Uint8List byteArray) {
@@ -150,8 +150,9 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
   Future<void> Function()? onNativeRestartCamera;
   bool _isSaving = false;
   int _sessionKey = 0;
-  bool _showInstructions = true;
+  bool _showInstructions = false;
   int _stableFrames = 0;
+  int _noFaceCounter = 0;
 
   void rescanFace() {
     setState(() {
@@ -164,9 +165,11 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
       _recognized = false;
       _isSaving = false;
       _stableFrames = 0;
+      _noFaceCounter = 0;
       _showInstructions = false;
-      _viewMode = ViewMode.NO_FACE_PREPARE;
+      _viewMode = ViewMode.FACE_CIRCLE;
     });
+    onNativeRestartCamera?.call();
   }
 
   @override
@@ -176,7 +179,7 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
     loadSettings();
 
     setState(() {
-      _viewMode = ViewMode.NO_FACE_PREPARE;
+      _viewMode = ViewMode.FACE_CIRCLE;
     });
   }
 
@@ -438,6 +441,9 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
       }
     } catch (e) {
       debugPrint('[FaceCaptureView] registerFace error: $e');
+      if (context.mounted) {
+        Navigator.pop(context, 'OK');
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -447,8 +453,8 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
     }
   }
 
-  Future<bool> onFaceDetected(faces) async {
-    if (_recognized == true) {
+  Future<bool> evaluateAndTrackFaces(List<Map<String, dynamic>> faces) async {
+    if (_recognized == true || _capturedFace != null) {
       return false;
     }
 
@@ -458,178 +464,220 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
       _faces = faces;
     });
 
-    if (faces.length > 0) {
+    if (faces.isNotEmpty) {
       setState(() {
         _currentFace = faces[0];
       });
     }
 
     FaceCaptureState faceCaptureState = checkFace(faces);
-    if (_viewMode == ViewMode.REPEAT_NO_FACE_PREPARE) {
-      if (faceCaptureState.index > FaceCaptureState.NO_FACE.index) {
-        setViewMode(ViewMode.TO_FACE_CIRCLE);
+
+    // If starting in NO_FACE_PREPARE or REPEAT, advance to FACE_CIRCLE immediately when face seen
+    if (_viewMode == ViewMode.NO_FACE_PREPARE || _viewMode == ViewMode.REPEAT_NO_FACE_PREPARE) {
+      if (faceCaptureState != FaceCaptureState.NO_FACE) {
+        setViewMode(ViewMode.FACE_CIRCLE);
       }
-    } else if (_viewMode == ViewMode.FACE_CIRCLE) {
-      if (faceCaptureState.index == FaceCaptureState.NO_FACE.index) {
-        setState(() {
-          _warningTxt = "";
-        });
-        setViewMode(ViewMode.FACE_CIRCLE_TO_NO_FACE);
-      } else if (faceCaptureState.index ==
-          FaceCaptureState.MULTIPLE_FACES.index) {
+      return false;
+    }
+
+    if (_viewMode == ViewMode.FACE_CIRCLE) {
+      if (faceCaptureState == FaceCaptureState.NO_FACE) {
+        _noFaceCounter++;
+        _stableFrames = 0;
+        if (_noFaceCounter >= 8) {
+          setState(() {
+            _warningTxt = "Position your face inside the circle";
+          });
+        }
+        return false;
+      }
+
+      _noFaceCounter = 0;
+
+      if (faceCaptureState == FaceCaptureState.MULTIPLE_FACES) {
         _stableFrames = 0;
         setState(() {
-          _warningTxt = "Multiple faces detected!";
+          _warningTxt = "Multiple faces detected - only 1 person allowed!";
         });
-      } else if (faceCaptureState.index ==
-          FaceCaptureState.FIT_IN_CIRCLE.index) {
+        return false;
+      } else if (faceCaptureState == FaceCaptureState.FIT_IN_CIRCLE) {
         _stableFrames = 0;
         setState(() {
-          _warningTxt = "Fit your face inside circle!";
+          _warningTxt = "Center your face inside the circle";
         });
-      } else if (faceCaptureState.index == FaceCaptureState.MOVE_CLOSER.index) {
+        return false;
+      } else if (faceCaptureState == FaceCaptureState.MOVE_CLOSER) {
         _stableFrames = 0;
         setState(() {
-          _warningTxt = "Move closer to camera!";
+          _warningTxt = "Move closer to camera";
         });
-      } else if (faceCaptureState.index == FaceCaptureState.NO_FRONT.index) {
+        return false;
+      } else if (faceCaptureState == FaceCaptureState.NO_FRONT) {
+        _stableFrames = 0;
+        final double pitch = ((_currentFace?['pitch'] ?? 0.0) as num).toDouble();
+        if (pitch > 18.0) {
+          setState(() {
+            _warningTxt = "Tilt head down slightly";
+          });
+        } else if (pitch < -18.0) {
+          setState(() {
+            _warningTxt = "Tilt head up slightly";
+          });
+        } else {
+          setState(() {
+            _warningTxt = "Look straight into camera";
+          });
+        }
+        return false;
+      } else if (faceCaptureState == FaceCaptureState.FACE_OCCLUDED) {
         _stableFrames = 0;
         setState(() {
-          _warningTxt = "Look straight into camera!";
+          _warningTxt = "Remove face coverings";
         });
-      } else if (faceCaptureState.index ==
-          FaceCaptureState.FACE_OCCLUDED.index) {
+        return false;
+      } else if (faceCaptureState == FaceCaptureState.EYE_CLOSED) {
         _stableFrames = 0;
         setState(() {
-          _warningTxt = "Remove face coverings!";
+          _warningTxt = "Please keep eyes open";
         });
-      } else if (faceCaptureState.index == FaceCaptureState.EYE_CLOSED.index) {
+        return false;
+      } else if (faceCaptureState == FaceCaptureState.MOUTH_OPENED) {
         _stableFrames = 0;
         setState(() {
-          _warningTxt = "Please keep eyes open!";
+          _warningTxt = "Please close your mouth";
         });
-      } else if (faceCaptureState.index ==
-          FaceCaptureState.MOUTH_OPENED.index) {
-        _stableFrames = 0;
-        setState(() {
-          _warningTxt = "Please close your mouth!";
-        });
-      } else if (faceCaptureState.index ==
-          FaceCaptureState.SPOOFED_FACE.index) {
-        _stableFrames = 0;
-        setState(() {
-          _warningTxt = "Spoof face detected";
-        });
-      } else {
+        return false;
+      } else if (faceCaptureState == FaceCaptureState.CAPTURE_OK) {
         _stableFrames++;
-        if (_stableFrames < 3) {
+        if (_stableFrames < 2) {
           setState(() {
             _warningTxt = "Hold steady...";
           });
           return false;
         }
-        // createClipedImage();
-        ui.Image capturedImage =
-            await decodeImageFromList(_currentFace['faceJpg']);
 
-        Rect roiRectSrc = Rect.fromLTWH(0, 0, capturedImage.width.toDouble(),
-            capturedImage.height.toDouble());
-
-        // Create a blank canvas for the bitmap
-        final recorder = ui.PictureRecorder();
-        final canvas1 = Canvas(recorder, roiRectSrc);
-
-        // Define the circle path to clip
-        final path = Path()
-          ..addOval(Rect.fromCircle(
-            center: Offset(roiRectSrc.width / 2, roiRectSrc.height / 2),
-            radius: (roiRectSrc.width < roiRectSrc.height
-                ? roiRectSrc.width / 2
-                : roiRectSrc.height / 2),
-          ));
-
-        // Clip the canvas with the circular path
-        canvas1.clipPath(path);
-
-        // Draw the captured bitmap on the canvas
-        final paint = Paint();
-        canvas1.drawImageRect(
-          capturedImage,
-          Rect.fromLTWH(0, 0, capturedImage.width.toDouble(),
-              capturedImage.height.toDouble()), // Source bitmap area
-          roiRectSrc, // Destination rect
-          paint,
-        );
-
-        // Complete the bitmap creation
-        final picture = recorder.endRecording();
-        ui.Image roiImage = await picture.toImage(
-          roiRectSrc.width.toInt(),
-          roiRectSrc.height.toInt(),
-        );
-
-
+        // Ready to capture!
         setState(() {
-          _warningTxt = "";
-          _capturedImage = roiImage;
-          _capturedFace = _currentFace;
+          _warningTxt = "Capturing...";
         });
-
-        setViewMode(ViewMode.FACE_CAPTURE_PREPARE);
+        return true;
       }
     }
 
     return false;
   }
 
-  FaceCaptureState checkFace(faces) {
-    if (faces.length == 0) return FaceCaptureState.NO_FACE;
-    if (faces.length > 1) return FaceCaptureState.MULTIPLE_FACES;
-
-    var face = faces[0];
-    double faceLeft = (face['x1'] as num).toDouble();
-    double faceRight = (face['x2'] as num).toDouble();
-    double faceBottom = (face['y2'] as num).toDouble();
-
+  Future<void> commitCapturedFace(Map<String, dynamic> faceData) async {
+    if (!mounted) return;
     try {
-      if (face['landmarks_68'] != null) {
-        if (Platform.isAndroid) {
-          List landmarks_68 = face['landmarks_68'];
-          for (int i = 0; i < 68; i++) {
-            faceLeft =
-                faceLeft < landmarks_68[i * 2] ? faceLeft : landmarks_68[i * 2];
-            faceRight =
-                faceRight > landmarks_68[i * 2] ? faceRight : landmarks_68[i * 2];
-            faceBottom = faceBottom > landmarks_68[i * 2 + 1]
-                ? faceBottom
-                : landmarks_68[i * 2 + 1];
-          }
-        } else {
-          List landmarks_68 = byteArrayToFloatArray(Uint8List.fromList(face['landmarks_68']));
-          for (int i = 0; i < 68; i++) {
-            faceLeft =
-                faceLeft < landmarks_68[i * 2] ? faceLeft : landmarks_68[i * 2];
-            faceRight =
-                faceRight > landmarks_68[i * 2] ? faceRight : landmarks_68[i * 2];
-            faceBottom = faceBottom > landmarks_68[i * 2 + 1]
-                ? faceBottom
-                : landmarks_68[i * 2 + 1];      
-          }
+      final Uint8List faceJpg = faceData['faceJpg'] as Uint8List;
+      if (faceJpg.isEmpty) return;
+
+      final ui.Image capturedImage = await decodeImageFromList(faceJpg);
+
+      final Rect roiRectSrc = Rect.fromLTWH(
+        0,
+        0,
+        capturedImage.width.toDouble(),
+        capturedImage.height.toDouble(),
+      );
+
+      final recorder = ui.PictureRecorder();
+      final canvas1 = Canvas(recorder, roiRectSrc);
+
+      final path = Path()
+        ..addOval(Rect.fromCircle(
+          center: Offset(roiRectSrc.width / 2, roiRectSrc.height / 2),
+          radius: (roiRectSrc.width < roiRectSrc.height
+              ? roiRectSrc.width / 2
+              : roiRectSrc.height / 2),
+        ));
+
+      canvas1.clipPath(path);
+
+      final paint = Paint();
+      canvas1.drawImageRect(
+        capturedImage,
+        roiRectSrc,
+        roiRectSrc,
+        paint,
+      );
+
+      final picture = recorder.endRecording();
+      final ui.Image roiImage = await picture.toImage(
+        roiRectSrc.width.toInt(),
+        roiRectSrc.height.toInt(),
+      );
+
+      setState(() {
+        _warningTxt = "";
+        _capturedImage = roiImage;
+        _capturedFace = faceData;
+      });
+
+      setViewMode(ViewMode.FACE_CAPTURE_PREPARE);
+    } catch (e) {
+      debugPrint('[FaceCaptureView] commitCapturedFace error: $e');
+    }
+  }
+
+  Future<bool> onFaceDetected(faces) async {
+    if (faces is List<Map<String, dynamic>>) {
+      return await evaluateAndTrackFaces(faces);
+    }
+    return false;
+  }
+
+  FaceCaptureState checkFace(dynamic rawFaces) {
+    if (rawFaces == null || (rawFaces is List && rawFaces.isEmpty)) {
+      return FaceCaptureState.NO_FACE;
+    }
+
+    final List faces = rawFaces is List ? List.from(rawFaces) : [];
+    if (faces.isEmpty) return FaceCaptureState.NO_FACE;
+
+    // Sort by bounding box area descending so primary face is index 0
+    faces.sort((a, b) {
+      final num areaA = (((a['x2'] as num?) ?? 0) - ((a['x1'] as num?) ?? 0)).abs() *
+          (((a['y2'] as num?) ?? 0) - ((a['y1'] as num?) ?? 0)).abs();
+      final num areaB = (((b['x2'] as num?) ?? 0) - ((b['x1'] as num?) ?? 0)).abs() *
+          (((b['y2'] as num?) ?? 0) - ((b['y1'] as num?) ?? 0)).abs();
+      return areaB.compareTo(areaA);
+    });
+
+    final primary = faces[0];
+    final double primaryWidth = (((primary['x2'] as num?) ?? 0) - ((primary['x1'] as num?) ?? 0)).abs().toDouble();
+    final double primaryHeight = (((primary['y2'] as num?) ?? 0) - ((primary['y1'] as num?) ?? 0)).abs().toDouble();
+    final double primaryArea = primaryWidth * primaryHeight;
+
+
+    // Filter out false positive multiple faces (posters, reflections, tiny background people)
+    if (faces.length > 1) {
+      for (int i = 1; i < faces.length; i++) {
+        final other = faces[i];
+        final double otherWidth = (((other['x2'] as num?) ?? 0) - ((other['x1'] as num?) ?? 0)).abs().toDouble();
+        final double otherHeight = (((other['y2'] as num?) ?? 0) - ((other['y1'] as num?) ?? 0)).abs().toDouble();
+        final double otherArea = otherWidth * otherHeight;
+        if (otherWidth >= 100 && otherHeight >= 100 && otherArea >= (primaryArea * 0.35)) {
+          return FaceCaptureState.MULTIPLE_FACES;
         }
       }
-    } catch (e) {}
+    }
 
-    const double sizeRate = 0.30;
-    const double interRate = 0.03;
-    Size frameSize =
-        const Size(720, 1280); // Replace with your actual frame size
+    double faceLeft = ((primary['x1'] as num?) ?? 0).toDouble();
+    double faceRight = ((primary['x2'] as num?) ?? 0).toDouble();
+    double faceBottom = ((primary['y2'] as num?) ?? 0).toDouble();
 
-    Rect roiRect = getROIRect(frameSize);
-    double centerY = (face['y2'] + face['y1']) / 2;
-    double topY = centerY - (face['y2'] - face['y1']) * 2 / 3;
-    double interX = (roiRect.left - faceLeft).clamp(0.0, double.infinity) +
+    const double sizeRate = 0.20;
+    const double interRate = 0.10;
+    const Size frameSize = Size(720, 1280);
+
+    final Rect roiRect = getROIRect(frameSize);
+    final double centerY = (((primary['y2'] as num?) ?? 0) + ((primary['y1'] as num?) ?? 0)) / 2;
+    final double topY = centerY - (((primary['y2'] as num?) ?? 0) - ((primary['y1'] as num?) ?? 0)) * 2 / 3;
+    final double interX = (roiRect.left - faceLeft).clamp(0.0, double.infinity) +
         (faceRight - roiRect.right).clamp(0.0, double.infinity);
-    double interY = (roiRect.top - topY).clamp(0.0, double.infinity) +
+    final double interY = (roiRect.top - topY).clamp(0.0, double.infinity) +
         (faceBottom - roiRect.bottom).clamp(0.0, double.infinity);
 
     if (interX / roiRect.width > interRate ||
@@ -637,27 +685,29 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
       return FaceCaptureState.FIT_IN_CIRCLE;
     }
 
-    if ((face['y2'] - face['y1']) * (face['x2'] - face['x1']) <
-        roiRect.width * roiRect.height * sizeRate) {
+    if (primaryArea < roiRect.width * roiRect.height * sizeRate) {
       return FaceCaptureState.MOVE_CLOSER;
     }
 
-    if (face['yaw'].abs() > DEFAULT_YAW_THRESHOLD ||
-        face['roll'].abs() > DEFAULT_ROLL_THRESHOLD ||
-        face['pitch'].abs() > DEFAULT_PITCH_THRESHOLD) {
+    final double yaw = (((primary['yaw'] as num?) ?? 0.0)).toDouble();
+    final double pitch = (((primary['pitch'] as num?) ?? 0.0)).toDouble();
+    final double roll = (((primary['roll'] as num?) ?? 0.0)).toDouble();
+
+    if (yaw.abs() > DEFAULT_YAW_THRESHOLD ||
+        roll.abs() > DEFAULT_ROLL_THRESHOLD ||
+        pitch.abs() > DEFAULT_PITCH_THRESHOLD) {
       return FaceCaptureState.NO_FRONT;
     }
 
-    if (face['face_occlusion'] > DEFAULT_OCCLUSION_THRESHOLD) {
-      return FaceCaptureState.FACE_OCCLUDED;
-    }
+    final double leftEyeClosed = (((primary['left_eye_closed'] as num?) ?? 0.0)).toDouble();
+    final double rightEyeClosed = (((primary['right_eye_closed'] as num?) ?? 0.0)).toDouble();
 
-    if (face['left_eye_closed'] > DEFAULT_EYECLOSE_THRESHOLD ||
-        face['right_eye_closed'] > DEFAULT_EYECLOSE_THRESHOLD) {
+    if (leftEyeClosed > DEFAULT_EYECLOSE_THRESHOLD ||
+        rightEyeClosed > DEFAULT_EYECLOSE_THRESHOLD) {
       return FaceCaptureState.EYE_CLOSED;
     }
 
-    if (face['mouth_opened'] > DEFAULT_MOUTHOPEN_THRESHOLD) {
+    if (((primary['mouth_opened'] as num?) ?? 0.0) > DEFAULT_MOUTHOPEN_THRESHOLD) {
       return FaceCaptureState.MOUTH_OPENED;
     }
 
@@ -815,28 +865,57 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
             if (_warningTxt.isNotEmpty &&
                 _viewMode.index < ViewMode.FACE_CAPTURE_DONE.index)
               Positioned(
-                top: 16,
-                left: 20,
-                right: 20,
+                top: 20,
+                left: 24,
+                right: 24,
                 child: Center(
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.black.withOpacity(0.78),
+                      borderRadius: BorderRadius.circular(22),
                       border: Border.all(
-                        color: Colors.amberAccent.withOpacity(0.4),
-                        width: 1,
+                        color: _warningTxt.contains("Hold steady") || _warningTxt.contains("Capturing")
+                            ? Colors.greenAccent
+                            : Colors.amberAccent.withOpacity(0.6),
+                        width: 1.2,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      _warningTxt,
-                      style: const TextStyle(
-                        color: Colors.amberAccent,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _warningTxt.contains("Hold steady") || _warningTxt.contains("Capturing")
+                              ? Icons.camera_alt_rounded
+                              : Icons.info_outline_rounded,
+                          color: _warningTxt.contains("Hold steady") || _warningTxt.contains("Capturing")
+                              ? Colors.greenAccent
+                              : Colors.amberAccent,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _warningTxt,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _warningTxt.contains("Hold steady") || _warningTxt.contains("Capturing")
+                                  ? Colors.greenAccent
+                                  : Colors.amberAccent,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1338,16 +1417,6 @@ class _FaceCaptureDetectionViewState extends State<FaceCaptureDetectionView> {
       for (final face in mlFaces) {
         final box = face.boundingBox;
 
-        // Extract face crop and templates via FaceSdkEngine
-        final extracted = await FaceSdkEngine.instance.extractFaceFromCameraImage(
-          cameraImage: image,
-          camera: _frontCamera!,
-          boundingBox: box,
-        );
-
-        final templates = extracted?['templates'] ?? Uint8List(0);
-        final faceJpg = extracted?['faceJpg'] ?? Uint8List(0);
-
         // Front camera preview is mirrored horizontally
         final double mirroredLeft = uprightWidth - box.right;
         final double mirroredRight = uprightWidth - box.left;
@@ -1380,14 +1449,35 @@ class _FaceCaptureDetectionViewState extends State<FaceCaptureDetectionView> {
           'face_quality': 0.88,
           'face_luminance': 0.75,
           'liveness': 1.0,
-          'faceJpg': faceJpg,
-          'templates': templates,
           'frameWidth': targetWidth,
           'frameHeight': targetHeight,
+          'rawFace': face,
         });
       }
 
-      await widget.faceRecognitionViewState.onFaceDetected(faceList);
+      final bool readyToCapture = await widget.faceRecognitionViewState.evaluateAndTrackFaces(faceList);
+
+      if (readyToCapture && faceList.isNotEmpty && mounted) {
+        try {
+          await _cameraController?.stopImageStream();
+        } catch (_) {}
+
+        final primaryFace = faceList.first['rawFace'] as Face;
+        final extracted = await FaceSdkEngine.instance.extractFaceFromCameraImage(
+          cameraImage: image,
+          camera: _frontCamera!,
+          boundingBox: primaryFace.boundingBox,
+        );
+
+        if (extracted != null && mounted) {
+          final faceData = Map<String, dynamic>.from(faceList.first);
+          faceData['faceJpg'] = extracted['faceJpg'] ?? Uint8List(0);
+          faceData['templates'] = extracted['templates'] ?? Uint8List(0);
+          faceData['fullFrameJpg'] = extracted['fullFrameJpg'] ?? Uint8List(0);
+
+          await widget.faceRecognitionViewState.commitCapturedFace(faceData);
+        }
+      }
     } catch (e) {
       debugPrint('[FaceCaptureView] onCameraFrame error: $e');
     } finally {

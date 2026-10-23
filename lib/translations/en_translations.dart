@@ -577,6 +577,10 @@ final Map<String, String> enTranslations = {
   'faceRegistrationRequiredString': 'Face Registration Required',
   'faceRegistrationDescString':
       'To ensure secure attendance tracking, you need to register your face before you can punch in or out.',
+  'faceNotRegisteredString': 'Face not registered',
+  'deleteFaceRegistrationString': 'Delete Registration',
+  'deleteFaceConfirmString':
+      'Are you sure you want to delete this face registration? The employee will need to register their face again.',
   'registerFaceNowString': 'Register Face Now',
   'punchAttendanceString': 'Punch Attendance',
   'offlineModeString': 'Offline Mode — Punch will sync when online',

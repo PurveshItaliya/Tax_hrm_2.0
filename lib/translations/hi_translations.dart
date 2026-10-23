@@ -577,6 +577,10 @@ final Map<String, String> hiTranslations = {
   'faceRegistrationRequiredString': 'चेहरा पंजीकरण आवश्यक है',
   'faceRegistrationDescString':
       'सुरक्षित उपस्थिति ट्रैकिंग सुनिश्चित करने के लिए, आपको पंच इन या आउट करने से पहले अपना चेहरा पंजीकृत करना होगा।',
+  'faceNotRegisteredString': 'चेहरा पंजीकृत नहीं है',
+  'deleteFaceRegistrationString': 'पंजीकरण हटाएं',
+  'deleteFaceConfirmString':
+      'क्या आप वाकई इस चेहरे के पंजीकरण को हटाना चाहते हैं? कर्मचारी को दोबारा पंजीकरण करना होगा।',
   'registerFaceNowString': 'अभी चेहरा पंजीकृत करें',
   'punchAttendanceString': 'उपस्थिति पंच करें',
   'offlineModeString': 'ऑफ़लाइन मोड — ऑनलाइन होने पर पंच सिंक हो जाएगा',

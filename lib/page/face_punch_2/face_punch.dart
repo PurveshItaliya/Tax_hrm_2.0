@@ -167,12 +167,19 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
   void _onRemoteConfigUpdated() {
     if (!mounted) return;
-    _applySettingsFromRemote();
+    _applySettings();
   }
 
-  void _applySettingsFromRemote() {
-    final idThreshold = RemoteConfigServices.identityThreshold;
-    final liveThreshold = RemoteConfigServices.livenessThreshold;
+  Future<void> _applySettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedId = prefs.getString('identify_threshold');
+    final savedLive = prefs.getString('liveness_threshold');
+    final idThreshold = (savedId != null && savedId.isNotEmpty)
+        ? (double.tryParse(savedId) ?? RemoteConfigServices.identityThreshold)
+        : RemoteConfigServices.identityThreshold;
+    final liveThreshold = (savedLive != null && savedLive.isNotEmpty)
+        ? (double.tryParse(savedLive) ?? RemoteConfigServices.livenessThreshold)
+        : RemoteConfigServices.livenessThreshold;
     if (mounted) {
       setState(() {
         _identifyThreshold = idThreshold;
@@ -183,7 +190,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       _livenessThreshold = liveThreshold;
     }
     debugPrint('=================================================================');
-    debugPrint('[FacePunch] APPLIED REMOTE CONFIG SETTINGS:');
+    debugPrint('[FacePunch] APPLIED SETTINGS:');
     debugPrint('[FacePunch]   - identifyThreshold: $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%)');
     debugPrint('[FacePunch]   - livenessThreshold: $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%)');
     debugPrint('=================================================================');
@@ -191,7 +198,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
   Future<void> _loadSettings() async {
     try {
-      _applySettingsFromRemote();
+      await _applySettings();
       // Silently fetch and activate latest config in the background
       RemoteConfigServices.instance.fetchLatestConfig();
     } catch (e) {
@@ -242,12 +249,19 @@ class _FacePunchScreenState extends State<FacePunchScreen>
   /// Runs camera stream only during the 2-second verification window, keeping idle preview at buttery 60 FPS.
 
   Future<FaceVerificationAttemptResult> _verifyFaceOnDemand({
-    Duration timeout = const Duration(seconds: 2),
+    Duration timeout = const Duration(seconds: 4),
     List<FaceSdkPerson>? enrolledPersons,
   }) async {
-    // Dynamic sync: Always use latest active thresholds from RemoteConfigServices
-    _identifyThreshold = RemoteConfigServices.identityThreshold;
-    _livenessThreshold = RemoteConfigServices.livenessThreshold;
+    // Read active thresholds prioritizing local user preferences
+    final prefs = await SharedPreferences.getInstance();
+    final savedId = prefs.getString('identify_threshold');
+    final savedLive = prefs.getString('liveness_threshold');
+    _identifyThreshold = (savedId != null && savedId.isNotEmpty)
+        ? (double.tryParse(savedId) ?? RemoteConfigServices.identityThreshold)
+        : RemoteConfigServices.identityThreshold;
+    _livenessThreshold = (savedLive != null && savedLive.isNotEmpty)
+        ? (double.tryParse(savedLive) ?? RemoteConfigServices.livenessThreshold)
+        : RemoteConfigServices.livenessThreshold;
 
     final controller = selfiePunchProvider.cameraController;
     if (controller == null || !controller.value.isInitialized || !selfiePunchProvider.isCameraReady) {
@@ -306,6 +320,8 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     bool isStopped = false;
     bool isProcessing = false;
     int frameCount = 0;
+    int consecutiveMatchCount = 0;
+    const int requiredConsecutiveMatches = 2; // Require 2 consecutive verified live frames (MiniFASNet + MobileFaceNet) to eliminate photo spoof bypass
     double bestSimilarity = 0.0;
     String? lastFailureReason;
 
@@ -335,11 +351,19 @@ class _FacePunchScreenState extends State<FacePunchScreen>
           '[FacePunch] [Verify] >>> TIMED OUT after ${timeout.inSeconds}s! Frames analyzed: $frameCount, Best sim: ${(bestSimilarity * 100).toStringAsFixed(1)}%, Last reason: $lastFailureReason <<<',
         );
         await stopStreamSafely();
+        final String reason;
+        if (lastFailureReason != null) {
+          reason = lastFailureReason!;
+        } else if (bestSimilarity > 0) {
+          reason = 'Face similarity low (best: ${(bestSimilarity * 100).toStringAsFixed(1)}%)';
+        } else {
+          reason = 'Face not detected. Please face the camera directly.';
+        }
         completer.complete(FaceVerificationAttemptResult(
           matchResult: null,
           bestSimilarity: bestSimilarity,
           framesAnalyzed: frameCount,
-          failureReason: lastFailureReason ?? 'Face not detected. Please face the camera directly.',
+          failureReason: reason,
         ));
       }
     });
@@ -356,7 +380,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
         if (isStopped || completer.isCompleted || isProcessing) return;
 
         frameCount++;
-        if (frameCount <= 2) {
+        if (frameCount <= 1) {
           debugPrint('[FacePunch] [Verify] Discarding buffer frame #$frameCount');
           return;
         }
@@ -372,6 +396,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
             camera: frontCamera,
             enrolledPersons: targetPersons,
             threshold: _identifyThreshold,
+            livenessThreshold: _livenessThreshold,
             visibleAspectRatio: widgetAspectRatio,
           );
 
@@ -412,31 +437,54 @@ class _FacePunchScreenState extends State<FacePunchScreen>
             if (result.similarity > bestSimilarity) {
               bestSimilarity = result.similarity;
             }
-            if (result.errorMessage != null) {
+            final bool isLiveValid = result.liveness >= _livenessThreshold;
+            final bool isIdValid = result.similarity >= _identifyThreshold;
+
+            if (result.errorMessage != null &&
+                result.errorMessage != 'SIMILARITY_LOW' &&
+                result.errorMessage != 'LIVENESS_FAILED' &&
+                result.errorMessage != 'SPOOF_DETECTED') {
               lastFailureReason = result.errorMessage;
-            } else if (!result.isMatch) {
-              lastFailureReason = 'Similarity ${(result.similarity * 100).toStringAsFixed(1)}% < ${(_identifyThreshold * 100).toInt()}%';
-            } else if (result.liveness < _livenessThreshold) {
-              lastFailureReason = 'Liveness ${(result.liveness * 100).toStringAsFixed(1)}% < ${(_livenessThreshold * 100).toInt()}%';
+            } else if (!isLiveValid) {
+              lastFailureReason =
+                  'Spoof detected: Liveness ${(result.liveness * 100).toStringAsFixed(1)}% < ${(_livenessThreshold * 100).toInt()}%';
+              if (mounted && _cameraBoxMessage != 'Real Face Not Detected (Anti-Spoof)') {
+                setState(() {
+                  _cameraBoxMessage = 'Real Face Not Detected (Anti-Spoof)';
+                });
+              }
+            } else if (!isIdValid) {
+              lastFailureReason =
+                  'Similarity ${(result.similarity * 100).toStringAsFixed(1)}% < ${(_identifyThreshold * 100).toInt()}%';
             }
 
             debugPrint(
-              '[FacePunch] [Verify] Frame #$frameCount: Matched="${result.matchedName}", sim=${(result.similarity * 100).toStringAsFixed(1)}% (req ${(_identifyThreshold * 100).toInt()}%), live=${(result.liveness * 100).toStringAsFixed(1)}% (req ${(_livenessThreshold * 100).toInt()}%), isMatch=${result.isMatch}',
+              '[FacePunch] [Verify] Frame #$frameCount: Matched="${result.matchedName}", '
+              'sim=${(result.similarity * 100).toStringAsFixed(1)}% (req ${(_identifyThreshold * 100).toInt()}%), '
+              'live=${(result.liveness * 100).toStringAsFixed(1)}% (req ${(_livenessThreshold * 100).toInt()}%), '
+              'isMatch=${result.isMatch} -> ${isLiveValid ? (isIdValid ? "✅ LIVE MATCH" : "⚠️ LOW SIMILARITY") : "❌ SPOOF PHOTO REJECTED"}',
             );
 
-            if (result.isMatch &&
-                result.liveness >= _livenessThreshold &&
-                !completer.isCompleted) {
-              debugPrint(
-                '[FacePunch] [Verify] >>> MATCH SUCCESS on frame #$frameCount! Matched "${result.matchedName}" (sim: ${(result.similarity * 100).toStringAsFixed(1)}%) <<<',
-              );
-              timeoutTimer.cancel();
-              await stopStreamSafely();
-              completer.complete(FaceVerificationAttemptResult(
-                matchResult: result,
-                bestSimilarity: result.similarity,
-                framesAnalyzed: frameCount,
-              ));
+            if (result.isMatch && isLiveValid && isIdValid) {
+              consecutiveMatchCount++;
+              debugPrint('[FacePunch] [Verify] Frame #$frameCount: Consecutive live matches = $consecutiveMatchCount / $requiredConsecutiveMatches');
+
+              if (consecutiveMatchCount >= requiredConsecutiveMatches && !completer.isCompleted) {
+                debugPrint(
+                  '[FacePunch] [Verify] >>> LIVE PERSON VERIFIED on frame #$frameCount! Matched "${result.matchedName}" '
+                  '(sim: ${(result.similarity * 100).toStringAsFixed(1)}%, live: ${(result.liveness * 100).toStringAsFixed(1)}%) <<<',
+                );
+                timeoutTimer.cancel();
+                await stopStreamSafely();
+                completer.complete(FaceVerificationAttemptResult(
+                  matchResult: result,
+                  bestSimilarity: result.similarity,
+                  framesAnalyzed: frameCount,
+                ));
+                return;
+              }
+            } else {
+              consecutiveMatchCount = 0;
             }
           }
         } catch (e) {
@@ -788,23 +836,13 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       final registered = await FaceRegistrationSyncService.instance
           .showFaceRegistrationRequiredDialog(context);
       if (registered && mounted) {
-        setState(() {
-          _isFaceEnrolled = true;
-        });
-        await _checkEnrolledFaceStatus(allowPrompt: false);
+        await _onFaceRegistrationCompleted();
       }
     } catch (e) {
       debugPrint('[FacePunch] _showRegisterFacePromptDialog error: $e');
     } finally {
       if (mounted) {
-        await selfiePunchProvider.startCamera(0);
-        setState(() {
-          _scanStatus = FaceScanStatus.idle;
-          _capturedFaceFile = null;
-        });
-        selfiePunchProvider.setPunchLoader(false);
-        selfiePunchProvider.setPunchBoxOnTapStart(false);
-        _isFlowRunning = false;
+        await _restartPunchCameraAfterRegistration();
       }
     }
   }
@@ -815,27 +853,80 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       final registered = await FaceRegistrationSyncService.instance
           .openFaceRegistrationScreen(context);
       if (registered && mounted) {
-        setState(() {
-          _isFaceEnrolled = true;
-        });
-        await _checkEnrolledFaceStatus(allowPrompt: false);
-        if (mounted) {
-          _setCameraBoxMessage('Face Registered Successfully');
-        }
+        await _onFaceRegistrationCompleted();
       }
     } catch (e) {
       debugPrint('[FacePunch] _openFaceRegistration error: $e');
     } finally {
       if (mounted) {
-        await selfiePunchProvider.startCamera(0);
-        setState(() {
-          _scanStatus = FaceScanStatus.idle;
-          _capturedFaceFile = null;
-        });
-        selfiePunchProvider.setPunchLoader(false);
-        selfiePunchProvider.setPunchBoxOnTapStart(false);
-        _isFlowRunning = false;
+        await _restartPunchCameraAfterRegistration();
       }
+    }
+  }
+
+  Future<void> _onFaceRegistrationCompleted() async {
+    if (!mounted) return;
+    setState(() {
+      _isFaceEnrolled = true;
+      _isCheckingFaceStatus = true;
+      _setCameraBoxMessage('Face Registered Successfully');
+    });
+
+    try {
+      // Reload punch data and status
+      await selfiePunchProvider.callApi(context);
+      if (mounted) {
+        await selfiePunchProvider.getCurrentLocation(context: context);
+      }
+    } catch (e) {
+      debugPrint('[FacePunch] _onFaceRegistrationCompleted callApi error: $e');
+    }
+
+    try {
+      final isAvailable = await FaceRegistrationSyncService.instance
+          .checkFaceAvailabilityAndSync(forceServerCheck: false);
+      if (mounted) {
+        setState(() {
+          _isFaceEnrolled = isAvailable;
+          _isCheckingFaceStatus = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isFaceEnrolled = true;
+          _isCheckingFaceStatus = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _restartPunchCameraAfterRegistration() async {
+    if (!mounted) return;
+    // Release cooldown for Android Camera2 hardware
+    await Future.delayed(const Duration(milliseconds: 450));
+    if (!mounted) return;
+
+    try {
+      await selfiePunchProvider.startCamera(0);
+    } catch (e) {
+      debugPrint('[FacePunch] Camera restart attempt 1 failed: $e, retrying...');
+      await Future.delayed(const Duration(milliseconds: 400));
+      if (mounted) {
+        try {
+          await selfiePunchProvider.startCamera(0);
+        } catch (_) {}
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _scanStatus = FaceScanStatus.idle;
+        _capturedFaceFile = null;
+      });
+      selfiePunchProvider.setPunchLoader(false);
+      selfiePunchProvider.setPunchBoxOnTapStart(false);
+      _isFlowRunning = false;
     }
   }
 
@@ -2067,14 +2158,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                           ),
                         ),
                         onPressed: () async {
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setString(
-                            'identify_threshold',
-                            tempThreshold.toStringAsFixed(2),
-                          );
-                          await prefs.setString(
-                            'liveness_threshold',
-                            tempLivenessThreshold.toStringAsFixed(2),
+                          await RemoteConfigServices.updateCustomThresholds(
+                            identify: tempThreshold,
+                            liveness: tempLivenessThreshold,
                           );
                           if (mounted) {
                             setState(() {
@@ -2516,7 +2602,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       final startTime = DateTime.now();
 
       final attemptResult = await _verifyFaceOnDemand(
-        timeout: const Duration(seconds: 2),
+        timeout: const Duration(seconds: 4),
         enrolledPersons: persons,
       );
 
@@ -2566,6 +2652,10 @@ class _FacePunchScreenState extends State<FacePunchScreen>
           shortMsg = 'Keep Full Face Inside Frame';
         } else if (attemptResult.failureReason == 'FACE_NOT_LOOKING_STRAIGHT') {
           shortMsg = 'Look Straight at Camera';
+        } else if (attemptResult.failureReason != null &&
+            (attemptResult.failureReason!.toLowerCase().contains('liveness') ||
+                attemptResult.failureReason!.toLowerCase().contains('spoof'))) {
+          shortMsg = 'Real Face Not Detected (Anti-Spoof)';
         } else if (attemptResult.bestSimilarity > 0) {
           shortMsg = LanguageProvider.translate(
             'faceNotMatched',

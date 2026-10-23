@@ -578,6 +578,10 @@ final Map<String, String> guTranslations = {
   'faceRegistrationRequiredString': 'ચહેરાની નોંધણી જરૂરી છે',
   'faceRegistrationDescString':
       'સલામત હાજરી ટ્રેકિંગ સુનિશ્ચિત કરવા માટે, તમે પંચ ઇન અથવા આઉટ કરતા પહેલા તમારે તમારો ચહેરો નોંધણી કરવો પડશે.',
+  'faceNotRegisteredString': 'ચહેરો નોંધાયેલ નથી',
+  'deleteFaceRegistrationString': 'નોંધણી કાઢી નાખો',
+  'deleteFaceConfirmString':
+      'શું તમે ખરેખર આ ચહેરાની નોંધણી કાઢી નાખવા માંગો છો? કર્મચારીએ ફરીથી નોંધણી કરાવવી પડશે.',
   'registerFaceNowString': 'હમણાં ચહેરો નોંધણી કરો',
   'punchAttendanceString': 'હાજરી પંચ કરો',
   'offlineModeString': 'ઑફલાઇન મોડ — ઑનલાઇન થાય ત્યારે પંચ સિંક થશે',

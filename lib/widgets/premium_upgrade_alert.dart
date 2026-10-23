@@ -44,6 +44,8 @@ class PremiumUpgradeAlert extends UpgradeAlert {
 }
 
 class _PremiumUpgradeAlertState extends UpgradeAlertState {
+  static bool isDialogShowing = false;
+
   @override
   void showTheDialog({
     Key? key,
@@ -55,29 +57,32 @@ class _PremiumUpgradeAlertState extends UpgradeAlertState {
     required UpgraderMessages messages,
   }) {
     if (!mounted) return;
+    if (isDialogShowing) return;
 
     // Save the last alerted date (required by upgrader internals)
     widget.upgrader.saveLastAlerted();
 
-    final navContext = FcmTokenService.navigatorKey.currentContext;
-    if (navContext == null) return;
+    final navContext = FcmTokenService.navigatorKey.currentContext ?? context;
 
+    isDialogShowing = true;
     showDialog(
       context: navContext,
       barrierDismissible: false,
-      barrierColor: Colors.transparent,
-      builder: (BuildContext context) {
+      barrierColor: Colors.black54,
+      builder: (BuildContext dialogContext) {
         return PopScope(
           canPop: false,
           child: Dialog(
             backgroundColor: Colors.transparent,
             elevation: 0,
             insetPadding: EdgeInsets.zero,
-            child: _buildDialogContent(context),
+            child: _buildDialogContent(dialogContext),
           ),
         );
       },
-    );
+    ).then((_) {
+      isDialogShowing = false;
+    });
   }
 
   Widget _buildDialogContent(BuildContext context) {

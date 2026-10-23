@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/widgets/premium_upgrade_alert.dart';
 
 class WidgetLinkService {
   static final WidgetLinkService instance = WidgetLinkService._internal();
@@ -126,13 +127,15 @@ class _WidgetPunchWrapperState extends State<WidgetPunchWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // When user presses back, go to main app shell
-        nextscreenRemove(context, const AnimatedBottomBar());
-        return false;
-      },
-      child: const FacePunchScreen(isFromWidget: true),
+    return AppUpgradeWrapper(
+      child: WillPopScope(
+        onWillPop: () async {
+          // When user presses back, go to main app shell
+          nextscreenRemove(context, const AnimatedBottomBar());
+          return false;
+        },
+        child: const FacePunchScreen(isFromWidget: true),
+      ),
     );
   }
 }

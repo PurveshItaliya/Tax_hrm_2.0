@@ -102,6 +102,56 @@ class FaceRegistrationSyncService {
     }
   }
 
+  /// Clears face registration data for a specific user ID (e.g. when admin deletes face registration).
+  Future<void> clearUserFaceRegistration(String userId) async {
+    if (userId.isEmpty) return;
+    debugPrint('[FaceRegistrationSyncService] Clearing face registration for user $userId...');
+
+    // 1. Delete SQLite template records
+    try {
+      final userTag = 'Emp_$userId';
+      await FaceSdkDatabase.deleteUserTemplates(userId);
+      await FaceSdkDatabase.deletePerson(userTag);
+      await FaceSdkDatabase.deletePerson(userId);
+    } catch (e) {
+      debugPrint('[FaceRegistrationSyncService] Error deleting SQLite template for user $userId: $e');
+    }
+
+    // 2. Clear SharedPreferences keys
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cached_face_register_img_$userId');
+      await prefs.remove('face_template_version_$userId');
+      await prefs.remove('cached_face_template_$userId');
+    } catch (e) {
+      debugPrint('[FaceRegistrationSyncService] Error clearing prefs for user $userId: $e');
+    }
+
+    // 3. Clear FlutterSecureStorage
+    try {
+      const storage = FlutterSecureStorage(
+        aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      );
+      await storage.delete(key: 'face_template_$userId');
+    } catch (e) {
+      debugPrint('[FaceRegistrationSyncService] Error clearing secure storage for user $userId: $e');
+    }
+
+    // 4. If current logged in user is this user, clear active in-memory user map
+    final currentUserId = curentUser?['Id']?.toString() ?? '';
+    if (currentUserId == userId) {
+      if (curentUser != null) {
+        curentUser!['FaceRegisterImg'] = null;
+        curentUser!['FaceRegisterId'] = null;
+        curentUser!['FileName'] = null;
+        try {
+          final String freshJson = jsonEncode(curentUser);
+          await SaveUser().saveUserData(freshJson);
+        } catch (_) {}
+      }
+    }
+  }
+
   /// Checks whether [fileName] represents a valid image file/URL/format.
   /// Returns false if null, empty, whitespace, 'null', 'undefined', 'none', '0', 'false',
   /// or lacking a valid image extension / valid URL / base64 format.
@@ -291,8 +341,7 @@ class FaceRegistrationSyncService {
         if (faceImg == null || !isValidFaceImage(faceImg)) {
           try {
             final docList = await DocumentApis().getDocuments();
-            if (docList is List<DocumentViews>) {
-              final faceDoc = docList.firstWhere(
+            final faceDoc = docList.firstWhere(
                 (d) =>
                     (d.category?.toLowerCase() == 'facereg' ||
                         d.filename?.toLowerCase().contains('face_reg') == true) &&
@@ -305,7 +354,6 @@ class FaceRegistrationSyncService {
                   '[FaceRegistrationSyncService] Found face image in EmpGetFileList: $faceImg',
                 );
               }
-            }
           } catch (e) {
             debugPrint('[FaceRegistrationSyncService] EmpGetFileList error: $e');
           }
@@ -391,8 +439,7 @@ class FaceRegistrationSyncService {
         // First: Check Document API for the exact server FilePath for this filename
         try {
           final docList = await DocumentApis().getDocuments();
-          if (docList is List<DocumentViews>) {
-            for (final doc in docList) {
+          for (final doc in docList) {
               if (doc.filename != null && doc.filename!.isNotEmpty) {
                 final dName = doc.filename!.toLowerCase();
                 final tName = cleanPath.toLowerCase();
@@ -412,8 +459,7 @@ class FaceRegistrationSyncService {
                 }
               }
             }
-          }
-        } catch (e) {
+          } catch (e) {
           debugPrint(
             '[FaceRegistrationSyncService] EmpGetFileList search error: $e',
           );
@@ -692,7 +738,7 @@ class FaceRegistrationSyncService {
     bool? registered = false;
 
     try {
-      await showDialog(
+      final shouldRegister = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) {
@@ -746,10 +792,7 @@ class FaceRegistrationSyncService {
                     vertical: 10,
                   ),
                 ),
-                onPressed: () async {
-                  Navigator.pop(ctx, true);
-                  registered = await openFaceRegistrationScreen(context);
-                },
+                onPressed: () => Navigator.pop(ctx, true),
                 child: const Text(
                   "Register Face",
                   style: TextStyle(
@@ -762,10 +805,14 @@ class FaceRegistrationSyncService {
           );
         },
       );
+
+      if (shouldRegister == true && context.mounted) {
+        registered = await openFaceRegistrationScreen(context);
+      }
     } finally {
       isDialogShowing = false;
     }
 
-    return registered ?? false;
+    return registered;
   }
 }

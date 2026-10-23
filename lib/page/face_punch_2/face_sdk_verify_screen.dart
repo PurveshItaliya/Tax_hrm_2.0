@@ -184,10 +184,13 @@ class FaceSdkVerifyScreenState extends State<FaceSdkVerifyScreen> {
     RemoteConfigServices.instance.fetchLatestConfig();
   }
 
+  int _consecutiveMatches = 0;
+
   void faceRecognitionStart() {
     setState(() {
       _faces = null;
       _recognized = false;
+      _consecutiveMatches = 0;
       _identifiedName = '';
       _identifiedSimilarity = '';
       _identifiedLiveness = '';
@@ -231,25 +234,33 @@ class FaceSdkVerifyScreenState extends State<FaceSdkVerifyScreen> {
       _identifiedFace = result.liveFaceJpg;
     });
 
-    if (isMatch) {
-      HapticFeedback.mediumImpact();
-      setState(() {
-        _recognized = true;
-      });
-      _cameraKey.currentState?.pauseCamera();
+    final bool isLiveValid = result.liveness >= _livenessThreshold;
+    final bool isIdValid = result.similarity >= _identifyThreshold;
 
-      // Automatically pop to complete punch verification after showing success view
-      Future.delayed(const Duration(milliseconds: 900), () {
-        if (mounted && _recognized) {
-          Navigator.of(context).pop(
-            FaceSdkVerifyResult(
-              isSuccess: true,
-              faceJpg: _identifiedFace,
-              matchedName: _identifiedName,
-            ),
-          );
-        }
-      });
+    if (isMatch && isLiveValid && isIdValid) {
+      _consecutiveMatches++;
+      if (_consecutiveMatches >= 1) {
+        HapticFeedback.mediumImpact();
+        setState(() {
+          _recognized = true;
+        });
+        _cameraKey.currentState?.pauseCamera();
+
+        // Automatically pop to complete punch verification after showing success view
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (mounted && _recognized) {
+            Navigator.of(context).pop(
+              FaceSdkVerifyResult(
+                isSuccess: true,
+                faceJpg: _identifiedFace,
+                matchedName: _identifiedName,
+              ),
+            );
+          }
+        });
+      }
+    } else {
+      _consecutiveMatches = 0;
     }
   }
 
@@ -614,6 +625,7 @@ class _FaceDetectionViewWidgetState extends State<_FaceDetectionViewWidget> {
         camera: _frontCamera!,
         enrolledPersons: widget.verifyScreenState.widget.personList,
         threshold: widget.verifyScreenState._identifyThreshold,
+        livenessThreshold: widget.verifyScreenState._livenessThreshold,
       );
 
       if (result != null && mounted) {

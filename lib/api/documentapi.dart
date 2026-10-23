@@ -11,9 +11,10 @@ import 'package:http/http.dart' as http;
 class DocumentApis {
   // ************************************************ Get Document File *********************************************************
 
-  Future getDocuments() async {
+  Future<List<DocumentViews>> getDocuments({dynamic empId}) async {
+    final targetEmpId = empId ?? curentUser['Id'];
     var url = Uri.parse(
-      '${apibaseurl}api/Master/EmpGetFileList?EmpId=${curentUser['Id']}',
+      '${apibaseurl}api/Master/EmpGetFileList?EmpId=$targetEmpId',
     );
 
     var response = await http.get(
