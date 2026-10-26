@@ -113,7 +113,11 @@ class RemoteConfigServices {
   }
 
   /// Extracts standalone parameters if the user configured them directly in Firebase Console
-  void _extractDirectRemoteConfigParams(FirebaseRemoteConfig remoteConfig) {
+  /// Extracts standalone parameters if configured directly in Firebase Console.
+  /// Returns true if at least one remote value was parsed from Firebase.
+  bool _extractDirectRemoteConfigParams(FirebaseRemoteConfig remoteConfig) {
+    bool foundRemote = false;
+
     // Direct identity threshold keys
     for (final key in [
       'identity_threshold',
@@ -121,7 +125,15 @@ class RemoteConfigServices {
       'identityThreshold',
       'identifyThreshold',
       'face_match_threshold',
+      'faceMatchThreshold',
       'match_threshold',
+      'matchThreshold',
+      'similarity_threshold',
+      'similarityThreshold',
+      'face_threshold',
+      'faceThreshold',
+      'face_match',
+      'faceMatch',
       'threshold',
     ]) {
       try {
@@ -130,6 +142,7 @@ class RemoteConfigServices {
           final parsed = _normalizeThreshold(val.asString());
           if (parsed != null) {
             _identityThreshold = parsed;
+            foundRemote = true;
             debugPrint('[RemoteConfigServices] Direct Remote Config key "$key" parsed -> $_identityThreshold (${(_identityThreshold * 100).toStringAsFixed(1)}%)');
             break;
           }
@@ -143,6 +156,10 @@ class RemoteConfigServices {
       'livenessThreshold',
       'live_threshold',
       'liveThreshold',
+      'liveness',
+      'live',
+      'liveness_score',
+      'livenessScore',
     ]) {
       try {
         final val = remoteConfig.getValue(key);
@@ -150,12 +167,15 @@ class RemoteConfigServices {
           final parsed = _normalizeThreshold(val.asString());
           if (parsed != null) {
             _livenessThreshold = parsed;
+            foundRemote = true;
             debugPrint('[RemoteConfigServices] Direct Remote Config key "$key" parsed -> $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%)');
             break;
           }
         }
       } catch (_) {}
     }
+
+    return foundRemote;
   }
 
   /// Updates thresholds from user customization (e.g. Face & Liveness Settings dialog)
@@ -232,28 +252,54 @@ class RemoteConfigServices {
       });
 
       final bool activated = await remoteConfig.fetchAndActivate();
+      debugPrint('[RemoteConfigServices] =================== REMOTE CONFIG FETCH ===================');
       debugPrint('[RemoteConfigServices] fetchAndActivate finished (activated: $activated)');
+      try {
+        final allEntries = remoteConfig.getAll();
+        debugPrint('[RemoteConfigServices] Total Keys in Remote Config: ${allEntries.length}');
+        for (final entry in allEntries.entries) {
+          debugPrint('  • ${entry.key}: "${entry.value.asString()}" (source: ${entry.value.source.name})');
+        }
+      } catch (_) {}
 
       faceVerify = remoteConfig.getBool("faceVerify");
       await prefs.setBool('faceVerify_cache', faceVerify);
 
       final hasUserCustom = prefs.getBool('user_custom_thresholds_applied') ?? false;
 
-      final String remoteConfigStr = remoteConfig.getString("face_verification_config");
-      if (remoteConfigStr.isNotEmpty) {
-        if (!hasUserCustom) {
-          _parseVerificationConfig(remoteConfigStr);
-        }
-        await prefs.setString('face_verification_config_cache', remoteConfigStr);
+      // 1. Check if direct standalone keys were provided by Firebase Remote
+      final bool hasRemoteDirect = _extractDirectRemoteConfigParams(remoteConfig);
+
+      // 2. Check if face_verification_config was configured on Firebase Remote
+      final valJson = remoteConfig.getValue("face_verification_config");
+      final bool hasRemoteJson = valJson.source == ValueSource.valueRemote && valJson.asString().isNotEmpty;
+      if (hasRemoteJson) {
+        _parseVerificationConfig(valJson.asString());
+        await prefs.setString('face_verification_config_cache', valJson.asString());
       }
 
-      // Check if standalone keys were configured in Firebase Console
-      if (!hasUserCustom) {
-        _extractDirectRemoteConfigParams(remoteConfig);
+      // If Firebase Remote Config explicitly provided fresh remote values, apply them immediately
+      if (hasRemoteDirect || hasRemoteJson) {
+        await prefs.setString('liveness_threshold', _livenessThreshold.toString());
+        await prefs.setString('identify_threshold', _identityThreshold.toString());
+        if (hasUserCustom) {
+          await prefs.setBool('user_custom_thresholds_applied', false);
+          debugPrint('[RemoteConfigServices] Fresh Firebase Remote Config received. Reset user_custom override flag.');
+        }
+        debugPrint(
+          '[RemoteConfigServices] Fresh Firebase Remote Config applied -> '
+          'identityThreshold=$_identityThreshold, livenessThreshold=$_livenessThreshold',
+        );
+      } else if (!hasUserCustom) {
+        // Fallback to cached JSON or default values
+        final String remoteConfigStr = remoteConfig.getString("face_verification_config");
+        if (remoteConfigStr.isNotEmpty) {
+          _parseVerificationConfig(remoteConfigStr);
+        }
         await prefs.setString('liveness_threshold', _livenessThreshold.toString());
         await prefs.setString('identify_threshold', _identityThreshold.toString());
       } else {
-        // Retain user's custom thresholds
+        // Retain user's custom settings from settings slider
         final savedLive = prefs.getString('liveness_threshold');
         final savedId = prefs.getString('identify_threshold');
         if (savedLive != null && savedLive.isNotEmpty) {
@@ -262,6 +308,7 @@ class RemoteConfigServices {
         if (savedId != null && savedId.isNotEmpty) {
           _identityThreshold = _normalizeThreshold(savedId) ?? _identityThreshold;
         }
+        debugPrint('[RemoteConfigServices] Retained user custom thresholds -> identity=$_identityThreshold, liveness=$_livenessThreshold');
       }
 
       // Notify any listening screens that new config values are available
@@ -272,6 +319,7 @@ class RemoteConfigServices {
         "livenessThreshold=$_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%), "
         "identityThreshold=$_identityThreshold (${(_identityThreshold * 100).toStringAsFixed(1)}%) (userCustom=$hasUserCustom)",
       );
+      debugPrint('[RemoteConfigServices] =========================================================');
     } catch (e) {
       debugPrint(
         "[RemoteConfigServices] fetch failed, using active values "

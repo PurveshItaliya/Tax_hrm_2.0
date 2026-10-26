@@ -1484,22 +1484,11 @@ class SelfiePunchProvider extends ChangeNotifier {
         }
         // ──────────────────────────────────────────────────────────
 
-        // Reschedule reminders now that punch status is persisted correctly.
-        Future.microtask(() async {
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            final DateTime now = DateTime.now();
-            final String dateKey =
-                '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-            if (punchStatus == 'IN') {
-              await prefs.setBool('punched_in_\$dateKey', true);
-              await prefs.setBool('punched_out_\$dateKey', false);
-            } else if (punchStatus == 'OUT') {
-              await prefs.setBool('punched_out_\$dateKey', true);
-            }
-          } catch (_) {}
-          await ReminderNotificationService.scheduleReminders();
-        });
+        // Persist punch status and cancel/reschedule reminders immediately
+        await ReminderNotificationService.updatePunchStatus(
+          punchStatus: punchStatus,
+          date: DateTime.now(),
+        );
 
         // Run refreshLastPunchOnly in background so navigation happens instantly without network block
         unawaited(refreshLastPunchOnly(employeid));
@@ -1686,16 +1675,11 @@ class SelfiePunchProvider extends ChangeNotifier {
       // of IsFetchLocation flag, role, or whether location tracking is active.
       unawaited(registerOfflineSyncWorkManager());
 
-      // ── Update local SharedPreferences punch cache so UI reflects new state ─
-      final prefs = await SharedPreferences.getInstance();
-      final dateKey =
-          '${workingDate.year}-${workingDate.month.toString().padLeft(2, '0')}-${workingDate.day.toString().padLeft(2, '0')}';
-      if (punchStatus == 'IN') {
-        await prefs.setBool('punched_in_$dateKey', true);
-        await prefs.setBool('punched_out_$dateKey', false);
-      } else {
-        await prefs.setBool('punched_out_$dateKey', true);
-      }
+      // ── Update local SharedPreferences punch cache & reminders so UI reflects new state ─
+      await ReminderNotificationService.updatePunchStatus(
+        punchStatus: punchStatus,
+        date: workingDate,
+      );
 
       // ── Update in-memory checkStatus so button flips correctly ──────────────
       // Create a synthetic log entry to mirror the new punch state.

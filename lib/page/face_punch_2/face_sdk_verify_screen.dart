@@ -135,8 +135,8 @@ class FaceSdkVerifyScreen extends StatefulWidget {
 
 class FaceSdkVerifyScreenState extends State<FaceSdkVerifyScreen> {
   dynamic _faces;
-  double _livenessThreshold = 0.8;
-  double _identifyThreshold = 0.8;
+  double _livenessThreshold = RemoteConfigServices.livenessThreshold;
+  double _identifyThreshold = RemoteConfigServices.identityThreshold;
   bool _recognized = false;
   String _identifiedName = '';
   String _identifiedSimilarity = '';
@@ -164,24 +164,56 @@ class FaceSdkVerifyScreenState extends State<FaceSdkVerifyScreen> {
 
   void _onRemoteConfigUpdated() {
     if (!mounted) return;
-    _applySettings();
+    debugPrint('[FaceSdkVerify] Remote Config listener fired. Re-applying settings to verification engine...');
+    _applySettings(isInitial: false);
   }
 
-  void _applySettings() {
+  void _applySettings({bool isInitial = false}) {
+    final double prevIdentify = _identifyThreshold;
+    final double prevLiveness = _livenessThreshold;
+
+    final double newIdentify = RemoteConfigServices.identityThreshold;
+    final double newLiveness = RemoteConfigServices.livenessThreshold;
+
     if (mounted) {
       setState(() {
-        _livenessThreshold = RemoteConfigServices.livenessThreshold;
-        _identifyThreshold = RemoteConfigServices.identityThreshold;
+        _livenessThreshold = newLiveness;
+        _identifyThreshold = newIdentify;
       });
     } else {
-      _livenessThreshold = RemoteConfigServices.livenessThreshold;
-      _identifyThreshold = RemoteConfigServices.identityThreshold;
+      _livenessThreshold = newLiveness;
+      _identifyThreshold = newIdentify;
     }
+
+    debugPrint('=================================================================');
+    debugPrint('[FaceSdkVerify] AFTER APPLY SETTINGS (Real Settings in Use - ${isInitial ? "Initial/Cached" : "Remote Config Updated"}):');
+    debugPrint('[FaceSdkVerify]   - identifyThreshold in Real Settings : $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%) [Previous: $prevIdentify]');
+    debugPrint('[FaceSdkVerify]   - livenessThreshold in Real Settings : $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%) [Previous: $prevLiveness]');
+    debugPrint('[FaceSdkVerify]   - faceVerify Enabled                 : ${RemoteConfigServices.isFaceVerifyEnabled}');
+    debugPrint('=================================================================');
   }
 
   Future<void> _loadSettings() async {
-    _applySettings();
-    RemoteConfigServices.instance.fetchLatestConfig();
+    debugPrint('=================================================================');
+    debugPrint('[FaceSdkVerify] BEFORE APPLY SETTINGS:');
+    debugPrint('[FaceSdkVerify]   - _identifyThreshold : $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%)');
+    debugPrint('[FaceSdkVerify]   - _livenessThreshold : $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%)');
+    debugPrint('=================================================================');
+
+    // 1. Immediately apply cached/current settings for instant responsiveness
+    _applySettings(isInitial: true);
+
+    // 2. Fetch fresh remote config from Firebase on screen open
+    try {
+      debugPrint('[FaceSdkVerify] Fetching latest Remote Config from Firebase...');
+      await RemoteConfigServices.instance.fetchLatestConfig();
+      debugPrint('[FaceSdkVerify] Remote Config fetch complete.');
+    } catch (e) {
+      debugPrint('[FaceSdkVerify] Error fetching Remote Config: $e');
+    }
+
+    // 3. Re-apply newly fetched remote config and print logs
+    _applySettings(isInitial: false);
   }
 
   int _consecutiveMatches = 0;
@@ -236,6 +268,14 @@ class FaceSdkVerifyScreenState extends State<FaceSdkVerifyScreen> {
 
     final bool isLiveValid = result.liveness >= _livenessThreshold;
     final bool isIdValid = result.similarity >= _identifyThreshold;
+
+    debugPrint(
+      '[FaceSdkVerify] [Match Evaluation] '
+      'Name="${result.matchedName}", '
+      'Sim=${(result.similarity * 100).toStringAsFixed(1)}% vs Target ${(_identifyThreshold * 100).toStringAsFixed(1)}% (Valid: $isIdValid), '
+      'Live=${(result.liveness * 100).toStringAsFixed(1)}% vs Target ${(_livenessThreshold * 100).toStringAsFixed(1)}% (Valid: $isLiveValid), '
+      'isMatch=${result.isMatch} -> Final Passed: ${isMatch && isLiveValid && isIdValid}',
+    );
 
     if (isMatch && isLiveValid && isIdValid) {
       _consecutiveMatches++;
@@ -348,7 +388,7 @@ class FaceSdkVerifyScreenState extends State<FaceSdkVerifyScreen> {
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
                                 child: Text(
-                                  'Similarity: $_identifiedSimilarity  |  Target: ${_identifyThreshold.toStringAsFixed(2)}',
+                                  'Sim: $_identifiedSimilarity (Req: ${_identifyThreshold.toStringAsFixed(2)})  |  Live: $_identifiedLiveness (Req: ${_livenessThreshold.toStringAsFixed(2)})',
                                   style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
                                 ),
                               ),
@@ -724,13 +764,15 @@ class FaceSdkPainter extends CustomPainter {
       final bool isMatch = face['isMatch'] == true;
       final String name = (face['name'] as String?) ?? '';
 
+      final bool isValidMatch = isMatch || (similarity >= identifyThreshold && liveness >= livenessThreshold && name.isNotEmpty);
+
       String title = '';
       Color color = const Color(0xFFFF5252); // Red (Spoof)
 
       if (liveness < livenessThreshold) {
         color = const Color(0xFFFF5252);
         title = 'Spoof ${liveness.toStringAsFixed(2)}';
-      } else if (isMatch) {
+      } else if (isValidMatch) {
         color = const Color(0xFF00E676); // Green (Match)
         title = 'Real $name (${(similarity * 100).toStringAsFixed(0)}%)';
       } else {

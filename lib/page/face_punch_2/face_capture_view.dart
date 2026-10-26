@@ -322,119 +322,119 @@ class FaceCaptureViewState extends State<FaceCaptureView> {
     }
 
     // Save to user profile & backend sync
-    try {
-      final templateBase64 = base64Encode(person.templates);
-      if (curentUser != null) {
-        curentUser!['FaceRegisterId'] = templateBase64;
-        final String freshJson = jsonEncode(curentUser);
-        await SaveUser().saveUserData(freshJson);
-      }
-
-      final empId = curentUser?['Id']?.toString() ?? '';
-      if (empId.isNotEmpty) {
-        await Employeeclass().updateEmployes(
-          seteid: empId,
-          firstname: curentUser?['FirstName'] ?? '',
-          lastname: curentUser?['LastName'] ?? '',
-          mobile1: curentUser?['Mobile1'] ?? '',
-          mobile2: curentUser?['Mobile2'] ?? '',
-          address1: curentUser?['Add1'] ?? '',
-          address2: curentUser?['Add2'] ?? '',
-          address3: curentUser?['Add3'] ?? '',
-          dob: curentUser?['DOB'] ?? '',
-          doj: curentUser?['DOJ'] ?? '',
-          pincode: curentUser?['PincodeId'] ?? '',
-          cityid: curentUser?['CityId'] ?? '',
-          statid: curentUser?['StateId'] ?? '',
-          email: curentUser?['Email'] ?? '',
-          gender: curentUser?['Gender'] ?? '',
-          pan: curentUser?['PAN'] ?? '',
-          marstatus: curentUser?['MaritalStatus'] ?? '',
-          bankname: curentUser?['BankName'] ?? '',
-          branchname: curentUser?['BranchName'] ?? '',
-          accno: curentUser?['AccNo'] ?? '',
-          accountType: curentUser?['AccType'] ?? '',
-          salary: curentUser?['SalaryType'] ?? '',
-          salaryamount: curentUser?['SalaryAmount']?.toString() ?? '',
-          totalhours: curentUser?['Totalhours']?.toString() ?? '',
-          username: curentUser?['UserName'] ?? '',
-          password: curentUser?['Password'] ?? '',
-          highestDegree: curentUser?['HighestDegree'] ?? '',
-          degreeName: curentUser?['DegreeName'] ?? '',
-          universityName: curentUser?['UniversityName'] ?? '',
-          passingYear: curentUser?['PassingYear'] ?? '',
-          uanNo: curentUser?['UANNo'] ?? '',
-          esicNo: curentUser?['ESICNo'] ?? '',
-          selectedDepartment: curentUser?['DepartmentId'] ?? '',
-          selectedposition: curentUser?['PositionId'] ?? '',
-          roletypes: curentUser?['Role'] ?? '',
-          selectedifsc: curentUser?['IFSC'] ?? '',
-          userStatus: curentUser?['IsActive'] ?? true,
-          workType: curentUser?['WorkType'] ?? '',
-          officeLocation: curentUser?['OfficeLocation'] ?? '',
-          locationRadius: curentUser?['LocationRadius'] ?? '50',
-          isFetchLocation: curentUser?['IsFetchLocation'] ?? false,
-          setCguids: curentUser?['Cguid'] ?? '',
-          faceRegisterId: templateBase64,
-          faceRegisterImg: uploadedImgName ?? '',
-          removeImage: false,
-          listenRes: (_) {},
-        );
-
-        // 1-TIME EmpLogin call immediately after face registration to fetch latest user details & image from server
-        final String username =
-            (curentUser?['UserName'] ?? curentUser?['Username'] ?? '')
-                .toString()
-                .trim();
-        final String password =
-            (curentUser?['Password'] ?? curentUser?['password'] ?? '')
-                .toString()
-                .trim();
-        if (username.isNotEmpty && password.isNotEmpty) {
-          try {
-            final loginVal =
-                await AuthLoginService().callEmployeLogin(username, password);
-            if (loginVal is EmpUserLogin && loginVal.success != false) {
-              final String freshJson = jsonEncode(loginVal.toJson());
-              await SaveUser().saveUserData(freshJson);
-              curentUser = jsonDecode(freshJson);
-              final String? freshFileName =
-                  loginVal.fileName ?? loginVal.faceRegisterImg;
-              if (freshFileName != null && freshFileName.trim().isNotEmpty) {
-                final clean =
-                    freshFileName.trim().split('/').last.split(r'\').last;
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('cached_face_register_img_$empId', clean);
-              }
-            }
-          } catch (e) {
-            debugPrint(
-              '[FaceCaptureView] Post-registration 1-time EmpLogin refresh error: $e',
-            );
-          }
-        }
-
-        // Save persistent local copy of face image in app documents directory for offline resilience
-        try {
-          final appDir = await getApplicationDocumentsDirectory();
-          final localFaceFile = File('${appDir.path}/face_reg_$empId.jpg');
-          await localFaceFile.writeAsBytes(person.faceJpg);
-          debugPrint(
-            '[FaceCaptureView] Saved offline face image to ${localFaceFile.path}',
-          );
-        } catch (e) {
-          debugPrint(
-            '[FaceCaptureView] Error saving local offline face image: $e',
-          );
-        }
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
-          'face_template_version_$empId',
-          FaceRegistrationSyncService.currentTemplateVersion,
-        );
-      }
-    } catch (_) {}
+    // try {
+    //   final templateBase64 = base64Encode(person.templates);
+    //   if (curentUser != null) {
+    //     curentUser!['FaceRegisterId'] = templateBase64;
+    //     final String freshJson = jsonEncode(curentUser);
+    //     await SaveUser().saveUserData(freshJson);
+    //   }
+    //
+    //   final empId = curentUser?['Id']?.toString() ?? '';
+    //   if (empId.isNotEmpty) {
+    //     await Employeeclass().updateEmployes(
+    //       seteid: empId,
+    //       firstname: curentUser?['FirstName'] ?? '',
+    //       lastname: curentUser?['LastName'] ?? '',
+    //       mobile1: curentUser?['Mobile1'] ?? '',
+    //       mobile2: curentUser?['Mobile2'] ?? '',
+    //       address1: curentUser?['Add1'] ?? '',
+    //       address2: curentUser?['Add2'] ?? '',
+    //       address3: curentUser?['Add3'] ?? '',
+    //       dob: curentUser?['DOB'] ?? '',
+    //       doj: curentUser?['DOJ'] ?? '',
+    //       pincode: curentUser?['PincodeId'] ?? '',
+    //       cityid: curentUser?['CityId'] ?? '',
+    //       statid: curentUser?['StateId'] ?? '',
+    //       email: curentUser?['Email'] ?? '',
+    //       gender: curentUser?['Gender'] ?? '',
+    //       pan: curentUser?['PAN'] ?? '',
+    //       marstatus: curentUser?['MaritalStatus'] ?? '',
+    //       bankname: curentUser?['BankName'] ?? '',
+    //       branchname: curentUser?['BranchName'] ?? '',
+    //       accno: curentUser?['AccNo'] ?? '',
+    //       accountType: curentUser?['AccType'] ?? '',
+    //       salary: curentUser?['SalaryType'] ?? '',
+    //       salaryamount: curentUser?['SalaryAmount']?.toString() ?? '',
+    //       totalhours: curentUser?['Totalhours']?.toString() ?? '',
+    //       username: curentUser?['UserName'] ?? '',
+    //       password: curentUser?['Password'] ?? '',
+    //       highestDegree: curentUser?['HighestDegree'] ?? '',
+    //       degreeName: curentUser?['DegreeName'] ?? '',
+    //       universityName: curentUser?['UniversityName'] ?? '',
+    //       passingYear: curentUser?['PassingYear'] ?? '',
+    //       uanNo: curentUser?['UANNo'] ?? '',
+    //       esicNo: curentUser?['ESICNo'] ?? '',
+    //       selectedDepartment: curentUser?['DepartmentId'] ?? '',
+    //       selectedposition: curentUser?['PositionId'] ?? '',
+    //       roletypes: curentUser?['Role'] ?? '',
+    //       selectedifsc: curentUser?['IFSC'] ?? '',
+    //       userStatus: curentUser?['IsActive'] ?? true,
+    //       workType: curentUser?['WorkType'] ?? '',
+    //       officeLocation: curentUser?['OfficeLocation'] ?? '',
+    //       locationRadius: curentUser?['LocationRadius'] ?? '50',
+    //       isFetchLocation: curentUser?['IsFetchLocation'] ?? false,
+    //       setCguids: curentUser?['Cguid'] ?? '',
+    //       faceRegisterId: templateBase64,
+    //       faceRegisterImg: uploadedImgName ?? '',
+    //       removeImage: false,
+    //       listenRes: (_) {},
+    //     );
+    //
+    //     // 1-TIME EmpLogin call immediately after face registration to fetch latest user details & image from server
+    //     final String username =
+    //         (curentUser?['UserName'] ?? curentUser?['Username'] ?? '')
+    //             .toString()
+    //             .trim();
+    //     final String password =
+    //         (curentUser?['Password'] ?? curentUser?['password'] ?? '')
+    //             .toString()
+    //             .trim();
+    //     if (username.isNotEmpty && password.isNotEmpty) {
+    //       try {
+    //         final loginVal =
+    //             await AuthLoginService().callEmployeLogin(username, password);
+    //         if (loginVal is EmpUserLogin && loginVal.success != false) {
+    //           final String freshJson = jsonEncode(loginVal.toJson());
+    //           await SaveUser().saveUserData(freshJson);
+    //           curentUser = jsonDecode(freshJson);
+    //           final String? freshFileName =
+    //               loginVal.fileName ?? loginVal.faceRegisterImg;
+    //           if (freshFileName != null && freshFileName.trim().isNotEmpty) {
+    //             final clean =
+    //                 freshFileName.trim().split('/').last.split(r'\').last;
+    //             final prefs = await SharedPreferences.getInstance();
+    //             await prefs.setString('cached_face_register_img_$empId', clean);
+    //           }
+    //         }
+    //       } catch (e) {
+    //         debugPrint(
+    //           '[FaceCaptureView] Post-registration 1-time EmpLogin refresh error: $e',
+    //         );
+    //       }
+    //     }
+    //
+    //     // Save persistent local copy of face image in app documents directory for offline resilience
+    //     try {
+    //       final appDir = await getApplicationDocumentsDirectory();
+    //       final localFaceFile = File('${appDir.path}/face_reg_$empId.jpg');
+    //       await localFaceFile.writeAsBytes(person.faceJpg);
+    //       debugPrint(
+    //         '[FaceCaptureView] Saved offline face image to ${localFaceFile.path}',
+    //       );
+    //     } catch (e) {
+    //       debugPrint(
+    //         '[FaceCaptureView] Error saving local offline face image: $e',
+    //       );
+    //     }
+    //
+    //     final prefs = await SharedPreferences.getInstance();
+    //     await prefs.setString(
+    //       'face_template_version_$empId',
+    //       FaceRegistrationSyncService.currentTemplateVersion,
+    //     );
+    //   }
+    // } catch (_) {}
 
       if (context.mounted) {
         Navigator.pop(context, 'OK');

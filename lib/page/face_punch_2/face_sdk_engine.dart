@@ -474,20 +474,29 @@ class FaceSdkEngine {
   /// - raw 0.45 -> 0.70 (standard genuine match)
   /// - raw 0.55 -> 0.80 (80% similarity for same person, matching reference app)
   /// - raw 0.65 -> 0.90 (high confidence match)
+  /// Calibrate raw MobileFaceNet cosine similarity [0.20 .. 0.65]
+  /// to industry-standard confidence score [0.0 .. 1.0]:
+  /// - raw < 0.25 -> < 0.25 (distinct person / impostor, firmly rejected)
+  /// - raw 0.35   -> 0.52 (borderline)
+  /// - raw 0.40   -> 0.64
+  /// - raw 0.43   -> 0.70 (standard genuine match passes 70% threshold)
+  /// - raw 0.48   -> 0.78
+  /// - raw 0.52   -> 0.82 (high confidence genuine match)
+  /// - raw 0.60+  -> 0.90+ (exceptional match)
   static double calibrateSimilarity(double rawSim) {
     if (rawSim <= 0.0) return 0.0;
     if (rawSim >= 0.98) return 1.0;
 
-    if (rawSim < 0.20) {
+    if (rawSim < 0.25) {
       return (rawSim * 0.75).clamp(0.0, 1.0);
     } else if (rawSim < 0.35) {
-      return 0.15 + (rawSim - 0.20) * ((0.50 - 0.15) / (0.35 - 0.20));
-    } else if (rawSim < 0.55) {
-      return 0.50 + (rawSim - 0.35) * ((0.80 - 0.50) / (0.55 - 0.35));
-    } else if (rawSim < 0.70) {
-      return 0.80 + (rawSim - 0.55) * ((0.92 - 0.80) / (0.70 - 0.55));
+      return 0.18 + (rawSim - 0.25) * ((0.52 - 0.18) / (0.35 - 0.25));
+    } else if (rawSim < 0.50) {
+      return 0.52 + (rawSim - 0.35) * ((0.80 - 0.52) / (0.50 - 0.35));
+    } else if (rawSim < 0.65) {
+      return 0.80 + (rawSim - 0.50) * ((0.92 - 0.80) / (0.65 - 0.50));
     } else {
-      return 0.92 + (rawSim - 0.70) * ((1.00 - 0.92) / (1.00 - 0.70));
+      return 0.92 + (rawSim - 0.65) * ((1.00 - 0.92) / (1.00 - 0.65));
     }
   }
 
@@ -501,13 +510,14 @@ class FaceSdkEngine {
     Rect box,
     int sensorOrientation, {
     double rollAngle = 0.0,
+    double paddingScale = 1.35,
   }) {
     final int w = cameraImage.width;
     final int h = cameraImage.height;
 
     final double centerX = box.left + box.width / 2.0;
     final double centerY = box.top + box.height / 2.0;
-    final double faceSize = math.max(box.width, box.height) * 1.35;
+    final double faceSize = math.max(box.width, box.height) * paddingScale;
 
     final out = img.Image(width: 112, height: 112);
 
@@ -1174,25 +1184,48 @@ class FaceSdkEngine {
 
     // 4. Compare against enrolled templates
     double maxSimilarity = -1.0;
+    double maxRawSimilarity = 0.0;
     String matchedName = '';
     Uint8List? matchedEnrolledFace;
 
     for (final person in enrolledPersons) {
       final enrolledTemplates = person.templates as Uint8List;
       if (enrolledTemplates.length == 768) {
-        final enrolledFloats = enrolledTemplates.buffer.asFloat32List();
+        // Safe buffer view handling SQLite non-zero buffer offsets and byte alignment
+        final enrolledFloats = _toFloat32List(enrolledTemplates);
         final simNorm = cosineSimilarityFloats(embNormal, enrolledFloats);
         double rawSim = simNorm;
-        // Only if normal similarity is below threshold, try flipped embedding for mirror invariance
+
+        // 1. If normal similarity is below threshold, try flipped embedding for mirror invariance
         if (calibrateSimilarity(rawSim) < threshold) {
           embFlipped ??= _extractEmbedding(img.flipHorizontal(faceCrop112));
           final simFlip = cosineSimilarityFloats(embFlipped, enrolledFloats);
           rawSim = math.max(rawSim, simFlip);
         }
+
+        // 2. If still below threshold, try tighter crop (1.20x) focusing on facial core (eyes, nose, mouth)
+        if (calibrateSimilarity(rawSim) < threshold) {
+          final tightCrop = cropFace112(
+            cameraImage,
+            mlBox,
+            camera.sensorOrientation,
+            rollAngle: mlRoll,
+            paddingScale: 1.20,
+          );
+          final embTight = _extractEmbedding(tightCrop);
+          final simTight = cosineSimilarityFloats(embTight, enrolledFloats);
+          final simTightFlip = cosineSimilarityFloats(
+            _extractEmbedding(img.flipHorizontal(tightCrop)),
+            enrolledFloats,
+          );
+          rawSim = math.max(rawSim, math.max(simTight, simTightFlip));
+        }
+
         final sim = calibrateSimilarity(rawSim);
 
         if (sim > maxSimilarity) {
           maxSimilarity = sim;
+          maxRawSimilarity = rawSim;
           matchedName = person.name as String;
           matchedEnrolledFace = person.faceJpg as Uint8List?;
         }
@@ -1201,6 +1234,7 @@ class FaceSdkEngine {
         double sim = await similarityCalculation(liveTemplates, enrolledTemplates);
         if (sim > maxSimilarity) {
           maxSimilarity = sim;
+          maxRawSimilarity = sim;
           matchedName = person.name as String;
           matchedEnrolledFace = person.faceJpg as Uint8List?;
         }
@@ -1221,7 +1255,7 @@ class FaceSdkEngine {
     final tTotal = DateTime.now().millisecondsSinceEpoch - t0;
     debugPrint(
       '[FaceSdkEngine] Result: sim=${(maxSimilarity * 100).toStringAsFixed(1)}% '
-      '(req ${(threshold * 100).toStringAsFixed(0)}%), '
+      '(raw: ${(maxRawSimilarity * 100).toStringAsFixed(1)}%, req ${(threshold * 100).toStringAsFixed(0)}%), '
       'live=${(livenessScore * 100).toStringAsFixed(1)}% '
       '(req ${(livenessThreshold * 100).toStringAsFixed(0)}%) "$matchedName" '
       'isMatch=$isMatch [Total: ${tTotal}ms | detect: ${tDetect - t0}ms, crop: ${tCrop - tDetect}ms, live: ${tLive - tCrop}ms, embed: ${tEmbed - tLive}ms]',

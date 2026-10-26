@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,6 +59,38 @@ class ReminderNotificationService {
       NotificationLoggerService.scheduling('Cancelled all notifications and invalidated schedule.');
     } catch (e) {
       NotificationLoggerService.error('Error in cancelAll: $e');
+    }
+  }
+
+  /// Updates punch status in local storage, immediately cancels corresponding reminders
+  /// for today, and reschedules the remaining 7-day shift notifications.
+  static Future<void> updatePunchStatus({
+    required String punchStatus,
+    DateTime? date,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final targetDate = date ?? DateTime.now();
+      final dateKey = _formatDateKey(targetDate);
+      final isPunchIn = punchStatus.toUpperCase() == 'IN';
+      final isPunchOut = punchStatus.toUpperCase() == 'OUT';
+
+      if (isPunchIn) {
+        await prefs.setBool('punched_in_$dateKey', true);
+        await prefs.setBool('punched_out_$dateKey', false);
+        await prefs.remove('punched_in_\$dateKey');
+        // Immediately cancel today's scheduled punch-in reminder from NotificationManager/AlarmManager
+        await notificationsPlugin.cancel(id: 1000);
+      } else if (isPunchOut) {
+        await prefs.setBool('punched_out_$dateKey', true);
+        await prefs.remove('punched_out_\$dateKey');
+        // Immediately cancel today's scheduled punch-out reminder
+        await notificationsPlugin.cancel(id: 1);
+      }
+
+      await scheduleReminders();
+    } catch (e) {
+      NotificationLoggerService.error('Error updating punch status in ReminderNotificationService: $e');
     }
   }
 
@@ -195,6 +228,17 @@ class ReminderNotificationService {
 
     final now = DateTime.now();
 
+    final prefs = await SharedPreferences.getInstance();
+
+    if (curentUser == null) {
+      final userStr = prefs.getString('data') ?? '';
+      if (userStr.isNotEmpty) {
+        try {
+          curentUser = jsonDecode(userStr);
+        } catch (_) {}
+      }
+    }
+
     final userId = curentUser?['Id'];
     if (userId == null) {
       addLog('No logged in user. Skipping reminder scheduling.');
@@ -206,8 +250,6 @@ class ReminderNotificationService {
       addLog('User role is $role. Skipping reminder scheduling for admin/owner.');
       return logStr.toString();
     }
-
-    final prefs = await SharedPreferences.getInstance();
 
     String? positionName = prefs.getString('user_position_name_$userId');
     if (positionName == null || positionName.isEmpty) {
@@ -264,6 +306,8 @@ class ReminderNotificationService {
 
       if (targetDate.weekday == DateTime.sunday) {
         addLog('Skipping reminders for $dateKey: Sunday');
+        await notificationsPlugin.cancel(id: 1000 + i);
+        await notificationsPlugin.cancel(id: i * 2 + 1);
         continue;
       }
 
@@ -279,6 +323,8 @@ class ReminderNotificationService {
       }
       if (isHoliday) {
         addLog('Skipping reminders for $dateKey: Holiday');
+        await notificationsPlugin.cancel(id: 1000 + i);
+        await notificationsPlugin.cancel(id: i * 2 + 1);
         continue;
       }
 
@@ -312,11 +358,15 @@ class ReminderNotificationService {
 
       if (isFullDayLeave) {
         addLog('Skipping reminders for $dateKey: Approved Full-Day Leave');
+        await notificationsPlugin.cancel(id: 1000 + i);
+        await notificationsPlugin.cancel(id: i * 2 + 1);
         continue;
       }
 
-      final bool hasPunchedIn = prefs.getBool('punched_in_$dateKey') ?? false;
-      final bool hasPunchedOut = prefs.getBool('punched_out_$dateKey') ?? false;
+      final bool hasPunchedIn = (prefs.getBool('punched_in_$dateKey') ?? false) ||
+          (prefs.getBool('punched_in_\$dateKey') ?? false);
+      final bool hasPunchedOut = (prefs.getBool('punched_out_$dateKey') ?? false) ||
+          (prefs.getBool('punched_out_\$dateKey') ?? false);
 
       String formatTime(TimeOfDay time) {
         final int h = time.hour == 0 ? 12 : (time.hour > 12 ? time.hour - 12 : time.hour);
@@ -334,6 +384,7 @@ class ReminderNotificationService {
       if (punchInReminderTime.isAfter(now)) {
         if (hasPunchedIn) {
           addLog('   ❌ Skipped Punch-IN: User has already punched IN today.');
+          await notificationsPlugin.cancel(id: 1000 + i);
         } else {
           addLog('   ✅ Scheduled Punch-IN for: $punchInReminderTime');
           String body = 'Your shift has already started at $prettyBeginTime! Please punch in if you haven\'t already.';
@@ -349,6 +400,7 @@ class ReminderNotificationService {
         }
       } else {
         addLog('   ❌ Skipped Punch-IN: The time $punchInReminderTime has already passed today.');
+        await notificationsPlugin.cancel(id: 1000 + i);
       }
 
       final punchOutReminderTime = DateTime(targetDate.year, targetDate.month, targetDate.day, endTime.hour, endTime.minute)
@@ -357,6 +409,7 @@ class ReminderNotificationService {
       if (punchOutReminderTime.isAfter(now)) {
         if (hasPunchedOut) {
           addLog('   ❌ Skipped Punch-OUT: User has already punched OUT today.');
+          await notificationsPlugin.cancel(id: i * 2 + 1);
         } else {
           addLog('   ✅ Scheduled Punch-OUT for: $punchOutReminderTime');
           String body = 'Your shift has already ended at $prettyEndTime! Please punch out if you haven\'t already.';
@@ -372,6 +425,7 @@ class ReminderNotificationService {
         }
       } else {
         addLog('   ❌ Skipped Punch-OUT: The time $punchOutReminderTime has already passed today.');
+        await notificationsPlugin.cancel(id: i * 2 + 1);
       }
     }
     addLog('--- REMINDER SCHEDULING COMPLETE ---');

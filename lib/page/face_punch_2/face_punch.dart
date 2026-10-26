@@ -170,16 +170,22 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     _applySettings();
   }
 
-  Future<void> _applySettings() async {
+  Future<void> _applySettings({bool isInitial = false}) async {
     final prefs = await SharedPreferences.getInstance();
+    final hasUserCustom = prefs.getBool('user_custom_thresholds_applied') ?? false;
     final savedId = prefs.getString('identify_threshold');
     final savedLive = prefs.getString('liveness_threshold');
-    final idThreshold = (savedId != null && savedId.isNotEmpty)
+
+    final prevId = _identifyThreshold;
+    final prevLive = _livenessThreshold;
+
+    final idThreshold = hasUserCustom && savedId != null && savedId.isNotEmpty
         ? (double.tryParse(savedId) ?? RemoteConfigServices.identityThreshold)
         : RemoteConfigServices.identityThreshold;
-    final liveThreshold = (savedLive != null && savedLive.isNotEmpty)
+    final liveThreshold = hasUserCustom && savedLive != null && savedLive.isNotEmpty
         ? (double.tryParse(savedLive) ?? RemoteConfigServices.livenessThreshold)
         : RemoteConfigServices.livenessThreshold;
+
     if (mounted) {
       setState(() {
         _identifyThreshold = idThreshold;
@@ -189,18 +195,33 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       _identifyThreshold = idThreshold;
       _livenessThreshold = liveThreshold;
     }
+
     debugPrint('=================================================================');
-    debugPrint('[FacePunch] APPLIED SETTINGS:');
-    debugPrint('[FacePunch]   - identifyThreshold: $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%)');
-    debugPrint('[FacePunch]   - livenessThreshold: $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%)');
+    debugPrint('[FacePunch] AFTER APPLY SETTINGS (${isInitial ? "Initial/Cached" : "Remote Config Updated"}):');
+    debugPrint('[FacePunch]   - identifyThreshold: $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%) [Previous: $prevId]');
+    debugPrint('[FacePunch]   - livenessThreshold: $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%) [Previous: $prevLive]');
+    debugPrint('[FacePunch]   - userCustomActive : $hasUserCustom');
     debugPrint('=================================================================');
   }
 
   Future<void> _loadSettings() async {
     try {
-      await _applySettings();
-      // Silently fetch and activate latest config in the background
-      RemoteConfigServices.instance.fetchLatestConfig();
+      debugPrint('=================================================================');
+      debugPrint('[FacePunch] BEFORE APPLY SETTINGS:');
+      debugPrint('[FacePunch]   - identifyThreshold : $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%)');
+      debugPrint('[FacePunch]   - livenessThreshold : $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%)');
+      debugPrint('=================================================================');
+
+      // 1. Apply cached/initial settings for instant responsiveness
+      await _applySettings(isInitial: true);
+
+      // 2. Fetch fresh remote config from Firebase on punch open
+      debugPrint('[FacePunch] Fetching latest Remote Config from Firebase...');
+      await RemoteConfigServices.instance.fetchLatestConfig();
+      debugPrint('[FacePunch] Remote Config fetch complete.');
+
+      // 3. Re-apply fresh remote settings
+      await _applySettings(isInitial: false);
     } catch (e) {
       debugPrint('[FacePunch] _loadSettings error: $e');
     }
@@ -252,16 +273,19 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     Duration timeout = const Duration(seconds: 4),
     List<FaceSdkPerson>? enrolledPersons,
   }) async {
-    // Read active thresholds prioritizing local user preferences
+    // Read active thresholds prioritizing RemoteConfigServices with user customization fallback
     final prefs = await SharedPreferences.getInstance();
+    final hasUserCustom = prefs.getBool('user_custom_thresholds_applied') ?? false;
     final savedId = prefs.getString('identify_threshold');
     final savedLive = prefs.getString('liveness_threshold');
-    _identifyThreshold = (savedId != null && savedId.isNotEmpty)
+    _identifyThreshold = hasUserCustom && savedId != null && savedId.isNotEmpty
         ? (double.tryParse(savedId) ?? RemoteConfigServices.identityThreshold)
         : RemoteConfigServices.identityThreshold;
-    _livenessThreshold = (savedLive != null && savedLive.isNotEmpty)
+    _livenessThreshold = hasUserCustom && savedLive != null && savedLive.isNotEmpty
         ? (double.tryParse(savedLive) ?? RemoteConfigServices.livenessThreshold)
         : RemoteConfigServices.livenessThreshold;
+
+    debugPrint('[FacePunch] [Verify] Active thresholds for punch: identifyThreshold=$_identifyThreshold, livenessThreshold=$_livenessThreshold');
 
     final controller = selfiePunchProvider.cameraController;
     if (controller == null || !controller.value.isInitialized || !selfiePunchProvider.isCameraReady) {
