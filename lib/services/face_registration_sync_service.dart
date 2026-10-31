@@ -203,7 +203,7 @@ class FaceRegistrationSyncService {
               (pName == userName || pName.startsWith('${userName}_')));
 
       final bool hasValidTemplate =
-          p.templates.isNotEmpty && p.templates.length >= 200;
+          p.templates.isNotEmpty && p.templates.length == 768;
 
       return matchesUser && hasValidTemplate;
     });

@@ -131,36 +131,6 @@ class FaceSdkEngine {
     }
   }
 
-  /// Safe helper to extract native FaceSDK faces from byte array directly or via temp file
-  Future<List<Map<String, dynamic>>> _extractFacesFromBytesSafe(Uint8List bytes) async {
-    try {
-      final res = await _facesdkPlugin.extractFacesFromBytes(bytes);
-      if (res is List && res.isNotEmpty) {
-        return List<Map<String, dynamic>>.from(res.map((e) => Map<String, dynamic>.from(e as Map)));
-      }
-    } catch (e) {
-      debugPrint('[FaceSdkEngine] extractFacesFromBytes direct call note: $e');
-    }
-
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/temp_frame_${DateTime.now().microsecondsSinceEpoch}.jpg');
-      await tempFile.writeAsBytes(bytes);
-      try {
-        final res = await _facesdkPlugin.extractFaces(tempFile.path);
-        if (res is List && res.isNotEmpty) {
-          return List<Map<String, dynamic>>.from(res.map((e) => Map<String, dynamic>.from(e as Map)));
-        }
-      } finally {
-        if (await tempFile.exists()) {
-          await tempFile.delete();
-        }
-      }
-    } catch (e) {
-      debugPrint('[FaceSdkEngine] _extractFacesFromBytesSafe temp file fallback error: $e');
-    }
-    return [];
-  }
 
   /// Extract face bounding boxes, cropped face thumbnails, and embeddings from a file (used for Enrollment)
   Future<List<Map<String, dynamic>>> extractFaces(String imagePath) async {
@@ -182,29 +152,7 @@ class FaceSdkEngine {
         debugPrint('[FaceSdkEngine] FlutterExifRotation note: $e');
       }
 
-      // 2. Primary Path: Native FaceSDK extraction
-      try {
-        final dynamic rawFaces = await _facesdkPlugin.extractFaces(effectivePath);
-        if (rawFaces is List && rawFaces.isNotEmpty) {
-          final List<Map<String, dynamic>> results = [];
-          for (final item in rawFaces) {
-            if (item is Map) {
-              final map = Map<String, dynamic>.from(item);
-              final templates = map['templates'];
-              final templatesLen = templates is Uint8List ? templates.length : (templates is List ? templates.length : 0);
-              debugPrint('[FaceSdkEngine] extractFaces [NATIVE]: face box=[${map['x1']}, ${map['y1']}, ${map['x2']}, ${map['y2']}], liveness=${map['liveness']}, templateLen=$templatesLen');
-              results.add(map);
-            }
-          }
-          if (results.isNotEmpty) {
-            return results;
-          }
-        }
-      } catch (e) {
-        debugPrint('[FaceSdkEngine] Native FaceSDK extractFaces error: $e');
-      }
-
-      // 3. Fallback Path: ML Kit + MobileFaceNet (only if native failed)
+      // 2. Extract facial embedding using Google ML Kit + MobileFaceNet (100% offline & license-free)
       final detector = _photoFaceDetector ?? _faceDetector;
       if (detector == null) {
         debugPrint('[FaceSdkEngine] extractFaces: No face detector available!');
@@ -467,37 +415,14 @@ class FaceSdkEngine {
     return dot.clamp(0.0, 1.0);
   }
 
-  /// Calibrate raw MobileFaceNet cosine similarity [0.20 .. 0.70]
-  /// to industry-standard confidence score [0.0 .. 1.0] matching the reference app:
-  /// - raw 0.20 -> 0.15 (different person)
-  /// - raw 0.35 -> 0.50 (borderline match)
-  /// - raw 0.45 -> 0.70 (standard genuine match)
-  /// - raw 0.55 -> 0.80 (80% similarity for same person, matching reference app)
-  /// - raw 0.65 -> 0.90 (high confidence match)
-  /// Calibrate raw MobileFaceNet cosine similarity [0.20 .. 0.65]
-  /// to industry-standard confidence score [0.0 .. 1.0]:
-  /// - raw < 0.25 -> < 0.25 (distinct person / impostor, firmly rejected)
-  /// - raw 0.35   -> 0.52 (borderline)
-  /// - raw 0.40   -> 0.64
-  /// - raw 0.43   -> 0.70 (standard genuine match passes 70% threshold)
-  /// - raw 0.48   -> 0.78
-  /// - raw 0.52   -> 0.82 (high confidence genuine match)
-  /// - raw 0.60+  -> 0.90+ (exceptional match)
+  /// MobileFaceNet cosine similarity [0.0 .. 1.0].
+  /// With L2-normalized 192-d vectors, dot product directly gives cosine similarity:
+  /// - Genuine match (same person): typically 0.68 - 0.88+
+  /// - Impostor (different person): typically 0.20 - 0.45 (cleanly rejected at >=0.70 threshold)
   static double calibrateSimilarity(double rawSim) {
     if (rawSim <= 0.0) return 0.0;
-    if (rawSim >= 0.98) return 1.0;
-
-    if (rawSim < 0.25) {
-      return (rawSim * 0.75).clamp(0.0, 1.0);
-    } else if (rawSim < 0.35) {
-      return 0.18 + (rawSim - 0.25) * ((0.52 - 0.18) / (0.35 - 0.25));
-    } else if (rawSim < 0.50) {
-      return 0.52 + (rawSim - 0.35) * ((0.80 - 0.52) / (0.50 - 0.35));
-    } else if (rawSim < 0.65) {
-      return 0.80 + (rawSim - 0.50) * ((0.92 - 0.80) / (0.65 - 0.50));
-    } else {
-      return 0.92 + (rawSim - 0.65) * ((1.00 - 0.92) / (1.00 - 0.65));
-    }
+    if (rawSim >= 1.0) return 1.0;
+    return rawSim;
   }
 
   /// Ultra-fast extraction of 112x112 face crop directly from raw CameraImage bytes.
@@ -1179,7 +1104,6 @@ class FaceSdkEngine {
     // 3. Extract MobileFaceNet embeddings (Lazy flipped embedding for 2x faster performance)
     final embNormal = _extractEmbedding(faceCrop112);
     List<double>? embFlipped;
-    final liveTemplates = Float32List.fromList(embNormal).buffer.asUint8List();
     final tEmbed = DateTime.now().millisecondsSinceEpoch;
 
     // 4. Compare against enrolled templates
@@ -1197,28 +1121,10 @@ class FaceSdkEngine {
         double rawSim = simNorm;
 
         // 1. If normal similarity is below threshold, try flipped embedding for mirror invariance
-        if (calibrateSimilarity(rawSim) < threshold) {
+        if (rawSim < threshold) {
           embFlipped ??= _extractEmbedding(img.flipHorizontal(faceCrop112));
           final simFlip = cosineSimilarityFloats(embFlipped, enrolledFloats);
           rawSim = math.max(rawSim, simFlip);
-        }
-
-        // 2. If still below threshold, try tighter crop (1.20x) focusing on facial core (eyes, nose, mouth)
-        if (calibrateSimilarity(rawSim) < threshold) {
-          final tightCrop = cropFace112(
-            cameraImage,
-            mlBox,
-            camera.sensorOrientation,
-            rollAngle: mlRoll,
-            paddingScale: 1.20,
-          );
-          final embTight = _extractEmbedding(tightCrop);
-          final simTight = cosineSimilarityFloats(embTight, enrolledFloats);
-          final simTightFlip = cosineSimilarityFloats(
-            _extractEmbedding(img.flipHorizontal(tightCrop)),
-            enrolledFloats,
-          );
-          rawSim = math.max(rawSim, math.max(simTight, simTightFlip));
         }
 
         final sim = calibrateSimilarity(rawSim);
@@ -1230,14 +1136,10 @@ class FaceSdkEngine {
           matchedEnrolledFace = person.faceJpg as Uint8List?;
         }
       } else {
-        // Fallback for native template
-        double sim = await similarityCalculation(liveTemplates, enrolledTemplates);
-        if (sim > maxSimilarity) {
-          maxSimilarity = sim;
-          maxRawSimilarity = sim;
-          matchedName = person.name as String;
-          matchedEnrolledFace = person.faceJpg as Uint8List?;
-        }
+        // Enrolled template is not 768 bytes (legacy/corrupted)
+        debugPrint(
+          '[FaceSdkEngine] Warning: Template for "${person.name}" is ${enrolledTemplates.length} bytes (expected 768 for MobileFaceNet). Skipping.',
+        );
       }
     }
 
@@ -1368,18 +1270,9 @@ class FaceSdkEngine {
       }
       final fullFrameJpg = Uint8List.fromList(img.encodeJpg(previewImage, quality: 85));
 
-      // Try native FaceSDK extraction first
-      Uint8List? templates;
-      final nativeFaces = await _extractFacesFromBytesSafe(faceJpg);
-      if (nativeFaces.isNotEmpty) {
-        templates = nativeFaces.first['templates'] as Uint8List?;
-      }
-
-      // Fallback to MobileFaceNet if native FaceSDK was unavailable
-      if (templates == null || templates.isEmpty) {
-        final embedding = extractEmbedding(faceCrop);
-        templates = Float32List.fromList(embedding).buffer.asUint8List();
-      }
+      // Consistent MobileFaceNet extraction for camera enrollment (768 bytes)
+      final embedding = extractEmbedding(faceCrop);
+      final templates = Float32List.fromList(embedding).buffer.asUint8List();
 
       return {
         'templates': templates,

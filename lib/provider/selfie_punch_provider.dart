@@ -493,6 +493,10 @@ class SelfiePunchProvider extends ChangeNotifier {
   static const double _staticSuratLng = 72.833596;
   static const double _staticBhavLat = 21.763838;
   static const double _staticBhavLng = 72.146873;
+  static const String _staticSuratAddress =
+      '601-602, Shubh square, Laldarwaja Main Rd, Patel Vadi, Patel Nagar, Surat, Gujarat 395004';
+  static const String _staticBhavAddress =
+      'S/4, 2ND FLOOR, KRISHNA COMPLEX, ABOVE TBZ, WAGHAWADI ROAD, BHAVNAGAR Gujarat 364002';
 
   /// True for companies that use hardcoded office coordinates.
   bool get _isStaticCompany =>
@@ -852,13 +856,25 @@ class SelfiePunchProvider extends ChangeNotifier {
           Placemark place = placemark[0];
           postalCode = place.postalCode;
 
+          final String officeLoc =
+              (curentUser?['OfficeLocation'] ?? curentUser?['officeLocation'])
+                      ?.toString()
+                      .toLowerCase()
+                      .trim() ??
+                  '';
+
           if (_isStaticCompany &&
               distance <= allowedRadius &&
               allowedRadius > 0 &&
-              curentUser?['OfficeLocation'].toString().toLowerCase() ==
-                  'surat') {
-            currentLocation =
-                '601-602, Shubh square, Laldarwaja Main Rd, Patel Vadi, Patel Nagar, Surat, Gujarat 395004';
+              officeLoc == 'surat') {
+            currentLocation = _staticSuratAddress;
+            postalCode = '395004';
+          } else if (_isStaticCompany &&
+              distance <= allowedRadius &&
+              allowedRadius > 0 &&
+              (officeLoc == 'bhavnagar' || curentUser?['CustId'] == 'TAY967')) {
+            currentLocation = _staticBhavAddress;
+            postalCode = '364002';
           } else {
             currentLocation =
                 '${place.subThoroughfare ?? ''} ${place.thoroughfare ?? ''}, ${place.subLocality ?? ''}, ${place.locality ?? ''}, ${place.subAdministrativeArea ?? ''}, ${place.administrativeArea ?? ''} ${place.postalCode ?? ''}, ${place.country ?? ''}';
@@ -869,13 +885,54 @@ class SelfiePunchProvider extends ChangeNotifier {
       } else {
         // Offline: restore cached address so display & API data match online mode
         await _restoreCachedAddress();
+        if ((currentLocation == null || currentLocation!.isEmpty) &&
+            _isStaticCompany &&
+            distance <= allowedRadius &&
+            allowedRadius > 0) {
+          final String officeLoc =
+              (curentUser?['OfficeLocation'] ?? curentUser?['officeLocation'])
+                      ?.toString()
+                      .toLowerCase()
+                      .trim() ??
+                  '';
+          if (officeLoc == 'surat') {
+            currentLocation = _staticSuratAddress;
+            postalCode = '395004';
+          } else if (officeLoc == 'bhavnagar' ||
+              curentUser?['CustId'] == 'TAY967') {
+            currentLocation = _staticBhavAddress;
+            postalCode = '364002';
+          }
+        }
       }
     } catch (e) {
       // If geocoding fails, try cached address; final fallback = empty string
       await _restoreCachedAddress();
       if (currentLocation == null || currentLocation!.isEmpty) {
-        currentLocation = '';
-        postalCode = '';
+        if (_isStaticCompany &&
+            distance <= allowedRadius &&
+            allowedRadius > 0) {
+          final String officeLoc =
+              (curentUser?['OfficeLocation'] ?? curentUser?['officeLocation'])
+                      ?.toString()
+                      .toLowerCase()
+                      .trim() ??
+                  '';
+          if (officeLoc == 'surat') {
+            currentLocation = _staticSuratAddress;
+            postalCode = '395004';
+          } else if (officeLoc == 'bhavnagar' ||
+              curentUser?['CustId'] == 'TAY967') {
+            currentLocation = _staticBhavAddress;
+            postalCode = '364002';
+          } else {
+            currentLocation = '';
+            postalCode = '';
+          }
+        } else {
+          currentLocation = '';
+          postalCode = '';
+        }
       }
     }
 

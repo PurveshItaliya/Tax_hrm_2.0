@@ -15,7 +15,8 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/widigets/spacer.dart';
 
 class LeaveViewPage extends StatefulWidget {
-  const LeaveViewPage({super.key});
+  final bool isShowBack;
+  const LeaveViewPage({super.key, this.isShowBack = false});
 
   @override
   State<LeaveViewPage> createState() => _LeaveViewPageState();
@@ -48,12 +49,19 @@ class _LeaveViewPageState extends State<LeaveViewPage> with SingleTickerProvider
     Provider.of<LanguageProvider>(context);
     return Scaffold(
         backgroundColor: ColorConst.scaffoldColor,
-        appBar: showBottomAppBar(leaveString, size, centerTitles: false),
+        appBar: showBottomAppBar(
+          leaveString,
+          size,
+          centerTitles: false,
+          isAdminBack: widget.isShowBack,
+        ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: leaveMastServices.islodering
             ? const SizedBox()
             : Padding(
-                padding: EdgeInsets.only(bottom: size.height * 0.11),
+                padding: EdgeInsets.only(
+                  bottom: widget.isShowBack ? 16 : size.height * 0.11,
+                ),
                 child: iconWithTextBtnDesign(
                   size,
                   applyNewLeaveString,

@@ -300,7 +300,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     }
 
     final allPersons = enrolledPersons ?? await FaceSdkDatabase.loadAll();
-    final targetPersons = _getEnrolledPersonsForCurrentUser(allPersons);
+    final targetPersons = _getEnrolledPersonsForCurrentUser(allPersons)
+        .where((p) => p.templates.length == 768)
+        .toList();
 
     final String currentUserId = (curentUser?['Id'] ?? '').toString().trim();
     final String currentFileName = (curentUser?['FileName'] ?? curentUser?['FaceRegisterImg'] ?? '').toString().trim();
@@ -472,11 +474,6 @@ class _FacePunchScreenState extends State<FacePunchScreen>
             } else if (!isLiveValid) {
               lastFailureReason =
                   'Spoof detected: Liveness ${(result.liveness * 100).toStringAsFixed(1)}% < ${(_livenessThreshold * 100).toInt()}%';
-              if (mounted && _cameraBoxMessage != 'Real Face Not Detected (Anti-Spoof)') {
-                setState(() {
-                  _cameraBoxMessage = 'Real Face Not Detected (Anti-Spoof)';
-                });
-              }
             } else if (!isIdValid) {
               lastFailureReason =
                   'Similarity ${(result.similarity * 100).toStringAsFixed(1)}% < ${(_identifyThreshold * 100).toInt()}%';
@@ -2575,12 +2572,16 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       final persons = _getEnrolledPersonsForCurrentUser(allPersons);
       debugPrint('[FacePunch] Matching enrolled persons for current user: ${persons.length}');
 
-      // If local DB doesn't have the face yet, attempt on-demand server sync with forceServerCheck: true
-      if (persons.isEmpty) {
-        debugPrint('[FacePunch] No matching persons found locally. Attempting server sync (forceServerCheck: true)...');
+      // If local DB doesn't have the face yet or has non-768B legacy template, attempt on-demand server sync
+      final bool hasValid768Templates = persons.any((p) => p.templates.length == 768);
+      if (persons.isEmpty || !hasValid768Templates) {
+        debugPrint('[FacePunch] No matching 768B MobileFaceNet templates found locally (count=${persons.length}). Attempting server sync (forceServerCheck: true)...');
         await FaceRegistrationSyncService.instance.checkFaceAvailabilityAndSync(forceServerCheck: true);
-        final reloadedPersons = _getEnrolledPersonsForCurrentUser(await FaceSdkDatabase.loadAll());
+        final reloadedPersons = _getEnrolledPersonsForCurrentUser(await FaceSdkDatabase.loadAll())
+            .where((p) => p.templates.length == 768)
+            .toList();
         if (reloadedPersons.isNotEmpty) {
+          persons.clear();
           persons.addAll(reloadedPersons);
           _isFaceEnrolled = true;
           debugPrint('[FacePunch] Server sync found ${persons.length} matching enrolled templates!');

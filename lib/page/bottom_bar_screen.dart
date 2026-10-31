@@ -24,6 +24,8 @@ import 'package:tax_hrm/provider/theme_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'package:tax_hrm/utils/navigation.dart';
+import 'package:tax_hrm/page/ai_chat/ai_chat_screen.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widgets/premium_upgrade_alert.dart';
 
@@ -165,11 +167,86 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
                       onPunchSelected: controller.selectFab,
                     ),
                   ),
+                  // TODO: Re-enable after testing
+                  // if (!controller.fabSelected.value)
+                  //   Positioned(
+                  //     right: 18,
+                  //     bottom: (isAdmin ? 72.0 : 86.0) +
+                  //         MediaQuery.paddingOf(context).bottom +
+                  //         14.0,
+                  //     child: _buildAiChatFloatingButton(context),
+                  //   ),
                 ],
               ),
             ),
           );
         }),
+      ),
+    );
+  }
+
+  /// Floating Chatbot Button linking to HRM AI Chat
+  Widget _buildAiChatFloatingButton(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            ColorConst.themeColor,
+            const Color(0xFF6366F1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: ColorConst.themeColor.withOpacity(0.4),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            nextScreen(context, const AiChatScreen());
+          },
+          borderRadius: BorderRadius.circular(28),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.auto_awesome,
+                      size: 15,
+                      color: ColorConst.themeColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'HRM AI',
+                  style: TextStyle(
+                    fontFamily: fontInterBoldString,
+                    fontSize: 13,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

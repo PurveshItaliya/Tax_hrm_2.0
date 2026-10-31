@@ -23,15 +23,40 @@ showCustomeAppBar(String apptitle,Size size,{iconsOntap,scaffoldBgColor,elevatio
 }
 
 // bottombar app bar design
-showBottomAppBar(String apptitle,Size size,{centerTitles,elevations,titleColors, List<Widget>? actions, isAdminBack}){
+showBottomAppBar(String apptitle, Size size,
+    {centerTitles,
+    elevations,
+    titleColors,
+    List<Widget>? actions,
+    isAdminBack,
+    Widget? leading,
+    VoidCallback? onBackTap}) {
   return AppBar(
     automaticallyImplyLeading: isAdminBack ?? false,
+    leading: leading ??
+        (isAdminBack == true
+            ? Builder(
+                builder: (ctx) => IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: ColorConst.black,
+                    size: 20,
+                  ),
+                  onPressed: onBackTap ?? () => Navigator.of(ctx).pop(),
+                ),
+              )
+            : null),
     centerTitle: centerTitles ?? true,
     backgroundColor: ColorConst.white,
     surfaceTintColor: ColorConst.transparent,
     elevation: elevations ?? 1.5,
     shadowColor: ColorConst.grey.withOpacity(0.25),
-    title: Text(apptitle, style: TextStyle(color: ColorConst.black, fontFamily: fontInterSemiBoldString, fontWeight: FontWeight.w600, fontSize: size.width * 0.05)),
+    title: Text(apptitle,
+        style: TextStyle(
+            color: ColorConst.black,
+            fontFamily: fontInterSemiBoldString,
+            fontWeight: FontWeight.w600,
+            fontSize: size.width * 0.05)),
     actions: actions,
   );
 }
