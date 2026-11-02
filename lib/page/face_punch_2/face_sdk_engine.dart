@@ -282,6 +282,23 @@ class FaceSdkEngine {
     }
   }
 
+  /// Returns the effective sensor rotation angle (0, 90, 180, 270).
+  ///
+  /// On iOS, camera_avfoundation automatically configures AVCaptureConnection
+  /// with videoOrientation = .portrait. Therefore, the CVPixelBuffer frames
+  /// delivered to Flutter are already upright portrait buffers (e.g. 480x640).
+  /// Applying 90° or 270° rotation incorrectly turns them sideways into landscape!
+  /// Only on Android (or if an iOS buffer is landscape width > height) is sensor orientation applied.
+  int getEffectiveRotation(CameraDescription camera, [int? width, int? height]) {
+    if (Platform.isIOS) {
+      if (width != null && height != null && width > height) {
+        return 90;
+      }
+      return 0;
+    }
+    return camera.sensorOrientation;
+  }
+
   /// Convert a CameraImage into an InputImage for ML Kit FaceDetector
   InputImage? convertCameraImage(CameraImage image, CameraDescription camera) {
     try {
@@ -292,13 +309,14 @@ class FaceSdkEngine {
       final bytes = allBytes.done().buffer.asUint8List();
 
       final Size imageSize = Size(image.width.toDouble(), image.height.toDouble());
+      final int effectiveRotation = getEffectiveRotation(camera, image.width, image.height);
       final InputImageRotation rotation =
-          InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
+          InputImageRotationValue.fromRawValue(effectiveRotation) ??
               InputImageRotation.rotation0deg;
 
       final InputImageFormat format =
           InputImageFormatValue.fromRawValue(image.format.raw) ??
-              InputImageFormat.nv21;
+              (Platform.isIOS ? InputImageFormat.bgra8888 : InputImageFormat.nv21);
 
       return InputImage.fromBytes(
         bytes: bytes,
@@ -615,7 +633,10 @@ class FaceSdkEngine {
 
     final double centerX = box.left + box.width / 2.0;
     final double centerY = box.top + box.height / 2.0;
-    final double faceSize = math.max(box.width, box.height) * scale;
+    // Bound the context scale so it doesn't vastly overflow the frame boundaries,
+    // which creates flat edge-clamped stripes that MiniFASNet mistakes for screen bezels (fake2).
+    final double maxFit = math.min(w.toDouble(), h.toDouble()) * 1.15;
+    final double faceSize = (math.max(box.width, box.height) * scale).clamp(box.width * 1.3, maxFit);
 
     final input = Float32List(1 * 80 * 80 * 3);
     int pixelIndex = 0;
@@ -876,22 +897,40 @@ class FaceSdkEngine {
       final double fakeScore2 = (outputTensor[0][2] as num).toDouble();
 
       // MiniFASNet has 3 classes: [fake1, real, fake2].
-      // If either fake class has a higher or equal raw score to realScore, the model
-      // has explicitly classified this frame as a SPOOF/PHOTO. Fail immediately (return 0.0)!
-      if (realScore <= fakeScore1 || realScore <= fakeScore2) {
-        debugPrint(
-          '[FaceSdkEngine] FAS Anti-Spoof: SPOOF PHOTO REJECTED (fake1=${fakeScore1.toStringAsFixed(2)}, real=${realScore.toStringAsFixed(2)}, fake2=${fakeScore2.toStringAsFixed(2)}) -> 0.0%',
-        );
-        return 0.0;
-      }
-
+      // fake1 = print attack (paper/photo); fake2 = screen replay attack.
+      //
+      // Strategy: compute softmax probability FIRST, then decide.
+      // Using raw-score comparisons before softmax is unreliable across platforms
+      // because iOS BGRA and Android NV21 pixel normalizations differ slightly.
+      // The softmax probability is self-calibrating and platform-agnostic.
       final double maxScore = math.max(fakeScore1, math.max(realScore, fakeScore2));
       final double expFake1 = math.exp(fakeScore1 - maxScore);
       final double expReal = math.exp(realScore - maxScore);
       final double expFake2 = math.exp(fakeScore2 - maxScore);
       final double sumExp = expFake1 + expReal + expFake2;
 
-      double livenessScore = (sumExp > 0) ? (expReal / sumExp) : 0.0;
+      final double probFake1 = (sumExp > 0) ? (expFake1 / sumExp) : 0.0;
+      final double probReal = (sumExp > 0) ? (expReal / sumExp) : 0.0;
+      final double probFake2 = (sumExp > 0) ? (expFake2 / sumExp) : 0.0;
+
+      // Definite spoof: real class is NOT the highest-probability class
+      // AND the winning fake class has clear confidence advantage (>= 0.15 margin over real).
+      // This means we only hard-reject when the model is confident it's a spoof,
+      // not when it's jittery/uncertain between real and fake2.
+      final bool isClearSpoof = probReal < probFake1 && (probFake1 - probReal) >= 0.15 ||
+          probReal < probFake2 && (probFake2 - probReal) >= 0.15;
+
+      if (isClearSpoof) {
+        debugPrint(
+          '[FaceSdkEngine] FAS Anti-Spoof: SPOOF REJECTED '
+          '(p_real=${(probReal * 100).toStringAsFixed(1)}%, p_fake1=${(probFake1 * 100).toStringAsFixed(1)}%, p_fake2=${(probFake2 * 100).toStringAsFixed(1)}%) '
+          '(raw: real=${realScore.toStringAsFixed(2)}, fake1=${fakeScore1.toStringAsFixed(2)}, fake2=${fakeScore2.toStringAsFixed(2)}) -> 0.0%',
+        );
+        return 0.0;
+      }
+
+      // Liveness score is the real-class softmax probability [0..1]
+      double livenessScore = probReal;
 
       // Multi-modal check: Head tilt penalty
       if (mlFace != null) {
@@ -944,10 +983,12 @@ class FaceSdkEngine {
     final t0 = DateTime.now().millisecondsSinceEpoch;
     await init();
 
-    final int uprightWidth = (camera.sensorOrientation == 90 || camera.sensorOrientation == 270)
+    final int effectiveRotation = getEffectiveRotation(camera, cameraImage.width, cameraImage.height);
+
+    final int uprightWidth = (effectiveRotation == 90 || effectiveRotation == 270)
         ? cameraImage.height
         : cameraImage.width;
-    final int uprightHeight = (camera.sensorOrientation == 90 || camera.sensorOrientation == 270)
+    final int uprightHeight = (effectiveRotation == 90 || effectiveRotation == 270)
         ? cameraImage.width
         : cameraImage.height;
 
@@ -1008,7 +1049,7 @@ class FaceSdkEngine {
     final double mlRoll = mlFace.headEulerAngleZ ?? 0.0;
     final double mlPitch = mlFace.headEulerAngleX ?? 0.0;
 
-    // 1b. Validate that the FULL face is completely inside the visible camera widget
+    // 1b. Validate that the FULL face is inside the visible camera widget
     final double cameraAspect = uprightWidth / uprightHeight;
     Rect visibleRect;
     if (visibleAspectRatio != null && visibleAspectRatio > 0) {
@@ -1027,25 +1068,24 @@ class FaceSdkEngine {
       visibleRect = Rect.fromLTWH(0, 0, uprightWidth.toDouble(), uprightHeight.toDouble());
     }
 
-    // Safety margins: Ensure forehead, chin, cheeks are comfortably inside the visible box (not cut in half)
-    final double marginX = visibleRect.width * 0.04;
-    final double marginY = visibleRect.height * 0.04;
-    final double safeLeft = visibleRect.left + marginX;
-    final double safeRight = visibleRect.right - marginX;
-    final double safeTop = visibleRect.top + marginY;
-    final double safeBottom = visibleRect.bottom - marginY;
+    // Safety margins: Ensure the face center is inside and at least 75% of face is within visible bounds
+    final double faceCenterX = mlBox.left + mlBox.width / 2.0;
+    final double faceCenterY = mlBox.top + mlBox.height / 2.0;
+    final bool isCenterInside = visibleRect.contains(Offset(faceCenterX, faceCenterY));
 
-    final bool isFaceFullyInside = mlBox.left >= safeLeft &&
-        mlBox.right <= safeRight &&
-        mlBox.top >= safeTop &&
-        mlBox.bottom <= safeBottom;
+    final intersection = mlBox.intersect(visibleRect);
+    final double faceArea = mlBox.width * mlBox.height;
+    final double visibleArea = (intersection.width > 0 && intersection.height > 0)
+        ? (intersection.width * intersection.height)
+        : 0.0;
+    final bool isFaceFullyInside = isCenterInside && (faceArea > 0 && (visibleArea / faceArea) >= 0.75);
 
     // Frontal orientation check (reject profile/half faces where user turns head sideways)
     final bool isLookingStraight = mlYaw.abs() <= 20.0 && mlPitch.abs() <= 20.0;
 
     // Ensure face is properly sized (not tiny speck or oversized beyond widget)
-    final bool isReasonableSize = mlBox.width >= visibleRect.width * 0.18 &&
-        mlBox.width <= visibleRect.width * 0.88;
+    final bool isReasonableSize = mlBox.width >= visibleRect.width * 0.15 &&
+        mlBox.width <= visibleRect.width * 0.90;
 
     if (!isFaceFullyInside || !isLookingStraight || !isReasonableSize) {
       final String reason = !isFaceFullyInside
@@ -1077,22 +1117,37 @@ class FaceSdkEngine {
       );
     }
 
-    // 2. Direct 112x112 square face crop with roll angle compensation for recognition (~3ms)
-    final faceCrop112 = cropFace112(
-      cameraImage,
-      mlBox,
-      camera.sensorOrientation,
-      rollAngle: mlRoll,
-    );
+    // 2. High-accuracy 112x112 square face crop
+    // On iOS (BGRA), convertCameraImageToRgb + cropFaceSquare provides smoothly interpolated pixels
+    // matching enrollment quality (54.3% raw / 83.5% calibrated).
+    final faceCrop112 = (cameraImage.format.group == ImageFormatGroup.bgra8888)
+        ? cropFaceSquare(convertCameraImageToRgb(cameraImage, effectiveRotation), mlBox)
+        : cropFace112(
+            cameraImage,
+            mlBox,
+            effectiveRotation,
+            rollAngle: mlRoll,
+          );
     final tCrop = DateTime.now().millisecondsSinceEpoch;
 
-    // 2b. Direct 2.7x 80x80 BGR tensor for FAS Anti-Spoofing (<1ms)
-    final tensor80Bgr = cropFaceScaled80Bgr(
-      cameraImage,
-      mlBox,
-      camera.sensorOrientation,
-      scale: 2.7,
-    );
+    // 2b. Direct 2.7x 80x80 BGR tensor for FAS Anti-Spoofing
+    // iOS BGRA: Use the safe img.Image path (_cropImageScaled80Bgr with getPixel + edge-clamp)
+    // instead of the raw BGRA plane walk which can produce black zero-padding on row-stride boundaries,
+    // causing MiniFASNet to misclassify real faces as screen replay attacks (fake2 class → live=0%).
+    // Android NV21/YUV420: Use the fast direct-plane path (no full frame decode needed).
+    final Float32List tensor80Bgr;
+    if (cameraImage.format.group == ImageFormatGroup.bgra8888) {
+      // For iOS: reuse the already-decoded full-frame img.Image to build the FAS tensor
+      final iosFullFrame = convertCameraImageToRgb(cameraImage, effectiveRotation);
+      tensor80Bgr = _cropImageScaled80Bgr(iosFullFrame, mlBox, scale: 2.7);
+    } else {
+      tensor80Bgr = cropFaceScaled80Bgr(
+        cameraImage,
+        mlBox,
+        effectiveRotation,
+        scale: 2.7,
+      );
+    }
 
     // Anti-spoof liveness detection using FAS model (~3-5ms)
     final double livenessScore = await computeLiveness(
@@ -1119,12 +1174,31 @@ class FaceSdkEngine {
         final enrolledFloats = _toFloat32List(enrolledTemplates);
         final simNorm = cosineSimilarityFloats(embNormal, enrolledFloats);
         double rawSim = simNorm;
+        debugPrint('[FaceSdkEngine] Compare "${person.name}": baseNorm=${(simNorm * 100).toStringAsFixed(1)}% (effectiveRot=$effectiveRotation, roll=${mlRoll.toStringAsFixed(1)}°)');
 
         // 1. If normal similarity is below threshold, try flipped embedding for mirror invariance
         if (rawSim < threshold) {
           embFlipped ??= _extractEmbedding(img.flipHorizontal(faceCrop112));
           final simFlip = cosineSimilarityFloats(embFlipped, enrolledFloats);
           rawSim = math.max(rawSim, simFlip);
+        }
+
+        // 2. If still below threshold, try tighter crop (1.20x) focusing on facial core (eyes, nose, mouth)
+        if (calibrateSimilarity(rawSim) < threshold) {
+          final tightCrop = cropFace112(
+            cameraImage,
+            mlBox,
+            camera.sensorOrientation,
+            rollAngle: mlRoll,
+            paddingScale: 1.20,
+          );
+          final embTight = _extractEmbedding(tightCrop);
+          final simTight = cosineSimilarityFloats(embTight, enrolledFloats);
+          final simTightFlip = cosineSimilarityFloats(
+            _extractEmbedding(img.flipHorizontal(tightCrop)),
+            enrolledFloats,
+          );
+          rawSim = math.max(rawSim, math.max(simTight, simTightFlip));
         }
 
         final sim = calibrateSimilarity(rawSim);
@@ -1169,10 +1243,7 @@ class FaceSdkEngine {
     if (isMatch) {
       try {
         liveFaceJpg = Uint8List.fromList(img.encodeJpg(faceCrop112, quality: 90));
-        var selfie = convertCameraImageToRgb(cameraImage, camera.sensorOrientation);
-        if (camera.lensDirection == CameraLensDirection.front) {
-          selfie = img.flipHorizontal(selfie);
-        }
+        final selfie = convertCameraImageToRgb(cameraImage, effectiveRotation);
         fullFrameJpg = Uint8List.fromList(img.encodeJpg(selfie, quality: 75));
       } catch (e) {
         debugPrint('[FaceSdkEngine] Error encoding selfie on match: $e');
@@ -1259,15 +1330,13 @@ class FaceSdkEngine {
     required Rect boundingBox,
   }) async {
     try {
-      var rgbImage = convertCameraImageToRgb(cameraImage, camera.sensorOrientation);
+      final int effectiveRotation = getEffectiveRotation(camera, cameraImage.width, cameraImage.height);
+      var rgbImage = convertCameraImageToRgb(cameraImage, effectiveRotation);
 
       final faceCrop = cropFaceSquare(rgbImage, boundingBox);
       final faceJpg = Uint8List.fromList(img.encodeJpg(faceCrop, quality: 90));
 
-      var previewImage = rgbImage;
-      if (camera.lensDirection == CameraLensDirection.front) {
-        previewImage = img.flipHorizontal(previewImage);
-      }
+      final previewImage = rgbImage;
       final fullFrameJpg = Uint8List.fromList(img.encodeJpg(previewImage, quality: 85));
 
       // Consistent MobileFaceNet extraction for camera enrollment (768 bytes)

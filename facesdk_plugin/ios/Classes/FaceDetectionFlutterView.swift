@@ -104,8 +104,11 @@ class FaceDetectionFlutterView : NSObject, FlutterPlatformView, AVCaptureVideoDa
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
         
         let context = CIContext()
-        let cgImage = context.createCGImage(ciImage, from: ciImage.extent)
-        let image = UIImage(cgImage: cgImage!)
+        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+            CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.readOnly)
+            return
+        }
+        let image = UIImage(cgImage: cgImage)
         CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.readOnly)
 
         var capturedImage = image.rotate(radians: .pi/2)
@@ -113,12 +116,12 @@ class FaceDetectionFlutterView : NSObject, FlutterPlatformView, AVCaptureVideoDa
             capturedImage = capturedImage.flipHorizontally()
         }
         
-        let faceBoxes = FaceSDK.faceDetection(capturedImage)
+        guard let faceBoxes = FaceSDK.faceDetection(capturedImage) as? [FaceBox], !faceBoxes.isEmpty else { return }
         var faceBoxesMap = NSMutableArray()
-        for face in (faceBoxes as NSArray as! [FaceBox]) {
-            let templates = FaceSDK.templateExtraction(capturedImage, faceBox: face)
+        for face in faceBoxes {
+            let templates = FaceSDK.templateExtraction(capturedImage, faceBox: face) ?? Data()
             let faceImage = capturedImage.cropFace(faceBox: face)
-            let faceJpg = faceImage!.jpegData(compressionQuality: CGFloat(1.0))
+            let faceJpg = faceImage?.jpegData(compressionQuality: CGFloat(1.0)) ?? Data()
 
             var faceDic = Dictionary<String, Any>()
             faceDic["x1"] = face.x1

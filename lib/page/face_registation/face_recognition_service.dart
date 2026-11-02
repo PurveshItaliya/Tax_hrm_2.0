@@ -92,8 +92,11 @@ class FaceRecognitionService {
       image.width.toDouble(),
       image.height.toDouble(),
     );
+    final int effectiveOrientation = Platform.isIOS
+        ? ((image.width > image.height) ? 90 : 0)
+        : camera.sensorOrientation;
     final InputImageRotation imageRotation =
-        InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
+        InputImageRotationValue.fromRawValue(effectiveOrientation) ??
         InputImageRotation.rotation0deg;
 
     // Fallback format if null (e.g. nv21 on Android)
@@ -390,9 +393,12 @@ class FaceRecognitionService {
 
     try {
       // Run heavy image processing on an Isolate to prevent UI freeze
+      final int effectiveOrientation = Platform.isIOS
+          ? ((cameraImage.width > cameraImage.height) ? 90 : 0)
+          : camera.sensorOrientation;
       final Float32List? processedInput = await Isolate.run(() => _processLivenessIsolate({
         'cameraImage': cameraImage,
-        'sensorOrientation': camera.sensorOrientation,
+        'sensorOrientation': effectiveOrientation,
         'boundingBox': face.boundingBox,
       }));
       
@@ -440,9 +446,12 @@ class FaceRecognitionService {
     }
     try {
       // Run heavy image processing on an Isolate to prevent UI freeze
+      final int effectiveOrientation = Platform.isIOS
+          ? ((cameraImage.width > cameraImage.height) ? 90 : 0)
+          : camera.sensorOrientation;
       final dynamic processedResult = await Isolate.run(() => _processRecognitionIsolate({
         'cameraImage': cameraImage,
-        'sensorOrientation': camera.sensorOrientation,
+        'sensorOrientation': effectiveOrientation,
         'boundingBox': face.boundingBox,
         'hasInterpreter': recognitionInterpreter != null,
       }));

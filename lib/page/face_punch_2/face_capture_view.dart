@@ -1,7 +1,6 @@
 // ignore_for_file: constant_identifier_names, unused_field, must_be_immutable, duplicate_ignore, library_private_types_in_public_api, strict_top_level_inference, curly_braces_in_flow_control_structures, empty_catches
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -19,13 +18,8 @@ import 'package:tax_hrm/page/face_punch_2/face_sdk_engine.dart';
 import 'package:tax_hrm/page/face_punch_2/face_sdk_verify_screen.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
-import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:tax_hrm/api/documentapi.dart';
-import 'package:tax_hrm/api/employeapi.dart';
-import 'package:tax_hrm/api/authapi.dart';
-import 'package:tax_hrm/models/authclass/emploginclass.dart';
-import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 
@@ -1290,18 +1284,31 @@ class FaceCaptureDetectionView extends StatefulWidget
   State<StatefulWidget> createState() => _FaceCaptureDetectionViewState();
 }
 
-class _FaceCaptureDetectionViewState extends State<FaceCaptureDetectionView> {
+class _FaceCaptureDetectionViewState extends State<FaceCaptureDetectionView>
+    with WidgetsBindingObserver {
   CameraController? _cameraController;
   CameraDescription? _frontCamera;
   FaceDetector? _faceDetector;
   bool _isProcessingFrame = false;
   bool _isCameraReady = false;
+  bool _isPermissionDenied = false;
+  bool _isPermanentlyDenied = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initDetector();
     _startCamera();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_cameraController == null || !_cameraController!.value.isInitialized || _isPermissionDenied) {
+        _startCamera();
+      }
+    }
   }
 
   void _initDetector() {
@@ -1318,13 +1325,48 @@ class _FaceCaptureDetectionViewState extends State<FaceCaptureDetectionView> {
 
   Future<void> _startCamera() async {
     try {
-      final status = await Permission.camera.request();
+      PermissionStatus status = await Permission.camera.status;
       if (!status.isGranted) {
-        debugPrint('[FaceCaptureView] Camera permission denied');
+        status = await Permission.camera.request();
+      }
+
+      if (!status.isGranted) {
+        debugPrint('[FaceCaptureView] Camera permission denied: $status');
+        if (mounted) {
+          setState(() {
+            _isPermissionDenied = true;
+            _isPermanentlyDenied = status.isPermanentlyDenied || status.isRestricted;
+            _isCameraReady = false;
+          });
+        }
         return;
       }
 
-      final cameras = await availableCameras();
+      if (mounted) {
+        setState(() {
+          _isPermissionDenied = false;
+          _isPermanentlyDenied = false;
+        });
+      }
+
+      if (_cameraController != null) {
+        try {
+          if (_cameraController!.value.isStreamingImages) {
+            await _cameraController?.stopImageStream();
+          }
+          await _cameraController?.dispose();
+        } catch (_) {}
+        _cameraController = null;
+        if (Platform.isIOS) {
+          await Future.delayed(const Duration(milliseconds: 150));
+        }
+      }
+
+      var cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        cameras = await availableCameras();
+      }
       if (cameras.isEmpty) return;
 
       _frontCamera = cameras.firstWhere(
@@ -1399,10 +1441,11 @@ class _FaceCaptureDetectionViewState extends State<FaceCaptureDetectionView> {
         return;
       }
 
-      final int uprightWidth = (_frontCamera!.sensorOrientation == 90 || _frontCamera!.sensorOrientation == 270)
+      final int effRot = FaceSdkEngine.instance.getEffectiveRotation(_frontCamera!, image.width, image.height);
+      final int uprightWidth = (effRot == 90 || effRot == 270)
           ? image.height
           : image.width;
-      final int uprightHeight = (_frontCamera!.sensorOrientation == 90 || _frontCamera!.sensorOrientation == 270)
+      final int uprightHeight = (effRot == 90 || effRot == 270)
           ? image.width
           : image.height;
 
@@ -1487,6 +1530,7 @@ class _FaceCaptureDetectionViewState extends State<FaceCaptureDetectionView> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.faceRecognitionViewState.onNativeStopCamera = null;
     widget.faceRecognitionViewState.onNativeRestartCamera = null;
     if (_cameraController != null && _cameraController!.value.isStreamingImages) {
@@ -1501,6 +1545,67 @@ class _FaceCaptureDetectionViewState extends State<FaceCaptureDetectionView> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isPermissionDenied) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.videocam_off_rounded,
+                    color: Colors.redAccent,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Camera Permission Required',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _isPermanentlyDenied
+                      ? 'Camera permission is permanently denied. Please allow camera access in Settings.'
+                      : 'Camera permission is required to register your face.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ColorConst.themeColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: Icon(_isPermanentlyDenied ? Icons.settings : Icons.camera_alt, size: 16),
+                  label: Text(_isPermanentlyDenied ? 'Open Settings' : 'Allow Camera'),
+                  onPressed: () async {
+                    if (_isPermanentlyDenied) {
+                      await openAppSettings();
+                    } else {
+                      _startCamera();
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     if (!_isCameraReady || _cameraController == null || !_cameraController!.value.isInitialized) {
       return Container(
         color: Colors.black,

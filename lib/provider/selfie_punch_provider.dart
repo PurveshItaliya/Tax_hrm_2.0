@@ -181,160 +181,259 @@ class SelfiePunchProvider extends ChangeNotifier {
   File? imageFile;
   XFile? picture;
 
+  // ── Camera Startup Mutex ──────────────────────────────────────────────────
+  // Prevents concurrent startCamera() calls from cancelling each other via
+  // _cameraSessionId increments. While a startup is in progress, additional
+  // callers simply await the existing Future and return when it completes.
+  Completer<void>? _startCameraCompleter;
+
+  bool get isStartingCamera => _startCameraCompleter != null && !_startCameraCompleter!.isCompleted;
+
+  Future<void> _disposeControllerSafely(CameraController controller) async {
+    if (controller.value.isStreamingImages) {
+      try {
+        await controller.stopImageStream();
+      } catch (_) {}
+    }
+    try {
+      await controller.dispose().timeout(const Duration(seconds: 3));
+      log("STARTCAMERA: Disposed controller safely");
+    } catch (e) {
+      log("STARTCAMERA: controller dispose error: $e");
+    }
+    if (Platform.isIOS) {
+      // Give iOS AVFoundation time to fully release the capture session
+      await Future.delayed(const Duration(milliseconds: 250));
+    }
+  }
+
   Future<void> startCamera(int setDirection) async {
+    // ── Mutex guard: if already starting camera, wait for it to finish ────────
+    if (isStartingCamera) {
+      log("STARTCAMERA: Already starting camera, waiting for existing start...");
+      try {
+        await _startCameraCompleter!.future.timeout(const Duration(seconds: 10));
+      } catch (_) {}
+      return;
+    }
+
+    // If camera is already ready and initialized, nothing to do
+    if (isCameraReady && cameraController != null && cameraController!.value.isInitialized) {
+      log("STARTCAMERA: Camera already ready, skipping start.");
+      return;
+    }
+
+    _startCameraCompleter = Completer<void>();
     log("STARTCAMERA: 1. startCamera called with direction $setDirection");
-    final sessionId = ++_cameraSessionId;
+
     readyCameraPreviewshow = true;
     cameraisLoading = true;
     isCameraReady = false;
     notifyListeners();
 
     try {
-      // Fast path: Only query/request camera permission if not already granted
+      // 1. Verify camera permission; request if not yet determined
       if (camerapermissionStatus != PermissionStatus.granted) {
-        log("STARTCAMERA: 2. Checking permission status");
+        log("STARTCAMERA: 2. Checking camera permission status");
         try {
-          camerapermissionStatus = await Permission.camera.status.timeout(
-            const Duration(seconds: 2),
-          );
-          log("STARTCAMERA: 3. Status is $camerapermissionStatus");
-          if (camerapermissionStatus != PermissionStatus.granted) {
-            log("STARTCAMERA: 4. Requesting permission");
-            camerapermissionStatus = await Permission.camera.request().timeout(
-              const Duration(seconds: 3),
-            );
+          final currentStatus = await Permission.camera.status;
+          log("STARTCAMERA: 3. Permission status is $currentStatus");
+          if (currentStatus.isGranted) {
+            camerapermissionStatus = PermissionStatus.granted;
+          } else if (currentStatus.isPermanentlyDenied || currentStatus.isRestricted) {
+            camerapermissionStatus = currentStatus;
+            log("STARTCAMERA: Permission permanently denied/restricted, stopping.");
+            readyCameraPreviewshow = false;
+            cameraisLoading = false;
+            isCameraReady = false;
+            notifyListeners();
+            return;
+          } else {
+            // Denied (undetermined on iOS) — request it
+            log("STARTCAMERA: 4. Requesting camera permission...");
+            camerapermissionStatus = await Permission.camera.request();
             log("STARTCAMERA: 5. Request result is $camerapermissionStatus");
           }
         } catch (e) {
-          log("STARTCAMERA: Permission check timed out or failed: $e");
+          log("STARTCAMERA: Permission check failed: $e");
           camerapermissionStatus = PermissionStatus.denied;
         }
 
         if (camerapermissionStatus != PermissionStatus.granted) {
-          log("STARTCAMERA: 6. Permission not granted, returning");
+          log("STARTCAMERA: 6. Camera permission not granted ($camerapermissionStatus)");
           readyCameraPreviewshow = false;
           cameraisLoading = false;
+          isCameraReady = false;
           notifyListeners();
           return;
         }
       }
 
-      // Fast path: Reuse previously queried camera hardware list
-      if (cameras == null || cameras!.isEmpty) {
-        log("STARTCAMERA: 7. Getting available cameras");
+      // 2. Discover available cameras — always refresh if front camera is missing
+      Future<void> refreshCameraList() async {
         try {
-          cameras = await availableCameras().timeout(const Duration(seconds: 3));
-          log("STARTCAMERA: 8. Got ${cameras?.length} cameras");
+          final fresh = await availableCameras().timeout(const Duration(seconds: 5));
+          if (fresh.isNotEmpty) cameras = fresh;
+          log("STARTCAMERA: Camera list refreshed: ${cameras?.length} cameras");
         } catch (e) {
-          log("STARTCAMERA: availableCameras timeout or error: $e");
-          readyCameraPreviewshow = false;
-          cameraisLoading = false;
-          notifyListeners();
-          return;
+          log("STARTCAMERA: availableCameras error: $e");
         }
       }
 
       if (cameras == null || cameras!.isEmpty) {
-        log("STARTCAMERA: 9. No cameras found, returning");
+        log("STARTCAMERA: 7. No cached cameras, fetching...");
+        await refreshCameraList();
+        if (Platform.isIOS && (cameras == null || cameras!.isEmpty)) {
+          await Future.delayed(const Duration(milliseconds: 300));
+          await refreshCameraList();
+        }
+      }
+
+      // On iOS, re-fetch if front camera not present in cached list
+      if (setDirection == 0 &&
+          (cameras == null || !cameras!.any((c) => c.lensDirection == CameraLensDirection.front))) {
+        log("STARTCAMERA: Front camera not in cached list, refreshing...");
+        await refreshCameraList();
+      }
+
+      if (cameras == null || cameras!.isEmpty) {
+        log("STARTCAMERA: 9. No cameras found after refresh");
         readyCameraPreviewshow = false;
         cameraisLoading = false;
+        isCameraReady = false;
         notifyListeners();
         return;
       }
 
-      CameraDescription selectedCamera = cameras!.firstWhere(
-        (camera) => setDirection == 0
-            ? camera.lensDirection == CameraLensDirection.front
-            : camera.lensDirection == CameraLensDirection.back,
-      );
+      // 3. Select the desired camera
+      CameraDescription selectedCamera;
+      if (setDirection == 0) {
+        selectedCamera = cameras!.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.front,
+          orElse: () => cameras!.firstWhere(
+            (c) => c.name.toLowerCase().contains('front'),
+            orElse: () => cameras!.first,
+          ),
+        );
+      } else {
+        selectedCamera = cameras!.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.back,
+          orElse: () => cameras!.firstWhere(
+            (c) => c.name.toLowerCase().contains('back'),
+            orElse: () => cameras!.first,
+          ),
+        );
+      }
+      isFrontCamera = (selectedCamera.lensDirection == CameraLensDirection.front);
+      log("STARTCAMERA: 10. Selected camera: ${selectedCamera.name} (${selectedCamera.lensDirection})");
 
-      log("STARTCAMERA: 10. Disposing old controller");
+      // 4. Safely dispose old controller
       final oldController = cameraController;
       cameraController = null;
       if (oldController != null) {
-        if (oldController.value.isStreamingImages) {
-          try {
-            await oldController.stopImageStream();
-          } catch (_) {}
-        }
+        log("STARTCAMERA: 11. Disposing old controller...");
+        await _disposeControllerSafely(oldController);
+        log("STARTCAMERA: 12. Old controller disposed.");
+      } else if (Platform.isIOS) {
+        // Even without an old controller, give iOS AVFoundation a moment to be ready
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
+      // 5. Initialize new controller — up to 3 attempts with increasing backoff
+      CameraController? activeController;
+      const int maxAttempts = 3;
+
+      for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        log("STARTCAMERA: Attempt $attempt/$maxAttempts to initialize controller...");
+
+        final candidate = CameraController(
+          selectedCamera,
+          ResolutionPreset.medium,
+          enableAudio: false,
+          imageFormatGroup: Platform.isAndroid
+              ? ImageFormatGroup.nv21
+              : ImageFormatGroup.bgra8888,
+        );
+
         try {
-          await oldController.dispose().timeout(const Duration(seconds: 2));
-          log("STARTCAMERA: 11. Disposed old controller");
+          await candidate.initialize().timeout(const Duration(seconds: 7));
+          activeController = candidate;
+          log("STARTCAMERA: Controller initialized on attempt $attempt");
+          break;
         } catch (e) {
-          log("STARTCAMERA: oldController dispose error: $e");
+          log("STARTCAMERA: Attempt $attempt failed: $e");
+          try {
+            await candidate.dispose();
+          } catch (_) {}
+
+          if (attempt < maxAttempts) {
+            final waitMs = Platform.isIOS ? 400 * attempt : 250 * attempt;
+            log("STARTCAMERA: Waiting ${waitMs}ms before retry...");
+            await Future.delayed(Duration(milliseconds: waitMs));
+
+            // On iOS, refresh camera list in case hardware was busy
+            if (Platform.isIOS) {
+              try {
+                final fresh = await availableCameras().timeout(const Duration(seconds: 3));
+                if (fresh.isNotEmpty) {
+                  cameras = fresh;
+                  // Re-select camera from fresh list
+                  selectedCamera = (setDirection == 0)
+                      ? fresh.firstWhere(
+                          (c) => c.lensDirection == CameraLensDirection.front,
+                          orElse: () => fresh.first,
+                        )
+                      : fresh.firstWhere(
+                          (c) => c.lensDirection == CameraLensDirection.back,
+                          orElse: () => fresh.first,
+                        );
+                }
+              } catch (_) {}
+            }
+          }
         }
       }
 
-      if (sessionId != _cameraSessionId) {
-        log("STARTCAMERA: 12. Session ID mismatch after dispose, returning");
-        // Reset loading flags so the UI doesn't freeze on a spinner forever.
-        cameraisLoading = false;
+      if (activeController == null) {
+        log("STARTCAMERA: All $maxAttempts attempts failed. Camera NOT ready.");
+        cameraController = null;
         readyCameraPreviewshow = false;
+        cameraisLoading = false;
+        isCameraReady = false;
         notifyListeners();
         return;
       }
 
-      log("STARTCAMERA: 13. Initializing new controller");
-      final newController = CameraController(
-        selectedCamera,
-        ResolutionPreset.medium,
-        enableAudio: false,
-        imageFormatGroup: Platform.isAndroid
-            ? ImageFormatGroup.nv21
-            : ImageFormatGroup.bgra8888,
-      );
-
-      cameraController = newController;
-      try {
-        await cameraController!.initialize().timeout(
-          const Duration(seconds: 5),
-        );
-        log("STARTCAMERA: 14. Initialized new controller successfully");
-
-        // Non-blocking zoom and brightness adjustments so camera readiness is instant
-        cameraController!.getMinZoomLevel().then((minZoom) {
-          cameraController?.setZoomLevel(minZoom).catchError((_) {});
-        }).catchError((_) {});
-        ScreenBrightness().setScreenBrightness(1.0).catchError((_) {});
-
-        // Brightness streaming disabled to prevent camera platform crashes
-        isDarkEnvironment = false;
-      } catch (e) {
-        log("STARTCAMERA: Camera initialize timeout or error: $e");
-        readyCameraPreviewshow = false;
-        cameraisLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      if (sessionId != _cameraSessionId) {
-        log(
-          "STARTCAMERA: 15. Session ID mismatch after init, disposing and returning",
-        );
-        try {
-          await newController.dispose().timeout(const Duration(seconds: 2));
-        } catch (e) {}
-        // Reset loading flags so the UI doesn't freeze on a spinner forever.
-        cameraisLoading = false;
-        readyCameraPreviewshow = false;
-        notifyListeners();
-        return;
-      }
-      log("STARTCAMERA: 16. Camera is completely ready!");
+      // 6. Assign and finalize
+      cameraController = activeController;
       isCameraReady = true;
       readyCameraPreviewshow = false;
+
+      // Non-blocking post-init adjustments
+      cameraController!.getMinZoomLevel().then((minZoom) {
+        cameraController?.setZoomLevel(minZoom).catchError((_) {});
+      }).catchError((_) {});
+      ScreenBrightness().setScreenBrightness(1.0).catchError((_) {});
+      isDarkEnvironment = false;
+
+      log("STARTCAMERA: Camera is completely ready!");
     } on CameraException catch (e) {
       log("STARTCAMERA: CameraException: $e");
       readyCameraPreviewshow = false;
       isCameraReady = false;
+      cameraController = null;
     } catch (e) {
       log("STARTCAMERA: General Exception: $e");
       readyCameraPreviewshow = false;
       isCameraReady = false;
+      cameraController = null;
     } finally {
-      log("STARTCAMERA: 17. Finally block executed");
       cameraisLoading = false;
       notifyListeners();
+      if (!(_startCameraCompleter?.isCompleted ?? true)) {
+        _startCameraCompleter?.complete();
+      }
+      _startCameraCompleter = null;
     }
   }
 
@@ -353,6 +452,7 @@ class SelfiePunchProvider extends ChangeNotifier {
           (isFrontCamera
               ? CameraLensDirection.front
               : CameraLensDirection.back),
+      orElse: () => cameras!.first,
     );
 
     final oldController = cameraController;
@@ -367,6 +467,9 @@ class SelfiePunchProvider extends ChangeNotifier {
         await oldController.dispose().timeout(const Duration(seconds: 2));
       } catch (e) {
         log("switchCamera dispose error: $e");
+      }
+      if (Platform.isIOS) {
+        await Future.delayed(const Duration(milliseconds: 150));
       }
     }
     if (sessionId != _cameraSessionId) return;
@@ -411,7 +514,17 @@ class SelfiePunchProvider extends ChangeNotifier {
   }
 
   Future<void> disposeCamera() async {
+    // If startCamera is still running, wait for it to finish before disposing
+    if (isStartingCamera) {
+      log("disposeCamera: Waiting for in-flight startCamera to complete before disposing...");
+      try {
+        await _startCameraCompleter!.future.timeout(const Duration(seconds: 5));
+      } catch (_) {}
+    }
+
     _cameraSessionId++;
+    _startCameraCompleter = null;
+
     final oldController = cameraController;
     cameraController = null;
     isCameraReady = false;
@@ -424,16 +537,7 @@ class SelfiePunchProvider extends ChangeNotifier {
     } catch (_) {}
 
     if (oldController != null) {
-      if (oldController.value.isStreamingImages) {
-        try {
-          await oldController.stopImageStream();
-        } catch (_) {}
-      }
-      try {
-        await oldController.dispose().timeout(const Duration(seconds: 2));
-      } catch (e) {
-        log("disposeCamera error: $e");
-      }
+      await _disposeControllerSafely(oldController);
     }
     notifyListeners();
   }

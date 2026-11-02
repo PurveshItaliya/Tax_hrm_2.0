@@ -11,6 +11,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:tax_hrm/page/face_punch_2/face_sdk_engine.dart';
 import 'package:tax_hrm/services/remote_config_services.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -586,28 +587,119 @@ class _FaceDetectionViewWidget extends StatefulWidget {
   State<_FaceDetectionViewWidget> createState() => _FaceDetectionViewWidgetState();
 }
 
-class _FaceDetectionViewWidgetState extends State<_FaceDetectionViewWidget> {
+class _FaceDetectionViewWidgetState extends State<_FaceDetectionViewWidget>
+    with WidgetsBindingObserver {
   CameraController? _controller;
   CameraDescription? _frontCamera;
   bool _isProcessingFrame = false;
   bool _isStreaming = false;
+  bool _isLoading = true;
+  bool _isPermissionDenied = false;
+  bool _isPermanentlyDenied = false;
+  String _errorMessage = '';
+  int _initAttempts = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _startCamera();
   }
 
-  Future<void> _startCamera() async {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      pauseCamera();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_controller == null || !_controller!.value.isInitialized || _isPermissionDenied) {
+        _startCamera();
+      } else {
+        resumeCamera();
+      }
+    }
+  }
+
+  Future<void> _disposeCurrentController() async {
+    if (_isStreaming && _controller != null) {
+      try {
+        await _controller?.stopImageStream();
+      } catch (_) {}
+      _isStreaming = false;
+    }
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) return;
+      await _controller?.dispose();
+    } catch (_) {}
+    _controller = null;
+  }
+
+  Future<void> _startCamera() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      // 1. Check and request camera permission if not already granted
+      PermissionStatus status = await Permission.camera.status;
+      if (!status.isGranted) {
+        debugPrint('[FaceSdkVerify] Camera permission status is $status, requesting permission...');
+        status = await Permission.camera.request();
+        debugPrint('[FaceSdkVerify] Camera permission request result: $status');
+      }
+
+      if (!status.isGranted) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _isPermissionDenied = true;
+          _isPermanentlyDenied = status.isPermanentlyDenied || status.isRestricted;
+          _errorMessage = status.isPermanentlyDenied || status.isRestricted
+              ? 'Camera permission is permanently denied. Please allow camera access in Settings.'
+              : 'Camera permission is required for face recognition.';
+        });
+        return;
+      }
+
+      // Permission granted! Reset error flags
+      if (mounted) {
+        setState(() {
+          _isPermissionDenied = false;
+          _isPermanentlyDenied = false;
+          _errorMessage = '';
+        });
+      }
+
+      // 2. Safely dispose any previous controller and pause for iOS AVFoundation hardware release
+      await _disposeCurrentController();
+      if (Platform.isIOS) {
+        await Future.delayed(const Duration(milliseconds: 150));
+      }
+
+      // 3. Query available cameras with retry on iOS
+      List<CameraDescription> cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        debugPrint('[FaceSdkVerify] availableCameras returned empty, retrying in 300ms...');
+        await Future.delayed(const Duration(milliseconds: 300));
+        cameras = await availableCameras();
+      }
+
+      if (cameras.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'No camera found on this device.';
+        });
+        return;
+      }
 
       _frontCamera = cameras.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
       );
 
+      // 4. Create and initialize CameraController
       final controller = CameraController(
         _frontCamera!,
         ResolutionPreset.medium,
@@ -617,18 +709,39 @@ class _FaceDetectionViewWidgetState extends State<_FaceDetectionViewWidget> {
 
       await controller.initialize();
       if (!mounted) {
-        controller.dispose();
+        await controller.dispose();
         return;
       }
 
       setState(() {
         _controller = controller;
+        _isLoading = false;
+        _initAttempts = 0;
       });
 
+      // 5. Start image stream
       await controller.startImageStream(_onCameraImage);
       _isStreaming = true;
     } catch (e) {
-      debugPrint('[FaceSdkVerify] Camera error: $e');
+      debugPrint('[FaceSdkVerify] Camera start error: $e');
+      await _disposeCurrentController();
+      if (!mounted) return;
+
+      // Auto-retry once on iOS if AVFoundation had a transient lock
+      if (_initAttempts < 2) {
+        _initAttempts++;
+        debugPrint('[FaceSdkVerify] Retrying camera init (attempt $_initAttempts)...');
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (mounted) {
+          _startCamera();
+        }
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to start camera. Please tap retry.';
+      });
     }
   }
 
@@ -644,14 +757,24 @@ class _FaceDetectionViewWidgetState extends State<_FaceDetectionViewWidget> {
   }
 
   void resumeCamera() {
+    if (_controller == null || !_controller!.value.isInitialized) {
+      _startCamera();
+      return;
+    }
     if (!_isStreaming && _controller != null && _controller!.value.isInitialized) {
       try {
         _controller?.startImageStream(_onCameraImage);
         _isStreaming = true;
       } catch (e) {
         debugPrint('[FaceSdkVerify] startImageStream error: $e');
+        _startCamera();
       }
     }
+  }
+
+  Future<void> restartCamera() async {
+    _initAttempts = 0;
+    await _startCamera();
   }
 
   Future<void> _onCameraImage(CameraImage image) async {
@@ -680,6 +803,7 @@ class _FaceDetectionViewWidgetState extends State<_FaceDetectionViewWidget> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_isStreaming && _controller != null) {
       try {
         _controller?.stopImageStream();
@@ -691,11 +815,110 @@ class _FaceDetectionViewWidgetState extends State<_FaceDetectionViewWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || !_controller!.value.isInitialized) {
+    if (_isPermissionDenied) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.videocam_off_rounded,
+                  color: Colors.redAccent,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Camera Access Required',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isPermanentlyDenied
+                    ? 'Camera permission is permanently denied. Please allow camera access in Settings to use face recognition.'
+                    : 'Camera permission is required to detect and verify your face.',
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorConst.themeColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: Icon(
+                  _isPermanentlyDenied ? Icons.settings : Icons.camera_alt,
+                  size: 18,
+                ),
+                label: Text(
+                  _isPermanentlyDenied ? 'Open Settings' : 'Allow Camera',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                onPressed: () async {
+                  if (_isPermanentlyDenied) {
+                    await openAppSettings();
+                  } else {
+                    _startCamera();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_isLoading || _controller == null || !_controller!.value.isInitialized) {
+      if (_errorMessage.isNotEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.orangeAccent, size: 48),
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ColorConst.themeColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Retry Camera'),
+                  onPressed: () => _startCamera(),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       return const Center(
         child: CircularProgressIndicator(color: Colors.white),
       );
     }
+
     return SizedBox.expand(
       child: FittedBox(
         fit: BoxFit.cover,

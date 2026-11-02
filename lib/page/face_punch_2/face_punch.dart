@@ -80,28 +80,28 @@ class _FacePunchScreenState extends State<FacePunchScreen>
   bool _isCheckingFaceStatus = false;
   bool _hasShownFaceRegisterPrompt = false;
 
-  // ── Fast Camera Auto-Restart State ──────────────────────────────────────────
-  int _cameraAutoRestartAttempts = 0;
-  DateTime? _lastCameraAutoRestartTime;
+  // ── Camera Auto-Retry State ──────────────────────────────────────────────────
+  Timer? _cameraAutoRetryTimer;
 
-  void _triggerFastCameraAutoRestart() {
-    final now = DateTime.now();
-    if (_lastCameraAutoRestartTime != null &&
-        now.difference(_lastCameraAutoRestartTime!).inMilliseconds < 1000) {
-      return;
-    }
-    _lastCameraAutoRestartTime = now;
-    if (_cameraAutoRestartAttempts < 5) {
-      _cameraAutoRestartAttempts++;
-      debugPrint('[FacePunch] FAST CAMERA AUTO-RESTART triggered (attempt $_cameraAutoRestartAttempts/5)...');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted &&
-            !selfiePunchProvider.cameraisLoading &&
-            !selfiePunchProvider.isCameraReady) {
-          selfiePunchProvider.startCamera(0);
-        }
-      });
-    }
+  void _startCameraAutoRetryLoop() {
+    _cameraAutoRetryTimer?.cancel();
+    // Poll every 2 seconds. The startCamera mutex ensures only one attempt runs
+    // at a time — concurrent timer ticks will simply wait for the running attempt.
+    _cameraAutoRetryTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!mounted) return;
+      final bool isPermDenied =
+          selfiePunchProvider.camerapermissionStatus == PermissionStatus.denied ||
+          selfiePunchProvider.camerapermissionStatus == PermissionStatus.permanentlyDenied ||
+          selfiePunchProvider.camerapermissionStatus == PermissionStatus.restricted;
+
+      if (!isPermDenied &&
+          !selfiePunchProvider.isCameraReady &&
+          !selfiePunchProvider.isStartingCamera &&
+          !_isFlowRunning) {
+        debugPrint('[FacePunch] Auto-retry: camera not ready, calling startCamera(0)...');
+        selfiePunchProvider.startCamera(0);
+      }
+    });
   }
 
   // ── On-Demand Face Verification State ─────────────────────────────────────
@@ -402,12 +402,24 @@ class _FacePunchScreenState extends State<FacePunchScreen>
         } catch (_) {}
       }
 
+      if (Platform.isIOS) {
+        // On iOS, give AVFoundation time for AE/AWB to settle after the preview
+        // was potentially paused or the stream was re-opened. Without this delay,
+        // the first frames are poorly exposed → FAS gives live=0% on real faces.
+        await Future.delayed(const Duration(milliseconds: 250));
+      }
+
       await controller.startImageStream((CameraImage image) async {
         if (isStopped || completer.isCompleted || isProcessing) return;
 
         frameCount++;
-        if (frameCount <= 1) {
-          debugPrint('[FacePunch] [Verify] Discarding buffer frame #$frameCount');
+
+        // Skip the first N frames while the camera AE/AWB settles.
+        // iOS needs more warmup frames than Android because AVFoundation's
+        // auto-exposure takes longer to stabilize after stream start.
+        final int warmupFrames = Platform.isIOS ? 5 : 2;
+        if (frameCount <= warmupFrames) {
+          debugPrint('[FacePunch] [Verify] Discarding warmup frame #$frameCount/$warmupFrames');
           return;
         }
 
@@ -505,7 +517,8 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                 return;
               }
             } else {
-              consecutiveMatchCount = 0;
+              // Graceful match retention: don't instantly drop 1 match to 0 on a single frame glitch
+              consecutiveMatchCount = max(0, consecutiveMatchCount - 1);
             }
           }
         } catch (e) {
@@ -544,6 +557,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     WidgetsBinding.instance.addObserver(this);
     RemoteConfigServices.configVersion.addListener(_onRemoteConfigUpdated);
     _loadSettings();
+    _startCameraAutoRetryLoop();
 
     // Fast path: Check local SQLite enrollment immediately for current user
     FaceRegistrationSyncService.instance.isFaceEnrolledLocally().then((isLocal) {
@@ -663,9 +677,13 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
       // Self-heal camera preview if it was paused or killed by OS in background
       final controller = selfiePunchProvider.cameraController;
-      if (controller == null || !controller.value.isInitialized || !selfiePunchProvider.isCameraReady) {
-        debugPrint('[FacePunch] App Resumed: Camera not ready, fast auto-restarting...');
-        _cameraAutoRestartAttempts = 0;
+      if (!selfiePunchProvider.isCameraReady &&
+          !selfiePunchProvider.isStartingCamera) {
+        debugPrint('[FacePunch] App Resumed: Camera not ready, starting...');
+        selfiePunchProvider.startCamera(0);
+      } else if (controller != null && !controller.value.isInitialized &&
+          !selfiePunchProvider.isStartingCamera) {
+        debugPrint('[FacePunch] App Resumed: Camera controller not initialized, restarting...');
         selfiePunchProvider.startCamera(0);
       }
 
@@ -683,6 +701,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
   @override
   void dispose() {
+    _cameraAutoRetryTimer?.cancel();
     _cameraBoxMessageTimer?.cancel();
     RemoteConfigServices.configVersion.removeListener(_onRemoteConfigUpdated);
     final controller = selfiePunchProvider.cameraController;
@@ -716,37 +735,34 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     final provider = Provider.of<SelfiePunchProvider>(context, listen: false);
 
     try {
-      debugPrint("INITPAGE: 2. FAST PATH started");
-      // FAST PATH: Check both camera and location upfront
-      bool camGranted = false;
-      bool locGranted = false;
+      debugPrint("INITPAGE: 1. Checking camera permission status");
+      final camStatus = await Permission.camera.status;
+      bool camGranted = camStatus.isGranted;
 
-      try {
-        final results = await Future.wait([
-          Permission.camera.status.isGranted.timeout(const Duration(seconds: 2)),
-          Permission.location.status.isGranted.timeout(const Duration(seconds: 2)),
-        ]);
-        camGranted = results[0];
-        locGranted = results[1];
-        debugPrint(
-          "INITPAGE: 3. Fast path results: camGranted=$camGranted, locGranted=$locGranted",
-        );
-      } catch (e) {
-        debugPrint(
-          "INITPAGE: 4. Fast path permission check failed or timed out: $e",
-        );
+      // If camera permission has not yet been granted, request it directly so user is asked immediately!
+      if (!camGranted && !camStatus.isPermanentlyDenied && !camStatus.isRestricted) {
+        debugPrint("INITPAGE: Camera not yet granted. Requesting permission directly...");
+        final req = await Permission.camera.request();
+        camGranted = req.isGranted;
+        provider.camerapermissionStatus = req;
+      } else {
+        provider.camerapermissionStatus = camStatus;
       }
 
       bool cameraStarted = false;
       if (mounted && camGranted) {
-        debugPrint("INITPAGE: 5. Fast path calling startCamera(0)");
+        debugPrint("INITPAGE: Camera is granted. Calling startCamera(0) instantly...");
+        provider.camerapermissionStatus = PermissionStatus.granted;
         provider.startCamera(0);
         cameraStarted = true;
       }
 
-      if (mounted && locGranted) {
+      final locStatus = await Permission.location.status;
+      final bool locGranted = locStatus.isGranted;
+
+      if (mounted && camGranted && locGranted) {
         debugPrint(
-          "INITPAGE: 6. Fast path locGranted is true, proceeding with API calls",
+          "INITPAGE: Both camera & location granted, proceeding with API & location fetch",
         );
         Future.wait([
           provider.getCurrentLocation(context: context),
@@ -757,14 +773,14 @@ class _FacePunchScreenState extends State<FacePunchScreen>
         return; // Fast path successful!
       }
 
-      debugPrint("INITPAGE: 14. SLOW PATH started (locGranted=false)");
-      // SLOW PATH: We don't have location yet, so we MUST wait for the flow.
+      debugPrint("INITPAGE: Location or remaining permissions pending. Running PermissionFlowService...");
+      // SLOW PATH: We don't have all permissions yet, so run the permission flow!
       final result = await PermissionFlowService.run(
         context,
         isFetchLocation: provider.isFetchLocation,
       );
       debugPrint(
-        "INITPAGE: 15. SLOW PATH PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}",
+        "INITPAGE: PermissionFlowService.run completed with cameraGranted=${result.cameraGranted}",
       );
       if (mounted) {
         await _onPermissionsResolved(provider, result, cameraStarted);
@@ -970,13 +986,19 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       ]) async {
     if (!mounted) return;
 
-    if (result.cameraGranted && !cameraStarted) {
-      // Start camera in background so it doesn't block location and API calls
-      provider.startCamera(0);
-    } else if (!result.cameraGranted && !cameraStarted) {
-      provider.cameraisLoading = false;
-      provider.readyCameraPreviewshow = false;
-      provider.setLoading(provider.isLoading);
+    if (result.cameraGranted) {
+      provider.camerapermissionStatus = PermissionStatus.granted;
+      if (!cameraStarted) {
+        // Start camera in background so it doesn't block location and API calls
+        provider.startCamera(0);
+      }
+    } else {
+      provider.camerapermissionStatus = PermissionStatus.denied;
+      if (!cameraStarted) {
+        provider.cameraisLoading = false;
+        provider.readyCameraPreviewshow = false;
+        provider.setLoading(provider.isLoading);
+      }
     }
 
     final List<Future<void>> futures = [
@@ -1027,7 +1049,6 @@ class _FacePunchScreenState extends State<FacePunchScreen>
               if (cameraController != null &&
                   cameraController.value.isInitialized &&
                   cameraController.value.previewSize != null) {
-                _cameraAutoRestartAttempts = 0;
                 return Positioned.fill(
                   child: Stack(
                     fit: StackFit.expand,
@@ -1178,20 +1199,28 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                   ),
                 );
               }
-              // Fast auto-restart: automatically trigger camera restart without requiring manual tap
-              if (!selfiePunchProvider.cameraisLoading && _cameraAutoRestartAttempts < 5) {
-                _triggerFastCameraAutoRestart();
-              }
-
-              final bool isAutoRestarting = selfiePunchProvider.cameraisLoading || _cameraAutoRestartAttempts < 5;
+              final bool isPermDenied = selfiePunchProvider.camerapermissionStatus == PermissionStatus.denied ||
+                  selfiePunchProvider.camerapermissionStatus == PermissionStatus.permanentlyDenied ||
+                  selfiePunchProvider.camerapermissionStatus == PermissionStatus.restricted;
 
               return Positioned.fill(
                 child: GestureDetector(
-                  onTap: () {
-                    debugPrint('[FacePunch] Camera fallback tapped: restarting camera...');
-                    _cameraAutoRestartAttempts = 0;
-                    _lastCameraAutoRestartTime = null;
-                    selfiePunchProvider.startCamera(0);
+                  onTap: () async {
+                    final status = await Permission.camera.status;
+                    if (status.isPermanentlyDenied || status.isRestricted) {
+                      _wentToSettings = true;
+                      await openAppSettings();
+                    } else if (!status.isGranted) {
+                      final req = await Permission.camera.request();
+                      if (req.isGranted) {
+                        selfiePunchProvider.camerapermissionStatus = PermissionStatus.granted;
+                        selfiePunchProvider.startCamera(0);
+                      }
+                    } else {
+                      debugPrint('[FacePunch] Camera fallback tapped: restarting camera...');
+                      selfiePunchProvider.camerapermissionStatus = PermissionStatus.granted;
+                      selfiePunchProvider.startCamera(0);
+                    }
                   },
                   child: Container(
                     color: Colors.black,
@@ -1199,18 +1228,85 @@ class _FacePunchScreenState extends State<FacePunchScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(color: Colors.white70, strokeWidth: 2.5),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            isAutoRestarting
-                                ? LanguageProvider.translate("startingCamera", "Starting camera...")
-                                : LanguageProvider.translate("tapToRestartCamera", "Tap to restart camera"),
-                            style: const TextStyle(color: Colors.white60, fontSize: 12),
-                          ),
+                          if (isPermDenied) ...[
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.videocam_off_rounded,
+                                color: Colors.redAccent,
+                                size: 36,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Camera Permission Required',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 40),
+                              child: Text(
+                                selfiePunchProvider.camerapermissionStatus == PermissionStatus.permanentlyDenied
+                                    ? 'Camera access is disabled in Settings. Tap below to enable.'
+                                    : 'Camera access is required for face punch. Tap to allow.',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: ColorConst.themeColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              ),
+                              icon: Icon(
+                                selfiePunchProvider.camerapermissionStatus == PermissionStatus.permanentlyDenied
+                                    ? Icons.settings
+                                    : Icons.camera_alt,
+                                size: 16,
+                              ),
+                              label: Text(
+                                selfiePunchProvider.camerapermissionStatus == PermissionStatus.permanentlyDenied
+                                    ? 'Open Settings'
+                                    : 'Allow Camera',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                              onPressed: () async {
+                                final status = await Permission.camera.status;
+                                if (status.isPermanentlyDenied || status.isRestricted) {
+                                  _wentToSettings = true;
+                                  await openAppSettings();
+                                } else {
+                                  final req = await Permission.camera.request();
+                                  if (req.isGranted) {
+                                    selfiePunchProvider.camerapermissionStatus = PermissionStatus.granted;
+                                    selfiePunchProvider.startCamera(0);
+                                  }
+                                }
+                              },
+                            ),
+                          ] else ...[
+                            const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(color: Colors.white70, strokeWidth: 2.5),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              LanguageProvider.translate("startingCamera", "Starting camera..."),
+                              style: const TextStyle(color: Colors.white60, fontSize: 12),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -2335,14 +2431,20 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       );
     }
 
-    // Camera failed to initialize despite having permissions
+    // Camera warming up or initializing after permissions granted — show smooth loader
+    // NEVER show the orange "Retry Camera" button; auto-retry logic works continuously in background
     if (!provider.isCameraReady) {
-      return _customButton(
-        label: retryCameraString,
-        color: Colors.orange,
-        onTap: () {
-          provider.startCamera(0);
-        },
+      return Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: ColorConst.themeColor.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const SizedBox(
+          height: 16,
+          width: 16,
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+        ),
       );
     }
 
@@ -2772,11 +2874,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       provider.setPunchBoxOnTapStart(false);
       _isFlowRunning = false;
 
-      // Fast auto-restart if camera stopped or became uninitialized during verification
-      final ctrl = selfiePunchProvider.cameraController;
-      if (ctrl == null || !ctrl.value.isInitialized || !selfiePunchProvider.isCameraReady) {
-        debugPrint('[FacePunch] Camera not ready after punch flow, auto-restarting fast...');
-        _cameraAutoRestartAttempts = 0;
+      // Auto-restart camera if it stopped during verification
+      if (!selfiePunchProvider.isCameraReady && !selfiePunchProvider.isStartingCamera) {
+        debugPrint('[FacePunch] Camera not ready after punch flow, restarting...');
         selfiePunchProvider.startCamera(0);
       }
     }
