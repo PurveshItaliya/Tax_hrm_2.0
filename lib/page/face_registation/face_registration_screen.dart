@@ -13,6 +13,8 @@ import 'package:tax_hrm/api/employeapi.dart';
 import 'dart:convert';
 import 'package:tax_hrm/api/authapi.dart';
 import 'package:tax_hrm/models/authclass/emploginclass.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/utils/saveData/savelocaldata.dart';
 
 class FaceRegistrationScreen extends StatefulWidget {
@@ -122,6 +124,18 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
             final String freshJson = jsonEncode(loginResult.toJson());
             await SaveUser().saveUserData(freshJson);
             curentUser = jsonDecode(freshJson);
+            final String? freshFileName =
+                loginResult.fileName ?? loginResult.faceRegisterImg;
+            if (freshFileName != null && freshFileName.trim().isNotEmpty) {
+              final clean =
+                  freshFileName.trim().split('/').last.split(r'\').last;
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('cached_face_register_img_$empId', clean);
+              await prefs.setString(
+                'face_template_version_$empId',
+                FaceRegistrationSyncService.currentTemplateVersion,
+              );
+            }
           }
         }
       }

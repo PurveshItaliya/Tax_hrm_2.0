@@ -1,11 +1,14 @@
 import Flutter
 import UIKit
+import Darwin
+import WidgetKit
 import flutter_local_notifications
 import workmanager_apple
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var widgetMethodChannel: FlutterMethodChannel?
+  private var devMethodChannel: FlutterMethodChannel?
   private let appGroup = "group.com.hrmnewapp.taxhrm"
   private let punchTapKey = "widgetPunchTap"
   private let TAG = "🟠 [WidgetDebug]"
@@ -23,7 +26,6 @@ import workmanager_apple
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in
         GeneratedPluginRegistrant.register(with: registry)
     }
-    WorkmanagerPlugin.registerBGProcessingTask(withIdentifier: "LocationTimeLines")
 
     // Register native Liquid Glass tab bar platform view.
     if let registrar = registrar(forPlugin: "NativeLiquidGlassTabBar") {
@@ -38,6 +40,56 @@ import workmanager_apple
     if let controller = window?.rootViewController as? FlutterViewController {
       widgetMethodChannel = FlutterMethodChannel(name: "punch_widget/open", binaryMessenger: controller.binaryMessenger)
       print("\(TAG) widgetMethodChannel set up successfully")
+
+      widgetMethodChannel?.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+        if call.method == "update_widget_settings" {
+          if let args = call.arguments as? [String: Any] {
+            let colorHex = args["color"] as? String ?? "transparent"
+            let transparency = args["transparency"] as? Double ?? 0.70
+            let darkness = args["darkness"] as? Double ?? 0.20
+            let blur = args["blur"] as? Double ?? 24.0
+
+            if let defaults = UserDefaults(suiteName: "group.com.hrmnewapp.taxhrm") {
+              defaults.set(colorHex, forKey: "widget_color")
+              defaults.set(transparency, forKey: "widget_transparency")
+              defaults.set(darkness, forKey: "widget_darkness")
+              defaults.set(blur, forKey: "widget_blur")
+              defaults.synchronize()
+            }
+            if #available(iOS 14.0, *) {
+              WidgetCenter.shared.reloadTimelines(ofKind: "PunchWidget")
+              WidgetCenter.shared.reloadAllTimelines()
+            }
+            result(true)
+          } else {
+            result(false)
+          }
+        } else {
+          result(FlutterMethodNotImplemented)
+        }
+      }
+
+      devMethodChannel = FlutterMethodChannel(name: "com.hrmnewapp.taxhrm/developer_mode", binaryMessenger: controller.binaryMessenger)
+      devMethodChannel?.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+        if call.method == "isDeveloperModeEnabled" {
+          var value = Int32(0)
+          var size = MemoryLayout<Int32>.size
+          let sysResult = sysctlbyname("security.mac.amfi.developer_mode_status", &value, &size, nil, 0)
+          let isEnabled = (sysResult == 0 && value == 1)
+          result(isEnabled)
+        } else if call.method == "openDeveloperSettings" {
+          if let settingsUrl = URL(string: UIApplication.openSettingsURLString),
+             UIApplication.shared.canOpenURL(settingsUrl) {
+            UIApplication.shared.open(settingsUrl, options: [:]) { success in
+              result(success)
+            }
+          } else {
+            result(false)
+          }
+        } else {
+          result(FlutterMethodNotImplemented)
+        }
+      }
     } else {
       print("\(TAG) ERROR: could not get FlutterViewController from window")
     }
@@ -97,7 +149,7 @@ import workmanager_apple
       print("\(TAG) MethodChannel invokeMethod('open_punch') called (widgetMethodChannel nil? \(widgetMethodChannel == nil))")
       return true
     }
-    print("\(TAG) URL did NOT match taxhrm://punch — forwarding to super")
+    print("\(TAG) URL did NOT match taxhrm — forwarding to super")
     return super.application(app, open: url, options: options)
   }
 

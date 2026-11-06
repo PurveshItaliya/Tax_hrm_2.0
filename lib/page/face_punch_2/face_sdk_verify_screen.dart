@@ -1,0 +1,1037 @@
+// ignore_for_file: use_build_context_synchronously
+import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart' as p;
+import 'package:tax_hrm/page/face_punch_2/face_sdk_engine.dart';
+import 'package:tax_hrm/services/remote_config_services.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:tax_hrm/utils/colorsfile.dart';
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Data model
+// ──────────────────────────────────────────────────────────────────────────────
+
+class FaceSdkPerson {
+  final String name;
+  final Uint8List faceJpg;
+  final Uint8List templates;
+
+  const FaceSdkPerson({
+    required this.name,
+    required this.faceJpg,
+    required this.templates,
+  });
+
+  factory FaceSdkPerson.fromMap(Map<String, dynamic> data) => FaceSdkPerson(
+        name: data['name'] as String,
+        faceJpg: Uint8List.fromList(data['faceJpg'] as List<int>),
+        templates: Uint8List.fromList(data['templates'] as List<int>),
+      );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// DB helper (shared with enroll flow)
+// ──────────────────────────────────────────────────────────────────────────────
+
+class FaceSdkDatabase {
+  static const _dbName = 'facesdk_person.db';
+  static const _tableName = 'person';
+
+  static Future<Database> open() async {
+    return openDatabase(
+      p.join(await getDatabasesPath(), _dbName),
+      onCreate: (db, _) =>
+          db.execute('CREATE TABLE $_tableName(name text, faceJpg blob, templates blob)'),
+      version: 1,
+    );
+  }
+
+  static Future<List<FaceSdkPerson>> loadAll() async {
+    final db = await open();
+    final maps = await db.query(_tableName);
+    return maps.map((m) => FaceSdkPerson.fromMap(m)).toList();
+  }
+
+  static Future<void> insertPerson(FaceSdkPerson person) async {
+    final db = await open();
+    await db.delete(_tableName, where: 'name = ?', whereArgs: [person.name]);
+    await db.insert(
+      _tableName,
+      {'name': person.name, 'faceJpg': person.faceJpg, 'templates': person.templates},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  static Future<void> deletePerson(String name) async {
+    final db = await open();
+    await db.delete(_tableName, where: 'name = ?', whereArgs: [name]);
+  }
+
+  static Future<void> deleteUserTemplates(String userId) async {
+    final db = await open();
+    await db.delete(_tableName, where: 'name = ? OR name LIKE ?', whereArgs: [userId, '${userId}_%']);
+  }
+
+  static Future<void> deleteAll() async {
+    final db = await open();
+    await db.delete(_tableName);
+  }
+
+  static Future<void> migrateLegacyEmployeeNameIfNeeded(String targetName) async {
+    try {
+      final db = await open();
+      final existingUserRows = await db.query(
+        _tableName,
+        where: 'name = ? OR name LIKE ?',
+        whereArgs: [targetName, '${targetName}_%'],
+      );
+      if (existingUserRows.isNotEmpty) {
+        // User already has a valid enrollment; clean up any stale legacy 'Employee' test record
+        await db.delete(_tableName, where: 'name = ?', whereArgs: ['Employee']);
+        debugPrint('[FaceSdkDatabase] Removed stale legacy "Employee" record because user already has valid enrolled template');
+        return;
+      }
+
+      // Remove any legacy unassigned 'Employee' record so new users never inherit old faces
+      await db.delete(_tableName, where: 'name = ?', whereArgs: ['Employee']);
+      debugPrint('[FaceSdkDatabase] Ensured stale legacy "Employee" record is removed');
+    } catch (e) {
+      debugPrint('[FaceSdkDatabase] Migration error: $e');
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Verify Screen Result & Screen definition
+// ──────────────────────────────────────────────────────────────────────────────
+
+class FaceSdkVerifyResult {
+  final bool isSuccess;
+  final Uint8List? faceJpg;
+  final String? matchedName;
+
+  const FaceSdkVerifyResult({
+    required this.isSuccess,
+    this.faceJpg,
+    this.matchedName,
+  });
+}
+
+// ignore: must_be_immutable
+class FaceSdkVerifyScreen extends StatefulWidget {
+  final List<FaceSdkPerson> personList;
+
+  const FaceSdkVerifyScreen({super.key, required this.personList});
+
+  @override
+  State<StatefulWidget> createState() => FaceSdkVerifyScreenState();
+}
+
+class FaceSdkVerifyScreenState extends State<FaceSdkVerifyScreen> {
+  dynamic _faces;
+  double _livenessThreshold = RemoteConfigServices.livenessThreshold;
+  double _identifyThreshold = RemoteConfigServices.identityThreshold;
+  bool _recognized = false;
+  String _identifiedName = '';
+  String _identifiedSimilarity = '';
+  String _identifiedLiveness = '';
+  String _identifiedYaw = '';
+  String _identifiedRoll = '';
+  String _identifiedPitch = '';
+  Uint8List? _identifiedFace;
+  Uint8List? _enrolledFace;
+
+  final GlobalKey<_FaceDetectionViewWidgetState> _cameraKey = GlobalKey<_FaceDetectionViewWidgetState>();
+
+  @override
+  void initState() {
+    super.initState();
+    RemoteConfigServices.configVersion.addListener(_onRemoteConfigUpdated);
+    _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    RemoteConfigServices.configVersion.removeListener(_onRemoteConfigUpdated);
+    super.dispose();
+  }
+
+  void _onRemoteConfigUpdated() {
+    if (!mounted) return;
+    debugPrint('[FaceSdkVerify] Remote Config listener fired. Re-applying settings to verification engine...');
+    _applySettings(isInitial: false);
+  }
+
+  void _applySettings({bool isInitial = false}) {
+    final double prevIdentify = _identifyThreshold;
+    final double prevLiveness = _livenessThreshold;
+
+    final double newIdentify = RemoteConfigServices.identityThreshold;
+    final double newLiveness = RemoteConfigServices.livenessThreshold;
+
+    if (mounted) {
+      setState(() {
+        _livenessThreshold = newLiveness;
+        _identifyThreshold = newIdentify;
+      });
+    } else {
+      _livenessThreshold = newLiveness;
+      _identifyThreshold = newIdentify;
+    }
+
+    debugPrint('=================================================================');
+    debugPrint('[FaceSdkVerify] AFTER APPLY SETTINGS (Real Settings in Use - ${isInitial ? "Initial/Cached" : "Remote Config Updated"}):');
+    debugPrint('[FaceSdkVerify]   - identifyThreshold in Real Settings : $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%) [Previous: $prevIdentify]');
+    debugPrint('[FaceSdkVerify]   - livenessThreshold in Real Settings : $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%) [Previous: $prevLiveness]');
+    debugPrint('[FaceSdkVerify]   - faceVerify Enabled                 : ${RemoteConfigServices.isFaceVerifyEnabled}');
+    debugPrint('=================================================================');
+  }
+
+  Future<void> _loadSettings() async {
+    debugPrint('=================================================================');
+    debugPrint('[FaceSdkVerify] BEFORE APPLY SETTINGS:');
+    debugPrint('[FaceSdkVerify]   - _identifyThreshold : $_identifyThreshold (${(_identifyThreshold * 100).toStringAsFixed(1)}%)');
+    debugPrint('[FaceSdkVerify]   - _livenessThreshold : $_livenessThreshold (${(_livenessThreshold * 100).toStringAsFixed(1)}%)');
+    debugPrint('=================================================================');
+
+    // 1. Immediately apply cached/current settings for instant responsiveness
+    _applySettings(isInitial: true);
+
+    // 2. Fetch fresh remote config from Firebase on screen open
+    try {
+      debugPrint('[FaceSdkVerify] Fetching latest Remote Config from Firebase...');
+      await RemoteConfigServices.instance.fetchLatestConfig();
+      debugPrint('[FaceSdkVerify] Remote Config fetch complete.');
+    } catch (e) {
+      debugPrint('[FaceSdkVerify] Error fetching Remote Config: $e');
+    }
+
+    // 3. Re-apply newly fetched remote config and print logs
+    _applySettings(isInitial: false);
+  }
+
+  int _consecutiveMatches = 0;
+
+  void faceRecognitionStart() {
+    setState(() {
+      _faces = null;
+      _recognized = false;
+      _consecutiveMatches = 0;
+      _identifiedName = '';
+      _identifiedSimilarity = '';
+      _identifiedLiveness = '';
+      _identifiedYaw = '';
+      _identifiedRoll = '';
+      _identifiedPitch = '';
+      _enrolledFace = null;
+      _identifiedFace = null;
+    });
+    _cameraKey.currentState?.resumeCamera();
+  }
+
+  void onMatchResult(FaceSdkMatchResult result) {
+    if (_recognized || !mounted) return;
+
+    final box = result.boundingBox;
+    final isMatch = result.isMatch;
+
+    setState(() {
+      _faces = [
+        {
+          'x1': box.left,
+          'y1': box.top,
+          'x2': box.right,
+          'y2': box.bottom,
+          'liveness': result.liveness,
+          'similarity': result.similarity,
+          'name': result.matchedName,
+          'isMatch': isMatch,
+          'frameWidth': result.frameWidth,
+          'frameHeight': result.frameHeight,
+        }
+      ];
+      _identifiedName = result.matchedName;
+      _identifiedSimilarity = result.similarity.toStringAsFixed(3);
+      _identifiedLiveness = result.liveness.toStringAsFixed(2);
+      _identifiedYaw = result.yaw.toStringAsFixed(1);
+      _identifiedRoll = result.roll.toStringAsFixed(1);
+      _identifiedPitch = result.pitch.toStringAsFixed(1);
+      _enrolledFace = result.enrolledFaceJpg;
+      _identifiedFace = result.liveFaceJpg;
+    });
+
+    final bool isLiveValid = result.liveness >= _livenessThreshold;
+    final bool isIdValid = result.similarity >= _identifyThreshold;
+
+    debugPrint(
+      '[FaceSdkVerify] [Match Evaluation] '
+      'Name="${result.matchedName}", '
+      'Sim=${(result.similarity * 100).toStringAsFixed(1)}% vs Target ${(_identifyThreshold * 100).toStringAsFixed(1)}% (Valid: $isIdValid), '
+      'Live=${(result.liveness * 100).toStringAsFixed(1)}% vs Target ${(_livenessThreshold * 100).toStringAsFixed(1)}% (Valid: $isLiveValid), '
+      'isMatch=${result.isMatch} -> Final Passed: ${isMatch && isLiveValid && isIdValid}',
+    );
+
+    if (isMatch && isLiveValid && isIdValid) {
+      _consecutiveMatches++;
+      if (_consecutiveMatches >= 1) {
+        HapticFeedback.mediumImpact();
+        setState(() {
+          _recognized = true;
+        });
+        _cameraKey.currentState?.pauseCamera();
+
+        // Automatically pop to complete punch verification after showing success view
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (mounted && _recognized) {
+            Navigator.of(context).pop(
+              FaceSdkVerifyResult(
+                isSuccess: true,
+                faceJpg: _identifiedFace,
+                matchedName: _identifiedName,
+              ),
+            );
+          }
+        });
+      }
+    } else {
+      _consecutiveMatches = 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pop(const FaceSdkVerifyResult(isSuccess: false));
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          elevation: 0,
+          toolbarHeight: 65,
+          title: const Text(
+            'Face Recognition',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            onPressed: () => Navigator.of(context).pop(const FaceSdkVerifyResult(isSuccess: false)),
+          ),
+        ),
+        body: Stack(
+          children: <Widget>[
+            // Camera Stream View
+            _FaceDetectionViewWidget(
+              key: _cameraKey,
+              verifyScreenState: this,
+            ),
+
+            // Real-time Bounding Box & Status Painter
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _FacePainter(
+                  faces: _faces,
+                  livenessThreshold: _livenessThreshold,
+                  identifyThreshold: _identifyThreshold,
+                ),
+              ),
+            ),
+
+            // Live status pill at bottom while scanning
+            if (!_recognized)
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 30,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _faces != null ? Icons.face_rounded : Icons.camera_alt_rounded,
+                        color: _faces != null ? const Color(0xFF00E676) : ColorConst.themeColor,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _faces != null
+                                  ? (_identifiedName.isNotEmpty
+                                      ? 'Scanning: $_identifiedName'
+                                      : 'Face Detected')
+                                  : 'Look directly at camera',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            if (_identifiedSimilarity.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  'Sim: $_identifiedSimilarity (Req: ${_identifyThreshold.toStringAsFixed(2)})  |  Live: $_identifiedLiveness (Req: ${_livenessThreshold.toStringAsFixed(2)})',
+                                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (_faces != null)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF00E676),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Verified Result Card Overlay (Exact logic and layout from reference project)
+            Visibility(
+              visible: _recognized,
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: const Color(0xFF121212),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // Success Icon Badge
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check_circle_rounded, color: Color(0xFF00E676), size: 64),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Verified Successfully',
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Side-by-side Enrolled & Identified Images
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: <Widget>[
+                          if (_enrolledFace != null)
+                            Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  child: Image.memory(
+                                    _enrolledFace!,
+                                    width: 140,
+                                    height: 140,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Enrolled',
+                                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          if (_identifiedFace != null)
+                            Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  child: Image.memory(
+                                    _identifiedFace!,
+                                    width: 140,
+                                    height: 140,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Identified',
+                                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Identification Details List (from reference project)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildInfoRow('Identified', _identifiedName),
+                            const Divider(color: Colors.white12, height: 16),
+                            _buildInfoRow('Similarity', _identifiedSimilarity),
+                            const Divider(color: Colors.white12, height: 16),
+                            _buildInfoRow('Liveness score', _identifiedLiveness),
+                            const Divider(color: Colors.white12, height: 16),
+                            _buildInfoRow('Yaw', _identifiedYaw),
+                            const Divider(color: Colors.white12, height: 16),
+                            _buildInfoRow('Roll', _identifiedRoll),
+                            const Divider(color: Colors.white12, height: 16),
+                            _buildInfoRow('Pitch', _identifiedPitch),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white30),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () => faceRecognitionStart(),
+                              child: const Text('Try again', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00E676),
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () => Navigator.of(context).pop(
+                                FaceSdkVerifyResult(
+                                  isSuccess: true,
+                                  faceJpg: _identifiedFace,
+                                  matchedName: _identifiedName,
+                                ),
+                              ),
+                              child: const Text('Confirm & Punch', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        Text(
+          value,
+          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Camera View
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _FaceDetectionViewWidget extends StatefulWidget {
+  final FaceSdkVerifyScreenState verifyScreenState;
+
+  const _FaceDetectionViewWidget({super.key, required this.verifyScreenState});
+
+  @override
+  State<_FaceDetectionViewWidget> createState() => _FaceDetectionViewWidgetState();
+}
+
+class _FaceDetectionViewWidgetState extends State<_FaceDetectionViewWidget>
+    with WidgetsBindingObserver {
+  CameraController? _controller;
+  CameraDescription? _frontCamera;
+  bool _isProcessingFrame = false;
+  bool _isStreaming = false;
+  bool _isLoading = true;
+  bool _isPermissionDenied = false;
+  bool _isPermanentlyDenied = false;
+  String _errorMessage = '';
+  int _initAttempts = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startCamera();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      pauseCamera();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_controller == null || !_controller!.value.isInitialized || _isPermissionDenied) {
+        _startCamera();
+      } else {
+        resumeCamera();
+      }
+    }
+  }
+
+  Future<void> _disposeCurrentController() async {
+    if (_isStreaming && _controller != null) {
+      try {
+        await _controller?.stopImageStream();
+      } catch (_) {}
+      _isStreaming = false;
+    }
+    try {
+      await _controller?.dispose();
+    } catch (_) {}
+    _controller = null;
+  }
+
+  Future<void> _startCamera() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      // 1. Check and request camera permission if not already granted
+      PermissionStatus status = await Permission.camera.status;
+      if (!status.isGranted) {
+        debugPrint('[FaceSdkVerify] Camera permission status is $status, requesting permission...');
+        status = await Permission.camera.request();
+        debugPrint('[FaceSdkVerify] Camera permission request result: $status');
+      }
+
+      if (!status.isGranted) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _isPermissionDenied = true;
+          _isPermanentlyDenied = status.isPermanentlyDenied || status.isRestricted;
+          _errorMessage = status.isPermanentlyDenied || status.isRestricted
+              ? 'Camera permission is permanently denied. Please allow camera access in Settings.'
+              : 'Camera permission is required for face recognition.';
+        });
+        return;
+      }
+
+      // Permission granted! Reset error flags
+      if (mounted) {
+        setState(() {
+          _isPermissionDenied = false;
+          _isPermanentlyDenied = false;
+          _errorMessage = '';
+        });
+      }
+
+      // 2. Safely dispose any previous controller and pause for iOS AVFoundation hardware release
+      await _disposeCurrentController();
+      if (Platform.isIOS) {
+        await Future.delayed(const Duration(milliseconds: 150));
+      }
+
+      // 3. Query available cameras with retry on iOS
+      List<CameraDescription> cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        debugPrint('[FaceSdkVerify] availableCameras returned empty, retrying in 300ms...');
+        await Future.delayed(const Duration(milliseconds: 300));
+        cameras = await availableCameras();
+      }
+
+      if (cameras.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'No camera found on this device.';
+        });
+        return;
+      }
+
+      _frontCamera = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      // 4. Create and initialize CameraController
+      final controller = CameraController(
+        _frontCamera!,
+        ResolutionPreset.medium,
+        enableAudio: false,
+        imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+      );
+
+      await controller.initialize();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+
+      setState(() {
+        _controller = controller;
+        _isLoading = false;
+        _initAttempts = 0;
+      });
+
+      // 5. Start image stream
+      await controller.startImageStream(_onCameraImage);
+      _isStreaming = true;
+    } catch (e) {
+      debugPrint('[FaceSdkVerify] Camera start error: $e');
+      await _disposeCurrentController();
+      if (!mounted) return;
+
+      // Auto-retry once on iOS if AVFoundation had a transient lock
+      if (_initAttempts < 2) {
+        _initAttempts++;
+        debugPrint('[FaceSdkVerify] Retrying camera init (attempt $_initAttempts)...');
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (mounted) {
+          _startCamera();
+        }
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to start camera. Please tap retry.';
+      });
+    }
+  }
+
+  void pauseCamera() {
+    if (_isStreaming && _controller != null && _controller!.value.isStreamingImages) {
+      try {
+        _controller?.stopImageStream();
+        _isStreaming = false;
+      } catch (e) {
+        debugPrint('[FaceSdkVerify] stopImageStream error: $e');
+      }
+    }
+  }
+
+  void resumeCamera() {
+    if (_controller == null || !_controller!.value.isInitialized) {
+      _startCamera();
+      return;
+    }
+    if (!_isStreaming && _controller != null && _controller!.value.isInitialized) {
+      try {
+        _controller?.startImageStream(_onCameraImage);
+        _isStreaming = true;
+      } catch (e) {
+        debugPrint('[FaceSdkVerify] startImageStream error: $e');
+        _startCamera();
+      }
+    }
+  }
+
+  Future<void> restartCamera() async {
+    _initAttempts = 0;
+    await _startCamera();
+  }
+
+  Future<void> _onCameraImage(CameraImage image) async {
+    if (_isProcessingFrame || widget.verifyScreenState._recognized || !mounted) return;
+    _isProcessingFrame = true;
+
+    try {
+      if (_frontCamera == null) return;
+      final result = await FaceSdkEngine.instance.processCameraFrame(
+        cameraImage: image,
+        camera: _frontCamera!,
+        enrolledPersons: widget.verifyScreenState.widget.personList,
+        threshold: widget.verifyScreenState._identifyThreshold,
+        livenessThreshold: widget.verifyScreenState._livenessThreshold,
+      );
+
+      if (result != null && mounted) {
+        widget.verifyScreenState.onMatchResult(result);
+      }
+    } catch (e) {
+      debugPrint('[FaceSdkVerify] processCameraFrame error: $e');
+    } finally {
+      _isProcessingFrame = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (_isStreaming && _controller != null) {
+      try {
+        _controller?.stopImageStream();
+      } catch (_) {}
+    }
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isPermissionDenied) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.videocam_off_rounded,
+                  color: Colors.redAccent,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Camera Access Required',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isPermanentlyDenied
+                    ? 'Camera permission is permanently denied. Please allow camera access in Settings to use face recognition.'
+                    : 'Camera permission is required to detect and verify your face.',
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorConst.themeColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: Icon(
+                  _isPermanentlyDenied ? Icons.settings : Icons.camera_alt,
+                  size: 18,
+                ),
+                label: Text(
+                  _isPermanentlyDenied ? 'Open Settings' : 'Allow Camera',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                onPressed: () async {
+                  if (_isPermanentlyDenied) {
+                    await openAppSettings();
+                  } else {
+                    _startCamera();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_isLoading || _controller == null || !_controller!.value.isInitialized) {
+      if (_errorMessage.isNotEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.orangeAccent, size: 48),
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ColorConst.themeColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Retry Camera'),
+                  onPressed: () => _startCamera(),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
+
+    return SizedBox.expand(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: _controller!.value.previewSize!.height,
+          height: _controller!.value.previewSize!.width,
+          child: CameraPreview(_controller!),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Face bounding box painter (same to same layout & logic as reference FacePainter)
+// ──────────────────────────────────────────────────────────────────────────────
+
+typedef _FacePainter = FaceSdkPainter;
+
+class FaceSdkPainter extends CustomPainter {
+  final dynamic faces;
+  final double livenessThreshold;
+  final double identifyThreshold;
+
+  FaceSdkPainter({
+    required this.faces,
+    required this.livenessThreshold,
+    required this.identifyThreshold,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (faces == null) return;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    for (final face in faces as List) {
+      final double frameWidth = (face['frameWidth'] as num).toDouble();
+      final double frameHeight = (face['frameHeight'] as num).toDouble();
+      if (frameWidth <= 0 || frameHeight <= 0) continue;
+
+      // Coordinate scaling matching FittedBox(fit: BoxFit.cover)
+      final double scale = math.max(size.width / frameWidth, size.height / frameHeight);
+      final double scaledWidth = frameWidth * scale;
+      final double scaledHeight = frameHeight * scale;
+      final double offsetX = (size.width - scaledWidth) / 2;
+      final double offsetY = (size.height - scaledHeight) / 2;
+
+      final double x1 = (face['x1'] as num).toDouble();
+      final double y1 = (face['y1'] as num).toDouble();
+      final double x2 = (face['x2'] as num).toDouble();
+      final double y2 = (face['y2'] as num).toDouble();
+
+      final double rectW = (x2 - x1) * scale;
+      final double rectH = (y2 - y1) * scale;
+
+      // Flutter's CameraPreview for the front camera is mirrored horizontally.
+      // Mirror the horizontal coordinate so the bounding box moves in the exact same direction as the user's face.
+      final double rectX = offsetX + (frameWidth - x2) * scale;
+      final double rectY = offsetY + y1 * scale;
+
+      final double liveness = (face['liveness'] as num?)?.toDouble() ?? 1.0;
+      final double similarity = (face['similarity'] as num?)?.toDouble() ?? 0.0;
+      final bool isMatch = face['isMatch'] == true;
+      final String name = (face['name'] as String?) ?? '';
+
+      final bool isValidMatch = isMatch || (similarity >= identifyThreshold && liveness >= livenessThreshold && name.isNotEmpty);
+
+      String title = '';
+      Color color = const Color(0xFFFF5252); // Red (Spoof)
+
+      if (liveness < livenessThreshold) {
+        color = const Color(0xFFFF5252);
+        title = 'Spoof ${liveness.toStringAsFixed(2)}';
+      } else if (isValidMatch) {
+        color = const Color(0xFF00E676); // Green (Match)
+        title = 'Real $name (${(similarity * 100).toStringAsFixed(0)}%)';
+      } else {
+        color = const Color(0xFFFFB300); // Amber (Evaluating)
+        title = 'Real (${(similarity * 100).toStringAsFixed(0)}%)';
+      }
+
+      final span = TextSpan(
+        style: TextStyle(
+          color: color,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          backgroundColor: Colors.black54,
+        ),
+        text: ' $title ',
+      );
+      final tp = TextPainter(
+        text: span,
+        textAlign: TextAlign.left,
+        textDirection: TextDirection.ltr,
+      );
+      tp.layout();
+
+      tp.paint(canvas, Offset(rectX, (rectY - 28).clamp(10.0, size.height - 30)));
+
+      paint.color = color;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(rectX, rectY, rectW, rectH),
+          const Radius.circular(8),
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}

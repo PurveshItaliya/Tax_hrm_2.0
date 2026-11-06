@@ -179,7 +179,10 @@ class TimeLineServices with ChangeNotifier {
       if (context != null) {
         bool? openSettings = await showGpsDisabledDialog(context);
         if (openSettings == true) {
-          return await getPosition(context: context);
+          bool isNowEnabled = await Geolocator.isLocationServiceEnabled();
+          if (isNowEnabled) {
+            return await Geolocator.getCurrentPosition();
+          }
         }
       } else {
         await Geolocator.openLocationSettings();

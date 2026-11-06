@@ -27,8 +27,10 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 class SettingProvider extends ChangeNotifier {
   bool islodering = false;
 
-  setloading(bool value) {
+  void setloading(bool value) {
+    if (islodering == value) return;
     islodering = value;
+    notifyListeners();
   }
   // user profile data
   Employeelists? setEmpProfile;
@@ -62,11 +64,6 @@ class SettingProvider extends ChangeNotifier {
         isAdmin = false;
         isUser = false;
         showRoleRightsSelectDialog(context,size: MediaQuery.of(context).size);
-      }),
-      HomeGridClass(image: punchWidgetImgString, title: punchWidgetTitleString, onTap: () {
-        nextScreen(context, const PunchWidgetInstructionsScreen(), onthenValue: (value) {
-          safeAreaBgAndTextColor(context, safeAreaBgColor: ColorConst.themeColor, safeAreaBrightness: Brightness.light);
-        },);
       }),
       HomeGridClass(image: contactUsImgString, title: contactUsString,onTap: () {
         nextScreen(context, const ContactUsScreen(),onthenValue: (value) {

@@ -55,7 +55,7 @@ class _LeaderboardWidgetState extends State<LeaderboardWidget> {
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-      homeProvider.getTopLeaderboard();
+      homeProvider.getTopLeaderboard(forceRefresh: true);
     });
   }
 
@@ -456,8 +456,9 @@ class _AvatarStack extends StatelessWidget {
     final double overlap = avatarSize * 0.35;
 
     // Total stack width
-    final double stackWidth =
-        avatarSize + (visible - 1) * (avatarSize - overlap);
+    final double stackWidth = winners.isEmpty
+        ? avatarSize
+        : (avatarSize + (visible - 1) * (avatarSize - overlap));
 
     // Get hours for display
     final String displayHours = winners.isNotEmpty ? winners[0].hours : '';

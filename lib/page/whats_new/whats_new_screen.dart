@@ -50,9 +50,18 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version107 = 'v1.0.7';
     String versionName107 = 'Visit Module & Face Punch';
 
+    String version108 = 'v1.0.8';
+    String versionName108 = 'Punch Redesign & Enhancements';
+
+    String version109 = 'v1.0.9';
+    String versionName109 = 'Face Verification & Performance Enhancements';
+
+    String version1011 = 'v1.0.11';
+    String versionName1011 = 'Office Punch, Widget Themes & Face Verification';
+
     versions = Platform.isAndroid 
-        ? ['All', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
-        : ['All', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
+        ? ['All', 'v1.0.11', 'v1.0.9', 'v1.0.8', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        : ['All', 'v1.0.11', 'v1.0.9', 'v1.0.8', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -602,6 +611,196 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Fixed issues and made general improvements',
         ],
       ),
+      // --- v1.0.8 New Features Added ---
+      ReleaseNoteItem(
+        id: 34,
+        title: 'Redesigned Self Punch & Confirm Dialog',
+        description: 'Redesigned Self Punch screen and Confirm Punch dialog with camera preview, location status, working hours, address, and remarks.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Employee App',
+        icon: Icons.camera_alt,
+        bgColor: const Color(0xFF2196F3),
+        features: [
+          'Redesigned the Self Punch Screen with camera preview, location status, working hours, check-in/check-out times, and location refresh functionality.',
+          'Redesigned the Confirm Punch Dialog with photo preview, punch details, address, and remarks.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 35,
+        title: 'Home WorkType & Offline Punching',
+        description: 'Enhanced Home WorkType to allow Punch In/Out from any location and added offline punch dialog.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Employee App',
+        icon: Icons.home_work,
+        bgColor: const Color(0xFF009688),
+        features: [
+          'Enhanced Home WorkType to allow Punch In/Out from any location.',
+          'Added a No Internet Connection dialog for offline Punch In/Out.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 36,
+        title: 'Attendance & Leave Enhancements',
+        description: 'Added a Remark field to the Attendance bottom sheet and improved Half-Day leave duration display.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Both',
+        icon: Icons.event_note,
+        bgColor: const Color(0xFF4CAF50),
+        features: [
+          'Added a Remark field to the Attendance bottom sheet.',
+          'Improved Half-Day Leave Duration display.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 37,
+        title: 'Admin Mode & User Profile',
+        description: 'Fixed Admin mode session persistence after app restart and improved profile image display.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Both',
+        icon: Icons.admin_panel_settings,
+        bgColor: const Color(0xFF673AB7),
+        features: [
+          'Fixed Admin mode session persistence after app restart.',
+          'Improved profile image display for the logged-in user.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 38,
+        title: 'Location Permissions & Punch Reminders',
+        description: 'Fixed repeated location dialogs, improved location permission handling, and fixed unnecessary punch reminders.',
+        version: version108,
+        versionName: versionName108,
+        date: 'October 13, 2026',
+        category: 'Both',
+        icon: Icons.notifications_active,
+        bgColor: const Color(0xFFFF9800),
+        features: [
+          'Fixed repeated location dialogs and improved location permission handling.',
+          'Fixed unnecessary Punch In/Out reminder notifications.',
+        ],
+      ),
+      // --- v1.0.9 New Features Added ---
+      ReleaseNoteItem(
+        id: 39,
+        title: 'Face Verification & Liveness',
+        description: 'Improved face verification accuracy, speed, and liveness detection.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Employee App',
+        icon: Icons.face_retouching_natural_rounded,
+        bgColor: const Color(0xFF2196F3),
+        features: [
+          'Improved face verification accuracy, speed, and liveness detection.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 40,
+        title: 'Face Registration & Matching',
+        description: 'Enhanced face registration and matching across different lighting conditions.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Employee App',
+        icon: Icons.camera_front_rounded,
+        bgColor: const Color(0xFF00BCD4),
+        features: [
+          'Enhanced face registration and matching across different lighting conditions.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 41,
+        title: 'App Loading & Performance',
+        description: 'Optimized app loading and overall performance.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Both',
+        icon: Icons.bolt_rounded,
+        bgColor: const Color(0xFFFF9800),
+        features: [
+          'Optimized app loading and overall performance.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 42,
+        title: 'Confirmation Dialog & Navigation',
+        description: 'Improved confirmation dialog auto-close timing and bottom navigation UI.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Both',
+        icon: Icons.touch_app_rounded,
+        bgColor: const Color(0xFF673AB7),
+        features: [
+          'Improved confirmation dialog auto-close timing and bottom navigation UI.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 43,
+        title: 'Attendance Count Increment',
+        description: 'Fixed attendance count increment issues.',
+        version: version109,
+        versionName: versionName109,
+        date: 'October 21, 2026',
+        category: 'Both',
+        icon: Icons.event_available_rounded,
+        bgColor: const Color(0xFF4CAF50),
+        features: [
+          'Fixed attendance count increment issues.',
+        ],
+      ),
+      // --- v1.0.11 New Features Added ---
+      ReleaseNoteItem(
+        id: 44,
+        title: 'Office-Area Punch Reliability',
+        description: 'Fixed HRM office-area punch issues to ensure reliable Punch In/Out functionality.',
+        version: version1011,
+        versionName: versionName1011,
+        date: 'November 03, 2026',
+        category: 'Employee App',
+        icon: Icons.location_on_rounded,
+        bgColor: const Color(0xFF4CAF50),
+        features: [
+          'Fixed HRM office-area punch issues to ensure reliable Punch In/Out functionality.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 45,
+        title: 'Customizable Widget Themes',
+        description: 'Added multiple customizable widget themes with user-friendly theme switching options.',
+        version: version1011,
+        versionName: versionName1011,
+        date: 'November 03, 2026',
+        category: 'Both',
+        icon: Icons.widgets_rounded,
+        bgColor: const Color(0xFF1864EC),
+        features: [
+          'Added multiple customizable widget themes with user-friendly theme switching options.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 46,
+        title: 'Face Punch & Verification Flow',
+        description: 'Fixed face punch verification issues and improved the overall punching flow.',
+        version: version1011,
+        versionName: versionName1011,
+        date: 'November 03, 2026',
+        category: 'Employee App',
+        icon: Icons.face_retouching_natural_rounded,
+        bgColor: const Color(0xFF00BCD4),
+        features: [
+          'Fixed face punch verification issues and improved the overall punching flow.',
+        ],
+      ),
     ];
 
     _animationController = AnimationController(
@@ -752,7 +951,23 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
 
     final List<Widget> widgets = [];
     
-    grouped.forEach((versionKey, items) {
+    // Sort versions so the newest (e.g. v1.0.11) appears at the top
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) {
+        final verA = a.split(' - ').first;
+        final verB = b.split(' - ').first;
+        final idxA = versions.indexOf(verA);
+        final idxB = versions.indexOf(verB);
+        if (idxA != -1 && idxB != -1) return idxA.compareTo(idxB);
+        return 0;
+      });
+
+    final sortedGrouped = <String, List<ReleaseNoteItem>>{};
+    for (final k in sortedKeys) {
+      sortedGrouped[k] = grouped[k]!;
+    }
+
+    sortedGrouped.forEach((versionKey, items) {
       final versionInfo = items.first;
       
       widgets.add(_buildVersionHeader(size, versionInfo.version, versionInfo.versionName, versionInfo.date));

@@ -815,6 +815,8 @@ class _EmployeeMasterScreenState extends State<EmployeeMasterScreen>
     );
   }
 
+
+
   /// SHIMMER ITEM WIDGET
   Widget _buildShimmerItem() {
     return Shimmer(

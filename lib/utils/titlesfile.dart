@@ -611,6 +611,9 @@ String get faceRegistrationString => LanguageProvider.translate("faceRegistratio
 String get initializingCameraString => LanguageProvider.translate("initializingCameraString", "Initializing Camera...");
 String get registrationCompleteString => LanguageProvider.translate("registrationCompleteString", "Registration Complete");
 String get faceRegisteredString => LanguageProvider.translate("faceRegisteredString", "Your face has been securely registered.");
+String get faceNotRegisteredString => LanguageProvider.translate("faceNotRegisteredString", "Face not registered");
+String get deleteFaceRegistrationString => LanguageProvider.translate("deleteFaceRegistrationString", "Delete Registration");
+String get deleteFaceConfirmString => LanguageProvider.translate("deleteFaceConfirmString", "Are you sure you want to delete this face registration? The employee will need to register their face again.");
 String get lookingForFaceString => LanguageProvider.translate("lookingForFaceString", "Looking for your face...");
 String get step1FaceString => LanguageProvider.translate("step1FaceString", "Step 1 of 3\nPosition your face inside the circle");
 String get step2FaceString => LanguageProvider.translate("step2FaceString", "Step 2 of 3\nSlowly move your face as instructed");
@@ -645,6 +648,10 @@ String get successfullyString => LanguageProvider.translate("successfullyString"
 String get administratorString => LanguageProvider.translate("administratorString", "Administrator");
 String get reRegisterFaceString => LanguageProvider.translate("reRegisterFaceString", "Re-Register Face");
 String get faceIsRegisteredString => LanguageProvider.translate("faceIsRegisteredString", "Face is registered");
+String get faceNotMatchedString => LanguageProvider.translate("faceNotMatched", "Face Not Matched");
+String get faceNotDetectedString => LanguageProvider.translate("faceNotDetected", "Face Not Detected");
+String get startingCameraString => LanguageProvider.translate("startingCamera", "Starting camera...");
+String get tapToRestartCameraString => LanguageProvider.translate("tapToRestartCamera", "Tap to restart camera");
 String get selectLanguageString => LanguageProvider.translate("selectLanguageString", "Select Language");
 String get searchLanguageString => LanguageProvider.translate("searchLanguageString", "Search Language...");
 String get versionString => LanguageProvider.translate("versionString", "Version");
@@ -790,7 +797,7 @@ String get contactNumber2String => LanguageProvider.translate("contactNumber2Str
 String get contactNumbersBothString => LanguageProvider.translate("contactNumbersBothString", "95100 56789  /  95101 56789");
 String get contactNumbersBothCopiedString => LanguageProvider.translate("contactNumbersBothCopiedString", "Contact numbers copied to clipboard!");
 String get websiteString => LanguageProvider.translate("websiteString", "Website");
-String get websiteUrlString => LanguageProvider.translate("websiteUrlString", "www.i-tax.in");
+String get websiteUrlString => LanguageProvider.translate("websiteUrlString", "hrm.taxfile.co.in/");
 String get websiteCopiedString => LanguageProvider.translate("websiteCopiedString", "Website copied to clipboard!");
 String get companyAddressString => LanguageProvider.translate("companyAddressString", "601-602, SUBH SQUARE, opp. Modh Patni wadi, Lal Darwaja, Surat, Gujarat 395003");
 String get addressCopiedString => LanguageProvider.translate("addressCopiedString", "Address copied to clipboard!");
@@ -892,3 +899,19 @@ String get failedToDownloadExcelString => LanguageProvider.translate("failedToDo
 String get viewTimelineString => LanguageProvider.translate("viewTimelineString", "View Timeline");
 String get whatsappMessageString => LanguageProvider.translate("whatsappMessageString", "WhatsApp Message");
 String get dayAttendanceLogString => LanguageProvider.translate("dayAttendanceLogString", "Day Attendance Log");
+
+// Developer Mode Strings
+String get developerOptionsDetectedString => LanguageProvider.translate("developerOptionsDetected", "Developer Options Detected");
+String get developerModeDetectedString => LanguageProvider.translate("developerModeDetected", "Developer Mode Detected");
+String get developerOptionsDescString => LanguageProvider.translate(
+    "developerOptionsBlockedDesc",
+    "Developer Options are enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Options are active. Please turn off Developer Options in device settings to proceed.");
+String get developerModeDescString => LanguageProvider.translate(
+    "developerModeBlockedDesc",
+    "Developer Mode is enabled on your device. For security and attendance integrity, Punch In/Out is blocked while Developer Mode is active. Please turn off Developer Mode in Settings > Privacy & Security to proceed.");
+String get developerOptionsShortDescString => LanguageProvider.translate(
+    "developerOptionsShortDesc",
+    "Please turn off Developer Options in device settings to proceed with punch.");
+String get developerModeShortDescString => LanguageProvider.translate(
+    "developerModeShortDesc",
+    "Please turn off Developer Mode in Settings > Privacy & Security to proceed with punch.");

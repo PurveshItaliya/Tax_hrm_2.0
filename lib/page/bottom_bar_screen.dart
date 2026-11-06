@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, unused_element
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -12,10 +12,10 @@ import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/splash/common_splash_ad.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
 import 'package:tax_hrm/services/permission_flow_service.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/page/attendance/showviewdata.dart';
 import 'package:tax_hrm/page/attendance/viewAttendance_screen.dart';
 import 'package:tax_hrm/page/home/home_screen.dart';
-import 'package:tax_hrm/page/home/selfie_punch_screen.dart';
 import 'package:tax_hrm/page/leave/admin_leave_page.dart';
 import 'package:tax_hrm/page/leave/leavepage.dart';
 import 'package:tax_hrm/page/setting/setting_page.dart';
@@ -24,8 +24,12 @@ import 'package:tax_hrm/provider/theme_provider.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/imagesfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
+import 'package:tax_hrm/utils/navigation.dart';
+import 'package:tax_hrm/page/ai_chat/ai_chat_screen.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/widgets/premium_upgrade_alert.dart';
+
+import 'face_punch_2/face_punch.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Interaction state enum
@@ -54,7 +58,6 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
 
         // For admin users, trigger the notification permission flow right away
 
-        
         // since they don't go to the punch screen.
         if (isAdmin && !PermissionFlowService.isFlowRunning) {
           await PermissionFlowService.run(
@@ -68,6 +71,7 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
         // no dialogs are on top (isCurrent == true),
         // and any route transition animation has fully completed.
         while (PermissionFlowService.isFlowRunning ||
+            FaceRegistrationSyncService.isDialogShowing ||
             ModalRoute.of(context)?.isCurrent != true ||
             ModalRoute.of(context)?.animation?.isCompleted != true) {
           await Future.delayed(const Duration(milliseconds: 200));
@@ -124,49 +128,124 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
     return AppUpgradeWrapper(
       child: WillPopScope(
         onWillPop: () => commonDialogBoxDesign(
-        context: context,
-        size: size,
-        title: exitString,
-      ),
-      child: Obx(() {
-        final selectedPageRaw = controller.fabSelected.value
-            ? SelfiePunchScreen()
-            : pageList[controller.selectedIndex.value];
+          context: context,
+          size: size,
+          title: exitString,
+        ),
+        child: Obx(() {
+          final selectedPageRaw = controller.fabSelected.value
+              // ? SelfiePunchScreen()
+              ? FacePunchScreen()
+              : pageList[controller.selectedIndex.value];
 
-        final selectedPage = selectedPageRaw;
+          final selectedPage = selectedPageRaw;
 
-        // ── All platforms: Flutter Liquid Glass bar ──
-        // Using the same Flutter-drawn _LiquidNavBar on iOS and Android
-        // for a consistent glass pill appearance on all iOS versions.
-        return Scaffold(
-          resizeToAvoidBottomInset: false,
-          backgroundColor: ColorConst.scaffoldColor,
-          extendBody: true,
-          body: LiquidGlassView(
-            backgroundWidget: selectedPage,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: _LiquidNavBar(
-                    key: ValueKey(
-                      context.watch<LanguageProvider>().currentLanguage,
+          // ── All platforms: Flutter Liquid Glass bar ──
+          // Using the same Flutter-drawn _LiquidNavBar on iOS and Android
+          // for a consistent glass pill appearance on all iOS versions.
+          return Scaffold(
+            resizeToAvoidBottomInset: false,
+            backgroundColor: ColorConst.scaffoldColor,
+            extendBody: true,
+            body: LiquidGlassView(
+              backgroundWidget: selectedPage,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _LiquidNavBar(
+                      key: ValueKey(
+                        context.watch<LanguageProvider>().currentLanguage,
+                      ),
+                      isAdmin: isAdmin,
+                      selectedIndex: controller.selectedIndex.value,
+                      fabSelected: controller.fabSelected.value,
+                      onTabSelected: controller.changeTab,
+                      onPunchSelected: controller.selectFab,
                     ),
-                    isAdmin: isAdmin,
-                    selectedIndex: controller.selectedIndex.value,
-                    fabSelected: controller.fabSelected.value,
-                    onTabSelected: controller.changeTab,
-                    onPunchSelected: controller.selectFab,
+                  ),
+                  if (!controller.fabSelected.value)
+                    Positioned(
+                      right: 18,
+                      bottom: (isAdmin ? 72.0 : 86.0) +
+                          MediaQuery.paddingOf(context).bottom +
+                          14.0,
+                      child: _buildAiChatFloatingButton(context),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  /// Floating Chatbot Button linking to HRM AI Chat
+  Widget _buildAiChatFloatingButton(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            ColorConst.themeColor,
+            const Color(0xFF6366F1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: ColorConst.themeColor.withOpacity(0.4),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            nextScreen(context, const AiChatScreen());
+          },
+          borderRadius: BorderRadius.circular(28),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.auto_awesome,
+                      size: 15,
+                      color: ColorConst.themeColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'HRM AI',
+                  style: TextStyle(
+                    fontFamily: fontInterBoldString,
+                    fontSize: 13,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ],
             ),
           ),
-        );
-      }),
+        ),
       ),
     );
   }
@@ -255,19 +334,12 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
 
   // ── Glass style for punch button (unchanged) ───────────────────────────────
   static const LiquidGlassStyle _punchGlassStyle = LiquidGlassStyle(
-    shape: LiquidGlassShape.roundedRectangle(cornerRadius: 100, borderWidth: 0),
-    appearance: LiquidGlassAppearance(
-      color: Color(0x32FFFFFF),
-      saturation: 1.20,
-      blur: LiquidGlassBlur(sigmaX: 5, sigmaY: 5),
-    ),
-    refraction: LiquidGlassRefraction(
-      refractionType: OpticalRefraction(
-        refraction: 1.55,
-        refractionWidth: 20,
-        depth: 0.80,
-      ),
-    ),
+    shape: LiquidGlassShape.roundedRectangle(cornerRadius: 100),
+    color: Color(0x32FFFFFF),
+    saturation: 1.20,
+    blur: 5,
+    refractionIndex: 1.55,
+    refractionWidth: 20,
   );
 
   // ── Geometry helpers ───────────────────────────────────────────────────────
@@ -619,27 +691,15 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
     final barGlassStyle = LiquidGlassStyle(
       shape: LiquidGlassShape.continuousRoundedRectangle(
         cornerRadius: 100,
-        borderWidth: 0,
-        borderColor: isDark
-            ? Colors.grey.withOpacity(0.05)
-            : Colors.white.withOpacity(0.50),
         clipQuality: LiquidGlassClipQuality.roundedRectangle,
       ),
-      appearance: LiquidGlassAppearance(
-        // Increased opacity for better visibility
-        color: isDark
-            ? const Color(0x89000000) // 60% black
-            : const Color(0x5CFFFFFF), // 70% white
-        saturation: 1.8,
-        blur: const LiquidGlassBlur(sigmaX: 7, sigmaY: 7),
-      ),
-      refraction: const LiquidGlassRefraction(
-        refractionType: OpticalRefraction(
-          refraction: 1.5,
-          refractionWidth: 18,
-          depth: 1.1,
-        ),
-      ),
+      color: isDark
+          ? const Color(0x89000000) // 60% black
+          : const Color(0x5CFFFFFF), // 70% white
+      saturation: 1.8,
+      blur: 8,
+      refractionIndex: 1.5,
+      refractionWidth: 12,
     );
 
     return SizedBox(
@@ -657,13 +717,15 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
             child: LayoutBuilder(
               builder: (ctx, constraints) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _onLayoutReady(constraints.maxWidth + 20); // include margins
+                  _onLayoutReady(constraints.maxWidth + 20);
                 });
-                // Wrapping in a standard Container to draw a proper border,
-                // bypassing the buggy LiquidGlassShape border rendering.
+
                 return Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(100),
+                    color: isDark
+                        ? const Color(0xFF292929).withOpacity(0.35)
+                        : Colors.white.withOpacity(0.25),
                     border: Border.all(
                       color: isDark
                           ? Colors.white.withOpacity(
@@ -674,6 +736,16 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
                             ), // strong white border for light
                       width: 1.0,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black.withOpacity(0.18)
+                            : Colors.black.withOpacity(0.07),
+                        blurRadius: 16,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(100),
@@ -873,47 +945,33 @@ class _GlassDropLayer extends StatelessWidget {
                     style: LiquidGlassStyle(
                       shape: LiquidGlassShape.continuousRoundedRectangle(
                         cornerRadius: 50,
-                        borderWidth: 0.1,
-                        borderColor: isDark
-                            ? Colors.white.withOpacity(0.20)
-                            : Colors.white.withOpacity(0.78),
                         clipQuality: LiquidGlassClipQuality.roundedRectangle,
                       ),
-                      appearance: LiquidGlassAppearance(
-                        color:
-                            Color.lerp(
-                              isDark
-                                  ? const Color(0x8E7E7E7E)
-                                  : const Color(0x2A1E1616), // Idle: Opaque
-                              isDark
-                                  ? const Color(0x401C1C1E)
-                                  : const Color(
-                                      0x40FFFFFF,
-                                    ), // Drag: True transparent glass
-                              lift,
-                            ) ??
-                            (isDark
-                                ? const Color(0xEE1C1C1E)
-                                : const Color(0xFAFFFFFF)),
-                        saturation:
-                            1.0 +
-                            (2.0 *
-                                lift), // 1.0 -> 3.0 (high saturation for glassy look)
-                        blur: LiquidGlassBlur(
-                          sigmaX: 40.0 * lift, // Deep blur
-                          sigmaY: 40.0 * lift,
-                        ),
-                      ),
-                      refraction: LiquidGlassRefraction(
-                        refractionType: OpticalRefraction(
-                          refraction:
-                              1.0 +
-                              (1.0 *
-                                  lift), // 1.0 -> 2.0 (strong optical distortion)
-                          refractionWidth: 32.0 * lift, // 0 -> 32
-                          depth: 1 * lift, // 0 -> 1.50 (thick glass depth)
-                        ),
-                      ),
+                      color:
+                          Color.lerp(
+                            isDark
+                                ? const Color(0x8E7E7E7E)
+                                : const Color(0x2A1E1616), // Idle: Opaque
+                            isDark
+                                ? const Color(0x401C1C1E)
+                                : const Color(
+                                    0x40FFFFFF,
+                                  ), // Drag: True transparent glass
+                            lift,
+                          ) ??
+                          (isDark
+                              ? const Color(0xEE1C1C1E)
+                              : const Color(0xFAFFFFFF)),
+                      saturation:
+                          1.0 +
+                          (2.0 *
+                              lift), // 1.0 -> 3.0 (high saturation for glassy look)
+                      blur: 40.0 * lift, // Deep blur
+                      refractionIndex:
+                          1.0 +
+                          (1.0 *
+                              lift), // 1.0 -> 2.0 (strong optical distortion)
+                      refractionWidth: 32.0 * lift, // 0 -> 32
                     ),
                     child: const SizedBox.expand(),
                   ),

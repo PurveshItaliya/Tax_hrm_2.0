@@ -2,7 +2,9 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:tax_hrm/models/attendance/attendanceBlog.dart';
 import 'package:tax_hrm/models/attendance/attendanceCountings.dart';
@@ -15,6 +17,7 @@ import 'package:tax_hrm/models/attendance/punchnow.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/models/top_hrm_model.dart';
 import 'package:tax_hrm/utils/basicdata.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AttendanceApis{
@@ -42,7 +45,18 @@ class AttendanceApis{
   }
 
   Future  getDateBlogEmp(setDate,employeid,setCompanyid,)async{
-    var url = Uri.parse('${apibaseurl}api/HRM/GetAttendenceListById?CompanyID=$setCompanyid&EmpId=$employeid&AttendenceDate=$setDate');
+    final compId = setCompanyid ?? selectedcurentcompany?.companyId ?? curentUser?['CompanyId'] ?? 0;
+    final targetEmpId = employeid ?? curentUser?['Id'] ?? 0;
+
+    DateTime pDate;
+    if (setDate is DateTime) {
+      pDate = setDate;
+    } else {
+      pDate = DateTime.tryParse(setDate.toString()) ?? DateTime.now();
+    }
+    final String dateStr = DateFormat('yyyy-MM-dd').format(pDate);
+
+    var url = Uri.parse('${apibaseurl}api/HRM/GetAttendenceListById?CompanyID=$compId&EmpId=$targetEmpId&AttendenceDate=$dateStr');
     var response = await http.get(url, headers: {
       'Authorization': 'bearer ${curentUser['token']}',
     });
@@ -52,11 +66,11 @@ class AttendanceApis{
          bool hasIn = false;
          bool hasOut = false;
          for (var log in data['AttendenceLog']) {
-            if (log['Status'] == 'IN') hasIn = true;
-            if (log['Status'] == 'OUT') hasOut = true;
+            final st = (log['Status'] ?? '').toString().toUpperCase();
+            if (st == 'IN') hasIn = true;
+            if (st == 'OUT') hasOut = true;
          }
          final prefs = await SharedPreferences.getInstance();
-         DateTime pDate = setDate is DateTime ? setDate : (DateTime.tryParse(setDate.toString()) ?? DateTime.now());
          String dateKey = '${pDate.year}-${pDate.month.toString().padLeft(2, '0')}-${pDate.day.toString().padLeft(2, '0')}';
          if (hasIn) await prefs.setBool('punched_in_$dateKey', true);
          if (hasOut) await prefs.setBool('punched_out_$dateKey', true);
@@ -93,7 +107,13 @@ class AttendanceApis{
     /* log("----------------------------$bodys"); */
 
     var url = Uri.parse("${apibaseurl}api/HRM/NewNewCreateAttendence");
+    log("----- API REQUEST: HRM/NewNewCreateAttendence -----", name: "PunchAPI");
+    log("URL: $url", name: "PunchAPI");
+    log("Payload: ${jsonEncode(bodys)}", name: "PunchAPI");
     var response = await http.post(url, body: jsonEncode(bodys), headers: {'Authorization': 'bearer ${curentUser!['token']}','Content-Type': 'application/json',});
+    log("----- API RESPONSE: HRM/NewNewCreateAttendence -----", name: "PunchAPI");
+    log("Status Code: ${response.statusCode}", name: "PunchAPI");
+    log("Response Body: ${response.body}", name: "PunchAPI");
     try {
       final data = jsonDecode(response.body);
       if (data != null && data['success'] == true && data['AttendenceLog'] != null && data['AttendenceLog'].isNotEmpty) {
@@ -110,30 +130,66 @@ class AttendanceApis{
 
   //------------------------------------------  Call Punch with Img ---------------------------------\\
 
-  Future<dynamic> callWithImgPunch({File?  FILES,setCguid,setLongitude,setLatitude,setLocation, empId, required Function(dynamic val) listenRes}) async {
+  Future<dynamic> callWithImgPunch({
+    File? FILES,
+    dynamic setCguid,
+    dynamic setLongitude,
+    dynamic setLatitude,
+    dynamic setLocation,
+    dynamic empId,
+    required Function(dynamic val) listenRes,
+  }) async {
     var url = Uri.parse('${apibaseurl}api/HRM/AttendenmcelogUploads');
-    var header = {'Content-Type' : 'application/json', 'Accept' : '*/*', 'Authorization':'bearer  ${curentUser['token']}'};
+    final String token = curentUser?['token']?.toString() ?? '';
+    var header = <String, String>{
+      'Accept': '*/*',
+      if (token.isNotEmpty) 'Authorization': 'bearer $token',
+    };
     final targetEmpId = empId != null ? '$empId' : '${curentUser['Id']}';
-    try{
+    try {
       var body = <String, String>{
         "CompanyId": '${selectedcurentcompany!.companyId}',
         "EmpId": targetEmpId,
-        "Cguid": setCguid,
-        "Longitude":setLongitude,
-        "Latitude":setLatitude,
-        "Location":setLocation,
-        "Device":"mob",
+        "Cguid": setCguid?.toString() ?? '',
+        "Longitude": setLongitude?.toString() ?? '',
+        "Latitude": setLatitude?.toString() ?? '',
+        "Location": setLocation?.toString() ?? '',
+        "Device": "mob",
       };
       var req = http.MultipartRequest("POST", url);
       req.headers.addAll(header);
       req.fields.addAll(body);
-      if (FILES != null) {
+      if (FILES != null && FILES.existsSync() && FILES.lengthSync() > 0) {
         var pic = await http.MultipartFile.fromPath("Filename", FILES.path);
         req.files.add(pic);
+      } else {
+        debugPrint('[AttendanceApis] callWithImgPunch: FILES is missing or 0 bytes (${FILES?.path})');
+        return null;
       }
-      var response = await req.send();
-      response.stream.transform(utf8.decoder).listen((value) {listenRes(jsonDecode(value));});
-    }catch(e) { /* ignored */ }
+      var streamedResponse = await req.send().timeout(const Duration(seconds: 25));
+      final responseBody = await streamedResponse.stream.bytesToString().timeout(const Duration(seconds: 15));
+      debugPrint('[AttendanceApis] callWithImgPunch status: ${streamedResponse.statusCode}, body: $responseBody');
+
+      if (streamedResponse.statusCode >= 200 && streamedResponse.statusCode < 300) {
+        try {
+          final decoded = jsonDecode(responseBody);
+          if (decoded is Map && (decoded['success'] == false || decoded['status'] == false)) {
+            debugPrint('[AttendanceApis] callWithImgPunch server returned failure: $decoded');
+            return null;
+          }
+          listenRes(decoded);
+          return decoded;
+        } catch (_) {
+          listenRes(responseBody);
+          return responseBody;
+        }
+      } else {
+        return null;
+      }
+    } catch (e) {
+      debugPrint('[AttendanceApis] callWithImgPunch error: $e');
+      return null;
+    }
   }
 
   Future attendanceAddAdmin({attendanceDate,setInTime,setEmpid,setCguid,setRemarks,setweekoff})async{

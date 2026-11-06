@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -35,14 +36,15 @@ class PermissionFlowResult {
 ///   4. Background Location (Android only, when [isFetchLocation] is true)
 ///
 /// Rules enforced:
-///   - A custom explanation dialog is always shown BEFORE every system dialog.
-///   - The system dialog is NEVER opened directly.
-///   - App Settings are opened ONLY after a permanent denial.
-///   - If the user taps "Not Now", the flow moves to the next permission.
-///   - All permissions are attempted regardless of individual denials.
+///   - A custom explanation dialog is shown ONCE before system dialogs.
+///   - If all permissions are already granted, exits instantly without showing any dialog.
+///   - Tapping "Continue" requests the pending permissions once and completes without looping.
+///   - Tapping "Not Now" cancels cleanly and exits.
+///   - App Settings are opened ONLY after a permanent denial of essential permissions.
 class PermissionFlowService {
   /// Global flag to indicate if the permission flow is currently active.
   static bool isFlowRunning = false;
+  static Future<PermissionFlowResult>? _runningFuture;
 
   // ─── Public API ────────────────────────────────────────────────────────────
 
@@ -52,93 +54,122 @@ class PermissionFlowService {
     required bool isFetchLocation,
     bool notificationOnly = false,
   }) async {
+    // If a flow is already running, join and return the same future.
+    if (isFlowRunning && _runningFuture != null) {
+      return await _runningFuture!;
+    }
+
+    final completer = Completer<PermissionFlowResult>();
+    _runningFuture = completer.future;
     isFlowRunning = true;
+
     try {
-      while (true) {
-        if (!context.mounted) break;
-        
-        final List<PermissionType> pending = await _buildPendingList(isFetchLocation, notificationOnly);
-        if (pending.isEmpty) break; // All granted!
+      if (!context.mounted) {
+        final res = await _buildResult();
+        completer.complete(res);
+        return res;
+      }
 
-        // Check if any pending permission is permanently denied
-        PermissionType? permanentlyDeniedType;
-        for (final type in pending) {
-          final status = await _getStatus(type);
-          if (status.isPermanentlyDenied) {
-            permanentlyDeniedType = type;
-            break;
-          }
-        }
+      // Check pending permissions upfront
+      final List<PermissionType> pending =
+          await _buildPendingList(isFetchLocation, notificationOnly);
 
-        // If permanently denied, show the settings redirect dialog.
-        if (permanentlyDeniedType != null) {
-          if (!context.mounted) break;
-          final openSettings = await PermissionDialogWidget.showPermanentlyDeniedDialog(
-              context, permanentlyDeniedType);
-          if (openSettings && context.mounted) {
-            await openAppSettings();
-            await LocationPermissionService.waitForAppResume();
-            // The user returned from Settings. Re-check permissions!
-            continue; 
-          }
-          break; // Stop the flow if they hit Cancel/Not Now.
-        }
+      // If all required permissions are already granted, exit immediately without showing any dialog!
+      if (pending.isEmpty) {
+        final res = await _buildResult();
+        completer.complete(res);
+        return res;
+      }
 
-        // Show ONE combined dialog listing all pending permissions
-        if (!context.mounted) break;
-        final continuePressed = await PermissionDialogWidget.showCombinedExplanationDialog(
-            context, pending);
-            
-        if (!continuePressed) break; // Fallback in case of cancellation
-
-        // Sequentially request system dialogs for all pending permissions
-        bool anyDeniedThisRound = false;
-        for (final type in pending) {
-          if (!context.mounted) break;
-
-          // Background location requires foreground to be granted first
-          if (type == PermissionType.backgroundLocation) {
-            final fgStatus = await Permission.location.status;
-            if (!fgStatus.isGranted) {
-              anyDeniedThisRound = true;
-              continue;
-            }
-          }
-
-          await _requestSystemPermissionSilent(type);
-          
-          // Brief pause so the system dialog transitions smoothly
-          await Future.delayed(const Duration(milliseconds: 350));
-          
-          final newStatus = await _getStatus(type);
-          if (!newStatus.isGranted) {
-            anyDeniedThisRound = true;
-          }
-        }
-
-        // If none were denied, the next loop will find pending.isEmpty and break.
-        // If any were denied, it loops and re-shows the combined dialog for the remaining.
-        if (!anyDeniedThisRound) {
+      // Check if any critical permission is permanently denied
+      PermissionType? permanentlyDeniedType;
+      for (final type in pending) {
+        final status = await _getStatus(type);
+        if (status.isPermanentlyDenied) {
+          permanentlyDeniedType = type;
           break;
         }
       }
 
-      return await _buildResult();
+      // If a critical permission is permanently disabled, show settings dialog ONCE
+      if (permanentlyDeniedType != null) {
+        if (permanentlyDeniedType == PermissionType.camera ||
+            permanentlyDeniedType == PermissionType.foregroundLocation ||
+            notificationOnly) {
+          if (context.mounted) {
+            final openSettings =
+                await PermissionDialogWidget.showPermanentlyDeniedDialog(
+                    context, permanentlyDeniedType);
+            if (openSettings && context.mounted) {
+              await openAppSettings();
+              await LocationPermissionService.waitForAppResume();
+            }
+          }
+          final res = await _buildResult();
+          completer.complete(res);
+          return res;
+        }
+      }
+
+      if (!context.mounted) {
+        final res = await _buildResult();
+        completer.complete(res);
+        return res;
+      }
+
+      // Show ONE combined explanation dialog listing pending permissions
+      final continuePressed =
+          await PermissionDialogWidget.showCombinedExplanationDialog(
+              context, pending);
+
+      if (!continuePressed || !context.mounted) {
+        // User tapped "Not Now" or dismissed dialog
+        final res = await _buildResult();
+        completer.complete(res);
+        return res;
+      }
+
+      // User tapped "Continue". Request system permissions ONCE for each pending type.
+      for (final type in pending) {
+        if (!context.mounted) break;
+
+        // Background location requires foreground to be granted first
+        if (type == PermissionType.backgroundLocation) {
+          final fgStatus = await Permission.location.status;
+          if (!fgStatus.isGranted) {
+            continue;
+          }
+        }
+
+        await _requestSystemPermissionSilent(type);
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      // Execution complete! Never loop back to show the explanation dialog again!
+      final result = await _buildResult();
+      completer.complete(result);
+      return result;
+    } catch (e) {
+      debugPrint('[PermissionFlowService] Error in run: $e');
+      final fallback = await _buildResult();
+      if (!completer.isCompleted) completer.complete(fallback);
+      return fallback;
     } finally {
       isFlowRunning = false;
+      _runningFuture = null;
     }
   }
 
   // ─── Build pending list ─────────────────────────────────────────────────────
 
-  static Future<List<PermissionType>> _buildPendingList(bool isFetchLocation, bool notificationOnly) async {
+  static Future<List<PermissionType>> _buildPendingList(
+      bool isFetchLocation, bool notificationOnly) async {
     final List<PermissionType> pending = [];
 
-    if (!(await _getSafeStatus(PermissionType.notification)).isGranted) {
-      pending.add(PermissionType.notification);
-    }
-    
     if (notificationOnly) {
+      if (!(await _getSafeStatus(PermissionType.notification)).isGranted) {
+        pending.add(PermissionType.notification);
+      }
       return pending;
     }
 
@@ -148,8 +179,16 @@ class PermissionFlowService {
     if (!(await _getSafeStatus(PermissionType.foregroundLocation)).isGranted) {
       pending.add(PermissionType.foregroundLocation);
     }
+    if (!(await _getSafeStatus(PermissionType.notification)).isGranted) {
+      pending.add(PermissionType.notification);
+    }
+
+    // Only check background location on Android if foreground location is already granted,
+    // isFetchLocation is true, and it hasn't been permanently denied.
     if (Platform.isAndroid && isFetchLocation) {
-      if (!(await _getSafeStatus(PermissionType.backgroundLocation)).isGranted) {
+      final fgStatus = await _getSafeStatus(PermissionType.foregroundLocation);
+      final bgStatus = await _getSafeStatus(PermissionType.backgroundLocation);
+      if (fgStatus.isGranted && !bgStatus.isGranted && !bgStatus.isPermanentlyDenied) {
         pending.add(PermissionType.backgroundLocation);
       }
     }

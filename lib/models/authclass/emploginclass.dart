@@ -78,6 +78,8 @@ class EmpUserLogin {
   bool? isRecords;
   dynamic isFetchLocation;
   String? faceRegisterId;
+  String? faceRegisterImg;
+  String? fileName;
   bool? isVisitor;
 
   EmpUserLogin({
@@ -148,6 +150,8 @@ class EmpUserLogin {
     this.isRecords,
     this.isFetchLocation,
     this.faceRegisterId,
+    this.faceRegisterImg,
+    this.fileName,
     this.isVisitor,
   });
 
@@ -219,6 +223,13 @@ class EmpUserLogin {
     isRecords = json['IsRecords'] ?? true;
     isFetchLocation = json['IsFetchLocation'] ?? json['isFetchLocation'];
     faceRegisterId = json['FaceRegisterId'] ?? "";
+    fileName = json['FileName'] ?? json['filename'] ?? json['Filename'];
+    faceRegisterImg = json['FileName'] ??
+        json['filename'] ??
+        json['Filename'] ??
+        json['FaceRegisterImg'] ??
+        json['faceRegisterImg'] ??
+        json['FaceRegisterImage'];
     isVisitor = json['isVisitor'] ?? json['IsVisitor'];
   }
 
@@ -291,6 +302,8 @@ class EmpUserLogin {
     data['IsRecords'] = isRecords;
     data['IsFetchLocation'] = isFetchLocation;
     data['FaceRegisterId'] = faceRegisterId;
+    data['FaceRegisterImg'] = faceRegisterImg ?? fileName;
+    data['FileName'] = fileName ?? faceRegisterImg;
     data['isVisitor'] = isVisitor;
     return data;
   }

@@ -51,4 +51,56 @@ post_install do |installer|
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
     end
   end
+
+  # Auto-patch google_mlkit_commons for iOS camera orientation support
+  mlk_file = File.expand_path(".symlinks/plugins/google_mlkit_commons/ios/Classes/MLKVisionImage+FlutterPlugin.swift", __dir__)
+  if File.exist?(mlk_file)
+    real_file = File.realpath(mlk_file)
+    content = File.read(real_file)
+    unless content.include?("pixelBufferToVisionImage(_ pixelBufferRef: CVPixelBuffer, rotation: Int")
+      puts "[Podfile] Patching google_mlkit_commons for physical camera frame rotation on iOS..."
+      unless content.include?("static let ciContext")
+        content.sub!("extension VisionImage {", "extension VisionImage {\n  private static let ciContext = CIContext(options: [CIContextOption.useSoftwareRenderer: false])\n")
+      end
+
+      old_func_pattern = /private static func pixelBufferToVisionImage\(_ pixelBufferRef: CVPixelBuffer.*?return VisionImage\(image: uiImage\)\s*\}/m
+      new_func = <<-SWIFT
+private static func pixelBufferToVisionImage(_ pixelBufferRef: CVPixelBuffer, rotation: Int = 0) -> VisionImage? {
+    let ciImage = CIImage(cvPixelBuffer: pixelBufferRef)
+    let orientedCi: CIImage
+    switch rotation {
+    case 90:
+      orientedCi = ciImage.oriented(.right)
+    case 180:
+      orientedCi = ciImage.oriented(.down)
+    case 270:
+      orientedCi = ciImage.oriented(.left)
+    default:
+      orientedCi = ciImage
+    }
+
+    guard let cgImage = ciContext.createCGImage(
+      orientedCi,
+      from: orientedCi.extent
+    ) else {
+      return nil
+    }
+    let uiImage = UIImage(cgImage: cgImage)
+    return VisionImage(image: uiImage)
+  }
+SWIFT
+      content.sub!(old_func_pattern, new_func.strip) if content.match?(old_func_pattern)
+
+      old_call_pattern = /if let visionImage = pixelBufferToVisionImage\(pxBuffer.*?return visionImage\s*\}/m
+      new_call = <<-SWIFT
+let rotationVal = (metadata["rotation"] as? NSNumber)?.intValue ?? 0
+    if let visionImage = pixelBufferToVisionImage(pxBuffer, rotation: rotationVal) {
+      return visionImage
+    }
+SWIFT
+      content.sub!(old_call_pattern, new_call.strip) if content.match?(old_call_pattern)
+
+      File.write(real_file, content)
+    end
+  end
 end

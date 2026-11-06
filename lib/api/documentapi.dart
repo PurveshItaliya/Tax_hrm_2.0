@@ -11,9 +11,10 @@ import 'package:http/http.dart' as http;
 class DocumentApis {
   // ************************************************ Get Document File *********************************************************
 
-  Future getDocuments() async {
+  Future<List<DocumentViews>> getDocuments({dynamic empId}) async {
+    final targetEmpId = empId ?? curentUser['Id'];
     var url = Uri.parse(
-      '${apibaseurl}api/Master/EmpGetFileList?EmpId=${curentUser['Id']}',
+      '${apibaseurl}api/Master/EmpGetFileList?EmpId=$targetEmpId',
     );
 
     var response = await http.get(
@@ -93,4 +94,55 @@ class DocumentApis {
   }
 
   // ************************************************ Add Document File *********************************************************
+
+  // ************************************************ Upload Face Register Image **************************************************
+
+  Future<dynamic> uploadFaceRegisterImage({
+    required File file,
+    Function(dynamic val)? listenRes,
+  }) async {
+    var url = Uri.parse('${apibaseurl}api/Master/EmpFileUploads');
+    var header = {
+      'Accept': '*/*',
+      'Authorization': 'bearer ${curentUser['token']}',
+    };
+    try {
+      var body = <String, String>{
+        "Category": "faceReg",
+        "EmpId": '${curentUser['Id']}',
+        "CompanyId": '${selectedcurentcompany!.companyId}',
+      };
+
+      var req = http.MultipartRequest("POST", url);
+      req.headers.addAll(header);
+      req.fields.addAll(body);
+
+      //--------------- Send Single Face Register Image -------------------\\
+      req.files.add(
+        http.MultipartFile(
+          'Filename',
+          file.readAsBytes().asStream(),
+          file.lengthSync(),
+          filename: basename(file.path.split("/").last),
+        ),
+      );
+
+      var response = await req.send();
+      var respStr = await response.stream.bytesToString();
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(respStr);
+      } catch (_) {
+        decoded = respStr;
+      }
+      if (listenRes != null) {
+        listenRes(decoded);
+      }
+      return decoded;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ************************************************ Upload Face Register Image **************************************************
 }

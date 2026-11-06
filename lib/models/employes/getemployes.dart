@@ -87,6 +87,7 @@ class Employeelists {
   int? locationRadius;
   bool? isFetchLocation;
   dynamic faceRegisterId;
+  String? faceRegisterImg;
   bool? punchAllowed;
   bool? isVisitor;
 
@@ -156,6 +157,7 @@ class Employeelists {
     this.locationRadius,
     this.isFetchLocation,
     this.faceRegisterId,
+    this.faceRegisterImg,
     this.punchAllowed,
     this.isVisitor,
   });
@@ -225,6 +227,7 @@ class Employeelists {
     locationRadius = json['LocationRadius'];
     isFetchLocation = json['IsFetchLocation'] ?? json['isFetchLocation'];
     faceRegisterId = json['FaceRegisterId'];
+    faceRegisterImg = json['FaceRegisterImg'] ?? json['faceRegisterImg'];
     punchAllowed = json['PunchAllowed'];
     isVisitor = json['IsVisitor'] ?? json['isVisitor'];
   }
@@ -296,6 +299,7 @@ class Employeelists {
     data['LocationRadius'] = locationRadius;
     data['IsFetchLocation'] = isFetchLocation;
     data['FaceRegisterId '] = faceRegisterId;
+    data['FaceRegisterImg'] = faceRegisterImg;
     data['PunchAllowed'] = punchAllowed;
     data['IsVisitor'] = isVisitor;
     return data;

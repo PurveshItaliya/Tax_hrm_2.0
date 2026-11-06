@@ -1,9 +1,7 @@
 // ignore_for_file: avoid_print, empty_catches
 
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
-
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -718,10 +716,9 @@ class OfflinePunchSyncService {
               Uri.parse('${apibaseurl}api/HRM/AttendenmcelogUploads');
           final req = http.MultipartRequest('POST', imgUrl);
           req.headers.addAll({
-            'Content-Type': 'application/json',
             'Accept': '*/*',
             'Authorization': 'bearer $token',
-            });
+          });
           req.fields.addAll({
             'CompanyId': companyId.toString(),
             'EmpId': empId,
@@ -734,7 +731,8 @@ class OfflinePunchSyncService {
           req.files.add(
             await http.MultipartFile.fromPath('Filename', imageFile.path),
           );
-          await req.send().timeout(const Duration(seconds: 20));
+          final streamed = await req.send().timeout(const Duration(seconds: 25));
+          await streamed.stream.bytesToString().timeout(const Duration(seconds: 15));
         } catch (_) {
           // Selfie upload failure is non-fatal (mirrors existing behaviour).
         }
@@ -841,7 +839,6 @@ class OfflinePunchSyncService {
               Uri.parse('${apibaseurl}api/HRM/AttendenmcelogUploads');
           final req = http.MultipartRequest('POST', imgUrl);
           req.headers.addAll({
-            'Content-Type': 'application/json',
             'Accept': '*/*',
             'Authorization': 'bearer $token',
           });
@@ -857,7 +854,8 @@ class OfflinePunchSyncService {
           req.files.add(
             await http.MultipartFile.fromPath('Filename', imageFile.path),
           );
-          await req.send().timeout(const Duration(seconds: 20));
+          final streamed = await req.send().timeout(const Duration(seconds: 25));
+          await streamed.stream.bytesToString().timeout(const Duration(seconds: 15));
         } catch (_) {}
       }
     }

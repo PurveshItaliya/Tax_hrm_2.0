@@ -26,6 +26,7 @@ import 'package:tax_hrm/page/salaryslip/salary_payslip_screen.dart';
 import 'package:tax_hrm/page/holidays/show_holidays.dart';
 import 'package:tax_hrm/page/notes/notespage.dart';
 import 'package:tax_hrm/page/document/showdocument_screen.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 
 class FcmTokenService {
   static final FcmTokenService instance = FcmTokenService._internal();
@@ -260,6 +261,9 @@ class FcmTokenService {
 
       // 3. Clear all mandatory topic cache immediately so next user starts clean
       await FcmTopicService.instance.clearAllTopicCache();
+
+      // 4. Clear all face registration, templates, and cached images on logout
+      await FaceRegistrationSyncService.instance.clearAllFaceDataOnLogout();
 
       // 5. Fire-and-forget FCM token deletion so next login gets a fresh token
       unawaited(() async {

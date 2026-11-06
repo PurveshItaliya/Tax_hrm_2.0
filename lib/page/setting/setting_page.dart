@@ -8,10 +8,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tax_hrm/api/adminprofileapi.dart';
 import 'package:tax_hrm/models/fixeddat.dart';
-import 'package:tax_hrm/page/face_registation/face_registration_screen.dart';
 import 'package:tax_hrm/page/personal_info/profilepage.dart';
 import 'package:tax_hrm/page/authpages/loginpage.dart';
 import 'package:tax_hrm/provider/home_provider.dart';
@@ -31,8 +29,9 @@ import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/comman_shimmer_design.dart';
 import 'package:tax_hrm/widigets/common_dialogBox.dart';
 import 'package:tax_hrm/provider/location_tracking_provider.dart';
-import 'package:tax_hrm/provider/face_verification_provider.dart';
-import 'package:tax_hrm/services/remote_config_services.dart';
+import 'package:tax_hrm/provider/selfie_punch_provider.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
+import 'package:tax_hrm/page/whats_new/whats_new_screen.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -244,6 +243,15 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                             listen: false,
                           ).clearData();
 
+                          // Reset punch & face sync session state for clean user switching
+                          try {
+                            Provider.of<SelfiePunchProvider>(
+                              context,
+                              listen: false,
+                            ).resetState();
+                          } catch (_) {}
+                          await FaceRegistrationSyncService.instance.clearAllFaceDataOnLogout();
+
                           // 6. Redirect to Login Screen
                           nextscreenRemove(
                             context,
@@ -288,13 +296,63 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
 
                   const SizedBox(height: 16),
 
-                  // Version Text
-                  Text(
-                    "$versionString: $_appVersion",
-                    style: TextStyle(
-                      fontSize: size.width * 0.032,
-                      color: ColorConst.textgrey,
-                      fontWeight: FontWeight.w500,
+                  // Version Text with What's New shortcut
+                  GestureDetector(
+                    onTap: () {
+                      nextScreen(
+                        context,
+                        const WhatsNewPage(),
+                        onthenValue: (value) {
+                          safeAreaBgAndTextColor(
+                            context,
+                            safeAreaBgColor: ColorConst.themeColor,
+                            safeAreaBrightness: Brightness.light,
+                          );
+                        },
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "$versionString: $_appVersion",
+                            style: TextStyle(
+                              fontSize: size.width * 0.032,
+                              color: ColorConst.textgrey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: ColorConst.themeColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome,
+                                  size: 11,
+                                  color: ColorConst.themeColor,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  whatsNewString,
+                                  style: TextStyle(
+                                    fontSize: size.width * 0.026,
+                                    color: ColorConst.themeColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -307,6 +365,13 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
 
   // ── Profile Header Section ─────────────────────────────────────────────────
   Widget _buildProfileHeader(Size size, SettingProvider settingProvider) {
+    final profileImage = settingProvider.setEmpProfile?.img?.toString();
+    final hasProfileImage = profileImage != null && profileImage.isNotEmpty;
+    final firstName = curentUser?['FirstName']?.toString().trim() ?? '';
+    final lastName = curentUser?['LastName']?.toString().trim() ?? '';
+    final profileInitials =
+        '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}';
+
     return SizedBox(
       width: size.width,
       height: size.width * 0.72,
@@ -342,32 +407,20 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
               child: CircleAvatar(
                 radius: size.width * 0.16,
                 backgroundColor: ColorConst.greyOpicityColor,
-                child: settingProvider.setEmpProfile?.img != null
+                child: hasProfileImage
                     ? Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           image: DecorationImage(
                             image: NetworkImage(
-                              '${apibaseurl}UploadFiles/Emp/${settingProvider.setEmpProfile!.img}',
+                              '${apibaseurl}UploadFiles/Emp/$profileImage',
                             ),
                             fit: BoxFit.cover,
                           ),
                         ),
                       )
                     : Text(
-                        curentUser == null
-                            ? ""
-                            : (curentUser['FirstName'] != null &&
-                                  curentUser['FirstName'] != "")
-                            ? ('${curentUser['FirstName']}'[0] +
-                                  (curentUser['LastName'] != null &&
-                                          curentUser['LastName'] != ""
-                                      ? '${curentUser['LastName']}'[0]
-                                      : ""))
-                            : (curentUser['Username'] != null &&
-                                      curentUser['Username'] != ""
-                                  ? '${curentUser['Username']}'[0]
-                                  : ""),
+                        profileInitials,
                         style: TextStyle(
                           fontSize: size.height * 0.045,
                           color: ColorConst.themeColor,
@@ -502,14 +555,8 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
         Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
       );
     }
+    // Face SDK Enrollment and Re-register sections hidden as per configuration
 
-    // Add Face Verification Section (Hidden for Admins or when disabled via Remote Config)
-    if (RemoteConfigServices.isFaceVerifyEnabled && curentUser?['Role'] != 'Admin') {
-      list.add(_buildFaceVerificationSection(size));
-      list.add(
-        Divider(height: 1, color: ColorConst.textBorder.withOpacity(0.2)),
-      );
-    }
 
     for (int i = 0; i < settingProvider.settingGridOptionList.length; i++) {
       final item = settingProvider.settingGridOptionList[i];
@@ -521,6 +568,8 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
             size: size,
             val: curentUser?['Role'] == 'Admin',
             onChanged: (val) async {
+              settingProvider.setloading(true);
+              try {
               if (curentUser['OriginalRole'] == null) {
                 curentUser['OriginalRole'] = curentUser['Role'];
               }
@@ -547,6 +596,9 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                   context,
                   listen: false,
                 ).selectFloadButton();
+              }
+              } finally {
+                settingProvider.setloading(false);
               }
             },
           ),
@@ -632,66 +684,9 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
     await openAppSettings();
   }
 
+  // ── Face SDK Enrollment Settings Section ──────────────────────────────────
+
   // ── Face Verification Settings Section ─────────────────────────────────────
-  Widget _buildFaceVerificationSection(Size size) {   
-    return Consumer<FaceVerificationProvider>(
-      builder: (context, faceProvider, child) {
-        return Material(
-          color: Colors.transparent,
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 4,
-            ),
-            leading: Container(
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: ColorConst.themeColor.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SvgPicture.asset(
-                  'assets/images/faceid.svg',
-                  color: ColorConst.themeColor,
-                ),
-              ),
-            ),
-            title: Text(
-              reRegisterFaceString,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: ColorConst.settingTextColors,
-              ),
-            ),
-            subtitle: Text(
-              faceIsRegisteredString,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.green.shade600,
-              ),
-            ),
-            trailing: Icon(
-              Icons.chevron_right_rounded,
-              color: ColorConst.settingIconsColors,
-              size: 24,
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const FaceRegistrationScreen(),
-                ),
-              ).then((_) {});
-            },
-          ),
-        );
-      },
-    );
-  }
 
   // ── Custom Settings Tile ───────────────────────────────────────────────────
   Widget _buildSettingTile({

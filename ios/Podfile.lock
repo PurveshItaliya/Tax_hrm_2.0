@@ -1235,6 +1235,8 @@ PODS:
   - DKPhotoGallery/Resource (0.0.19):
     - SDWebImage
     - SwiftyGif
+  - facesdk_plugin (0.0.1):
+    - Flutter
   - file_picker (0.0.1):
     - DKImagePickerController/PhotoGallery
     - Flutter
@@ -1359,6 +1361,8 @@ PODS:
   - FirebaseSharedSwift (12.19.0)
   - Flutter (1.0.0)
   - flutter_background_service_ios (0.0.3):
+    - Flutter
+  - flutter_exif_rotation (0.3.0):
     - Flutter
   - flutter_local_notifications (0.0.1):
     - Flutter
@@ -1605,6 +1609,7 @@ DEPENDENCIES:
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
+  - facesdk_plugin (from `.symlinks/plugins/facesdk_plugin/ios`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
@@ -1613,6 +1618,7 @@ DEPENDENCIES:
   - firebase_remote_config (from `.symlinks/plugins/firebase_remote_config/ios`)
   - Flutter (from `Flutter`)
   - flutter_background_service_ios (from `.symlinks/plugins/flutter_background_service_ios/ios`)
+  - flutter_exif_rotation (from `.symlinks/plugins/flutter_exif_rotation/ios`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_pdfview (from `.symlinks/plugins/flutter_pdfview/ios`)
   - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
@@ -1691,6 +1697,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/connectivity_plus/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
+  facesdk_plugin:
+    :path: ".symlinks/plugins/facesdk_plugin/ios"
   file_picker:
     :path: ".symlinks/plugins/file_picker/ios"
   firebase_auth:
@@ -1707,6 +1715,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_background_service_ios:
     :path: ".symlinks/plugins/flutter_background_service_ios/ios"
+  flutter_exif_rotation:
+    :path: ".symlinks/plugins/flutter_exif_rotation/ios"
   flutter_local_notifications:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
   flutter_pdfview:
@@ -1765,6 +1775,7 @@ SPEC CHECKSUMS:
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
+  facesdk_plugin: 43d77b4dd0c198451fd8856d7864f9682bb6aac4
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   Firebase: 7ca191e43724142f79fae653547b3382c45413cc
   firebase_auth: 09023e4cff3162bed3375fb2f4f350b07c422206
@@ -1790,6 +1801,7 @@ SPEC CHECKSUMS:
   FirebaseSharedSwift: c91f36aeaa566e12b682caacc40d34c8303c3124
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_background_service_ios: 00d31bdff7b4bfe06d32375df358abe0329cf87e
+  flutter_exif_rotation: 5406455759acacf1f7b1b83e85dbb545340d6e9c
   flutter_local_notifications: 643a3eda1ce1c0599413ca31672536d423dee214
   flutter_pdfview: 4fbfbd0590f63153fbd492a54997c5e5be010458
   flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
@@ -1835,6 +1847,6 @@ SPEC CHECKSUMS:
   video_player_avfoundation: 3453f792138786248960ca029747fcd9f318ef52
   workmanager_apple: 1fc2a64e6a63ed3540fbb91b65f0c0d501881248
 
-PODFILE CHECKSUM: ccbd69bc298f5522e603706c81254e1ae3396703
+PODFILE CHECKSUM: 042a78f508117e666730aa67a697dd3322e67361
 
 COCOAPODS: 1.17.0

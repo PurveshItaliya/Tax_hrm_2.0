@@ -1,13 +1,25 @@
 package com.hrmnewapp.taxhrm
+import android.content.Context
 import android.content.Intent
+import android.provider.Settings
 import android.util.Log
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.appwidget.updateAll
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "punch_widget/open"
+    private val DEV_CHANNEL = "com.hrmnewapp.taxhrm/developer_mode"
     private var methodChannel: MethodChannel? = null
+    private var devMethodChannel: MethodChannel? = null
     private val TAG = "TaxHrmMainActivity"
 
     override fun getInitialRoute(): String {
@@ -27,11 +39,97 @@ class MainActivity : FlutterActivity() {
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         
         methodChannel?.setMethodCallHandler { call, result ->
-            if (call.method == "move_to_background") {
-                finishAndRemoveTask()
-                result.success(null)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "move_to_background" -> {
+                    finishAndRemoveTask()
+                    result.success(null)
+                }
+                "update_widget_settings" -> {
+                    val colorHex = call.argument<String>("color") ?: "blue"
+                    val transparencyNum = call.argument<Number>("transparency")?.toFloat() ?: 0.70f
+                    val blurNum = call.argument<Number>("blur")?.toFloat() ?: 24f
+
+                    // 1. Synchronously commit to SharedPreferences
+                    val prefs = getSharedPreferences("PunchWidgetSettings", Context.MODE_PRIVATE)
+                    prefs.edit()
+                        .putString("widget_color", colorHex)
+                        .putFloat("widget_transparency", transparencyNum)
+                        .putFloat("widget_blur", blurNum)
+                        .commit()
+
+                    // 2. Authoritative Glance State Update on IO dispatcher
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val manager = GlanceAppWidgetManager(applicationContext)
+                            val glanceIds = manager.getGlanceIds(PunchWidget::class.java)
+                            for (glanceId in glanceIds) {
+                                updateAppWidgetState(applicationContext, glanceId) { glancePrefs ->
+                                    glancePrefs[stringPreferencesKey("widget_color")] = colorHex
+                                    glancePrefs[floatPreferencesKey("widget_transparency")] = transparencyNum
+                                    glancePrefs[floatPreferencesKey("widget_blur")] = blurNum
+                                }
+                                PunchWidget().update(applicationContext, glanceId)
+                            }
+                            Log.d(TAG, "Glance state updated for ${glanceIds.size} widgets")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Glance state update error: ${e.message}")
+                            try {
+                                PunchWidget().updateAll(applicationContext)
+                            } catch (e2: Exception) {
+                                Log.e(TAG, "updateAll fallback error: ${e2.message}")
+                            }
+                        }
+                    }
+                    result.success(true)
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+
+        devMethodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEV_CHANNEL)
+        devMethodChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isDeveloperModeEnabled" -> {
+                    try {
+                        val devOptions = Settings.Global.getInt(
+                            contentResolver,
+                            Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
+                            0
+                        ) != 0
+                        val adb = Settings.Global.getInt(
+                            contentResolver,
+                            Settings.Global.ADB_ENABLED,
+                            0
+                        ) != 0
+                        result.success(devOptions || adb)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error checking developer mode: ${e.message}", e)
+                        result.success(false)
+                    }
+                }
+                "openDeveloperSettings" -> {
+                    try {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val fallbackIntent = Intent(Settings.ACTION_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(fallbackIntent)
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            Log.e(TAG, "Error opening settings: ${e2.message}", e2)
+                            result.success(false)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
     }
@@ -69,4 +167,4 @@ class MainActivity : FlutterActivity() {
             Log.d(TAG, "handleIntent: intent.action cleared")
         }
     }
-}
+}

@@ -10,9 +10,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:tax_hrm/api/documentapi.dart';
 import 'package:tax_hrm/api/employeapi.dart';
 import 'package:tax_hrm/api/master_api.dart';
 import 'package:tax_hrm/models/address/citylist_model.dart';
+import 'package:tax_hrm/models/documentsclass/showdocuments.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/models/address/pincode_model.dart';
 import 'package:tax_hrm/models/address/statelist_model.dart';
 import 'package:tax_hrm/models/customeclass/simpleclass.dart';
@@ -60,6 +63,20 @@ class EmployeeMasterProvider extends ChangeNotifier {
   int expandedIndex = -1;
   bool showserch = false;
   late TabController tabController;
+
+  // Face Registration Cache for Employee Master
+  final Map<int, DocumentViews?> _employeeFaceDocs = {};
+  final Map<int, bool> _employeeFaceLoading = {};
+
+  DocumentViews? getEmployeeFaceDoc(int empId) => _employeeFaceDocs[empId];
+  bool isEmployeeFaceLoading(int empId) => _employeeFaceLoading[empId] ?? false;
+  bool isFaceRegistrationChecked(int empId) => _employeeFaceDocs.containsKey(empId);
+
+  void clearFaceDocCache() {
+    _employeeFaceDocs.clear();
+    _employeeFaceLoading.clear();
+    notifyListeners();
+  }
 
   final ImagePicker _picker = ImagePicker();
 
@@ -203,6 +220,81 @@ class EmployeeMasterProvider extends ChangeNotifier {
     });
   }
 
+  //-------------Get employee face registration document using faceReg category--------------------//
+  Future<DocumentViews?> fetchEmployeeFaceRegistration(int empId) async {
+    if (_employeeFaceDocs.containsKey(empId)) {
+      return _employeeFaceDocs[empId];
+    }
+    _employeeFaceLoading[empId] = true;
+    notifyListeners();
+
+    try {
+      final List<DocumentViews> docs = await DocumentApis().getDocuments(empId: empId);
+      final faceDoc = docs.firstWhere(
+        (d) =>
+            (d.category?.trim().toLowerCase() == 'facereg' ||
+                d.filename?.trim().toLowerCase().contains('face_reg') == true) &&
+            (d.filename != null && d.filename!.isNotEmpty),
+        orElse: () => DocumentViews(),
+      );
+
+      if (faceDoc.filename != null && faceDoc.filename!.isNotEmpty) {
+        _employeeFaceDocs[empId] = faceDoc;
+      } else {
+        _employeeFaceDocs[empId] = null;
+      }
+    } catch (e) {
+      debugPrint('[EmployeeMasterProvider] Error fetching face doc for emp $empId: $e');
+      _employeeFaceDocs[empId] = null;
+    } finally {
+      _employeeFaceLoading[empId] = false;
+      notifyListeners();
+    }
+    return _employeeFaceDocs[empId];
+  }
+
+  //-------------Delete employee face registration document and local cache--------------------//
+  Future<bool> deleteEmployeeFaceRegistration(
+    BuildContext context, {
+    required int empId,
+    required int docId,
+  }) async {
+    try {
+      _employeeFaceLoading[empId] = true;
+      notifyListeners();
+
+      await DocumentApis().deleteDocuments(deleteEmpImage: docId);
+
+      // Wipe local SQLite templates & prefs for this employee
+      await FaceRegistrationSyncService.instance.clearUserFaceRegistration(empId.toString());
+
+      // Update in-memory cache to null so UI instantly shows "Face not registered"
+      _employeeFaceDocs[empId] = null;
+
+      // Update employee models in lists
+      for (final list in [emplists, allemployes, filteredUsers, employeeList]) {
+        for (final emp in list) {
+          if (emp.id == empId) {
+            emp.faceRegisterImg = null;
+            emp.faceRegisterId = null;
+          }
+        }
+      }
+
+      _employeeFaceLoading[empId] = false;
+      notifyListeners();
+
+      showtoastmessage('Face registration deleted successfully');
+      return true;
+    } catch (e) {
+      debugPrint('[EmployeeMasterProvider] Error deleting face registration for emp $empId: $e');
+      _employeeFaceLoading[empId] = false;
+      notifyListeners();
+      showtoastmessage('Failed to delete face registration: $e');
+      return false;
+    }
+  }
+
   //-------------Delete employee list data--------------------//
   Future deleteEmployes(eid, context) async {
     setloading(true);
@@ -325,6 +417,8 @@ class EmployeeMasterProvider extends ChangeNotifier {
     showActiveOnly = true;
     showInactiveOnly = false;
     expandedIndex = -1;
+    _employeeFaceDocs.clear();
+    _employeeFaceLoading.clear();
   }
 
   void clearEmployeeForm() {
@@ -1308,6 +1402,7 @@ bool isPersonalSectionExpanded = false;
 bool isContactSectionExpanded = false;
 bool isEducationSectionExpanded = false;
 bool isBankSectionExpanded = false;
+bool isFaceSectionExpanded = true;
 
 // Add these methods
 void toggleAccountSection() {
@@ -1332,6 +1427,11 @@ void toggleEducationSection() {
 
 void toggleBankSection() {
   isBankSectionExpanded = !isBankSectionExpanded;
+  notifyListeners();
+}
+
+void toggleFaceSection() {
+  isFaceSectionExpanded = !isFaceSectionExpanded;
   notifyListeners();
 }
 }

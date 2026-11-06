@@ -224,6 +224,8 @@ class PermissionDialogWidget extends StatelessWidget {
       displayTypes.remove(PermissionType.foregroundLocation);
     }
 
+    final bool isNotificationOnly = types.length == 1 && types.first == PermissionType.notification;
+
     return await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -239,11 +241,15 @@ class PermissionDialogWidget extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.security, color: ColorConst.themeColor, size: 28),
+                  Icon(
+                    isNotificationOnly ? Icons.notifications_active : Icons.security,
+                    color: ColorConst.themeColor,
+                    size: 28,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Permissions Required',
+                      isNotificationOnly ? 'Enable Notifications' : 'Permissions Required',
                       style: TextStyle(
                         fontWeight: FontWeight.bold, 
                         fontSize: 18,
@@ -255,7 +261,9 @@ class PermissionDialogWidget extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'The following permissions are required to use the selfie punch feature:',
+                isNotificationOnly
+                    ? 'Allow notifications to receive shift alerts, attendance reminders, and important updates.'
+                    : 'The following permissions are required for attendance punch and location verification:',
                 style: TextStyle(
                   fontSize: 14, 
                   color: ColorConst.isDark ? Colors.white70 : Colors.black87,
@@ -269,25 +277,50 @@ class PermissionDialogWidget extends StatelessWidget {
                 );
               }),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ColorConst.themeColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: Colors.grey.shade400),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: Text(
+                        'Not Now',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: ColorConst.isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
                     ),
                   ),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ColorConst.themeColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text(
+                        'Continue',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),

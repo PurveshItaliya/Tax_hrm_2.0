@@ -158,6 +158,8 @@ class LeaveUserProvider extends ChangeNotifier {
       }
       if (isEdit && leaveData != null) {
         setEditLeaveData(leaveData, empProvider);
+      } else if (!isEdit && leaveData != null) {
+        setPrefillLeaveData(leaveData, empProvider);
       }
       setloading(false);
     } catch (e) {
@@ -165,21 +167,107 @@ class LeaveUserProvider extends ChangeNotifier {
     }
   }
 
-  // ==================== SET EDIT LEAVE DATA ====================
-  void setEditLeaveData(dynamic leaveData, dynamic empProvider) {
-    isEditMode = true;
-    editingLeaveCguid = leaveData.cguid?.toString();
-    editingLeaveId = _parseInt(leaveData.empLeaveId);
-    editingLeaveEmpId = _parseInt(leaveData.empId);
+  // ==================== SET PREFILL LEAVE DATA (e.g. from AI) ====================
+  void setPrefillLeaveData(dynamic leaveData, dynamic empProvider) {
+    isEditMode = false;
+    editingLeaveCguid = null;
+    editingLeaveId = null;
+    editingLeaveEmpId = null;
+
+    dynamic getValue(String key1, [String? key2]) {
+      if (leaveData is Map) {
+        return leaveData[key1] ?? (key2 != null ? leaveData[key2] : null);
+      }
+      try {
+        if (key1 == 'fromDate') return leaveData.fromDate;
+        if (key1 == 'toDate') return leaveData.toDate;
+        if (key1 == 'dayType') return leaveData.dayType;
+        if (key1 == 'remarks') return leaveData.remarks ?? (key2 == 'reason' ? leaveData.reason : null);
+        if (key1 == 'leaveTypeFName') return leaveData.leaveTypeFName ?? (key2 == 'leaveType' ? leaveData.leaveType : null);
+      } catch (_) {}
+      return null;
+    }
+
+    final fromVal = getValue('fromDate', 'startDate');
+    final toVal = getValue('toDate', 'endDate');
+    final dayTypeVal = getValue('dayType')?.toString().trim();
+    final reasonVal = getValue('remarks', 'reason')?.toString().trim();
+    final typeNameVal = getValue('leaveTypeFName', 'leaveType')?.toString().trim();
 
     // Parse dates
-    selectedFromDate = _parseLeaveDate(leaveData.fromDate) ?? DateTime.now();
-    selectedToDate = _parseLeaveDate(leaveData.toDate) ?? DateTime.now();
+    selectedFromDate = _parseLeaveDate(fromVal) ?? DateTime.now();
+    selectedToDate = _parseLeaveDate(toVal) ?? selectedFromDate;
 
     // Set text controllers
     txtLeaveStartDate.text = DateFormat('dd-MM-yyyy').format(selectedFromDate);
     txtLeaveEndDate.text = DateFormat('dd-MM-yyyy').format(selectedToDate);
-    txtReason.text = leaveData.remarks?.toString() ?? '';
+    txtReason.text = reasonVal ?? '';
+
+    // Set leave duration / day type (Full Day / First Half / Second Half)
+    final dtLower = (dayTypeVal ?? '').toLowerCase();
+    if (dtLower.contains('1st') || dtLower.contains('first')) {
+      selectedIndex = 1;
+    } else if (dtLower.contains('2nd') || dtLower.contains('second')) {
+      selectedIndex = 2;
+    } else {
+      selectedIndex = 0;
+    }
+
+    // Set matching leave type from API list
+    if (typeNameVal != null && typeNameVal.isNotEmpty && leaveTypeList.isNotEmpty) {
+      final query = typeNameVal.toLowerCase();
+      try {
+        selectedLeaveTypeData = leaveTypeList.firstWhere(
+          (element) =>
+              (element.leaveTypeFName ?? '').toLowerCase() == query ||
+              (element.leaveTypeFName ?? '').toLowerCase().contains(query),
+        );
+        selectedLeaveTypeName = selectedLeaveTypeData?.leaveTypeFName;
+      } catch (_) {
+        selectedLeaveTypeData = leaveTypeList.first;
+        selectedLeaveTypeName = selectedLeaveTypeData?.leaveTypeFName;
+      }
+    }
+
+    // Calculate eligible leave
+    _calculateEligibleLeave();
+
+    notifyListeners();
+  }
+
+  // ==================== SET EDIT LEAVE DATA ====================
+  void setEditLeaveData(dynamic leaveData, dynamic empProvider) {
+    isEditMode = true;
+    dynamic getValue(String key1, [String? key2]) {
+      if (leaveData is Map) {
+        return leaveData[key1] ?? (key2 != null ? leaveData[key2] : null);
+      }
+      try {
+        if (key1 == 'cguid') return leaveData.cguid;
+        if (key1 == 'empLeaveId') return leaveData.empLeaveId;
+        if (key1 == 'empId') return leaveData.empId;
+        if (key1 == 'fromDate') return leaveData.fromDate;
+        if (key1 == 'toDate') return leaveData.toDate;
+        if (key1 == 'dayType') return leaveData.dayType;
+        if (key1 == 'remarks') return leaveData.remarks;
+        if (key1 == 'leaveTypeFName') return leaveData.leaveTypeFName;
+        if (key1 == 'approveStatus') return leaveData.approveStatus;
+      } catch (_) {}
+      return null;
+    }
+
+    editingLeaveCguid = getValue('cguid')?.toString();
+    editingLeaveId = _parseInt(getValue('empLeaveId'));
+    editingLeaveEmpId = _parseInt(getValue('empId'));
+
+    // Parse dates
+    selectedFromDate = _parseLeaveDate(getValue('fromDate')) ?? DateTime.now();
+    selectedToDate = _parseLeaveDate(getValue('toDate')) ?? DateTime.now();
+
+    // Set text controllers
+    txtLeaveStartDate.text = DateFormat('dd-MM-yyyy').format(selectedFromDate);
+    txtLeaveEndDate.text = DateFormat('dd-MM-yyyy').format(selectedToDate);
+    txtReason.text = getValue('remarks')?.toString() ?? '';
 
     for (var i in empProvider.allemployes) {
       if (i.id == editingLeaveEmpId) {
@@ -187,18 +275,20 @@ class LeaveUserProvider extends ChangeNotifier {
       }
     }
 
+    final approveStatus = getValue('approveStatus');
     for (var j in leaveStatusList) {
-      if (j.keys == leaveData.approveStatus) {
+      if (j.keys == approveStatus) {
         selectedLeaveStatusName = j.values;
       }
     }
 
     // Set leave type (Full Day / Half Day)
-    if (leaveData.dayType?.toString() == 'Full Day') {
+    final dtStr = getValue('dayType')?.toString();
+    if (dtStr == 'Full Day') {
       selectedIndex = 0;
-    } else if (leaveData.dayType?.toString() == 'First Half') {
+    } else if (dtStr == 'First Half') {
       selectedIndex = 1;
-    } else if (leaveData.dayType?.toString() == 'Second Half') {
+    } else if (dtStr == 'Second Half') {
       selectedIndex = 2;
     } else {
       // Default to Full Day if unknown
@@ -206,7 +296,7 @@ class LeaveUserProvider extends ChangeNotifier {
     }
 
     // Set selected leave type
-    selectedLeaveTypeName = leaveData.leaveTypeFName?.toString();
+    selectedLeaveTypeName = getValue('leaveTypeFName')?.toString();
     if (selectedLeaveTypeName != null && leaveTypeList.isNotEmpty) {
       selectedLeaveTypeData = leaveTypeList.firstWhere(
         (element) => element.leaveTypeFName == selectedLeaveTypeName,

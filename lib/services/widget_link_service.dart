@@ -4,13 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:tax_hrm/main.dart' show globalPrefs, iosWidgetPunchLaunch, androidWidgetLaunch;
 import 'package:tax_hrm/models/fixeddat.dart';
 import 'package:tax_hrm/page/bottom_bar_screen.dart';
-import 'package:tax_hrm/page/home/selfie_punch_screen.dart';
+import 'package:tax_hrm/page/face_punch_2/face_punch.dart';
 import 'package:tax_hrm/services/fcm_token_service.dart';
 import 'package:tax_hrm/utils/navigation.dart';
 import 'package:provider/provider.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
+import 'package:tax_hrm/widgets/premium_upgrade_alert.dart';
+import 'package:tax_hrm/services/punch_widget_customization_service.dart';
+import 'package:tax_hrm/page/setting/punch_widget_instructions_screen.dart';
 
 class WidgetLinkService {
   static final WidgetLinkService instance = WidgetLinkService._internal();
@@ -20,6 +23,7 @@ class WidgetLinkService {
   bool _isNavigating = false;
 
   void initialize() {
+    PunchWidgetCustomizationService.instance.init();
     _channel.setMethodCallHandler((call) async {
       debugPrint("🟠 [WidgetDebug] MethodChannel received call: ${call.method}");
       if (call.method == 'open_punch') {
@@ -30,6 +34,15 @@ class WidgetLinkService {
           globalPrefs.remove('widgetPunchPending');
         }
         handlePunchWidgetOpen();
+      } else if (call.method == 'open_widget_settings') {
+        final context = FcmTokenService.navigatorKey.currentContext;
+        if (context != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const PunchWidgetInstructionsScreen(),
+            ),
+          );
+        }
       }
     });
 
@@ -126,13 +139,15 @@ class _WidgetPunchWrapperState extends State<WidgetPunchWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // When user presses back, go to main app shell
-        nextscreenRemove(context, const AnimatedBottomBar());
-        return false;
-      },
-      child: const SelfiePunchScreen(isFromWidget: true),
+    return AppUpgradeWrapper(
+      child: WillPopScope(
+        onWillPop: () async {
+          // When user presses back, go to main app shell
+          nextscreenRemove(context, const AnimatedBottomBar());
+          return false;
+        },
+        child: const FacePunchScreen(isFromWidget: true),
+      ),
     );
   }
 }

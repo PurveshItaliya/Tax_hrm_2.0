@@ -18,7 +18,8 @@ import 'package:tax_hrm/widigets/commanWidget.dart';
 import 'package:tax_hrm/page/leave/leave_page_design.dart';
 
 class AdminLeavePage extends StatefulWidget {
-  const AdminLeavePage({super.key});
+  final bool isShowBack;
+  const AdminLeavePage({super.key, this.isShowBack = false});
 
   @override
   State<AdminLeavePage> createState() => _AdminLeavePageState();
@@ -55,12 +56,19 @@ class _AdminLeavePageState extends State<AdminLeavePage>
     Provider.of<LanguageProvider>(context);
     return Scaffold(
       backgroundColor: ColorConst.scaffoldColor,
-      appBar: showBottomAppBar(adminLeavePage, size, centerTitles: false),
+      appBar: showBottomAppBar(
+        adminLeavePage,
+        size,
+        centerTitles: false,
+        isAdminBack: widget.isShowBack,
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: leaveAdminProvider.islodering
           ? SizedBox()
           : Padding(
-              padding: EdgeInsets.only(bottom: size.height * 0.08),
+              padding: EdgeInsets.only(
+                bottom: widget.isShowBack ? 16 : size.height * 0.08,
+              ),
               child: iconWithTextBtnDesign(
                 size,
                 applyNewLeaveString,

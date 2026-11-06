@@ -20,11 +20,14 @@ import 'package:tax_hrm/provider/department_provider.dart';
 import 'package:tax_hrm/provider/employee_master_provider.dart';
 import 'package:tax_hrm/provider/position_provider.dart';
 import 'package:tax_hrm/provider/role_provider.dart';
+import 'package:tax_hrm/models/employes/getemployes.dart';
+import 'package:tax_hrm/services/face_registration_sync_service.dart';
 import 'package:tax_hrm/utils/FixText.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/widigets/custometextfiled.dart';
 import 'package:tax_hrm/widigets/ifsc_drop_down.dart';
+import 'package:tax_hrm/widigets/toastmessage.dart';
 
 Widget buildProfileCard(Size size) {
   return Consumer<EmployeeMasterProvider>(
@@ -334,7 +337,230 @@ Widget buildExpandableSections(
           hasError: provider.hasBankError,
         ),
       ),
+      if (provider.selectedEmploye != null && provider.selectedEmploye!.id != null) ...[
+        const SizedBox(height: 16),
+        _buildFaceRegistrationSectionInForm(provider, size, context),
+      ],
     ],
+  );
+}
+
+Widget _buildFaceRegistrationSectionInForm(
+  EmployeeMasterProvider provider,
+  Size size,
+  BuildContext context,
+) {
+  final emp = provider.selectedEmploye;
+  final empId = emp?.id;
+  if (empId == null) return const SizedBox.shrink();
+
+  final isChecked = provider.isFaceRegistrationChecked(empId);
+  final isLoading = provider.isEmployeeFaceLoading(empId);
+  final faceDoc = provider.getEmployeeFaceDoc(empId);
+
+  if (!isChecked && !isLoading) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      provider.fetchEmployeeFaceRegistration(empId);
+    });
+  }
+
+  final bool isRegistered = isChecked
+      ? (faceDoc != null && (faceDoc.filename?.isNotEmpty ?? false))
+      : (emp?.faceRegisterImg != null && emp!.faceRegisterImg!.trim().isNotEmpty);
+
+  return _buildExpandableSection(
+    title: faceRegistrationString,
+    icon: Icons.face_outlined,
+    isExpanded: provider.isFaceSectionExpanded,
+    onToggle: () => provider.toggleFaceSection(),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: isLoading
+          ? Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: ColorConst.themeColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Checking status...',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            )
+          : !isRegistered
+              ? Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.amber.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.face_retouching_off_outlined,
+                        color: Colors.amber.shade900,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        faceNotRegisteredString,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            size: 20,
+                            color: Colors.green,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Face Registered',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 16,
+                          color: Colors.red,
+                        ),
+                        label: Text(
+                          deleteFaceRegistrationString,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.red.shade300),
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          _showDeleteFaceConfirmDialog(
+                            context,
+                            provider,
+                            emp!,
+                            faceDoc?.id,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+    ),
+  );
+}
+
+void _showDeleteFaceConfirmDialog(
+  BuildContext context,
+  EmployeeMasterProvider provider,
+  Employeelists emp,
+  int? docId,
+) {
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: ColorConst.red, size: 26),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Delete Face Registration',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete the registered face for ${emp.firstName ?? ''} ${emp.lastName ?? ''}?\n\nThis will remove the face image and biometric template. The employee will need to register their face again to punch attendance.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              cancelString,
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ColorConst.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              if (emp.id != null) {
+                int targetDocId = docId ?? 0;
+                if (targetDocId == 0) {
+                  final faceDoc = await provider.fetchEmployeeFaceRegistration(emp.id!);
+                  targetDocId = faceDoc?.id ?? 0;
+                }
+                if (context.mounted) {
+                  if (targetDocId != 0) {
+                    await provider.deleteEmployeeFaceRegistration(
+                      context,
+                      empId: emp.id!,
+                      docId: targetDocId,
+                    );
+                  } else {
+                    await FaceRegistrationSyncService.instance.clearUserFaceRegistration(emp.id!.toString());
+                    showtoastmessage('Face registration cleared');
+                  }
+                }
+              }
+            },
+            child: Text(
+              deleteString,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      );
+    },
   );
 }
 
