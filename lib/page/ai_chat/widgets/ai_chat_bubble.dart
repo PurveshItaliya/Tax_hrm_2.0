@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:tax_hrm/models/ai_chat_models.dart';
 import 'package:tax_hrm/page/ai_chat/widgets/leave_confirmation_card.dart';
+import 'package:tax_hrm/page/ai_chat/widgets/ai_employee_summary_card.dart';
 import 'package:tax_hrm/utils/colorsfile.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 
@@ -109,6 +110,21 @@ class AiChatBubble extends StatelessWidget {
     final maxBubbleWidth = (size.width * 0.88).clamp(280.0, 620.0);
     final isDark = ColorConst.isDark;
 
+    final action = message.actionResponse;
+    final bool hasEmployeeSummary = action != null && action.hasEmployeeSummaries;
+    final bool hasLeaveConfirmation = action != null && action.isLeaveConfirmation;
+
+    // Check if message text is a duplicate of totalSummary or default summary placeholder.
+    // If it is, suppress the top text bubble so the user sees ONLY the clean structured summary widget.
+    final bool isDuplicateSummaryText = hasEmployeeSummary &&
+        (message.text.trim().isEmpty ||
+            message.text.trim() == action.totalSummary?.trim() ||
+            message.text.trim() == action.message.trim() ||
+            message.text.startsWith('Summary for') ||
+            message.text.startsWith('Attendance summary for'));
+
+    final bool showTextBubble = !hasEmployeeSummary || !isDuplicateSummaryText;
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -152,67 +168,80 @@ class AiChatBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E20) : Colors.white,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(4),
-                        topRight: Radius.circular(16),
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
+                  // Text bubble (only shown when not a duplicate of the action card)
+                  if (showTextBubble && message.text.trim().isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
                       ),
-                      border: Border.all(
-                        color: isDark
-                            ? const Color(0xFF2C2C2E)
-                            : const Color(0xFFE5E7EB),
-                        width: 1,
+                      margin: EdgeInsets.only(
+                        bottom: (hasLeaveConfirmation || hasEmployeeSummary) ? 6 : 0,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E1E20) : Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(4),
+                          topRight: Radius.circular(16),
+                          bottomLeft: Radius.circular(16),
+                          bottomRight: Radius.circular(16),
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          message.text,
-                          style: TextStyle(
-                            fontFamily: fontInterRegularString,
-                            fontSize: 13.5,
-                            color: isDark ? Colors.white : const Color(0xFF1F2937),
-                            height: 1.4,
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF2C2C2E)
+                              : const Color(0xFFE5E7EB),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          DateFormat('hh:mm a').format(message.timestamp),
-                          style: TextStyle(
-                            fontFamily: fontInterRegularString,
-                            fontSize: 10,
-                            color: ColorConst.textgrey,
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            message.text,
+                            style: TextStyle(
+                              fontFamily: fontInterRegularString,
+                              fontSize: 13.5,
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
+                              height: 1.4,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('hh:mm a').format(message.timestamp),
+                            style: TextStyle(
+                              fontFamily: fontInterRegularString,
+                              fontSize: 10,
+                              color: ColorConst.textgrey,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
 
                   // Embedded Leave Confirmation Action Card
-                  if (message.actionResponse != null &&
-                      message.actionResponse!.isLeaveConfirmation) ...[
+                  if (hasLeaveConfirmation) ...[
                     LeaveConfirmationCard(
-                      action: message.actionResponse!,
+                      action: action,
                       onConfirm: onConfirm,
                       onEdit: onEdit,
                       onQuickSelect: onQuickSelect,
                       availableLeaveTypes: availableLeaveTypes,
+                    ),
+                  ],
+
+                  // Embedded Employee Attendance Summary Card
+                  if (hasEmployeeSummary) ...[
+                    AiEmployeeSummaryCard(
+                      action: action,
+                      timestamp: message.timestamp,
                     ),
                   ],
                 ],

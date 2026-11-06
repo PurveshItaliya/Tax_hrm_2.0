@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:tax_hrm/utils/basicdata.dart';
 
 /// Represents the payload sent to the AI webhook endpoint.
 class AiChatRequest {
@@ -6,7 +7,6 @@ class AiChatRequest {
   final String companyName;
   final int companyId;
   final String custId;
-  final int currentUserId;
   final String currentUserName;
 
   const AiChatRequest({
@@ -14,7 +14,6 @@ class AiChatRequest {
     required this.companyName,
     required this.companyId,
     required this.custId,
-    required this.currentUserId,
     required this.currentUserName,
   });
 
@@ -24,7 +23,6 @@ class AiChatRequest {
       'companyName': companyName,
       'companyId': companyId,
       'custId': custId,
-      'currentUserId': currentUserId,
       'currentUserName': currentUserName,
     };
   }
@@ -32,10 +30,123 @@ class AiChatRequest {
   String toJsonString() => jsonEncode(toJson());
 }
 
+/// Represents an employee's attendance/leave summary returned by the admin chat assistant.
+class AiEmployeeSummaryItem {
+  final String name;
+  final String? image;
+  final String summary;
+
+  const AiEmployeeSummaryItem({
+    required this.name,
+    this.image,
+    required this.summary,
+  });
+
+  factory AiEmployeeSummaryItem.fromJson(dynamic jsonInput) {
+    if (jsonInput is Map) {
+      return AiEmployeeSummaryItem(
+        name: jsonInput['name']?.toString() ?? '',
+        image: jsonInput['image']?.toString(),
+        summary: jsonInput['summary']?.toString() ?? '',
+      );
+    }
+    return AiEmployeeSummaryItem(
+      name: '',
+      summary: jsonInput?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'image': image,
+    'summary': summary,
+  };
+
+  /// Parses present count from summary string (e.g. "26 present, 1 absent...")
+  String? get presentCount {
+    final match = RegExp(r'(\d+)\s+present', caseSensitive: false).firstMatch(summary);
+    return match?.group(1);
+  }
+
+  /// Parses absent count from summary string
+  String? get absentCount {
+    final match = RegExp(r'(\d+)\s+absent', caseSensitive: false).firstMatch(summary);
+    return match?.group(1);
+  }
+
+  /// Parses paid holiday info
+  String? get holidayInfo {
+    final match = RegExp(r'Paid holiday:\s*([^;]+)', caseSensitive: false).firstMatch(summary);
+    return match?.group(1)?.trim();
+  }
+
+  /// Parses paid leave info
+  /// Safely resolves full image URL from relative path, filename, or absolute URL.
+  String? get resolvedImageUrl {
+    if (image == null) return null;
+    var raw = image!.trim();
+    if (raw.isEmpty || raw.toLowerCase() == 'null' || raw.toLowerCase() == 'undefined') {
+      return null;
+    }
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      final uri = Uri.tryParse(raw);
+      if (uri != null && uri.hasScheme && (uri.host.isNotEmpty || uri.hasAuthority)) {
+        return raw;
+      }
+      return null;
+    }
+
+    // Strip leading slashes
+    raw = raw.replaceFirst(RegExp(r'^/+'), '');
+    if (raw.isEmpty) return null;
+
+    final base = apibaseurl.endsWith('/') ? apibaseurl : '$apibaseurl/';
+    if (raw.startsWith('UploadFiles/') || raw.startsWith('HRM/Uploads/')) {
+      return '$base$raw';
+    }
+    return '${base}UploadFiles/Emp/$raw';
+  }
+
+  String? get paidLeaveInfo {
+    final match = RegExp(r'Paid leave:\s*([^;.]+)', caseSensitive: false).firstMatch(summary);
+    return match?.group(1)?.trim();
+  }
+}
+
+/// Represents token usage metrics returned by the LLM
+class AiTokenUsage {
+  final int inputTokens;
+  final int outputTokens;
+  final int totalTokens;
+
+  const AiTokenUsage({
+    this.inputTokens = 0,
+    this.outputTokens = 0,
+    this.totalTokens = 0,
+  });
+
+  factory AiTokenUsage.fromJson(dynamic jsonInput) {
+    if (jsonInput is Map) {
+      return AiTokenUsage(
+        inputTokens: (jsonInput['inputTokens'] as num?)?.toInt() ?? 0,
+        outputTokens: (jsonInput['outputTokens'] as num?)?.toInt() ?? 0,
+        totalTokens: (jsonInput['totalTokens'] as num?)?.toInt() ?? 0,
+      );
+    }
+    return const AiTokenUsage();
+  }
+
+  Map<String, dynamic> toJson() => {
+    'inputTokens': inputTokens,
+    'outputTokens': outputTokens,
+    'totalTokens': totalTokens,
+  };
+}
+
 /// Represents the structured response returned by the AI webhook.
 ///
 /// Can represent different action types, such as `CONFIRM_LEAVE_REQUEST`,
-/// standard conversational text, or future HRM workflows.
+/// employee attendance summaries, standard conversational text, or future HRM workflows.
 class AiChatActionResponse {
   final bool success;
   final String? action;
@@ -55,6 +166,9 @@ class AiChatActionResponse {
   final bool isSubmitted;
   final String? employeeName;
   final int? empId;
+  final List<AiEmployeeSummaryItem> employees;
+  final String? totalSummary;
+  final AiTokenUsage? tokenUsage;
 
   const AiChatActionResponse({
     this.success = true,
@@ -75,6 +189,9 @@ class AiChatActionResponse {
     this.isSubmitted = false,
     this.employeeName,
     this.empId,
+    this.employees = const [],
+    this.totalSummary,
+    this.tokenUsage,
   });
 
   AiChatActionResponse copyWith({
@@ -96,6 +213,9 @@ class AiChatActionResponse {
     bool? isSubmitted,
     String? employeeName,
     int? empId,
+    List<AiEmployeeSummaryItem>? employees,
+    String? totalSummary,
+    AiTokenUsage? tokenUsage,
   }) {
     return AiChatActionResponse(
       success: success ?? this.success,
@@ -116,6 +236,9 @@ class AiChatActionResponse {
       isSubmitted: isSubmitted ?? this.isSubmitted,
       employeeName: employeeName ?? this.employeeName,
       empId: empId ?? this.empId,
+      employees: employees ?? this.employees,
+      totalSummary: totalSummary ?? this.totalSummary,
+      tokenUsage: tokenUsage ?? this.tokenUsage,
     );
   }
 
@@ -125,6 +248,33 @@ class AiChatActionResponse {
     return act == 'CONFIRM_LEAVE_REQUEST' ||
         act.contains('LEAVE') ||
         requiresConfirmation;
+  }
+
+  /// True if this response contains employee attendance summaries.
+  /// Extracts date range from totalSummary if present (e.g. "(1 Oct 2026 to 31 Oct 2026)")
+  String? get dateRange {
+    if (totalSummary == null) return null;
+    final match = RegExp(r'\(([^)]*\d{4}[^)]*)\)').firstMatch(totalSummary!);
+    if (match != null) {
+      return match.group(1)?.trim();
+    }
+    final dateMatch = RegExp(r'(\d{1,2}\s+[A-Za-z]+\s+\d{4}\s+to\s+\d{1,2}\s+[A-Za-z]+\s+\d{4})').firstMatch(totalSummary!);
+    if (dateMatch != null) {
+      return dateMatch.group(1)?.trim();
+    }
+    return null;
+  }
+
+  bool get hasEmployeeSummaries =>
+      employees.isNotEmpty || (totalSummary != null && totalSummary!.trim().isNotEmpty);
+
+  /// Display text for chat bubble: message > totalSummary > default
+  String get displayMessage {
+    if (message.trim().isNotEmpty) return message;
+    if (totalSummary != null && totalSummary!.trim().isNotEmpty) return totalSummary!;
+    if (employees.isNotEmpty) return 'Attendance summary for ${employees.length} employee(s):';
+    if (success) return 'Request processed successfully.';
+    return 'Sorry, I encountered an issue processing your request.';
   }
 
   /// True if there are required fields missing from the leave prompt.
@@ -162,10 +312,19 @@ class AiChatActionResponse {
     Map<String, dynamic> json;
     if (jsonInput is String) {
       try {
-        json = jsonDecode(jsonInput) as Map<String, dynamic>;
+        final decoded = jsonDecode(jsonInput);
+        if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
+          json = Map<String, dynamic>.from(decoded.first);
+        } else if (decoded is Map) {
+          json = Map<String, dynamic>.from(decoded);
+        } else {
+          return AiChatActionResponse(message: decoded?.toString() ?? jsonInput);
+        }
       } catch (_) {
         return AiChatActionResponse(message: jsonInput);
       }
+    } else if (jsonInput is List && jsonInput.isNotEmpty && jsonInput.first is Map) {
+      json = Map<String, dynamic>.from(jsonInput.first);
     } else if (jsonInput is Map) {
       json = Map<String, dynamic>.from(jsonInput);
     } else {
@@ -215,8 +374,58 @@ class AiChatActionResponse {
       }
     }
 
+    // Parse employees list safely
+    List<AiEmployeeSummaryItem> parsedEmployees = [];
+    if (json['employees'] is List) {
+      parsedEmployees = (json['employees'] as List)
+          .map((e) => AiEmployeeSummaryItem.fromJson(e))
+          .toList();
+    }
+
+    // Parse token usage
+    AiTokenUsage? parsedTokenUsage;
+    if (json['tokenUsage'] != null) {
+      parsedTokenUsage = AiTokenUsage.fromJson(json['tokenUsage']);
+    }
+
+    final totalSum = json['totalSummary']?.toString();
+
+    // Determine message text from various standard webhook/LLM response keys:
+    // 'response', 'message', 'msg', 'text', 'reply', 'content', 'output', 'answer', 'result'
+    final rawMsg = json['response'] ??
+        json['message'] ??
+        json['msg'] ??
+        json['text'] ??
+        json['reply'] ??
+        json['content'] ??
+        json['output'] ??
+        json['answer'] ??
+        json['result'];
+
+    String msg = '';
+    if (rawMsg != null) {
+      if (rawMsg is String) {
+        msg = rawMsg.trim();
+      } else if (rawMsg is Map && rawMsg.containsKey('content')) {
+        msg = rawMsg['content']?.toString().trim() ?? '';
+      } else if (rawMsg is List) {
+        msg = rawMsg.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty).join('\n').trim();
+      } else {
+        msg = rawMsg.toString().trim();
+      }
+    }
+
+    if (msg.isEmpty && totalSum != null && totalSum.isNotEmpty) {
+      msg = totalSum;
+    }
+
+    // If explicit success boolean is missing, infer success based on having data or a response message
+    final bool isSuccess = json.containsKey('success')
+        ? (json['success'] == true)
+        : (parsedEmployees.isNotEmpty || (totalSum != null && totalSum.isNotEmpty) || msg.isNotEmpty);
+
     return AiChatActionResponse(
-      success: json['success'] == true,
+      success: isSuccess,
       action: json['action']?.toString(),
       intent: json['intent']?.toString(),
       route: json['route']?.toString(),
@@ -229,10 +438,13 @@ class AiChatActionResponse {
       dayType: json['dayType']?.toString(),
       reason: json['reason']?.toString() ?? '',
       missingFields: missing,
-      message: json['message']?.toString() ?? '',
+      message: msg,
       rawJson: json,
       employeeName: rawEmployee?.toString(),
       empId: parsedEmpId,
+      employees: parsedEmployees,
+      totalSummary: totalSum,
+      tokenUsage: parsedTokenUsage,
     );
   }
 }
@@ -277,3 +489,4 @@ class AiChatMessage {
     );
   }
 }
+

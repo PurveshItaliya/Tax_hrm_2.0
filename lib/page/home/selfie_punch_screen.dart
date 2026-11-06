@@ -128,6 +128,13 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      selfiePunchProvider.stopLiveRangeChecking();
+    }
+
     if (state == AppLifecycleState.resumed && mounted && _wentToSettings) {
       _wentToSettings = false;
       _checkPermissionsAfterSettings(selfiePunchProvider);
@@ -145,6 +152,7 @@ class _SelfiePunchScreenState extends State<SelfiePunchScreen>
 
   @override
   void dispose() {
+    selfiePunchProvider.stopLiveRangeChecking();
     selfiePunchProvider.disposeCamera();
     WidgetsBinding.instance.removeObserver(this);
 

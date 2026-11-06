@@ -1243,7 +1243,10 @@ class FaceSdkEngine {
     if (isMatch) {
       try {
         liveFaceJpg = Uint8List.fromList(img.encodeJpg(faceCrop112, quality: 90));
-        final selfie = convertCameraImageToRgb(cameraImage, effectiveRotation);
+        final rawSelfie = convertCameraImageToRgb(cameraImage, effectiveRotation);
+        final selfie = (camera.lensDirection == CameraLensDirection.front)
+            ? img.flipHorizontal(rawSelfie)
+            : rawSelfie;
         fullFrameJpg = Uint8List.fromList(img.encodeJpg(selfie, quality: 75));
       } catch (e) {
         debugPrint('[FaceSdkEngine] Error encoding selfie on match: $e');

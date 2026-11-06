@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, unused_element
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -167,15 +167,14 @@ class _AnimatedBottomBarState extends State<AnimatedBottomBar> {
                       onPunchSelected: controller.selectFab,
                     ),
                   ),
-                  // TODO: Re-enable after testing
-                  // if (!controller.fabSelected.value)
-                  //   Positioned(
-                  //     right: 18,
-                  //     bottom: (isAdmin ? 72.0 : 86.0) +
-                  //         MediaQuery.paddingOf(context).bottom +
-                  //         14.0,
-                  //     child: _buildAiChatFloatingButton(context),
-                  //   ),
+                  if (!controller.fabSelected.value)
+                    Positioned(
+                      right: 18,
+                      bottom: (isAdmin ? 72.0 : 86.0) +
+                          MediaQuery.paddingOf(context).bottom +
+                          14.0,
+                      child: _buildAiChatFloatingButton(context),
+                    ),
                 ],
               ),
             ),
@@ -335,19 +334,12 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
 
   // ── Glass style for punch button (unchanged) ───────────────────────────────
   static const LiquidGlassStyle _punchGlassStyle = LiquidGlassStyle(
-    shape: LiquidGlassShape.roundedRectangle(cornerRadius: 100, borderWidth: 0),
-    appearance: LiquidGlassAppearance(
-      color: Color(0x32FFFFFF),
-      saturation: 1.20,
-      blur: LiquidGlassBlur(sigmaX: 5, sigmaY: 5),
-    ),
-    refraction: LiquidGlassRefraction(
-      refractionType: OpticalRefraction(
-        refraction: 1.55,
-        refractionWidth: 20,
-        depth: 0.80,
-      ),
-    ),
+    shape: LiquidGlassShape.roundedRectangle(cornerRadius: 100),
+    color: Color(0x32FFFFFF),
+    saturation: 1.20,
+    blur: 5,
+    refractionIndex: 1.55,
+    refractionWidth: 20,
   );
 
   // ── Geometry helpers ───────────────────────────────────────────────────────
@@ -699,26 +691,15 @@ class _LiquidNavBarState extends State<_LiquidNavBar>
     final barGlassStyle = LiquidGlassStyle(
       shape: LiquidGlassShape.continuousRoundedRectangle(
         cornerRadius: 100,
-        borderWidth: 0,
-        borderColor: isDark
-            ? Colors.grey.withOpacity(0.05)
-            : Colors.white.withOpacity(0.50),
         clipQuality: LiquidGlassClipQuality.roundedRectangle,
       ),
-      appearance: LiquidGlassAppearance(
-        color: isDark
-            ? const Color(0x89000000) // 60% black
-            : const Color(0x5CFFFFFF), // 70% white
-        saturation: 1.8,
-        blur: const LiquidGlassBlur(sigmaX: 8, sigmaY: 8),
-      ),
-      refraction: const LiquidGlassRefraction(
-        refractionType: OpticalRefraction(
-          refraction: 1.5,
-          refractionWidth: 12,
-          depth: 1.1,
-        ),
-      ),
+      color: isDark
+          ? const Color(0x89000000) // 60% black
+          : const Color(0x5CFFFFFF), // 70% white
+      saturation: 1.8,
+      blur: 8,
+      refractionIndex: 1.5,
+      refractionWidth: 12,
     );
 
     return SizedBox(
@@ -964,47 +945,33 @@ class _GlassDropLayer extends StatelessWidget {
                     style: LiquidGlassStyle(
                       shape: LiquidGlassShape.continuousRoundedRectangle(
                         cornerRadius: 50,
-                        borderWidth: 0.1,
-                        borderColor: isDark
-                            ? Colors.white.withOpacity(0.20)
-                            : Colors.white.withOpacity(0.78),
                         clipQuality: LiquidGlassClipQuality.roundedRectangle,
                       ),
-                      appearance: LiquidGlassAppearance(
-                        color:
-                            Color.lerp(
-                              isDark
-                                  ? const Color(0x8E7E7E7E)
-                                  : const Color(0x2A1E1616), // Idle: Opaque
-                              isDark
-                                  ? const Color(0x401C1C1E)
-                                  : const Color(
-                                      0x40FFFFFF,
-                                    ), // Drag: True transparent glass
-                              lift,
-                            ) ??
-                            (isDark
-                                ? const Color(0xEE1C1C1E)
-                                : const Color(0xFAFFFFFF)),
-                        saturation:
-                            1.0 +
-                            (2.0 *
-                                lift), // 1.0 -> 3.0 (high saturation for glassy look)
-                        blur: LiquidGlassBlur(
-                          sigmaX: 40.0 * lift, // Deep blur
-                          sigmaY: 40.0 * lift,
-                        ),
-                      ),
-                      refraction: LiquidGlassRefraction(
-                        refractionType: OpticalRefraction(
-                          refraction:
-                              1.0 +
-                              (1.0 *
-                                  lift), // 1.0 -> 2.0 (strong optical distortion)
-                          refractionWidth: 32.0 * lift, // 0 -> 32
-                          depth: 1 * lift, // 0 -> 1.50 (thick glass depth)
-                        ),
-                      ),
+                      color:
+                          Color.lerp(
+                            isDark
+                                ? const Color(0x8E7E7E7E)
+                                : const Color(0x2A1E1616), // Idle: Opaque
+                            isDark
+                                ? const Color(0x401C1C1E)
+                                : const Color(
+                                    0x40FFFFFF,
+                                  ), // Drag: True transparent glass
+                            lift,
+                          ) ??
+                          (isDark
+                              ? const Color(0xEE1C1C1E)
+                              : const Color(0xFAFFFFFF)),
+                      saturation:
+                          1.0 +
+                          (2.0 *
+                              lift), // 1.0 -> 3.0 (high saturation for glassy look)
+                      blur: 40.0 * lift, // Deep blur
+                      refractionIndex:
+                          1.0 +
+                          (1.0 *
+                              lift), // 1.0 -> 2.0 (strong optical distortion)
+                      refractionWidth: 32.0 * lift, // 0 -> 32
                     ),
                     child: const SizedBox.expand(),
                   ),

@@ -180,11 +180,14 @@ class AiChatController extends GetxController {
       messages.assignAll(cached);
     } else {
       // Friendly greeting message from AI Assistant
-      final userName = (curentUser is Map && curentUser['FirstName'] != null)
-          ? curentUser['FirstName'].toString()
-          : (curentUser is Map && curentUser['UserName'] != null)
-              ? curentUser['UserName'].toString()
-              : 'there';
+      final rawUserName = curentUser is Map
+          ? (curentUser['UserName'] ??
+             curentUser['Username'] ??
+             curentUser['userName'])
+          : null;
+      final userName = (rawUserName != null && rawUserName.toString().trim().isNotEmpty)
+          ? rawUserName.toString().trim()
+          : 'there';
 
       final sampleName = employeeNames.isNotEmpty ? employeeNames.first : 'Rahul';
 
@@ -250,14 +253,13 @@ class AiChatController extends GetxController {
 
       final botMessage = AiChatMessage(
         id: 'bot_${DateTime.now().millisecondsSinceEpoch}',
-        text: finalResponse.message.isNotEmpty
-            ? finalResponse.message
-            : (finalResponse.success
-                ? 'Leave request processed.'
-                : 'Sorry, I encountered an issue processing your request.'),
+        text: finalResponse.displayMessage,
         isUser: false,
         timestamp: DateTime.now(),
-        actionResponse: finalResponse.isLeaveConfirmation ? finalResponse : null,
+        actionResponse: (finalResponse.isLeaveConfirmation ||
+                finalResponse.hasEmployeeSummaries)
+            ? finalResponse
+            : null,
       );
 
       messages.add(botMessage);

@@ -116,26 +116,23 @@ class AiChatRepository {
                 ? curentUser['custId'].toString()
                 : 'TAY967';
 
-    final int currentUserId = (curentUser is Map && curentUser['Id'] != null)
-        ? int.tryParse(curentUser['Id'].toString()) ?? 1210
-        : 1210;
+    final rawUserName = curentUser is Map
+        ? (curentUser['UserName'] ??
+           curentUser['Username'] ??
+           curentUser['userName'] ??
+           curentUser['User_Name'] ??
+           curentUser['user_name'])
+        : null;
 
-    final String currentUserName = (curentUser is Map &&
-            curentUser['UserName'] != null &&
-            curentUser['UserName'].toString().trim().isNotEmpty)
-        ? curentUser['UserName'].toString()
-        : (curentUser is Map &&
-                curentUser['FirstName'] != null &&
-                curentUser['FirstName'].toString().trim().isNotEmpty)
-            ? curentUser['FirstName'].toString()
-            : 'Swift';
+    final String currentUserName = (rawUserName != null && rawUserName.toString().trim().isNotEmpty)
+        ? rawUserName.toString().trim()
+        : '';
 
     final request = AiChatRequest(
       message: messageText,
       companyName: companyName,
       companyId: companyId,
       custId: custId,
-      currentUserId: currentUserId,
       currentUserName: currentUserName,
     );
 

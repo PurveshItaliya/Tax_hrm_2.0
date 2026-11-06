@@ -1,6 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <corners android:radius="16dp" />
-    <solid android:color="#1864EC" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 1. Transparent Frosted Liquid Glass Base (No solid color) -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="22dp" />
+            <gradient
+                android:angle="135"
+                android:startColor="#38FFFFFF"
+                android:centerColor="#20FFFFFF"
+                android:endColor="#14FFFFFF"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- 2. Subtle Dark Tint for High Contrast on Light Wallpapers -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="22dp" />
+            <solid android:color="#26000000" />
+        </shape>
+    </item>
+
+    <!-- 3. Glass Gloss Refraction Sheen (Top Edge Light Highlight) -->
+    <item
+        android:bottom="14dp"
+        android:left="2dp"
+        android:right="2dp"
+        android:top="2dp">
+        <shape android:shape="rectangle">
+            <corners
+                android:topLeftRadius="20dp"
+                android:topRightRadius="20dp"
+                android:bottomLeftRadius="8dp"
+                android:bottomRightRadius="8dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#66FFFFFF"
+                android:centerColor="#22FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- 4. Specular Glass Rim Border Stroke -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="22dp" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#99FFFFFF" />
+            <solid android:color="#00000000" />
+        </shape>
+    </item>
+</layer-list>

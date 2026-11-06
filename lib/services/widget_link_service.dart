@@ -12,6 +12,8 @@ import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/page/splash/splashPage.dart';
 import 'package:tax_hrm/provider/internetcheck.dart';
 import 'package:tax_hrm/widgets/premium_upgrade_alert.dart';
+import 'package:tax_hrm/services/punch_widget_customization_service.dart';
+import 'package:tax_hrm/page/setting/punch_widget_instructions_screen.dart';
 
 class WidgetLinkService {
   static final WidgetLinkService instance = WidgetLinkService._internal();
@@ -21,6 +23,7 @@ class WidgetLinkService {
   bool _isNavigating = false;
 
   void initialize() {
+    PunchWidgetCustomizationService.instance.init();
     _channel.setMethodCallHandler((call) async {
       debugPrint("🟠 [WidgetDebug] MethodChannel received call: ${call.method}");
       if (call.method == 'open_punch') {
@@ -31,6 +34,15 @@ class WidgetLinkService {
           globalPrefs.remove('widgetPunchPending');
         }
         handlePunchWidgetOpen();
+      } else if (call.method == 'open_widget_settings') {
+        final context = FcmTokenService.navigatorKey.currentContext;
+        if (context != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const PunchWidgetInstructionsScreen(),
+            ),
+          );
+        }
       }
     });
 

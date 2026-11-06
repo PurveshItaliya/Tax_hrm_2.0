@@ -597,6 +597,7 @@ class SelfiePunchProvider extends ChangeNotifier {
   static const double _staticSuratLng = 72.833596;
   static const double _staticBhavLat = 21.763838;
   static const double _staticBhavLng = 72.146873;
+
   static const String _staticSuratAddress =
       '601-602, Shubh square, Laldarwaja Main Rd, Patel Vadi, Patel Nagar, Surat, Gujarat 395004';
   static const String _staticBhavAddress =
@@ -729,7 +730,203 @@ class SelfiePunchProvider extends ChangeNotifier {
       _isFetchingLocation = false;
       setLocationLoader(false);
       notifyListeners();
+
+      // If office range check is required and user is currently out of range,
+      // start continuous live checking until they enter the allowed radius.
+      if (needOfficeRangeCheck && !isInRange) {
+        startLiveRangeChecking(context: context);
+      }
     }
+  }
+
+  // ── Live Continuous Range Checking ──────────────────────────────────────────
+  StreamSubscription<Position>? _livePositionSubscription;
+  Timer? _liveRangePollTimer;
+  bool _isLiveRangeChecking = false;
+  bool _isProcessingLivePosition = false;
+  DateTime? _lastLivePositionTime;
+
+  bool get isLiveRangeChecking => _isLiveRangeChecking;
+
+  /// Starts continuous live location tracking when out of range.
+  /// Automatically stops as soon as the user enters the allowed radius.
+  void startLiveRangeChecking({BuildContext? context}) async {
+    if (_isLiveRangeChecking) return;
+
+    if (isLocationBypassed || !needOfficeRangeCheck) {
+      log('[LiveRange] Range check not required (bypassed or no office location configured).');
+      return;
+    }
+
+    if (isInRange && (setlatitude != null && setlatitude!.isNotEmpty)) {
+      log('[LiveRange] Already in range ($distance <= $allowedRadius). No live check needed.');
+      return;
+    }
+
+    try {
+      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        log('[LiveRange] Location services disabled, skipping live stream.');
+        return;
+      }
+
+      final LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        log('[LiveRange] Location permission denied, skipping live stream.');
+        return;
+      }
+    } catch (_) {
+      return;
+    }
+
+    _isLiveRangeChecking = true;
+    log('[LiveRange] Starting live continuous range checking until in range...');
+
+    // 1. Immediately evaluate last known position for instant update
+    try {
+      final Position? lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null && _isLiveRangeChecking) {
+        await _handleLivePosition(lastKnown);
+        if (isInRange) return;
+      }
+    } catch (_) {}
+
+    // 2. Start fast OS location stream (distanceFilter=0 reports any small movement)
+    try {
+      final LocationSettings settings;
+      if (Platform.isAndroid) {
+        settings = AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 0,
+          intervalDuration: const Duration(milliseconds: 1500),
+        );
+      } else if (Platform.isIOS) {
+        settings = AppleSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 0,
+          activityType: ActivityType.fitness,
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: false,
+        );
+      } else {
+        settings = const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 0,
+        );
+      }
+
+      await _livePositionSubscription?.cancel();
+      _livePositionSubscription = Geolocator.getPositionStream(
+        locationSettings: settings,
+      ).listen(
+        (Position pos) {
+          if (!_isLiveRangeChecking) return;
+          _handleLivePosition(pos);
+        },
+        onError: (err) {
+          log('[LiveRange] Position stream error: $err');
+        },
+        cancelOnError: false,
+      );
+    } catch (e) {
+      log('[LiveRange] Error starting position stream: $e');
+    }
+
+    // 3. Fallback active ping timer (every 2 seconds) in case device is static or GPS stream is quiet
+    _liveRangePollTimer?.cancel();
+    _liveRangePollTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      if (!_isLiveRangeChecking) {
+        _liveRangePollTimer?.cancel();
+        _liveRangePollTimer = null;
+        return;
+      }
+
+      if (isInRange) {
+        stopLiveRangeChecking();
+        return;
+      }
+
+      // If stream emitted a position in the last 1500ms, skip active ping
+      if (_lastLivePositionTime != null &&
+          DateTime.now().difference(_lastLivePositionTime!) <
+              const Duration(milliseconds: 1500)) {
+        return;
+      }
+
+      try {
+        final Position pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 3),
+          ),
+        );
+        if (_isLiveRangeChecking) {
+          await _handleLivePosition(pos);
+        }
+      } catch (_) {
+        // Silently ignore to avoid interrupting user or UI
+      }
+    });
+  }
+
+  /// Processes live position updates: computes distance instantly and stops if in range.
+  Future<void> _handleLivePosition(Position pos) async {
+    if (_isProcessingLivePosition) return;
+    _isProcessingLivePosition = true;
+    try {
+      _lastLivePositionTime = DateTime.now();
+      setlongitude = pos.longitude.toString();
+      setlatitude = pos.latitude.toString();
+      currentPosition = pos;
+
+      // Microsecond distance recalculation without network
+      await _computeDistanceOnly(pos.longitude, pos.latitude);
+
+      if (currentLocation == null || currentLocation!.isEmpty) {
+        currentLocation = 'Office Area';
+      }
+
+      log(
+        '[LiveRange] Lat: ${pos.latitude.toStringAsFixed(6)}, Lng: ${pos.longitude.toStringAsFixed(6)} | Dist: ${distance.toStringAsFixed(1)}m | Allowed: ${allowedRadius.toStringAsFixed(0)}m | InRange: $isInRange',
+      );
+
+      // Instant UI update
+      notifyListeners();
+
+      // If reached allowed office radius, immediately stop continuous polling
+      if (isInRange) {
+        log('[LiveRange] >>> Entered office range! Distance: ${distance.toStringAsFixed(1)}m <= ${allowedRadius}m. Stopping live range checking. <<<');
+        stopLiveRangeChecking();
+        _fetchAddressSilently(pos.longitude, pos.latitude);
+      }
+    } finally {
+      _isProcessingLivePosition = false;
+    }
+  }
+
+  /// Silently resolves reverse geocoding in background without setting any loader.
+  Future<void> _fetchAddressSilently(double long, double lat) async {
+    try {
+      await getAddressFromLatLng(long, lat);
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Halts live range tracking and cancels active stream subscriptions and timers.
+  void stopLiveRangeChecking() {
+    if (!_isLiveRangeChecking &&
+        _livePositionSubscription == null &&
+        _liveRangePollTimer == null) {
+      return;
+    }
+    log('[LiveRange] Stopping live range checking.');
+    _isLiveRangeChecking = false;
+    _livePositionSubscription?.cancel();
+    _livePositionSubscription = null;
+    _liveRangePollTimer?.cancel();
+    _liveRangePollTimer = null;
+    notifyListeners();
   }
 
   // ── Address cache keys ──────────────────────────────────────────────────────
@@ -782,7 +979,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         distance = 0;
       } else {
         final bool isSurat = officeLoc.toString().toLowerCase() == 'surat';
-        allowedRadius = isSurat ? 25 : (Platform.isAndroid ? 20 : 25);
+        allowedRadius = isSurat ? 30 : (Platform.isAndroid ? 20 : 25);
         distance = Geolocator.distanceBetween(
           isSurat ? _staticSuratLat : _staticBhavLat,
           isSurat ? _staticSuratLng : _staticBhavLng,
@@ -925,7 +1122,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         distance = 0;
       } else {
         final bool isSurat = officeLoc.toString().toLowerCase() == 'surat';
-        allowedRadius = isSurat ? 25 : (Platform.isAndroid ? 20 : 25);
+        allowedRadius = isSurat ? 30 : (Platform.isAndroid ? 20 : 25);
         distance = Geolocator.distanceBetween(
           isSurat ? _staticSuratLat : _staticBhavLat,
           isSurat ? _staticSuratLng : _staticBhavLng,
@@ -1065,7 +1262,7 @@ class SelfiePunchProvider extends ChangeNotifier {
         distance = 0;
       } else {
         final bool isSurat = officeLoc.toString().toLowerCase() == 'surat';
-        allowedRadius = isSurat ? 25 : (Platform.isAndroid ? 20 : 25);
+        allowedRadius = isSurat ? 30 : (Platform.isAndroid ? 20 : 25);
         distance = Geolocator.distanceBetween(
           isSurat ? _staticSuratLat : _staticBhavLat,
           isSurat ? _staticSuratLng : _staticBhavLng,
@@ -1912,6 +2109,16 @@ class SelfiePunchProvider extends ChangeNotifier {
       );
     } else {
       log('[PunchFlow] Location already available (Lat: $setlatitude, Lng: $setlongitude, Distance: $distance). Skipping redundant fetch.');
+    }
+
+    if (needOfficeRangeCheck && distance > allowedRadius) {
+      // Quick safety check: grab last known position in case user just moved into range
+      try {
+        final Position? quickPos = await Geolocator.getLastKnownPosition();
+        if (quickPos != null) {
+          await _computeDistanceOnly(quickPos.longitude, quickPos.latitude);
+        }
+      } catch (_) {}
     }
 
     if (needOfficeRangeCheck && distance > allowedRadius) {

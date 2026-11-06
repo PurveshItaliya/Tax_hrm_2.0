@@ -65,11 +65,6 @@ class SettingProvider extends ChangeNotifier {
         isUser = false;
         showRoleRightsSelectDialog(context,size: MediaQuery.of(context).size);
       }),
-      HomeGridClass(image: punchWidgetImgString, title: punchWidgetTitleString, onTap: () {
-        nextScreen(context, const PunchWidgetInstructionsScreen(), onthenValue: (value) {
-          safeAreaBgAndTextColor(context, safeAreaBgColor: ColorConst.themeColor, safeAreaBrightness: Brightness.light);
-        },);
-      }),
       HomeGridClass(image: contactUsImgString, title: contactUsString,onTap: () {
         nextScreen(context, const ContactUsScreen(),onthenValue: (value) {
           safeAreaBgAndTextColor(context,safeAreaBgColor: ColorConst.themeColor,safeAreaBrightness: Brightness.light);

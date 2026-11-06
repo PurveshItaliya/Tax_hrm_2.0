@@ -1,3 +1,4 @@
+
 name: tax_hrm
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
@@ -16,7 +17,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.10+16
+version: 1.0.11+17
 
 environment:
   sdk: ^3.12.1
@@ -94,7 +95,7 @@ dependencies:
   cloud_firestore: 
   firebase_messaging: 
   get:
-  liquid_glass_easy:
+  liquid_glass_easy: ^5.2.0
   flutter_localizations:
     sdk: flutter
   firebase_crashlytics:
@@ -109,7 +110,7 @@ dependencies:
   flutter_exif_rotation: ^0.5.1
   sqflite: ^2.4.1
   settings_ui: ^2.0.2
-
+  google_generative_ai: ^0.4.7
 dev_dependencies:
   flutter_test:
     sdk: flutter

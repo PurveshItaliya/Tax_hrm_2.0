@@ -15,6 +15,7 @@ import 'package:tax_hrm/services/offline_punch_sync_service.dart';
 import 'package:tax_hrm/utils/app_providers.dart';
 import 'package:tax_hrm/services/remote_config_services.dart';
 import 'package:tax_hrm/services/widget_link_service.dart';
+import 'package:tax_hrm/page/setting/punch_widget_instructions_screen.dart';
 import 'package:tax_hrm/provider/splashprovider.dart';
 import 'package:tax_hrm/utils/titlesfile.dart';
 import 'package:tax_hrm/utils/reminder_service.dart';
@@ -273,6 +274,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             home: Builder(builder: (context) {
               final defaultRoute = ui.PlatformDispatcher.instance.defaultRouteName;
               debugPrint("🟠 [WidgetDebug] MaterialApp home evaluation: defaultRouteName='$defaultRoute', iosWidgetPunchLaunch=$iosWidgetPunchLaunch");
+
+              if (defaultRoute == '/punch_widget_settings') {
+                return const PunchWidgetInstructionsScreen();
+              }
               
               if (defaultRoute == '/punch_widget' || defaultRoute.contains('punch') || iosWidgetPunchLaunch) {
                 if (curentUser != null) {

@@ -56,9 +56,12 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
     String version109 = 'v1.0.9';
     String versionName109 = 'Face Verification & Performance Enhancements';
 
+    String version1011 = 'v1.0.11';
+    String versionName1011 = 'Office Punch, Widget Themes & Face Verification';
+
     versions = Platform.isAndroid 
-        ? ['All', 'v1.0.9', 'v1.0.8', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
-        : ['All', 'v1.0.9', 'v1.0.8', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
+        ? ['All', 'v1.0.11', 'v1.0.9', 'v1.0.8', 'v1.0.7', 'v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'] 
+        : ['All', 'v1.0.11', 'v1.0.9', 'v1.0.8', 'v1.0.7', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.1', 'v1.0.0'];
     _selectedVersion = 'All';
 
     releaseNotes = [
@@ -755,6 +758,49 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
           'Fixed attendance count increment issues.',
         ],
       ),
+      // --- v1.0.11 New Features Added ---
+      ReleaseNoteItem(
+        id: 44,
+        title: 'Office-Area Punch Reliability',
+        description: 'Fixed HRM office-area punch issues to ensure reliable Punch In/Out functionality.',
+        version: version1011,
+        versionName: versionName1011,
+        date: 'November 03, 2026',
+        category: 'Employee App',
+        icon: Icons.location_on_rounded,
+        bgColor: const Color(0xFF4CAF50),
+        features: [
+          'Fixed HRM office-area punch issues to ensure reliable Punch In/Out functionality.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 45,
+        title: 'Customizable Widget Themes',
+        description: 'Added multiple customizable widget themes with user-friendly theme switching options.',
+        version: version1011,
+        versionName: versionName1011,
+        date: 'November 03, 2026',
+        category: 'Both',
+        icon: Icons.widgets_rounded,
+        bgColor: const Color(0xFF1864EC),
+        features: [
+          'Added multiple customizable widget themes with user-friendly theme switching options.',
+        ],
+      ),
+      ReleaseNoteItem(
+        id: 46,
+        title: 'Face Punch & Verification Flow',
+        description: 'Fixed face punch verification issues and improved the overall punching flow.',
+        version: version1011,
+        versionName: versionName1011,
+        date: 'November 03, 2026',
+        category: 'Employee App',
+        icon: Icons.face_retouching_natural_rounded,
+        bgColor: const Color(0xFF00BCD4),
+        features: [
+          'Fixed face punch verification issues and improved the overall punching flow.',
+        ],
+      ),
     ];
 
     _animationController = AnimationController(
@@ -905,7 +951,23 @@ class _WhatsNewPageState extends State<WhatsNewPage> with SingleTickerProviderSt
 
     final List<Widget> widgets = [];
     
-    grouped.forEach((versionKey, items) {
+    // Sort versions so the newest (e.g. v1.0.11) appears at the top
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) {
+        final verA = a.split(' - ').first;
+        final verB = b.split(' - ').first;
+        final idxA = versions.indexOf(verA);
+        final idxB = versions.indexOf(verB);
+        if (idxA != -1 && idxB != -1) return idxA.compareTo(idxB);
+        return 0;
+      });
+
+    final sortedGrouped = <String, List<ReleaseNoteItem>>{};
+    for (final k in sortedKeys) {
+      sortedGrouped[k] = grouped[k]!;
+    }
+
+    sortedGrouped.forEach((versionKey, items) {
       final versionInfo = items.first;
       
       widgets.add(_buildVersionHeader(size, versionInfo.version, versionInfo.versionName, versionInfo.date));

@@ -590,6 +590,12 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
       if (!mounted) return;
 
+      // Start continuous live checking if user is currently out of office range
+      if (selfiePunchProvider.needOfficeRangeCheck &&
+          !selfiePunchProvider.isInRange) {
+        selfiePunchProvider.startLiveRangeChecking(context: context);
+      }
+
       // 3. Initialize Face SDK engine
       await _initFaceSdk();
 
@@ -653,7 +659,13 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      // Immediately stop continuous location tracking to prevent background load / battery drain
+      selfiePunchProvider.stopLiveRangeChecking();
+
       final controller = selfiePunchProvider.cameraController;
       if (controller != null && controller.value.isStreamingImages) {
         try {
@@ -701,6 +713,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
 
   @override
   void dispose() {
+    selfiePunchProvider.stopLiveRangeChecking();
     _cameraAutoRetryTimer?.cancel();
     _cameraBoxMessageTimer?.cancel();
     RemoteConfigServices.configVersion.removeListener(_onRemoteConfigUpdated);
@@ -1641,6 +1654,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
         try {
           await provider.requestLocationPermission();
           await provider.getCurrentLocation(context: context);
+          if (provider.needOfficeRangeCheck && !provider.isInRange) {
+            provider.startLiveRangeChecking(context: context);
+          }
         } finally {
           provider.setLocationLoader(false);
         }
